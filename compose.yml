@@ -1,0 +1,33 @@
+# SOLD OUT for Muse。apps/soldout に置いて、ほかのアプリとは別の compose として動かす。
+# 起動: docker compose up -d --build
+# 招待コード: docker compose run --rm soldout set-invite <コード>
+# 観戦用の合言葉 (Muse Party と同じもの): docker compose run --rm soldout set-viewer-key <合言葉>
+name: soldout
+
+services:
+  soldout:
+    build: .
+    image: soldout-for-muse:local
+    init: true
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      PUBLIC_URL: "https://soldout.museimg.party"   # 見学用リンクの頭。実際のURLに合わせる
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8951:8080"   # NPM か cloudflared からだけ届く。外には出さない
+    # ---- 同居先を守る上限 ----
+    cpus: 0.5
+    cpu_shares: 205            # 取り合いでは同居先が勝つ
+    mem_limit: 384m
+    mem_reservation: 256m
+    memswap_limit: 384m
+    pids_limit: 64
+    read_only: true
+    tmpfs: ["/tmp:size=16m"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
