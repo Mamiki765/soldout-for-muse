@@ -1,0 +1,42 @@
+a, a:active, a:visited, a:link {
+	color: #3333ff;
+}
+a:hover {
+	color: #3333ff;
+	background-color: #ffffcc;
+}
+
+body {
+	color: #003366;
+	background-color: #ffffff;
+}
+h1,h2 {
+	color: #6666ff;
+	background-color: #ddeeff;
+	width=100%;
+	border-left: 10px solid #9999ff;
+	border-bottom: 2px solid #9999ff;
+	padding-left: 10px;
+}
+h3, h4, h5 {
+	color: #6666ff;
+	border-left: 5px solid #ccccff;
+	border-bottom: 1px solid #ccccff;
+	padding-left: 10px;
+}
+dt {
+	background-color: #f8f8f8;
+	width: 100%;
+	border-left: 10px solid #999999;
+	border-bottom: 2px solid #cccccc;
+	padding-left: 10px;
+	margin: 4px;
+}
+p.display, blockquote.display, pre.display {
+	background-color: #fcfcfc;
+	border: 2px solid #dddddd;
+	padding: 3px;
+}
+code.filename_del {
+	border-bottom: 1pt solid #000000;
+}

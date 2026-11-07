@@ -1,0 +1,21 @@
+# この街設定ファイルはサンプルです
+# 詳しい書式は取扱説明書をご覧下さい
+
+name=MUTOYS中心街
+comment=MUTOYSの中心に位置する街です
+recvshopurl=http://mutoys/cgi-bin/soldout/recv-shop.cgi
+url=http://mutoys/cgi-bin/soldout/index.cgi
+password=himitsunokotoba
+group=mutoys
+myaddr=.
+position=10,20
+
+#blocksameip=on
+#allowguild=mutoysblue,mutoysred
+#denyguild=mutoysblue,mutoysred
+#allowmoney=10000
+#denymoney=10000000000
+#allowtopcount=10
+#denytopcount=10
+#allowfoundation=86400
+#denyfoundation=86400

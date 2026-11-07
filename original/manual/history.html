@@ -1,0 +1,996 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; 開発履歴</p>
+<hr /></p>
+<p>SOLD OUT スクリプトの変更履歴です。
+抜けている事もあると思いますので、あくまで参考程度にお願いします。</p>
+<pre>
+------------------------------------------------------------------------
+r111 | mu | 2004-03-18 21:22:39 +0900 (Thu, 18 Mar 2004) | 1 line
+スナップショット ver.2004-03-18
+------------------------------------------------------------------------
+r106 | mu | 2004-03-17 22:15:34 +0900 (Wed, 17 Mar 2004) | 3 lines
+使用していなかった $DT-&gt;{pagerows} を削除
+$DT-&gt;{pagerows} を $DT-&gt;{options} として再利用
+オプション設定に短縮メニューを追加
+------------------------------------------------------------------------
+r100 | mu | 2004-03-15 20:32:20 +0900 (Mon, 15 Mar 2004) | 1 line
+$IMAGE_DIR のパーミッション表記ミス修正
+------------------------------------------------------------------------
+r94 | mu | 2004-03-12 21:16:57 +0900 (Fri, 12 Mar 2004) | 1 line
+LibEditDataの数値判断文字に e を追加修正
+------------------------------------------------------------------------
+r93 | mu | 2004-03-12 21:13:05 +0900 (Fri, 12 Mar 2004) | 2 lines
+輸入用郵便削除時の作業データ($DT-&gt;{user}{_so_trtm_?})削除忘れを修正
+{user}操作をGetUserDataEx,SetUserDataEx経由に移行
+------------------------------------------------------------------------
+r64 | mu | 2004-03-10 00:58:35 +0900 (Wed, 10 Mar 2004) | 2 lines
+外出機能追加
+ギルドページレイアウト変更
+------------------------------------------------------------------------
+r21 | mu | 2004-02-29 14:37:45 +0900 (Sun, 29 Feb 2004) | 2 lines
+商品データ @@item flag に nobuy(購入不可) を追加
+禁断の書を郵便送信不可に変更
+------------------------------------------------------------------------
+r20 | mu | 2004-02-29 13:57:27 +0900 (Sun, 29 Feb 2004) | 1 line
+商品データ arg select に radio/list タイプを追加
+------------------------------------------------------------------------
+r17 | mu | 2004-02-28 21:28:21 +0900 (Sat, 28 Feb 2004) | 3 lines
+掲示板管理機能追加
+空白のみの店舗名を拒否するように
+------------------------------------------------------------------------
+r14 | mu | 2004-02-26 21:18:19 +0900 (Thu, 26 Feb 2004) | 1 line
+OutErro()で多重ロックを解除していなかったのを修正
+------------------------------------------------------------------------
+■2004-02-15 (VER20040215)
+* soldout/box-edit.cgi
+郵便強制削除時の未読数増減処理を修正
+* soldout/makeitem.cgi
+funci のエラーメッセージが funcb と表示されていたのを修正
+* soldout/: _config.cgi, bbs.cgi, chat.cgi, gmsg.cgi
+井戸端/掲示板/広域掲示板にLAST-MODIFEDヘッダ出力機能を追加
+■2004-02-14
+* soldout/: _config.cgi, auto/period.cgi
+決算時にギルド未所属店舗に対してペナルティを課す機能を追加
+■2003-04-11 (VER20030411)
+* soldout/_config.cgi
+管理メニューの非数値パラメータチェック設定を追加
+* soldout/box-edit.cgi
+金額や数量が非数値の輸出品は輸入手続き出来ないよう修正
+■2003-04-10 (VER20030410)
+* soldout/: _base.cgi, _config.cgi, admin-sub2.cgi, admin.cgi, recv-shop.cgi
+VER20020728iへの修正をマージ
+・nan や inf を数値として認識しないよう判定を追加
+・_config.cgi に %QUERY_TYPE_TABLE を追加
+・@DTindexnamelist_num(店舗データの数値が入るべき項目リスト) 追加定義
+・受け入れ店舗に不正データ(NaN等)があった場合は移転拒否するように修正
+・NaN等の不正数値データの除去機能を追加
+■2003-04-06 (VER20030406)
+* soldout/: _config.cgi, main.cgi, auto/turn.cgi, inc/inc-help.cgi, inc/inc-html-owner.cgi, auto/user.cgi
+「未ログイン登録抹消期限」をプレイ期間に応じて延長する設定を追加
+* soldout/_base.cgi
+最終書込時刻をHTTPヘッダ Last-Modified として出力するように
+関数 GetTime2HTTPDate 追加
+最終ログイン(入店)時刻を出来るだけ正確にするよう修正
+* soldout/: bbs.cgi, chat.cgi, gmsg.cgi
+最終書込時刻をHTTPヘッダ Last-Modified として出力するように
+■2002-12-02 (VER20021202)
+* soldout/: box-edit.cgi, item-send.cgi, makeitem.cgi, recv-shop.cgi, showcase-edit.cgi, auto/item.cgi, inc/inc-html-box-new-item.cgi, inc/inc-html-item-send.cgi, inc/inc-html-item.cgi, inc/inc-html-trade.cgi
+商品に「陳列/送付/破棄/輸入/輸出」不可属性を追加
+* soldout/inc/inc-item-data.cgi
+売却時人気上昇率変更
+* soldout/inc/inc-item-data.cgi
+商品に属性を付加
+■2002-11-04 (VER20021104)
+* soldout/inc/inc-autoload.cgi
+_(アンダーバー)から始まる関数はAUTOLOAD対象外に変更
+* soldout/auto/: error.cgi, login.cgi, user.cgi
+入店時のパスワード認証失敗を記録して正常入店時に報告する機能を追加
+* soldout/box-edit.cgi
+(何らかのトラブルで残った)閉店済店舗への郵便を強制削除出来るように変更
+* soldout/auto/: box.cgi, write.cgi
+郵便送付先が2店舗以上同時閉店した場合に郵便が残る不具合を修正
+■2002-10-09 (VER20021009)
+* soldout/inc/inc-item-data.cgi
+「禁断の書」の成功率を変動性に
+* soldout/: _base.cgi, makeitem.cgi
+perl 5.8.0 対応(tie関連処理修正)
+■2002-09-12 (VER20020912)
+* soldout/auto/user.cgi
+EditTime() 最大持時間の補正ミスを再修正
+* soldout/move-town.cgi
+移転時の説明に「移転時間は予定であること」を明記
+* soldout/makeitem.cgi
+基本定義内容を data/item/define.cgi に出力
+* soldout/inc/inc-help.cgi
+「新装開店直後の状態」に商品データカスタマイズ内容を反映するように
+■2002-09-09
+* soldout/: move-town.cgi, recv-shop.cgi, inc/inc-item-data.cgi
+移転時間の誤差を移転時に表示/公開するように
+* soldout/auto/user.cgi
+EditTime() 最大持時間の補正ミスを修正
+■2002-09-06 (VER20020906)
+* soldout/auto/turn.cgi
+@@EVENT func が常に実行される不具合を修正
+* soldout/: _config.cgi, admin-sub2.cgi, admin.cgi, auto/login.cgi
+管理機能「マークログ」追加
+■2002-09-01 (VER20020901,VER20020901a)
+* soldout/: admin.cgi, box-edit.cgi, trade.cgi, auto/turn.cgi, inc/inc-html-box-tradein.cgi, inc/inc-version.cgi
+$MAX_ITEM とすべき部分を $MAX_ITEM-1 としていたのを修正
+* soldout/: admin.cgi, box-edit.cgi, move-town.cgi, recv-shop.cgi, trade.cgi, auto/town.cgi, inc/inc-html-box-new-item.cgi, inc/inc-html-box-tradein.cgi, inc/inc-html-trade.cgi
+$#ITEM を $MAX_ITEM に統一(perl 5.005_03 未満対策)
+sort { $ITEM[$a]-&gt;{sort} &lt;=&gt; $ITEM[$b]-&gt;{sort} } を代替処理に変更(perl 5.005_03 未満対策)
+* soldout/jump.cgi
+JumpMyGuild() がトップ店舗のギルド本拠地にジャンプしていたのを修正
+■2002-08-31
+* soldout/guild/: mutoysblue.cgi, mutoysred.cgi
+非公開パラメータ recvparam 追加
+* soldout/: _base.cgi, _config.cgi, jump.cgi
+所属ギルドへのメニューリンク表示設定を追加
+■2002-08-30 (VER20020830)
+* soldout/_config.cgi
+img CSS 修正変更
+* soldout/: _base.cgi, _config.cgi, auto/detail.cgi
+Netscape Navigator 2,3,4 では img タグ関連に CSS を使用しないように修正
+■2002-08-28 (VER20020828)
+* soldout/inc/inc-item-data.cgi
+移転時の一時パラメータを GetUserDataEx() SetUserDataEx() 経由に
+* soldout/recv-shop.cgi
+allowuserdata=none 対応
+_so_から始まるキーワードを全て受け入れるよう変更
+* soldout/inc/inc-item-data.cgi
+行商人の場合は移転時間が1/2になるように(@@FUNCSHOPIN)
+移転時間が1/2になった旨を最近の出来事(秘)に出力
+移転時に餞別をもらった旨を最近の出来事(秘)に出力
+* soldout/inc/inc-item-data.cgi
+移転時餞別がマイナスになるバグを修正(typo $NOW-TIME)
+■2002-08-25 (VER20020825)
+* soldout/inc/inc-item-data.cgi
+初期資金/持ち時間/持ち商品をカスタマイズ可能に
+移転受け入れ時刻を記録($DT-&gt;{user}利用)
+移転送り出し時に滞在日数*\5000を餞別として授与
+市場からの仕入れ時支払い額\500000に付き1枚のギフト券を授与
+* soldout/buy-s.cgi
+@@ITEM funcb 用処理修正
+@@FUNCBUY 用処理修正
+* soldout/makeitem.cgi
+簡易文法チェックを sub {} で評価するように変更
+GetFuncValue() を修正
+* soldout/recv-shop.cgi
+移転時間消費処理を変更
+$DT(M)-&gt;{_MoveTownTime}に移転時間を設定(@@FUNCSHOPIN用)
+* soldout/makeitem.cgi
+GetDefineString() 追加
+GetFuncValue() を修正
+* soldout/auto/user.cgi
+EditMoney() EditTime() を追加
+* soldout/makeitem.cgi
+@@VALUE 追加
+■2002-08-24
+* soldout/inc/inc-html-stock.cgi
+Sort subroutine didn't return single value at ./inc/inc-html-stock.cgi line 52. を回避
+■2002-08-23
+* soldout/admin.cgi
+perl バージョン表示を追加
+* soldout/_config.cgi
+$SHOP_ICON_HEADER と @TOP_COUNT_IMAGE_LIST のデフォルトを未定義に
+■2002-08-21
+* soldout/makeitem.cgi
+@@FUNCSALE 追加
+@@FUNCBUY 追加
+* soldout/auto/turn.cgi
+@@FUNCSALE 追加
+* soldout/buy-s.cgi
+市場識別コード追加($DTS-&gt;{_wholestore_})
+* soldout/buy-s.cgi
+@@FUNCBUY 追加
+* soldout/makeitem.cgi
+@@ITEM funcs 修正
+* soldout/: buy-s.cgi, makeitem.cgi
+@@ITEM funcb 追加
+* soldout/auto/turn.cgi
+売却時の人口増加計算式ミスを修正
+@@ITEM funct の処理を若干変更
+* soldout/: makeitem.cgi, auto/turn.cgi
+@@ITEM funcs 追加
+■2002-08-20
+* soldout/auto/detail.cgi
+新形式優勝勲章表示最大数の処理ミスを修正
+* soldout/auto/detail.cgi
+@TOP_COUNT_IMAGE_LIST が定義されていない場合は優勝勲章表示を以前の形式にするよう修正
+■2002-08-19
+* soldout/inc/inc-item-data.cgi
+外装工事キット(no80)を陳列棚増築取壊キットに統合
+$SHOP_ICON_HEADER が定義されていない場合はアイコン変更用の@@USEを使用できないように
+* soldout/makeitem.cgi
+@@IF の比較値に空文字(&quot;&quot;)を利用可能に
+* soldout/inc/inc-html-ranking.cgi
+$SHOP_ICON_HEADER が定義されていない場合はアイコン表示をしないよう変更
+■2002-08-17
+* soldout/: _config.cgi, box-edit.cgi, item-use.cgi, new.cgi, user.cgi, auto/log.cgi
+ユーザテキスト入力の SHIFT JIS 固定モード追加
+■2002-08-16
+* soldout/move-town.cgi
+移転時に貿易用データ $DT-&gt;{user}{_so_trtm_???} を削除するよう修正
+* soldout/recv-shop.cgi
+$DT-&gt;{user} の受け入れ処理を追加(街設定項目 allowuserdata 追加)
+* soldout/auto/town.cgi
+GetTownData()での 0 の取り扱いを修正
+* soldout/auto/user.cgi
+$DT-&gt;{user}操作用関数(GetUserDataEx,SetUserDataEx)追加
+■2002-08-15
+* soldout/new.cgi
+@@FUNCNEW 用仕様拡張
+■2002-08-12
+* soldout/: makeitem.cgi, move-town.cgi
+@@FUNCSHOPOUT 追加
+* soldout/: makeitem.cgi, recv-shop.cgi
+@@FUNCSHOPIN 追加
+■2002-08-11
+* soldout/inc/inc-item-data.cgi
+店舗アイコン変更用商品追加(no.80)
+* soldout/: makeitem.cgi, new.cgi
+@@FUNCNEW 追加
+* soldout/: makeitem.cgi, inc/inc-html-item-usemode.cgi
+@@use funci を追加
+* soldout/: item-use.cgi, makeitem.cgi, inc/inc-html-item-usemode.cgi
+@@use arg に 'select' を追加
+@@use argselect を追加
+* soldout/: _base.cgi, _config.cgi, auto/detail.cgi, inc/inc-html-ranking.cgi
+店舗アイコン機能追加
+* soldout/: _config.cgi, auto/detail.cgi
+優勝勲章表示形式変更
+■2002-08-04 (VER20020804)
+* soldout/: box-edit.cgi, trade-s.cgi, auto/box.cgi, inc/inc-html-box-tradein.cgi, inc/inc-html-box.cgi
+貿易輸入手続時に時間を消費するよう変更
+(@@FUNCINITの処理を反映させた時間消費にするため)
+■2002-07-28 (VER20020728)
+* soldout/_base.cgi
+GetTime2FormatTime 同日判定の修正
+■2002-07-17 (VER20020101x)
+* soldout/admin-sub2.cgi
+街データ表示処理修正
+* soldout/inc/inc-html-other.cgi
+スペルミス修正
+サブタイトル変更権利についての説明文修正
+* soldout/: _config.cgi, index.cgi, user.cgi, inc/inc-html-other.cgi
+サブタイトルの追加
+トップ店舗によるサブタイトルの変更機能追加
+* soldout/custom.cgi
+コマンド引数のチェック強化
+コマンドのループ処理を可能に
+■2002-07-16 (VER20020101w)
+* soldout/: _base.cgi, admin-sub2.cgi, admin.cgi, auto/town.cgi, auto/write.cgi
+街データ($DTtown)および関連処理追加
+■2002-07-08
+* soldout/: move-town.cgi, recv-shop.cgi
+ギルド無所属/職業不定時の移転条件判断を修正
+■2002-07-05 (VER20020101v)
+* soldout/: _base.cgi, _config.cgi, custom.cgi, makeitem.cgi
+カスタムページ処理(@@FUNCCUSTOM)を追加
+* soldout/: bbs.cgi, chat.cgi, gmsg.cgi, inc/inc-html-bbs.cgi, inc/inc-html-chat.cgi, inc/inc-html-gmsg.cgi, jump.cgi
+掲示板/井戸端/広域掲示板メニューの名称を_config.cgiにて設定できるように
+* soldout/: _base.cgi, _config.cgi
+掲示板/井戸端/広域掲示板メニューの名称を_config.cgiにて設定できるように
+* soldout/custom.cgi
+カスタム処理&amp;表示用ファイルを追加
+■2002-06-28
+* soldout/: box-edit.cgi, trade-s.cgi, inc/inc-html-box.cgi
+輸出入用の情報フォーマットを変更を破棄
+■2002-06-26
+* soldout/: box-edit.cgi, trade-s.cgi, inc/inc-html-box.cgi
+輸出入用の情報フォーマットを変更
+■2002-06-23 (VER20020101u)
+* soldout/move-town.cgi
+移転時に入力されたIDのチェックが不完全だったのを修正
+* soldout/item-use.cgi
+商品使用時にメッセージ(テキスト)を入力できる機能のデフォルト文字数制限(80byte)が利いていなかったのを修正
+* soldout/: _config.cgi, new.cgi
+指定されたキーワードを入力しないと新規登録できない機能を追加
+■2002-06-22 (VER20020101t)
+* soldout/inc/inc-item-data.cgi
+禁断の書のコメント入力サンプルを変更
+* soldout/: inc/inc-html-item-usemode.cgi, item-use.cgi
+商品使用時にメッセージ(テキスト)を入力できる機能に文字数制限指定を追加
+■2002-06-19 (VER20020101s)
+* soldout/auto/town.cgi
+街の位置情報にマイナスがあると距離算出が正しく出来なかったのを修正
+■2002-06-17 (VER20020101r)
+* soldout/inc/inc-item-data.cgi
+商品使用時にメッセージ(テキスト)を入力できる機能のサンプルを追加(禁断の書)
+* soldout/: inc/inc-html-item-usemode.cgi, item-use.cgi, makeitem.cgi
+商品使用時にメッセージ(テキスト)を入力できる機能を追加
+* soldout/auto/sub.cgi
+CutStr()の行末削除処理で削除すべきでないascii文字を削除していたのを修正
+■2002-06-12 (VER20020101q)
+* soldout/: index.cgi, item-use.cgi, item.cgi, auto/turn.cgi, auto/use.cgi
+customディレクトリ内のファイルが優先されていなかったのを修正
+* soldout/inc/inc-html-gmsg.cgi
+広域掲示板の発言に含まれるHTMLタグを無効化
+■2002-06-04 (VER20020101p)
+* soldout/inc/inc-item-data.cgi
+転職のススメの効果対象不整合を修正
+* soldout/inc/inc-autoload.cgi
+auto/*.cgi 以外は利用しないように変更
+* soldout/inc/inc-html-owner.cgi
+携帯端末用ギルド会費表示が売上の10%固定になっていたのを修正
+■2002-05-16 (VER20020101n,VER20020101o)
+* soldout/inc/inc-html-box.cgi
+貿易の場合店名に!が含まれていた場合に所属街名とコメントがおかしくなる不具合を修正
+貿易のコメントに含まれるHTMLタグを無効化
+* soldout/box-edit.cgi
+貿易の場合店名に!が含まれていた場合に所属街名とコメントがおかしくなる不具合を修正
+* soldout/auto/sub.cgi
+HTMLメタキャラクタエスケープ用関数追加
+* soldout/inc/inc-html-trade.cgi
+コメントに含まれるHTMLタグを無効化
+* soldout/trade.cgi
+店名に!が含まれていた場合に所属街名とコメントがおかしくなる不具合を修正
+■2002-04-18 (VER20020101m)
+* soldout/_config.cgi
+MUTOYSで例えたコメントを削除
+* soldout/: _base.cgi, _config.cgi, admin.cgi
+バックアップ設定をデフォルト固定+追加設定に変更
+* soldout/auto/guild.cgi
+ギルド補助が受けられない場合の割増引額計算を修正
+■2002-04-16 (VER20020101l)
+* soldout/_config.cgi
+広域掲示板データのバックアップ失敗を修正
+■2002-03-30 (VER20020101j,VER20020101k)
+* soldout/admin-sub.cgi
+郵便未処理数の操作で0に出来ない不具合を修正
+* soldout/: jump.cgi, inc/inc-html-gmsg.cgi
+外部広域掲示板センター所属街へのリンク方法修正(要広域掲示板センターver.2002-01-01-e)
+* soldout/: admin-sub.cgi, admin.cgi
+各店舗の郵便未処理数の修正機能追加(バグ処理用)
+■2002-03-25 (VER20020101i)
+* soldout/inc/inc-html-gmsg.cgi
+ページコントロールにカテゴリー属性が含まれていなかったのを修正
+■2002-03-21 (VER20020101h)
+* soldout/: recv-shop.cgi, move-town.cgi
+移転条件の職業関連を修正
+* soldout/: recv-shop.cgi, move-town.cgi
+移転条件に職業を追加
+■2002-03-10 (VER20020101g)
+* soldout/_config.cgi
+広域掲示板説明のカテゴリー機能対応化
+広域掲示板カテゴリーバックアップ設定
+* soldout/_base.cgi
+セッションタイムアウト時にセッションクリア
+* soldout/: inc/inc-html-gmsg.cgi, _base.cgi, gmsg.cgi
+広域掲示板レイアウト変更
+* soldout/: inc/inc-html-gmsg.cgi, _base.cgi, _config.cgi, gmsg-s.cgi, gmsg.cgi
+広域掲示板のカテゴリー機能に対応
+* soldout/inc/inc-item-data.cgi
+加工/資源タイプの作業時間補正率を50%から75%に変更
+■2002-03-03 (VER20020101f)
+* soldout/jump.cgi
+移転後の街移動時エラー修正
+* soldout/: admin.cgi, admin-sub2.cgi
+バックアップデータメール送信機能廃止
+バックアップデータダウンロード機能追加
+ユーザデータダウンロード機能追加
+* soldout/: auto/use.cgi, makeitem.cgi, inc/inc-item-data.cgi, inc/inc-html-ranking.cgi, inc/inc-html-owner.cgi, inc/inc-help.cgi
+職業システム追加
+■2002-03-02
+* soldout/_base.cgi
+店舗データ読み書き項目共通化(@DTindexnamelist)
+セッションクッキー処理修正
+* soldout/admin.cgi
+セッションクッキークリア処理修正
+* soldout/auto/use.cgi
+GetBackUrl() 修正
+* soldout/auto/write.cgi
+店舗データ読み書き項目共通化(@DTindexnamelist)
+* soldout/_base.cgi
+&lt;BODY&gt;出力修正
+* soldout/inc/inc-html-stock.cgi
+最適化(速度)
+* soldout/_base.cgi
+店舗データ tie 化および関連処理変更
+商品データ tie 化および関連処理変更/最適化
+各種処理最適化(速度)
+* soldout/_config.cgi
+umask() 追加
+* soldout/admin-sub2.cgi
+バックアップデータのメール送信機能追加(暫定)
+* soldout/admin.cgi
+エラートラップ処理追加
+セッションクッキークリア処理追加
+バックアップデータのメール送信機能追加(暫定)
+* soldout/inc/inc-error.cgi
+$JCODE_FILE 未定義時処理追加
+* soldout/: makeitem.cgi, auto/item.cgi, inc/inc-html-stock.cgi, inc/inc-html-shop-2.cgi, inc/inc-html-shop-master.cgi, inc/inc-html-shop.cgi
+商品データ tie 化および関連処理変更/最適化
+* soldout/auto/: whole.cgi, market.cgi
+商品データ tie 化および関連処理変更/最適化
+* soldout/auto/: write.cgi, user.cgi
+店舗データ tie 化および関連処理変更
+* soldout/auto/use.cgi
+GetBackUrl() 追加
+■2002-02-10 (VER20020101e)
+* soldout/inc/inc-item-data.cgi
+街タイプに時間消費1/4の「timequarter」を追加
+* soldout/: move-town.cgi, recv-shop.cgi
+移転条件にギルド所属のみ(onlyguild)とギルド無所属のみ(noguild)を追加
+■2002-02-09
+* soldout/: index.cgi, _base.cgi
+cookieセッション処理のブラッシュアップ
+■2002-02-02
+* soldout/inc/inc-html-gmsg.cgi
+広域掲示板センター経由の各街へのリンク追加
+* soldout/jump.cgi
+Refreshヘッダにて自動ジャンプするように
+* soldout/index.cgi
+cookieでセッション情報を送信できるように処理追加
+* soldout/_base.cgi
+cookieでセッション情報を送信できるように処理追加
+カスタムメニューバー用ユーザ定義関数(CustomMenuBar)処理追加
+* soldout/main.cgi
+cookie非使用時の削除処理追加
+■2002-01-29 (VER20020101d)
+* soldout/: _config.cgi, admin-sub2.cgi
+広域掲示板ログ用設定追加
+* soldout/: auto/http.cgi, _config.cgi
+他ホストとの通信時の時差許容範囲&amp;一時パスワード有効期間を設定可能に($PASSWORD_HASH_EXPIRE_TIME)
+* soldout/: bbs.cgi, chat.cgi
+ゲストで書き込み可になっていたのを修正
+* soldout/gmsg-s.cgi
+Error()の定義し忘れを修正
+* soldout/auto/period.cgi
+決算時の熟練度自然減少割合計算式の修正
+* soldout/auto/turn.cgi
+更新間隔が-1秒になる現象に対してとりあえずの対策
+* soldout/auto/log.cgi
+重複/連続投稿拒否機能が働いていないのを修正
+■2002-01-27 (VER20020101c)
+* soldout/gmsg-s.cgi
+店名表記変更
+* soldout/_base.cgi
+ブラウザのキャッシュコントロールヘッダ多少変更
+■2002-01-26
+* soldout/: makeitem.cgi, auto/error.cgi, inc/inc-error.cgi
+ブラウザのキャッシュコントロールヘッダ追加
+* soldout/: _base.cgi, admin.cgi
+ブラウザのキャッシュコントロールヘッダ追加
+広域掲示板(仮称)機能追加
+* soldout/_config.cgi
+広域掲示板(仮称)機能追加
+掲示板/井戸端の重複/連続投稿制限機能追加
+* soldout/: bbs.cgi, chat.cgi, auto/log.cgi
+掲示板/井戸端処理共通化
+重複/連続投稿制限機能追加
+* soldout/: inc/inc-html-gmsg.cgi, gmsg-s.cgi, gmsg.cgi
+広域掲示板(仮称)機能追加
+■2002-01-17 (VER20020101b)
+* soldout/inc/inc-html-box.cgi
+perl -w 「&quot;my&quot; variable ???? masks earlier declaration in same scope」を修正
+* soldout/inc/inc-item-data.cgi
+harf を half に修正(ある程度の互換性は残す)
+* soldout/inc/jcode.pl
+jcode.pl 2.13 に差し替え
+* soldout/auto/config.cgi
+各種設定ファイル(town,guild,...)でHTMLタグ使用不可に修正
+* soldout/auto/guild.cgi
+perl -w 「Use of implicit split to @_ is deprecated」を修正
+ギルド取引割引額が\0の時にギルド収支がリセットされる不具合を修正
+* soldout/auto/whole.cgi
+harf を half に修正
+* soldout/: admin-sub2.cgi, admin.cgi, index.cgi, move-town.cgi, auto/login.cgi
+perl -w 「Use of implicit split to @_ is deprecated」を修正
+* soldout/: trade-s.cgi, trade.cgi, auto/use.cgi
+perl -w 「&quot;my&quot; variable ???? masks earlier declaration in same scope」を修正
+* soldout/: chat.cgi, bbs.cgi
+掲示板/井戸端を参加者のみ使用可能とする設定が機能していないのを修正
+* soldout/_config.cgi
+harf を half に修正
+* soldout/makeitem.cgi
+harf を half に修正(ある程度の互換性は残す)
+■2002-01-14 (VER20020101a)
+* soldout/auto/user.cgi
+移転条件用のギルド表示方法追加
+* soldout/move-town.cgi
+この街に存在しないギルドが移転条件にあった場合の表示内容変更
+* soldout/recv-shop.cgi
+townに自街の設定ファイルがない場合の不具合を修正
+* soldout/: bbs.cgi, chat.cgi, _config.cgi, _base.cgi
+掲示板/井戸端を参加者のみ使用可能とする設定を追加
+■2001-12-31 (VER011111q,VER20020101)
+* soldout/inc/: inc-item-data.cgi, inc-version.cgi
+$Id$ を追加
+* soldout/: stock.cgi, trade-s.cgi, trade.cgi, user.cgi, ranking.cgi, recv-shop.cgi, shop-master.cgi, shop.cgi, showcase-edit.cgi, showcase.cgi, moneystock.cgi, move-town.cgi, new.cgi, other.cgi, port.cgi, item.cgi, jump.cgi, log.cgi, main.cgi, makeitem.cgi, menu.cgi, counter.cgi, guild.cgi, help.cgi, index.cgi, item-send.cgi, item-use.cgi, box.cgi, buy-s.cgi, buy.cgi, chat.cgi, commentlist.cgi, _config.cgi, admin-sub.cgi, admin-sub2.cgi, admin.cgi, analyze.cgi, bbs.cgi, box-edit.cgi, _base.cgi, auto/box.cgi, auto/config.cgi, auto/detail.cgi, auto/error.cgi, auto/guild.cgi, auto/http.cgi, auto/ip.cgi, auto/item.cgi, auto/lock.cgi, auto/log.cgi, auto/login.cgi, auto/market.cgi, auto/mente.cgi, auto/page.cgi, auto/pass.cgi, auto/period.cgi, auto/sub.cgi, auto/town.cgi, auto/trade.cgi, auto/turn.cgi, auto/use.cgi, auto/user.cgi, auto/whole.cgi, auto/write.cgi, inc/inc-html-stock.cgi, inc/inc-html-trade.cgi, inc/inc-item.cgi, inc/inc-html-ranking.cgi, inc/inc-html-shop-2.cgi, inc/inc-html-shop-master.cgi, inc/inc-html-shop.cgi, inc/inc-html-showcase.cgi, inc/inc-html-log.cgi, inc/inc-html-moneystock.cgi, inc/inc-html-other.cgi, inc/inc-html-owner.cgi, inc/inc-html-ownerinfo.cgi, inc/inc-html-period.cgi, inc/inc-html-guild.cgi, inc/inc-html-item-send.cgi, inc/inc-html-item-use.cgi, inc/inc-html-item-uselist.cgi, inc/inc-html-item-usemode.cgi, inc/inc-html-item.cgi, inc/inc-html-box-new-mail.cgi, inc/inc-html-box-new-money.cgi, inc/inc-html-box-tradein.cgi, inc/inc-html-box.cgi, inc/inc-html-buy.cgi, inc/inc-html-chat.cgi, inc/inc-html-commentlist.cgi, inc/inc-error.cgi, inc/inc-event.cgi, inc/inc-help.cgi, inc/inc-html-analyze.cgi, inc/inc-html-bbs.cgi, inc/inc-html-box-new-item.cgi, inc/inc-autoload.cgi
+#Revision$ を $Id$ に変更
+* soldout/inc/: inc-autoload.cgi, inc-event.cgi, inc-help.cgi, inc-html-analyze.cgi, inc-html-bbs.cgi, inc-html-box-new-item.cgi, inc-html-box-new-mail.cgi, inc-html-box-new-money.cgi, inc-html-box-tradein.cgi, inc-html-box.cgi, inc-html-buy.cgi, inc-html-chat.cgi, inc-html-commentlist.cgi, inc-html-guild.cgi, inc-html-item-send.cgi, inc-html-item-use.cgi, inc-html-item-uselist.cgi, inc-html-item-usemode.cgi, inc-html-item.cgi, inc-html-log.cgi, inc-html-moneystock.cgi, inc-html-other.cgi, inc-html-owner.cgi, inc-html-ownerinfo.cgi, inc-html-period.cgi, inc-html-ranking.cgi, inc-html-shop-2.cgi, inc-html-shop-master.cgi, inc-html-shop.cgi, inc-html-showcase.cgi, inc-html-stock.cgi, inc-html-trade.cgi, inc-item.cgi
+$Revision$ 追加
+* soldout/admin.cgi
+$Revision$ 追加
+エラーメールレポート機能追加
+* soldout/: _base.cgi, admin-sub2.cgi, analyze.cgi, box.cgi, buy-s.cgi, buy.cgi, commentlist.cgi, counter.cgi, guild.cgi, help.cgi, index.cgi, item-send.cgi, item-use.cgi, item.cgi, jump.cgi, log.cgi, main.cgi, makeitem.cgi, menu.cgi, moneystock.cgi, move-town.cgi, other.cgi, port.cgi, ranking.cgi, recv-shop.cgi, shop-master.cgi, shop.cgi, showcase-edit.cgi, showcase.cgi, stock.cgi, trade-s.cgi, trade.cgi, auto/box.cgi, auto/config.cgi, auto/detail.cgi, auto/error.cgi, auto/guild.cgi, auto/http.cgi, auto/ip.cgi, auto/item.cgi, auto/lock.cgi, auto/login.cgi, auto/market.cgi, auto/mente.cgi, auto/page.cgi, auto/pass.cgi, auto/period.cgi, auto/sub.cgi, auto/town.cgi, auto/trade.cgi, auto/turn.cgi, auto/use.cgi, auto/user.cgi, auto/whole.cgi, auto/write.cgi
+$Revision$ 追加
+* soldout/_config.cgi
+$Revision$ 追加
+エラーメールレポート機能追加
+* soldout/inc/inc-error.cgi
+$Revision$ 追加
+jcode' を jcode:: に変更
+エラーメールレポート機能追加
+* soldout/: admin-sub.cgi, bbs.cgi, box-edit.cgi, chat.cgi, new.cgi, user.cgi, auto/log.cgi
+$Revision$ 追加
+jcode' を jcode:: に変更
+■2001-12-29
+* soldout/: _config.cgi, item-use.cgi, item.cgi, auto/item.cgi, auto/turn.cgi, auto/use.cgi, inc/inc-event.cgi, inc/inc-html-box.cgi, inc/inc-item-data.cgi, inc/inc-item.cgi
+package 名の区切りを ' から :: に変更
+■2001-12-24 (VER011111p)
+* soldout/auto/turn.cgi
+決算時のエラーを修正
+■2001-12-23
+* soldout/: item-use.cgi, item.cgi
+@@USE func funcb の処理前に inc/inc-item.cgi を読み込むように変更
+* soldout/inc/inc-error.cgi
+エラーメール送信先の修正
+* soldout/inc/: inc-event.cgi, inc-item.cgi
+package item と package event で GetUserData にアクセス出来るように追加
+* soldout/: item.cgi, item-use.cgi
+@@USE func funcb で @DT $DT @ITEM $ITEM にアクセス出来るように追加
+* soldout/auto/turn.cgi
+@@FUNCTURN と @@ITEM funct で @DT $DT @ITEM $ITEM にアクセス出来るように追加
+@@EVENT startfunc endfunc func で @DT @ITEM にアクセス出来るように追加
+@@EVENT func の処理位置を修正
+* soldout/: auto/user.cgi, auto/write.cgi, _base.cgi
+$DT-&gt;{user} の仕様再変更&amp;互換モード追加
+■2001-12-22
+* soldout/: _config.cgi, inc/inc-error.cgi
+エラー時にメールで管理者へ通知する機能追加
+* soldout/makeitem.cgi
+@@DEFINE version に「&quot;$Revision: ?.? $&quot;」を使用可能に拡張
+* soldout/: _base.cgi, auto/user.cgi, auto/write.cgi
+ユーザ定義店舗データ用連想配列＆操作用関数を追加(SetUserData,GetUserData)
+* soldout/: auto/use.cgi, inc/inc-html-item-uselist.cgi
+@@USE funcb の戻り値が&quot;2&quot;の場合は「使用項目表示有り/使用不可」に
+■2001-12-21 (VER011111n,VER011111o)
+* soldout/makeitem.cgi
+入金処理用のパラメータ出力を削除していたミスを修正
+* soldout/_base.cgi
+DataRead()を高速化
+* soldout/admin.cgi
+$MYDIR,$MYNAMEを設定
+* soldout/auto/turn.cgi
+@@ITEM funct 用引数を package item のグローバル変数へ設定($TURN_ITEMNO,$TURN_ITEM,@TURN_DT)
+* soldout/inc/inc-item.cgi
+AddItem/UseItemをそれぞれ分割し @@ITEM funct で再利用可能に変更
+■2001-12-20
+* soldout/makeitem.cgi
+@@FUNCTURNを追加
+廃止パラメータの出力を停止
+FUNC????内の記述で@@ITEMNOが@@ITEMに誤判別される不具合を修正
+■2001-12-15 (VER011111l,VER011111m)
+* soldout/auto/turn.cgi
+期更新時にエラーになるバグ修正
+* soldout/auto/turn.cgi
+@@ITEM funct 処理にて所持者無しの商品処理はスキップに変更
+* soldout/auto/turn.cgi
+$TIMESPANをpackage itemで参照可能に修正
+* soldout/inc/inc-item-data.cgi
+@@ITEM funct サンプル追加
+* soldout/makeitem.cgi
+@@ITEM funct 用処理追加
+潜在的なバグ修正
+* soldout/auto/turn.cgi
+@@ITEM funct 用処理追加
+* soldout/auto/sub.cgi
+GetFileList追加
+* soldout/: _config.cgi, admin-sub2.cgi, inc/inc-event.cgi, inc/inc-item.cgi
+デバッグ用ログ機能追加
+* soldout/buy-s.cgi
+商品購入時の合計金額表示追加 Thanks &gt; 七誌さん
+■2001-12-11
+* soldout/inc/inc-item-data.cgi
+ゴミ削除
+</pre>
+<h2>●2001/12/10</h2>
+<ul>
+<li>ver.2001-11-11kとしてリリース。</li>
+<li>開発時用のデバッグ情報出力を削除した。(buy-s.cgi)</li>
+<li>商品データの街タイプ選択を_config.cgiで指定するようにした。(_config.cgi,inc/inc-item-data.cgi)</li>
+<li>{yestaday}を{yesterday}に修正した。
+(_base.cgi, move-town.cgi, new.cgi, recv-shop.cgi,
+auto/detail.cgi, auto/market.cgi, auto/period.cgi, auto/write.cgi,
+inc/inc-html-analyze.cgi, inc/inc-html-owner.cgi,
+inc/inc-html-ranking.cgi, inc/inc-html-showcase.cgi,
+inc/inc-html-stock.cgi)
+</li>
+<li>SortDTを最適化(?)した。(auto/detail.cgi)</li>
+<li>設置ディレクトリを$MYDIRに格納するようにした。(makeitem.cgi)</li>
+<li>各種funcへ複数の引数が正常に渡せない不具合を修正した。(makeitem.cgi) Thanks &gt; KITAJUさん</li>
+<li>ゲームTOPへのボタンを追加した。(admin.cgi)</li>
+</ul>
+<h2>●2001/11/30</h2>
+<ul>
+<li>ver.2001-11-11jとして差分リリース。(含ver.2001-11-11f～i)</li>
+<li>パスワード保存(cookie)の選択を復活させた。(index.cgi,main.cgi) Thanks &gt; ￥３０さん</li>
+<li>イベント発動処理時にエラーが出る場合がある不具合を修正した。(auto/turn.cgi) Thanks &gt; クイズ好きさん</li>
+</ul>
+<h2>●2001/11/26</h2>
+<ul>
+<li>ver.2001-11-11iとして差分リリース。(含ver.2001-11-11f～h)</li>
+<li>ギルド会費額が売上の10%固定になっていたのを修正した。(inc/inc-html-owner.cgi) Thanks &gt; Ｃａｆｅさん</li>
+<li>商品データの @@use func funcb のコード出力の不具合(サーバ依存)を修正した。(makeitem.cgi)</li>
+</ul>
+<h2>●2001/11/25</h2>
+<ul>
+<li>ver.2001-11-11hとして差分リリース。(含ver.2001-11-11a～g)</li>
+<li>商品データの @@event startfunc endfunc func で引数が無効になる不具合を修正した。(makeitem.cgi)</li>
+<li>商品生成時に自動的にロック/解除を行うようにした。(makeitem.cgi)</li>
+<li>商品データの @@incdlue のループ検出方法を変更した。(makeitem.cgi)</li>
+<li>商品データの @@use func funcb のコード出力を eval で囲むようにした。(makeitem.cgi)</li>
+</ul>
+<h2>●2001/11/23</h2>
+<ul>
+<li>ver.2001-11-11gとして差分リリース。(含ver.2001-11-11a～f)</li>
+<li>商品データの生成形式(data/item/event関連)を修正変更した。(makeitem.cgi,auto/turn.cgi)</li>
+<li>商品データの商品使用関連書式を拡張した。(makeitem.cgi,item.cgi,item-use.cgi)</li>
+<li>@@FUNCUSE を廃止した。(item.cgi,item-use.cgi)</li>
+<li>剣市への地図の使用効果を変更した。(新記述サンプル)(inc/inc-item-data.cgi)</li>
+<li>@@ITEM の func _local_ 不具合を修正した。Thanks &gt; カラクリさん</li>
+</ul>
+<h2>●2001/11/21</h2>
+<ul>
+<li>ver.2001-11-11fとして差分リリース。(含ver.2001-11-11a&amp;b&amp;c&amp;d&amp;e&amp;e2)</li>
+<li>商品データのイベント関連書式を拡張した。(makeitem.cgi,auto/turn.cgi)</li>
+<li>商品データの生成形式(data/item以下)を多少変更した。(makeitem.cgi,base.cgi,item.cgi,item-use.cgi)</li>
+<li>イベント発生確率が-1の(自然発動しない)ものはdata/item/event.cgiに書き出さないようにした。(makeitem.cgi)</li>
+<li>禁断の書の使用効果と「祝福」イベントを追加した。(inc/inc-item-data.cgi)</li>
+</ul>
+<h2>●2001/11/19</h2>
+<ul>
+<li>ver.2001-11-11e2として差分リリース。(含ver.2001-11-11a&amp;b&amp;c&amp;d&amp;e)</li>
+<li>商品データの[タイプ]変更方法を追加記述(inc/inc-item-data.cgi)した。(商品の内容変更はありません)</li>
+</ul>
+<h2>●2001/11/18</h2>
+<ul>
+<li>ver.2001-11-11eとして差分リリース。(含ver.2001-11-11a&amp;b&amp;c&amp;d)</li>
+<li>街移転機能が無効の場合は移転受け入れ数を表示しないようにした。(index.cgi)</li>
+<li>admin.cgiのmy(undef,...)でのエラーに対策した。 Thanks &gt; Booさん</li>
+<li>_config.cgi読み込み前に各種変数($NOW_TIME等)を初期化するようにした。</li>
+</ul>
+<h2>●2001/11/17</h2>
+<ul>
+<li>ver.2001-11-11dとして差分リリース。(含ver.2001-11-11a&amp;b&amp;c)</li>
+<li>経営入門に開発時の作業跡が残っていたので削除/修正した。</li>
+<li>経営入門へ新装開店時の順位(最下層固定)について追加した。(inc/inc-help.cgi) Thanks &gt; ニコルさん</li>
+<li>「郵便が有効な時間」が正しく設定されていなかったのを修正した。(_config.cgi) Thanks &gt; ルミコさん</li>
+<li>モバイル用の創業表示不具合を修正した。(inc/inc-html-owner.cgi) Thanks &gt; 朔月さん</li>
+<li>商品データ記述コマンド @@include の不具合(重複定義エラーが出る)を修正した。(makeitem.cgi)</li>
+</ul>
+<h2>●2001/11/14</h2>
+<ul>
+<li>ver.2001-11-11cとして差分リリース。(含ver.2001-11-11a&amp;b)</li>
+<li>商品生成の不具合（@@use の time と exptime が正常に設定されない）を修正した。</li>
+<li>商品データファイルの @@use exptime 省略時は time と同じにするようにした。</li>
+<li>街設定ファイルのサンプルの記述ミス(allowtopcountが2重記述されていた)を修正した。Thanks &gt; nonさん</li>
+</ul>
+<h2>●2001/11/11</h2>
+<ul>
+<li>ver.2001-11-11bとして差分リリース。(含ver.2001-11-11a)</li>
+<li>街設定ファイルのサンプルの記述ミス(x allowaddr o myaddr)を修正した。Thanks &gt; nonさん</li>
+<li>移転時に専門店アイコンの表示がおかしくなる場合がある不具合を修正した。Thanks &gt; nonさん</li>
+<li>@nifty等のglob関数が使用できないサーバに対応した。</li>
+</ul>
+<h2>●2001/11/11</h2>
+<ul>
+<li>ver.2001-11-11aとして差分リリース。</li>
+<li>「店長室」にてギルド会費率が10%固定表示になっていたのを修正した。Thanks &gt; celsiusさん</li>
+<li>makeitem.cgiの構文解析不具合を修正した。Thanks &gt; nonさん</li>
+<li>管理メニューのロックファイル状態表示の不具合を修正した。Thanks &gt; nonさん</li>
+</ul>
+<h2>●2001/11/11</h2>
+<ul>
+<li>ver.2001-11-11としてリリース。</li>
+<li>人気上昇幅上限を5分間で1%に制限した。Thanks &gt; うにくろさん</li>
+<li>人気自然減少計算方法を変更した。（高人気がいきなり人気0になる現象に対処）</li>
+<li>標準添付画像を全て PNG 化した。Thanks &gt; ￥３０さん</li>
+<li>イベント定義にてパラメータ変更の際、乗算の場合は int で補正するようにした。Thanks &gt; ￥３０さん</li>
+<li>商品購入および郵便にて受け取りの際、その<b>金額に応じて時間消費</b>するようにした。</li>
+<li>500エラー表示機能を組み込んだ。（要 _config.cgi 設定） Thanks &gt; ￥３０さん</li>
+<li>市場入荷数計算時の端数を切り捨てから切り上げに変更した。</li>
+<li>店舗無しの状態でも1店舗分は市場入荷するようにした。Thanks &gt; ￥３０さん、Zakさん</li>
+<li>$IMAGE_DIR/item-no-商品番号.pngが存在すれば、商品アイコンとして表示するようにした。</li>
+<li><b>店舗のサーバ間移転機能を追加</b>した。（socket利用可能なサーバのみ使用可）</li>
+<li>管理メニューを強化した。</li>
+<li>memberlist.cgi を admin-sub2.cgi に改名した。</li>
+<li> <b>ギルド機能を追加</b>した。</li>
+<li><b>各種データファイルの形式を変更</b>した。</li>
+<li>データ書き込み時のエラー処理を強化した。（トランザクション的な機構を実装した）</li>
+<li><b>スクリプト構成を大幅に変更</b>した。</li>
+<li>使用頻度の少ない関数ファイルを auto ディレクトリへ移動し、必要時に自動読み込みするようにした。</li>
+<li>管理メニューのメンテモードでは data ディレクトリへ lock ディレクトリを作成するようにした。</li>
+<li>パーミッション 655 のファイルを inc ディレクトリへ移動した。</li>
+<li>商品データと関連する独自定義関数を<b>全て inc-item-data.cgi で管理/記述</b>するようにした。</li>
+<li>上記に伴い function ディレクトリを廃止した。</li>
+<li>inc ディレクトリのファイルを読み込む際、custom ディレクトリの同名ファイルを優先で読み込むようにした。</li>
+<li>受信数リセットは受信数がマイナスになったときのみ使用可能にした。</li>
+<li><b>貿易機能を追加</b>した。（貿易センターサイトへの参加/登録が必要）</li>
+<li><b>売却税を導入</b>した。</li>
+<li>郵便関係インターフェイスを改良した。</li>
+<li>決算時刻をずらす機能の不具合を修正した。Thanks &gt; 赤星さん</li>
+<li>管理メニューにスクリプト自動設定機能を追加した。</li>
+<li>makeitem.cgiを強化した。（出力データの最適化、マクロ可、if可、include可）</li>
+<li>inc-base.cgiをいくつかに分割し、必要なときに必要なファイルを読み込むようにした。</li>
+<li><b>バックアップを別ディレクトリに</b>まとめるようにした。Thanks &gt; かっちんさん</li>
+<li>携帯端末モードの場合はメニューを別ページに分離するようにした。</li>
+<li>各種処理を高速化した。</li>
+<li>熟練度の自然減少率を0に設定できるようにした。Thanks &gt; みかつうさん</li>
+<li>郵便箱にて資金不足で受け取りできない場合に受信数表示が狂う不具合を修正。Thanks &gt; のっぽさん</li>
+<li>memberlist.cgiの重複判定を改良した。</li>
+<li>セッション情報に履歴を残すようにした。</li>
+<li>ロックの自動解除が上手く行かないのを修正した。</li>
+<li>データ消失対策として、データファイル更新処理時の成否確認を強化した。</li>
+<li><b>点数計算を「今日/昨日の売上-税金+利益」に変更</b>した。</li>
+<li>商品画像を個別表示できるようにした。</li>
+</ul>
+<h2>●2001/06/09</h2>
+<ul>
+<li> ver.2001-06-09としてリリース。</li>
+<li>人口増減関係を再調整した。</li>
+<li>一部処理系でのinc-html-owner.cgi/inc-html-ranking.cgiエラーに対策。Thanks &gt; Booさん</li>
+<li>商品購入時に現在の保有在庫数を表示するようにした。Thanks &gt; leakさん</li>
+<li>商品購入で消費した時間を表示するようにした。Thanks &gt; TKBさん</li>
+<li>商品購入/送付/資金送受信の消費時間を0に設定した場合のエラーに対応した。Thanks &gt; mesoさん</li>
+<li>管理メニューを多少改良した。</li>
+</ul>
+<h2>●2001/06/07</h2>
+<ul>
+<li> ver.2001-06-07としてリリース。</li>
+<li>店長室の「0:00徴収」を「決算時徴収」に修正した。Thanks &gt; はぜおさん</li>
+<li>最大人口指定を廃止し、人口は増えるほど増えにくくなるようにした</li>
+</ul>
+<h2>●2001/06/06</h2>
+<ul>
+<li> ver.2001-06-06としてリリース。</li>
+<li>$IMAGE_DIRを$IMAGE_URLに変更し、URL用に使うことにした。</li>
+<li>新たに$IMAGE_DIRを作り、画像ディレクトリを格納するようにした。</li>
+<li>相場の検索をさらに細かく分類分けした。Thanks &gt; 朔月さん</li>
+<li>市場で在庫が多いときに価格\0になる場合\1に補正するようにした。Thanks &gt; Rabbityさん</li>
+<li>セキュリティ強化としてadmin.cgiを任意のファイル名に変更可能にした。 </li>
+<li>店舗コメントの一覧を追加。Thanks &gt; かっちんさん</li>
+<li>メッセージ返信機能追加。Thanks &gt; けんぞーさん</li>
+<li>入金処理に「最大額自動指定」を追加。Thanks &gt; kouさん</li>
+<li>管理メニューのセッション/ゲームデータ削除処理を修正した。Thanks &gt; くろとさん SYNさん</li>
+<li>&lt;TABLE&gt;と&lt;TR&gt;の背景色を_config.cgiにてカスタマイズ可能にした。</li>
+<li>$IMAGE_DIR/item-code-商品コード.gifが存在すれば、商品アイコンとして表示するようにした。</li>
+<li>店名に使用出来る言葉を制限できるようにした。Thanks &gt; Rabbityさん</li>
+<li>全ての閉店舗をdelete.cgiへ保存するようにした。Thanks &gt; たださん</li>
+<li>郵便の商品送付と送金インターフェイスを多少改良。 </li>
+<li>商品データに使用できる伝説の勇者の名前を変更できるようにした。(_config.cgi)</li>
+<li>時間の表示フォーマットを変更した。</li>
+<li>商品使用パラメータを動的に変更できるファイルを追加した。</li>
+<li>function/inc-inti-item-function.cgi) Thanks &gt; Zelkovaさん</li>
+<li>&lt;BODY&gt;を_config.cgiにてカスタマイズ可能にした。</li>
+<li>&lt;HEAD&gt;&lt;/HEAD&gt;にHTMLを追加可能にした。</li>
+<li>商品データにて変数定義/参照が出来るようにした。(makeitem.cgi)</li>
+<li>市場からの購入に限り、消費時間を短縮(1個あたり1/2)にするようにした。</li>
+<li>商品購入および郵便にて受け取りの際、その個数に応じて時間消費するようにした。</li>
+<li>売上金、送金の受け取り等は、「入金庫」に蓄えるようにした。</li>
+<li>「入金庫」に蓄えられた資金は、「入金処理」を行わないと資金として使用できないようにした。</li>
+<li>「入金処理」では、引き出す金額に応じて時間を消費するようにした。</li>
+<li>税金は、「入金庫」の金額に応じて決定/徴収するようにした。</li>
+<li>税金/維持費は、まず資金から差し引ひき、足りなければ「入金庫」から引くようにした。</li>
+<li>商品破棄に時間がかからないようにした。</li>
+<li>郵便のメッセージ送信インターフェイスを多少改良。</li>
+<li>掲示板/井戸端の書き込み時に文字数チェックを行うようにした。オーバー時には再編集可能。</li>
+<li>最近の出来事検索時のページリンクミスを修正。Thanks &gt; SYNさん</li>
+<li>セッションデータ関係のセキュリティを強化。Thanks &gt; SYNさん</li>
+<li>同一スクリプトにて複数街設置を可能にした。</li>
+<li> ただし実現可能かどうかはスキルとサーバ次第。(_config-local-pre.cgi参照)</li>
+<li>require 'inc-html-*.cgi' の際、function ディレクトリ内の同名ファイルを優先して require するようにした。</li>
+<li>商品データの作成先を data から function 内に変更した。そのため、function のパーミッションは 777 に変更。</li>
+<li>今まで店主のみ操作可能だった各種メニューをゲスト閲覧可能にした。</li>
+<li>リクエストデータの制御コード除去処理の不具合を修正/強化。Thanks &gt; ドン・ガバチョさん</li>
+<li>経営入門の修正。Thanks &gt; たださん</li>
+<li>「市場分析メニュー」を追加した。</li>
+<li>仮想住人に対する商品売却時の人気アップ率に需要/供給を考慮するようにした。</li>
+<li>掲示板/井戸端の発言店舗名から店舗へジャンプできるようにした。</li>
+<li>購入確認の前に、陳列物のリアルタイム変化の報告をするようにした。</li>
+<li>モバイル端末にて税金表示してなかったのを修正。Thanks &gt; po-oさん</li>
+<li>相場/最近の出来事に検索機能を追加した。</li>
+<li>売り切れ時の、順位による人気ダウンを廃止し、現在の人気に応じたダウン幅を大きくした。Thanks &gt; ○○堂さん</li>
+<li>排他制御（ロック）およびゲームデータ消失対策を強化。</li>
+<li>管理権限による新装開店の場合、最大店舗数に関係なく登録できるようにした。</li>
+<li>ゲームデータファイル名等を変更した場合の、管理メニューの内部カウンタ表示の不具合を修正。Thanks &gt; ￥３０さん</li>
+<li>日単位とは別に、$BACKUP_TIME秒毎にバックアップするようにした。</li>
+<li>商品生成(取得)時の所持数オーバー破棄を市場にプラスするようにした。</li>
+<li>排他制御（ロック）方法をリネーム方式に変更。（負荷減）</li>
+<li>最近の出来事ログのフォーマット/READWRITE方法変更。（負荷減）</li>
+<li>価格順表示で同価格の場合は下位を先に表示するようにした。Thanks &gt; ○○堂さん</li>
+<li>他店の店舗順と価格順を「他店」「相場」に分割した。Thanks &gt; SYN さん</li>
+</ul>
+<h2>●2001/03/26</h2>
+<ul>
+<li> ver.2001-03-26としてリリース。</li>
+<li>新システムに合わせて経営入門を編集した。</li>
+<li>&lt;FORM&gt;関連を変更した。(J-PHONE携帯対応?) Thanks &gt; SYN さん</li>
+<li>その他細かい改良。</li>
+<li>店舗が1軒も存在しない場合のTOP表彰(0:00)の不具合を修正。</li>
+<li>ランキングにユーザー名を表示するようにした。Thanks &gt; ○○堂さん</li>
+<li>商品作成時に所持最大数を超えていた場合は「持ちきれずに破棄した」という表示をするようにした。Thanks &gt; 赤星さん</li>
+<li>熟練度がある商品は在庫が無くても倉庫に表示するようにした。</li>
+<li>税金徴収システム追加。</li>
+</ul>
+<h2>●2001/03/12</h2>
+<ul>
+<li> ver.2001-03-12としてリリース。</li>
+<li>本日の上位3人に贈られる賞品の配送先がおかしい場合があるのを修正。Thanks &gt; 戦う歯医者さん</li>
+</ul>
+<h2>●2001/03/06</h2>
+<ul>
+<li> ver.2001-03-06としてリリース。</li>
+<li>商品データと関連関数ファイルをfunctionディレクトリに移動。</li>
+<li>ある重大なバグを修正。Thanks &gt; ギガ☆スレイブさん</li>
+<li>画面レイアウトを多少変更。</li>
+<li>管理メニューのメンバーリストでホスト名取得が出来ない場合がある不具合を修正。Thanks &gt; たださん</li>
+<li>掲示板/井戸端/コメント/店名でタグを使用不可にした。Thanks &gt; ryoさん</li>
+<li>ページの切り替えの[前][次]の他に[1][2][3]という直接指定を加えた。Thanks &gt; tukinasiさん</li>
+<li>店舗数が3店未満の場合に日付更新処理がうまく行かない場合があるのを修正。</li>
+<li>画面上部のメニューにカスタムメニューを追加出来るようにした。</li>
+</ul>
+<h2>●2001/03/02</h2>
+<ul>
+<li> ver.2001-03-02としてリリース。</li>
+<li>ある重大なバグを修正。Thanks &gt; ryoさん</li>
+<li>管理メニュー/メンバーリスト表示のホスト名取得を選択できるように。</li>
+<li>連続新装開店(閉店後の再開店も含む)を拒否できるようにした。</li>
+</ul>
+<h2>●2001/02/24</h2>
+<ul>
+<li> ver.2001-02-24としてリリース。</li>
+<li>管理メニューでパスワード変更/強制閉店出来なくなっていたのを修正。(admin.cgi)</li>
+<li>管理メニューでの強制閉店を「追放」という表示にし、コメントを付けられるように変更。(admin.cgi)</li>
+<li> 閉店した店舗データをバックアップするようにした。(user.cgi)</li>
+<li>郵便の送信を携帯端末対応にしていなかったのを修正。(inc-html-box-*.html) Thanks &gt; 響(Kyou)さん</li>
+<li> 人気アップイベントが機能していなかったのを修正。(inc-event-function.cgi)</li>
+<li>_config.cgi から _config-local.cgi(ローカル設定用) を読み込むようにした。</li>
+<li>掲示板/井戸端/ルールの説明を設定できるようにした。(_config.cgi)</li>
+</ul>
+<h2>●2001/02/22</h2>
+<ul>
+<li> ver.2001-02-22としてリリース。</li>
+<li>郵便箱で時間が足りないのに送信でき、商品が減らない不具合を修正。(box-edit.cgi) Thanks &gt; あっしぃさん</li>
+<li>exptime未設定時のデフォルトをtimeと同じにするよう修正した。（makeitem.cgi) Thanks &gt; とあるハマリ人さん</li>
+<li>text/plainをtext/htmlに変更した。(makeitem.cgi,inc-base.cgi) Thanks &gt; たださん</li>
+</ul>
+<h2>●2001/02/18</h2>
+<ul>
+<li> ver.2001-02-18としてリリース。</li>
+<li> 管理メニューが使用できない不具合修正。(admin.cgi) Thanks &gt; 九島さん</li>
+<li>入店ボタンが出ない不具合修正。(index.cgi) Thanks &gt; なまずさん</li>
+<li>ターン更新時の不具合修正。(inc-turn.cgi）</li>
+<li>デバッグ処理用設定を追加。(_config.cgi）</li>
+<li>バージョン情報を別ファイルに隔離した。(version.cgi)</li>
+<li>日付更新時の処理ファイルをinc-update-functionに統合した。</li>
+<li> ・ゲームデータを最初に作成しないとゲームが出来ないように変更した。(admin.cgi&amp;inc-base.cgi)</li>
+</ul>
+<h2>●2001/02/17</h2>
+<ul>
+<li> ver.2001-02-17としてリリース。</li>
+<li>ある重大なバグを修正。Thanks &gt; ギガ☆スレイブさん</li>
+<li>「外部」の処理を変更。</li>
+<li>熟練度の自然減少ポイントを現在の熟練度に応じて。(_config.cgiにて設定）</li>
+<li>パスワード変更と閉店の際、パスワード確認することにした。</li>
+<li>売り切れ時の人気ダウンに現在のランキングを反映。（ランキング上位だと下がる幅が大きい）</li>
+<li>一部サーバでの、郵便箱で「権限がない」が常に表示される不具合に対策。(inc-box.cgiのSearchBoxIndex） Thanks &gt; 
+くずはさん</li>
+<li>仕入後、「倉庫に戻る」リンクを追加。</li>
+<li>破棄操作の個数のデフォルトを未選択状態に。</li>
+<li>破棄/郵便箱操作で宛先のデフォルトを未選択状態に。</li>
+<li>「問屋」を「市場」に改名。</li>
+<li>熟練度をアイテム使用条件に出来るようにした。(needexp)</li>
+<li>全アイテムの熟練度の合計値に上限を設定。</li>
+<li>陳列のみでの人気上下を廃止。（仮想住人による売却時のみ上下）</li>
+<li>仮想住人による売却時の人気アップ率を現在の人気に応じて増減。（人気が低いほど上がりやすい）</li>
+<li>ユーザ認証にセッションを使用。【重要な変更】</li>
+<li>管理メニュー作成。(admin.cgi)</li>
+<li>管理メニュー作成に伴い管理用上部メニュー廃止。</li>
+<li>新規店舗オープンに管理者のみ登録モードを追加。(_config.cgi)</li>
+<li>問屋で在庫全てを買うとエラーが出るミスを修正。</li>
+<li>本日/昨日の支払額を店長室にて表示。</li>
+<li>最近の出来事/倉庫の表示行数をユーザー単位で変更可能にした。</li>
+<li>倉庫で熟練度を表示するようにした。</li>
+<li>郵便箱商品送付時の金額設定で単価指定を可能にした。</li>
+<li>require にてカレントディレクトリを明記。Thanks &gt; ギガ☆スレイブさん</li>
+<li>システム組込の外部リンク作成。</li>
+<li>売り切れ時の人気ダウンを現在の人気に応じて。（人気が高い程ダウンする）</li>
+<li>人気50%未満の場合は通常の2倍の人気上昇率とする。</li>
+<li>プレイヤーによる売り切れ時にも人気ダウンするようにした。</li>
+<li>サイトランキングとユーザーランキング用の仕組みを追加。</li>
+<li>掲示板/井戸端で、閉店済み店舗名も表示するようにした。（データ仕様拡張）</li>
+<li>掲示板/井戸端のロックを独立させた。</li>
+<li>店名変更可能にした。</li>
+<li>郵便箱で48時間以上返答がないものを強制削除可能にした。</li>
+<li>「他店」に販売価格順の一覧表示モードを追加した。</li>
+<li>売り切れ時の人気ダウンを、売り切れた瞬間のみに行うよう変更。</li>
+<li> また、他プレイヤーの仕入による売り切れの場合は、人気ダウンしないようにした。</li>
+</ul>
+<h2>●2001/01/23</h2>
+<ul>
+<li> ver.2000-01-23 としてリリース。</li>
+<li>管理者モード（ログインパスワードが管理者パスワードの時）での掲示板・井戸端書き込みは「管理人」扱いにするようにした。</li>
+<li>維持費計算を、保有時間に応じて計算するようにした。</li>
+<li>陳列中の商品の維持費は、通常の1/10になるように変更。</li>
+<li>各種情報表示を改良。</li>
+<li>売れ行き率変更パラメータ追加。（_config.cgi）</li>
+<li>掲示板と井戸端を出店者以外にも閲覧可能にした。</li>
+<li>「経営入門」と称して内蔵ヘルプを装備。</li>
+<li>郵便箱で読んでも削除しても受信数が減らない不具合修正。</li>
+<li>TOP回数による勲章表示追加。</li>
+<li>問屋入荷率を厳密化。</li>
+<li>総店舗数が少ない程、問屋入荷率が上がるように設定。（設置直後の問屋在庫数が少ない事への対策）</li>
+<li>makeitem.cgiのバグ修正。</li>
+<li>日付変更時のカスタム処理を「リセット前(inc-update-function-before.cgi)」と「リセット後(inc-update-function-after.cgi)」で分けるようにした。</li>
+<li>商品送付・送金・情報料付きメッセージに時間消費を追加。</li>
+<li>従来の送金と商品送付を削除。</li>
+<li>問屋在庫が減っていくパラメータ(plusにマイナス値)を許可。</li>
+<li>その日のTOP3に賞品授与するようにした。(inc-update-function.cgi)</li>
+<li>version表記を追加。（バージョン番号はリリース日付と同意）</li>
+<li>郵便箱（手紙・送金・商品送付）システム完成。</li>
+<li>メンバーリストの変更。</li>
+<li>点数計算のミス修正。</li>
+<li>手紙・送金システム追加。（未完成）</li>
+<li>閉店処理改良。</li>
+<li>ランキングに取扱少品種類一覧と一押し商品の残り個数を表示。</li>
+<li>点数計算時、過去何日間を考慮するか指定出来るようにした。（_config.cgi）</li>
+<li>人気の自然減少率を元に戻した。</li>
+<li>URIに使用できない文字があったのを修正。（ただし互換性のために一部残す）</li>
+<li>点数計算を変更。（売上-&gt;利益に変更）</li>
+<li>支払い(paytoday,payyestaday)を店舗データに追加。</li>
+<li>アイテムデータの調整。</li>
+<li>BBS・CHATでの各発言に発言番号を付加。</li>
+<li>未陳列の棚は人気減対象外とした。</li>
+<li>人口の増減バランスをさらに変更。（増えやすく）</li>
+<li>BBS・CHATで既に存在しない発言者の表示不具合を修正。</li>
+<li>BBS・CHATでの入力文字数制限を厳密化。</li>
+<li>BBS・CHATの利用可否を_config.cgiにて設定可能にした。</li>
+<li>順位表示に前日比を追加。</li>
+<li>最近の出来事の表示フォーマットを変更。</li>
+<li>日付更新時ためのカスタム処理(inc-init-function.cgi)を追加。</li>
+<li>人口の増減バランスを変更。</li>
+<li>所持で常時有効なアイテムのためのカスタム処理(inc-init-function.cgi)を追加。</li>
+<li>在庫の破棄で問屋へリサイクルするようにした。</li>
+<li>メンバーリスト表示機能を付けた。（管理者用）</li>
+<li>チャット用の掲示板（井戸端）を新設。</li>
+<li>送金とアイテム送付の詳細報告を全員に公開するよう変更。</li>
+<li>チャットと掲示板にユーザ名を表示。</li>
+<li>人気の自然減少を多少緩和。</li>
+<li>「開店-&gt;送金-&gt;閉店」技を防止できないか考えたが断念。</li>
+<li>パスワード認証処理で大ミスやらかしてました。これ以前のスクリプトは即刻破棄お願いします。</li>
+<li>在庫の破棄処分を可能に。</li>
+<li>画像ファイルの同梱を忘れていた。</li>
+</ul>
+<h2>●2001/01/01</h2>
+<ul>
+<li> 初公開</li>
+</ul>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; 開発履歴</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

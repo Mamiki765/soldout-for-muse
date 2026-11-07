@@ -1,0 +1,142 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; <a href="customize.html">カスタマイズ目次</a> &gt; 基本的なこと</p>
+<hr /></p>
+<p>SOLD OUT カスタマイズの基本説明です。</p>
+<ul><li>
+<a href="#1">カスタマイズ時の約束</a>
+</li>
+<li>
+<a href="#2">カスタマイズ推奨</a>
+</li>
+<li>
+<a href="#3">カスタマイズによる負荷増大の可能性</a>
+</li>
+<li>
+<a href="#4"><code class="filename">soldout/custom</code>ディレクトリの使用方法</a>
+</li>
+<li>
+<a href="#5">商品&イベントの定義</a>
+</li>
+<li>
+<a href="#6">商品データ変更後の必須作業</a>
+</li>
+<li>
+<a href="#7">表示HTMLカスタマイズ</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">カスタマイズ時の約束</a></h2>
+<p>カスタマイズやそのテストはローカルサーバ(自分の PC 等)で行ってください。
+<font color="red"><strong>絶対にレンタルサーバ上でテスト作業を行わないでください。</strong></font></p>
+<p>カスタマイズのミスが原因でサーバを止めたり過負荷をかけてしまった場合、損害賠償を請求されることもありえます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">カスタマイズ推奨</a></h2>
+<p>商品やゲーム内で起こるイベント、表示 HTML 等のカスタマイズは、
+比較的簡単に行えるように配慮したつもりです。
+ご自由にカスタマイズしてください。
+むしろ、それを望んでおります。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">カスタマイズによる負荷増大の可能性</a></h2>
+<p>以下のカスタマイズ行為はサーバに与える負荷を増大させます。</p>
+<ul><li>
+商品を増やす(商品数より商品番号の最大値が重要です。空いている番号から使用してください。)
+</li>
+<li>
+@@FUNC* の記述を増やす
+</li></ul>負荷には気を付けてカスタマイズしてください。
+<p>負荷の目安として、ゲーム画面の下部に表示されている ???CPUs が参考になります。
+この数値はサーバによって異なりますので、デフォルト(無改造)の状態での数値と比較してください。
+数値が大きくなると負荷が増大しているということになります。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4"><code class="filename">soldout/custom</code>ディレクトリの使用方法</a></h2>
+<p><code class="filename">soldout/inc</code> ディレクトリのファイルの中から、
+カスタマイズしたいファイルを <code class="filename">soldout/custom</code> へコピーし、
+<code class="filename">soldout/custom</code> ディレクトリのファイルをカスタマイズしてください。</p>
+<p><code class="filename">soldout/inc</code> ディレクトリと <code class="filename">soldout/custom</code> ディレクトリに同名のファイルがあれば、
+<code class="filename">soldout/custom</code> ディレクトリのファイルが優先されますので、
+元のファイルをそのまま残してのカスタマイズが可能です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">商品&イベントの定義</a></h2>
+<p>商品/イベント/その他の処理は <code class="filename">soldout/inc/inc-item-data.cgi</code> で定義されます。</p>
+<p><code class="filename">soldout/inc/inc-item-data.cgi</code> をカスタマイズすることにより、
+オリジナルの商品や効果、イベントなどを作ることが出来ます。</p>
+<p>以下は、プログラムの知識がなくても可能です。(一例)</p>
+<ul><li>
+商品の名称や価格等の変更
+</li>
+<li>
+オリジナル商品の追加
+</li>
+<li>
+特定の商品を使って別の商品を生み出す様な効果
+</li>
+<li>
+商品の価格や売れ行きなどの情報を一時的に変化させるイベント
+</li></ul><p>以下は、プログラム(perl)の知識が必要です。(一例)</p>
+<ul><li>
+商品の特殊効果
+</li>
+<li>
+複雑なイベント処理
+</li></ul><p><code class="filename">soldout/inc/inc-item-data.cgi</code>の内容詳細は<a href="customize2.html">商品データ記述文法</a>を参照してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="6" id="6">商品データ変更後の必須作業</a></h2>
+<p><code class="filename">soldout/inc/inc-item-data.cgi</code> を変更した場合は、
+ゲーム設定初期化で行った「商品データの生成作業」を再度行ってください。 
+生成作業を行わないとゲームには反映されません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="7" id="7">表示HTMLカスタマイズ</a></h2>
+<p>表示内容のカスタマイズを考慮したファイルは <code class="filename">soldout/inc/inc-html-*.cgi</code> です。</p>
+<p>これらのファイルの「文字列部分」はご自由に変更してください。
+また、文字列以外の部分も変更して構いません。
+よりよいインターフェイスに改造してみてください。</p>
+<p>基本的な変数として以下が利用できます。</p>
+<dl><dt>
+$DT</dt>
+<dd>
+自店データ構造体リファレンス
+</dd>
+<dt>
+@DT</dt>
+<dd>
+全店舗データ構造体リファレンス配列(ランキング順)
+</dd>
+<dt>
+$DTS</dt>
+<dd>
+対象店舗データ構造体リファレンス
+</dd>
+<dt>
+@ITEM</dt>
+<dd>
+商品データ構造体リファレンス配列(添え字は商品番号1～)
+</dd>
+<dt>
+$USE</dt>
+<dd>
+商品使用データ構造体リファレンス
+</dd></dl><p>これらの詳細は<a href="customize3.html">各種データ表</a>を参照してください。</p>
+<p>また、これらのファイル以外にも HTML を出力する部分が多々あります。
+それらのほとんどが変更可能だと思いますが、変更する場合は気を付けてください。</p>
+<p>携帯端末系(i モードなど)で表示 HTML を変えたい場合は、
+$MOBILE 変数で分けてください。
+$MOBILE==0 だと通常端末、$MOBILE!=0 だと携帯端末となっています。</p>
+<p>また、<code class="filename">soldout/_base.cgi</code> 内の CheckMobile 関数に
+携帯端末に関しての追加情報がありますので、ご覧下さい。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; <a href="customize.html">カスタマイズ目次</a> &gt; 基本的なこと</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

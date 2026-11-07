@@ -1,0 +1,204 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; <a href="faq.html">よくある質問と答え(FAQ)目次</a> &gt; 設置についての FAQ</p>
+<hr /></p>
+<p>SOLD OUT の設置についての FAQ 集です。</p>
+<ul><li>
+<a href="#1">困ったときにまずすべきこと</a>
+</li>
+<li>
+<a href="#2">設置の仕方がわかりません</a>
+</li>
+<li>
+<a href="#3">500エラー(internal server error)が出る</a>
+</li>
+<li>
+<a href="#4">特定のメニュー(ファイル)だけエラーになる</a>
+</li>
+<li>
+<a href="#5">管理メニュー(admin.cgi)以外は全てエラーになる</a>
+</li>
+<li>
+<a href="#6">「設定」をする方法(場所)がわかりません</a>
+</li>
+<li>
+<a href="#7">パーミッションを説明書通りにしているのに動かない</a>
+</li>
+<li>
+<a href="#8">メンテナンスモードに移行できない</a>
+</li>
+<li>
+<a href="#9">入店はできるがすぐに「タイムアウト」と言われてしまう</a>
+</li>
+<li>
+<a href="#10">セッションディレクトリが削除できません</a>
+</li>
+<li>
+<a href="#11">商品データ生成ができない</a>
+</li>
+<li>
+<a href="#12">画像が表示されません</a>
+<ul><li>
+<a href="#13">$IMAGE_DIR の設定を変更していない場合</a>
+</li>
+<li>
+<a href="#14">$IMAGE_DIR の設定を変更している場合</a>
+</li>
+<li>
+<a href="#15">画像ファイルを別サーバへ置いている場合</a>
+</li>
+<li>
+<a href="#16">商品に対して個別画像ではなく分類画像が表示される場合</a>
+</li>
+<li>
+<a href="#17">設定を変更しても画像に変化がない場合</a>
+</li></ul></li>
+<li>
+<a href="#18">文字化けします</a>
+</li>
+<li>
+<a href="#19">データが消滅する or ランキング発表が何度も行われる</a>
+</li>
+<li>
+<a href="#20">管理パスワードについて</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">困ったときにまずすべきこと</a></h2>
+<p>説明書や MUTOYS 内の BBS 過去ログ等をよく読んでください。<strong>大抵の事は解決する</strong>と思います。</p>
+<p>言い回しが回りくどかったり、難解だったり、意味不明だったりするかもしれませんが、頑張って読んでください。
+読まずに解決する方法は<strong>ありません</strong>。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">設置の仕方がわかりません</a></h2>
+<p>設置についての説明書を読んでもその意味が分からない場合など、１からの設置方法はサポートできません。
+検索サイト等でお探し下さい。</p>
+<p>「ＣＧＩ初心者」とでも検索してみるといろいろなページが検索できるはずです。
+まずはそういうページを見て勉強してみてください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">500エラー(internal server error)が出る</a></h2>
+<p>以下の場合がほとんどです。</p>
+<ul><li>
+パーミッションの設定ミス
+</li>
+<li>
+#!/usr/local/bin/local/perl 行の書き換えミス
+</li>
+<li>
+<code class="filename">soldout/_config.cgi</code> 等の設定/記述ミス
+</li>
+<li>
+商品生成を行っていない
+</li>
+<li>
+アスキーモード(テキストモード)でアップロードしていない
+</li>
+<li>
+アップロード時の事故(要再アップロード)
+</li>
+<li>
+一部ファイル破損
+</li></ul><p>ほとんどの場合、<strong>作業ミス</strong>が原因です。
+特に、改造/改変している場合は、その変更内容を確認してください。</p>
+<p><code class="filename">soldout/_config.cgi</code> の設定で $DEBUG_PRINT を有効にすると、
+可能な限りエラーの詳細内容を表示できるようになります。
+問題解決にお役立て下さい。
+(セキュリティ上の懸念がありますので、問題を解決できたら $DEBUG_PRINT は無効にしてください。)</p>
+<p>また、 sendmail が使用できる環境の場合は $SENDMAIL の設定でエラー内容をメールで受け取ることが出来ます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">特定のメニュー(ファイル)だけエラーになる</a></h2>
+<p>例えば、「市場分析」のみエラーが出る等、特定のメニューのみエラーになる場合は、
+そのメニューに対応するファイルのみ設定が違っている可能性があります。</p>
+<p>そのメニューの URL をブラウザ等で確認し、それに対応するファイルを確認してください。
+問題箇所は「 500 エラー(internal server error)が出る」とほぼ同じだと考えられますので、
+そちらを参考に確認してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">管理メニュー(admin.cgi)以外は全てエラーになる</a></h2>
+<p>「 500 エラー(internal server error)が出る」と同じ理由です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="6" id="6">「設定」をする方法(場所)がわかりません</a></h2>
+<p>管理者パスワードや背景色等の設定は、ほとんど <code class="filename">soldout/_config.cgi</code> で行います。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="7" id="7">パーミッションを説明書通りにしているのに動かない</a></h2>
+<p>「 500 エラー(internal server error)が出る」の内容をクリアしているという前提ですが、
+設置しているサーバの説明書をよく読んでみてください。</p>
+<p>サーバによっては 755 を 705 や 700 等のように変更しなければならないという説明があるかもしれません。
+その場合は、サーバの設定に従ってください。</p>
+<p>パーミッションの<strong>意味</strong>を勉強すれば理由が分かると思います。</p>
+<p>また、意外と多いのが「思い込み」です。
+完璧に設定したつもりでも実は間違っていたというケースが多々見受けられます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="8" id="8">メンテナンスモードに移行できない</a></h2>
+<p><code class="filename">soldout/data</code> ディレクトリのパーミッション設定を見直してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="9" id="9">入店はできるがすぐに「タイムアウト」と言われてしまう</a></h2>
+<p>何らかの原因により、<code class="filename">soldout/data/session</code> ディレクトリにデータを書き込めなくなった状態です。</p>
+<p>一度管理メニューより session ディレクトリを削除し、再作成してください。
+管理メニューから削除出来ない状態であれば、 FTP ソフト等で手動削除し、管理メニューより「初期化/修復」を行ってください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="10" id="10">セッションディレクトリが削除できません</a></h2>
+<p>管理メニューからセッションディレクトリの削除を行ってください。
+サーバによっては FTP では削除できないこともあります。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="11" id="11">商品データ生成ができない</a></h2>
+<p><code class="filename">soldout/data</code> ディレクトリのパーミッションは 777 になっていますか？
+(サーバーによっては 707 、 700 、 755 、 701 等)</p>
+<p>管理者パスワードに半角英数以外の文字や記号を使っていませんか？</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="12" id="12">画像が表示されません</a></h2>
+<blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="13" id="13">$IMAGE_DIR の設定を変更していない場合</a></h3>
+<p>デフォルトの構成でファイルをアップロードしているのに表示されない場合は、サーバ側の設定だと考えられます。
+(セキュリティ強化の為、 CGI スクリプト用のディレクトリには.html や.png 等を置けない設定)</p>
+<p>画像ファイルを通常の .html が設置できる場所へ移動し、
+そのディレクトリを $IMAGE_<strong>DIR</strong> に設定し、
+URL を $IMAGE_<strong>URL</strong>
+に設定してください。
+(DIR と URL の違いに気を付けてください)</p>
+<pre class="display">
+設定例
+$IMAGE_DIR=&quot;/user/public_html/soimg&quot;;
+$IMAGE_URL=&quot;/user/soimg&quot;;
+</pre><p>DIR と URL は違う場合が多いことに注意しましょう。
+簡単に言うと、 DIR はサーバ内部の位置で、 URL は外部からアクセスするための位置です。</p>
+<p>この辺りの詳細を知りたい場合はサーバの仕組み等を勉強してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="14" id="14">$IMAGE_DIR の設定を変更している場合</a></h3>
+<p>そのディレクトリのファイルがブラウザからアクセス可能かどうか調べてください。
+(http://...../soldout/image/item-no-1.png 等)</p>
+<p>アクセス可能であれば、そのディレクトリの URL を $IMAGE_<strong>URL</strong> に設定します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="15" id="15">画像ファイルを別サーバへ置いている場合</a></h3>
+<p>実際には使用されませんが、$IMAGE_<strong>DIR</strong>へ同じ画像をアップロードしてください。
+$IMAGE_<strong>URL</strong> には、その別サーバの URL を設定します。</p>
+<p>商品データを生成する際、$IMAGE_<strong>DIR</strong>に画像がないと「画像無し」と判断され、
+画像が表示できませんので、ダミーとして用意する必要があります。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="16" id="16">商品に対して個別画像ではなく分類画像が表示される場合</a></h3>
+<p>$IMAGE_<strong>DIR</strong> に個別画像が存在しないとそうなります。
+$IMAGE_<strong>DIR</strong> の設定を見直すか、<code class="filename">$IMAGE_DIR/item-no-???.png</code> が存在するか確認してください。
+また、画像フォーマット(拡張子)も確認してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="17" id="17">設定を変更しても画像に変化がない場合</a></h3>
+<p>画像の設定を変えた場合は、商品を再生成する必要があります。</p></blockquote>
+</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="18" id="18">文字化けします</a></h2>
+<p>SOLD OUT で使用している日本語文字コードの SHIFT-JIS(SJIS) には、
+使いかた次第で文字化けしてしまう文字があります。
+下記がその代表的なものです。</p>
+<p>― ソ Ы Ⅸ 噂 浬 欺 圭 構 蚕 十 申 曾 箪 貼 能 表 暴 予 禄
+兔 喀 媾 彌 拿 杤 歃 濬 畚 秉 綵 臀 藹 觸 軆 鐔 饅 鷭 (他)</p>
+<p>これらの文字を ダブルクォート(")で囲んだ文字列中で使う場合は『予\言書』のように該当文字の後ろに\をつけてください。
+場合によっては文字化けだけでは済まずにエラーとなります。</p>
+<p>なお、<code class="filename">soldout/inc/inc-item-data.cgi</code> の文字は自動的に処理しますので、意識する必要はありません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="19" id="19">データが消滅する or ランキング発表が何度も行われる</a></h2>
+<p>サーバ不調や高負荷等で処理が途中で終了してしまった場合などに発生する場合があります。
+特に改造などをしていなくても発生する可能性があります。
+自サイト内でなるべく負荷対策を行う以外に対処方法はありません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="20" id="20">管理パスワードについて</a></h2>
+<p>パスワードは半角で英数字のみにしてください。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; <a href="faq.html">よくある質問と答え(FAQ)目次</a> &gt; 設置についての FAQ</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>
