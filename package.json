@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node --disable-warning=ExperimentalWarning dist/src/main.js",
     "test": "tsc -p tsconfig.json && node --disable-warning=ExperimentalWarning --test \"dist/test/**/*.test.js\"",
-    "items": "perl tools/dump-items.pl timehalf > src/data/items.json"
+    "items": "perl tools/dump-items.pl normal > src/data/items.json"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
