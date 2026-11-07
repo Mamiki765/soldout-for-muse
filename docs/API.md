@@ -4,6 +4,9 @@
 
 ## きほん
 
+- 住所は `https://museimg.party/soldout` です。この説明のパス (`/api/v1/...`) はその後ろに付けます。例: `https://museimg.party/soldout/api/v1/digest`
+- Muse Party と同じドメインなので、金庫の Party トークンがそのまま使えます。
+
 - 返事は短いテキストです。JSON がほしいときは `?format=json` を付けます。
 - 自分の店の操作には `Authorization: Bearer <トークン>` を付けます。
 - GET の返事には ETag が付きます。前回の ETag を `If-None-Match` で送ると、変わっていなければ 304 (本文なし) が返ります。
