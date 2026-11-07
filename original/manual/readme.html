@@ -1,0 +1,240 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; 設置方法やライセンスについて</p>
+<hr /></p>
+<ul><li>
+<a href="#1">はじめに</a>
+</li>
+<li>
+<a href="#2">謝辞</a>
+</li>
+<li>
+<a href="#3"><code class="filename">jcode.pl</code>について</a>
+</li>
+<li>
+<a href="#4">SOLD OUT利用ライセンス</a>
+</li>
+<li>
+<a href="#5">サポート</a>
+</li>
+<li>
+<a href="#6">設置環境条件</a>
+</li>
+<li>
+<a href="#7">前バージョンからの移行</a>
+</li>
+<li>
+<a href="#8">サーバ負荷</a>
+</li>
+<li>
+<a href="#9">スクリプト設置方法</a>
+<ul><li>
+<a href="#step1">手順１ <code class="filename">soldout/_config.cgi</code> をテキストエディタ等で編集/設定する</a>
+</li>
+<li>
+<a href="#step2">手順２ <code class="filename">soldout/admin.cgi</code> の先頭行を環境に応じて書き換える</a>
+</li>
+<li>
+<a href="#step3">手順３ ファイル/ディレクトリをサーバへアップロードする</a>
+</li>
+<li>
+<a href="#step4">手順４ ブラウザより <kbd>http://....../soldout/admin.cgi</kbd> にアクセスする</a>
+</li>
+<li>
+<a href="#step5">手順５ ブラウザより <kbd>http://....../soldout/index.cgi</kbd> にアクセスする</a>
+</li></ul></li>
+<li>
+<a href="#15">ゲームアクセス URL</a>
+</li>
+<li>
+<a href="#16">メンテナンスモード</a>
+</li>
+<li>
+<a href="#17"><code class="filename">soldout/data</code> ディレクトリ内のファイル所有者</a>
+</li>
+<li>
+<a href="#18">バックアップの取り方</a>
+</li>
+<li>
+<a href="#19">手動バックアップからの復元方法</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">はじめに</a></h2>
+<p>この説明書は、 WEB ブラウザを利用したネットワークゲーム「 SOLD OUT 」 CGI スクリプトの取り扱いに関する説明書です。</p>
+<p>SOLD OUT の設置/運営には<strong>ある程度の知識を前提</strong>としています。
+CGI スクリプト等の設置/運営経験が無い方は、まずは別の易しいスクリプト等で経験を積まれることをお勧めします。</p>
+<p>なお、本説明書に表記の各種ディレクトリ名はデフォルトのモノを使用しています。
+ディレクトリ名を変更した場合は各自置き換えてください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">謝辞</a></h2>
+<p>おかげさまで SOLD OUT の知名度も私の想像以上に上がり、大変嬉しく思っています。
+設置してくださっているサイトさんの数も把握できない(申し訳ありません)くらいになっています。
+本当にありがとうございます。
+これからも SOLD OUT / MUTOYS をよろしくお願いします。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3"><code class="filename">jcode.pl</code>について</a></h2>
+<p>本スクリプトで利用させていただいた <code class="filename">jcode.pl</code> は Kazumasa Utashiro さんの著作物です。
+同梱させていただきました。この場を借りて御礼申し上げます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">SOLD OUT利用ライセンス</a></h2>
+<p>配布スクリプト一式のライセンスは全て(<code class="filename">jcode.pl</code>は除く) GPL に準じるものとします。
+詳細は同梱の
+<a href="gpl.txt"><code class="filename">gpl.txt</code>(英語)</a>
+と
+<a href="gpl.text"><code class="filename">gpl.text</code>(日本語)</a>
+をご覧下さい。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">サポート</a></h2>
+<p>基本的に行えません。
+疑問点等ありましたら、配布説明書や <a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a> (公式 WEB サイト) をご覧下さい。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="6" id="6">設置環境条件</a></h2>
+<p>SOLD OUT は Perl5 で記述された CGI スクリプトです。
+Perl5 が動作するサーバへ設置してください。</p>
+<p>特殊なコマンドは使っていませんので多くの環境(サーバ)で動作すると思われます。
+動作確認は FreeBSD or Linux + Perl5 + Apache で行いました。</p>
+<p>Windows や Macintosh で動作するかどうかは分かりません。
+少なくとも、 Windows 上では移転や貿易機能が使えないケースが報告されています。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="7" id="7">前バージョンからの移行</a></h2>
+<p>ver.2001-11-11 以降からのバージョンアップは可能です。
+全てのファイルを上書きし、<code class="filename">soldout/_config.cgi</code> もしくは <code class="filename">soldout/_config-local.cgi</code> を再設定してください。</p>
+<p class="display">note:今後もバージョンアップするつもりなら、
+デフォルトからの変更設定を <code class="filename">soldout/_config-local.cgi</code> に記述することをお勧めします。
+この方法だと、バージョンアップ作業はファイルの上書きのみで完了します。</p>
+<p>ver.2001-11-11 より前のバージョンからのバージョンアップは残念ながら出来ません。新規設置して下さい。
+一応、ゲームデータにはある程度互換性がありますので、腕に自身がある方は<strong>自己責任</strong>で挑戦してください。
+が、ゲームバランス等の問題もありますので、お勧めはできません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="8" id="8">サーバ負荷</a></h2>
+<p>SOLD OUT は、出来る限りサーバへの負荷が少なくなるよう設計したつもりです。
+しかし、(一概に比較は出来ませんが)重めの掲示板クラスの負荷があると認識しています。</p>
+<p>サーバへの負荷は「アクセス数 > 最大店舗数 > 商品種類数 > 更新間隔」で決まると思いますので、
+その辺りを念頭に置いて設置・カスタマイズをお願いします。特に共用サーバへ設置する方は気を付けてください。</p>
+<p>特に、デフォルトの設定を大幅に超えた最大店舗数の設定や、
+商品の増やしすぎ(詳細は <a href="customize.html">カスタマイズ目次</a> をご覧下さい)は極力避けてください。</p>
+<p>以下は負荷軽減のための設定方法です。</p>
+<ul><li>
+最大店舗数を多くしない。(デフォルト以下を推奨)
+</li>
+<li>
+最大100店舗を1つ設置するよりは、最大50店舗を2つ設置する方がよい。
+</li>
+<li>
+更新間隔を極端に短くしない。(デフォルトを推奨)
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="9" id="9">スクリプト設置方法</a></h2>
+<p>ファイル数は多いですが、設置ルールは単純です。</p>
+<blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="step1" id="step1">手順１ <code class="filename">soldout/_config.cgi</code> をテキストエディタ等で編集/設定する</a></h3>
+<p>最低でも<strong>管理者パスワード</strong>と<strong>管理者メールアドレス</strong>を設定しないと動作しません。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="step2" id="step2">手順２ <code class="filename">soldout/admin.cgi</code> の先頭行を環境に応じて書き換える</a></h3>
+<p>デフォルトでは <code>#!/usr/local/bin/perl</code> になっていますので、
+環境に応じて書き換えてください。書き換える必要がない環境の場合は、<a href="#step3">手順３</a>へ進んでください。</p>
+<p>なお、本来であれば <code class="filename">soldout/admin.cgi</code> 以外のファイルも書き換える必要がありますが、
+ここで全てのファイルを変更する必要はありません。
+後ほど一括で自動書き換えを行いますので、まずは <code class="filename">soldout/admin.cgi</code> のみ書き換えてください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="step3" id="step3">手順３ ファイル/ディレクトリをサーバへアップロードする</a></h3>
+<p>以下の構成/パーミッションでアップロードしてください。
+FTP ソフトにもよりますが、 soldout ディレクトリ を丸ごとそのままアップロードするだけで済むと思います。
+パーミッションは下記の通りに変更してください。</p>
+<p>スクリプト等のテキストファイルはアスキーモードで、
+画像等のバイナリファイルはバイナリモードでアップロードしてください。</p>
+<pre><blockquote class="display">soldout   &lt;dir&gt; [755] SOLD OUT ルートディレクトリ
+├ _*.cgi       [644] _で始まるcgiファイル全て
+├ *.cgi        [755] _以外で始まるcgiファイル全て
+├ index.html   [644] index.html
+├ auto   &lt;dir&gt; [755] 関数ディレクトリ
+├ custom &lt;dir&gt; [755] カスタマイズディレクトリ
+├ data   &lt;dir&gt; <font color="#FF0000">[777]</font> ゲームデータディレクトリ
+├ guild  &lt;dir&gt; [755] ギルドデータディレクトリ
+├ image  &lt;dir&gt; [755] 画像ディレクトリ
+├ inc    &lt;dir&gt; [755] カスタマイズ可能ファイルディレクトリ
+└ town   &lt;dir&gt; [755] 移転用街データディレクトリ
+</blockquote></pre>
+<p>[???] はパーミッション設定です。
+各ディレクトリの中のファイルは全て [644] で設置して下さい。
+SOLD OUT ルートディレクトリのファイルのみ、指定通りにしてください。</p>
+<p>また、<a href="#step2">手順２</a>で <code class="filename">soldout/admin.cgi</code> を書き換えた場合は、
+[755] に設定すべきファイルを全て [777] に設定してください。</p>
+<p class="display">note:注意：サーバによっては[755]を[705][700]、[644]を[604][600]という風に指定がある場合がありますので、
+その場合はサーバの設定に従ってください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="step4" id="step4">手順４ ブラウザより <kbd>http://....../soldout/admin.cgi</kbd> にアクセスする</a></h3>
+<p>ブラウザより管理メニューへアクセスします。
+ここでアクセスに失敗するようでしたら、<a href="#step1">手順１</a>から再度やり直してください。
+ほとんどの場合、どこかでミスをしています。</p>
+<p>アクセスに成功したら、管理者パスワードを入力し、管理メニューへログインしてください。</p>
+<p>ここで、<strong><a href="#step2">手順２</a>の時に書き換える必要があった方</strong>は、
+「特殊な初期設定」の「スクリプト自動セッティング」を実行してください。
+自動的に、必要なスクリプトの先頭行を書き換えます。
+そして、この処理が終わった後は<strong>パーミッションを<a href="#step3">手順３</a>の通りに設定し直してください</strong>。</p>
+<p>あとは画面上部の指示に従って初期設定を行います。
+まずは「初期化」、続いて「商品データ生成」となると思います。</p>
+<p>なお、この管理メニューは運営に便利な機能が多く搭載されています。運営に役立ててください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="step5" id="step5">手順５ ブラウザより <kbd>http://....../soldout/index.cgi</kbd> にアクセスする</a></h3>
+<p>最後に設置がうまく行ったかどうか確認します。
+これで問題がなければ設置は完了です。お疲れさまでした。</p>
+</blockquote>
+</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="15" id="15">ゲームアクセス URL</a></h2>
+<pre class="display">
+http://....../soldout/index.cgi
+</pre><p>です。携帯端末(i モードなど)にも対応しています。</p>
+<p>ユーザ名/パスワードを含んだ URL は</p>
+<pre class="display">
+http://....../soldout/index.cgi?u=ユーザ名!パスワード
+</pre><p>となります。当然、セキュリティ上大変危険ですので、それを踏まえてご利用下さい。
+クッキーが利用できない携帯端末系では重宝するでしょう。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="16" id="16">メンテナンスモード</a></h2>
+<p>各種メンテナンスは管理メニューで行えますが、行えない作業は手動で行ってください。</p>
+<p>その際、<code class="filename">soldout/lock</code> というファイルかディレクトリを作成すると、
+ゲームが一時停止状態になります。
+これをメンテナンスモードと呼びます。</p>
+<p>この状態でしたらデータファイルの入れ替えがやりやすいと思います。
+ただし、スクリプトへのアクセスを禁止するものではなく、
+あくまでも <code class="filename">soldout/data</code> ディレクトリの内容が変化しない状態というだけです。</p>
+<p>スクリプトやデータファイルを操作する場合は、必ずメンテナンスモードにしてください。
+そうしないと、最悪の場合、スクリプトやデータが壊れます。</p>
+<p><code class="filename">soldout/lock</code> ディレクトリ or ファイルが存在する状態では、「メンテナンス中です」という意味のメッセージが表示されます。
+メンテナンスが終わったら <code class="filename">soldout/lock</code> ディレクトリ or ファイルを削除してください。</p>
+<p>なお、これは管理メニューのメンテナンスモードと同一ですが、
+手動でメンテナンスモードにした場合は手動で解除する必要があります。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="17" id="17"><code class="filename">soldout/data</code> ディレクトリ内のファイル所有者</a></h2>
+<p><code class="filename">soldout/data</code> ディレクトリにはゲームスクリプトによって自動的に各種データファイルが作成されます。
+そのため、それらのファイルの所有者はいわゆる WEB ユーザになると思われます。
+(サーバによっては設置ユーザかもしれません。)</p>
+<p>そのため、 FTP ソフト等では削除できない場合があります。
+その時は、管理者用ページでアンインストールを行って削除してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="18" id="18">バックアップの取り方</a></h2>
+<p>通常、<code class="filename">soldout/data/backup*</code> というディレクトリが自動的に作成され、
+そこへバックアップデータが格納されます。 
+そして、万が一ゲームデータが破損した場合は、
+管理メニューよりバックアップから復元(復活)が出来ます。</p>
+<p>それ以外に、別途バックアップを取る場合は、<code class="filename">soldout/data</code> ディレクトリのファイルを全てコピーしてください。</p>
+<p>また、必要であれば「<code class="filename">soldout/_config*.cgi</code>、および、<code class="filename">soldout/guild</code>、<code class="filename">soldout/town</code>、<code class="filename">soldout/custom</code> ディレクトリのファイル」もどうぞ。
+こちらはそれぞれ「設定ファイル、ギルド設定ファイル、街設定ファイル、カスタマイズデータ」になります。
+通常、既に手元にマスターファイルがあるはずなので、別途バックアップの必要はないと思いますが。</p>
+<p>それ以外のファイルは配布ファイルと同じものですので、バックアップの必要はありません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="19" id="19">手動バックアップからの復元方法</a></h2>
+<p>その前に、管理メニューには自動バックアップと復元方法を用意していますので、
+問題がなければそちらを利用してください。</p>
+<p>何かしら問題があり、手動でバックアップを復元する必要がある場合は、
+まず管理メニューより「全データ削除(アンインストール)」を行い、
+次に手動バックアップした <code class="filename">soldout/data</code> ディレクトリのファイルを全て FTP ソフト等でアップロードします。</p>
+<p>その際、<strong>全てのファイル/ディレクトリのパーミッションを [777] に設定</strong>してください。
+パーミッションを[777]相当にしないと上手く復元できない可能性があります。</p>
+<p>あとは通常通りです。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; 設置方法やライセンスについて</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; 貿易機能について</p>
+<hr /></p>
+<p>SOLD OUT の貿易システムに関する説明書です。</p>
+<ul><li>
+<a href="#1">貿易とは</a>
+</li>
+<li>
+<a href="#2">貿易システムを利用できる条件</a>
+</li>
+<li>
+<a href="#3">貿易システムの概要</a>
+</li>
+<li>
+<a href="#4">貿易システムの有効化</a>
+</li>
+<li>
+<a href="#5">貿易網参加の方法(手続き)</a>
+</li>
+<li>
+<a href="#6">貿易網脱退の方法(手続き)</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">貿易とは</a></h2>
+<p>その街から出ることなく、別の街へ商品を輸出したり、別の街から商品を輸入したり出来るシステムです。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">貿易システムを利用できる条件</a></h2>
+<p>別途、貿易センターサイトへの登録が必要です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">貿易システムの概要</a></h2>
+<p>店舗が輸出/輸入を行うと、郵便送信枠を 1 つ消費し、
+貿易センターサイトからの取引アクセスを待つ状態になります。
+(ゲーム内ではこれを「貿易船」に例えて表現しています)</p>
+<p>貿易センターサイトからの取引アクセスがあると、
+現在の「輸出リスト」と「輸入希望リスト」が取りまとめられ、輸出と輸入が処理されます。
+1 つの輸出に複数の輸入希望があった場合は抽選で処理されます。</p>
+<p>処理が終わった輸出/輸入へは、取引が終わった旨の通知が送られます。</p>
+<p>輸出/輸入出来る商品は、街同士で「<strong>商品コード</strong>」が共通しているものに限ります。
+逆に言うと、商品名や標準価格、効果等が違っていても、<strong>商品コード</strong> が同じであれば貿易取引が可能です。</p>
+<p>オリジナル商品を輸出/輸入させたい場合は、相手の街にも同じ「商品コード」の商品を作成してもらってください。
+ただし、その<strong>商品の名称/価格/効果はその街固有</strong>のものです。
+同じ商品コードでも街によっては<strong>まったく異なる商品</strong>であることに気を付けてください。
+この貿易システムは商品データそのものの取引ではなく、「商品コード」の取引だと思ってください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">貿易システムの有効化</a></h2>
+<p>貿易システムを有効にするには、<code class="filename">soldout/_config.cgi</code> にて「貿易機能の有効化」と「街コードの設定」を行います。</p>
+<p>街コードとは「<strong>半角英数 10 文字以内小文字のみ</strong>」で表される「街固有の識別コード」です。
+他の街と重複してはいけません。
+他の街のコードと重複しないように気を付けてください。
+街コードは、<strong>移転システムと共用</strong>です。</p>
+<p>街コードを決定したら、<code class="filename">soldout/_config.cgi</code> で「貿易機能の有効化」を設定し、
+「街コードを設定」してください。
+この時点で初めて貿易機能が有効になります。</p>
+<p>その後、貿易センターサイトへ貿易網参加の要望を出します。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">貿易網参加の方法(手続き)</a></h2>
+<p>貿易機能を実際に有効にするには、貿易センターサイトへの登録が必要です。
+貿易には、その貿易網参加街の全ての輸出と輸入を取りまとめるサイトが必要です。
+それが貿易センターサイトです。</p>
+<p>まずは、その「貿易センターサイト」を見つけてください。</p>
+<p>見つかりましたら、その貿易網へ参加できるかどうかを調べます。
+参加条件等がホームページのどこかに書いてあるかもしれません。
+管理人さんに問い合わせが必要かもしれません。
+1 つの貿易網では大体街数 10 が限度ですので、参加できない可能性もあります。</p>
+<p>参加できそうなサイトが見つかりましたら、
+管理人さんへ「貿易網に参加させて欲しいのですが」といった趣旨の連絡をいれてください。
+その際、以下の内容を伝えてください。
+また、「参加させてもらう」ということを忘れないでください。</p>
+<blockquote><p><dl><dt>
+あなたの名前</dt>
+<dd>
+当然です。
+</dd>
+<dt>
+メールアドレス</dt>
+<dd>
+あなたのことを信用してもらうために、無料メールアドレスは出来る限り避けましょう。
+</dd>
+<dt>
+街コード</dt>
+<dd>
+あなたの街のコードです。間違えた場合は参加できません。
+</dd>
+<dt>
+ホームページ URL</dt>
+<dd>
+貿易には直接関係ありませんが、一応です。
+</dd>
+<dt>
+街の URL</dt>
+<dd>
+http://....../soldout/index.cgi 等
+</dd>
+<dt>
+<code class="filename">soldout/trade-s.cgi</code> の URL</dt>
+<dd>
+http://....../soldout/trade-s.cgi 等
+</dd></dl></p></blockquote>
+<p>参加が認められたら、折り返し「パスワード」が送られてくるはずです。
+このパスワードを <code class="filename">soldout/_config.cgi</code> 内の「貿易パスワード」に設定してください。
+また、「貿易許可 IP 」も送られてきましたら、<code class="filename">soldout/_config.cgi</code> 内の「貿易許可 IP 」に設定してください。</p>
+<p>以上で貿易網参加手続きは終了です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="6" id="6">貿易網脱退の方法(手続き)</a></h2>
+<p>参加させてもらっている「貿易センターサイト」の管理人さんへ脱退願いの連絡をいれてください。</p>
+<p>その後、脱退願いが受理されたり、しばらく待っても返答がない場合は
+<code class="filename">soldout/_config.cgi</code> の「貿易機能の有効化」を無効に設定してください。</p>
+<p>以上で脱退手続き完了です。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; 貿易機能について</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

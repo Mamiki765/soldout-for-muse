@@ -1,0 +1,139 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; ギルドについて</p>
+<hr /></p>
+<p>SOLD OUT のギルドシステムに関する説明書です。</p>
+<ul><li>
+<a href="#1">ギルドとは</a>
+</li>
+<li>
+<a href="#2">ギルドの設定概要</a>
+</li>
+<li>
+<a href="#3">ギルド新規作成方法</a>
+</li>
+<li>
+<a href="#syntax">ギルド設定ファイル書式</a>
+<ul><li>
+<a href="#5">name　[ギルド正式名称]</a>
+</li>
+<li>
+<a href="#6">shortname　[ギルド名称省略形]</a>
+</li>
+<li>
+<a href="#7">dealrate　[取引時の割引/割増率]</a>
+</li>
+<li>
+<a href="#8">feerate　[会費率]</a>
+</li>
+<li>
+<a href="#9">url　[ギルドの本拠地URL]</a>
+</li>
+<li>
+<a href="#10">comment　[コメント]</a>
+</li></ul></li>
+<li>
+<a href="#11">ギルド設定ファイルの更新</a>
+</li>
+<li>
+<a href="#12">ギルド解散(削除)方法</a>
+</li>
+<li>
+<a href="#13">ギルドデータを他のサイトに渡す場合</a>
+</li>
+<li>
+<a href="#14">他のサイトからギルドデータを受け取った場合</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">ギルドとは</a></h2>
+<p>プレイヤー同士の同盟のような組織システムです。詳しいことは「経営入門」で確認してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">ギルドの設定概要</a></h2>
+<p>ギルドの設定は <code class="filename">soldout/guild</code> ディレクトリに、１ギルドにつき１つの設定ファイルを作成することで行います。</p>
+<p>デフォルトではギルド「 MUTOYS BLUE (<code class="filename">soldout/guild/mutoysblue.cgi</code>)」と「 MUTOYS RED (<code class="filename">soldout/guild/mutoysred.cgi</code>)」が設定されています。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">ギルド新規作成方法</a></h2>
+<p>ギルドを新たに作成する場合は、まずギルドコードというものを決めます。</p>
+<p>ギルドコードとは「<b>半角英数 10 文字以内小文字のみ</b>」で表される「ギルド固有の識別コード」です。
+他のギルドと重複してはいけません。
+特に、移転機能を有効にしている場合は、他の街に存在する別のギルドとコードが重複しないように気を付けてください。</p>
+<p>ギルドコードを決定したら、<code class="filename">soldout/guild/ギルドコード.cgi</code> というファイルを新規作成します。
+そのファイルへ、<a href="#syntax">ギルド設定ファイル書式</a> に従ってギルドの内容/設定を記述します。</p>
+<p>また、ギルドには「ギルドマーク」という画像が必要です。
+32 × 16 ドット(ピクセル)の PNG 画像を別途用意し、
+ファイル名を <code class="filename">guild-ギルドコード.png</code> にしてください。
+画像は <code class="filename">soldout/image</code> ディレクトリへ設置します。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="syntax" id="syntax">ギルド設定ファイル書式</a></h2>
+<p>ギルド設定ファイルの書式(構文)は以下の通りです。</p>
+<blockquote><pre>キー=設定内容
+キー=設定内容
+キー=設定内容
+:
+</pre></blockquote>
+<ul><li>
+1行に1項目ずつ設定内容を記述していきます。キーの一覧は以下の通りです。
+</li>
+<li>
+日本語を使用する場合は、SHIFT-JIS(SJIS)で記述してください。
+</li>
+<li>
+# から改行までは注釈扱いとなり無視されます。
+</li></ul><blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="5" id="5">name 　[ギルド正式名称]</a></h3>
+<p>ギルドの正式名称を設定します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="6" id="6">shortname　[ギルド名称省略形]</a></h3>
+<p>ゲーム中に表示されるギルド名やギルドマーク画像の ALT 等に使われます。プレイヤーの迷惑にならないように短く設定してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="7" id="7">dealrate　[取引時の割引/割増率]</a></h3>
+<p>同ギルド内での取引時の割引率と、異ギルド間での取引時の割増率を設定します。割引率と割増率は同じになります。
+設定値は、 0 ～ 1000 です。 0%～ 100% となります。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="8" id="8">feerate　[会費率]</a></h3>
+<p>決算時に売上金額を元に徴収される会費率を設定します。
+設定値は、 0 ～ 1000 です。 0%～ 100% となります。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="9" id="9">url　[ギルドの本拠地URL]</a></h3>
+<p>ギルドの本拠地となる WEB サイトへの URL を設定します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="10" id="10">comment　[コメント]</a></h3>
+<p>ギルドアピールのコメントです。長すぎると迷惑になりますので簡潔に記述してください。</p></blockquote>
+</p>
+<pre class="display">
+記述例
+name=MUTOYS BLUE
+shortname=MUTOYS BLUE
+dealrate=300
+feerate=30
+url=http://mutoys.com/soguild/blue/
+comment=MUTOYS 公式のギルドです。打倒 RED ！
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="11" id="11">ギルド設定ファイルの更新</a></h2>
+<p><code class="filename">soldout/guild</code> ディレクトリへ上書きしてください。一定時間経過後、自動的に反映されます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="12" id="12">ギルド解散(削除)方法</a></h2>
+<p><code class="filename">soldout/guild/ギルドコード.cgi</code> を削除してください。
+一定時間経過後、もしくは、決算時に自動的に解散となり、ギルドは完全に削除されます。
+なお、ファイル削除後から実際に解散されるまでの間はギルド機能有効ですが、本拠地へのリンクやコメントは機能しません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="13" id="13">ギルドデータを他のサイトに渡す場合</a></h2>
+<p>作成したギルド設定ファイル <code class="filename">soldout/guild/ギルドコード.cgi</code> とギルドマーク画像 <code class="filename">soldout/image/guild-ギルドコード.png</code> をセットで渡してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="14" id="14">他のサイトからギルドデータを受け取った場合</a></h2>
+<p>受け取ったギルド設定ファイル <code class="filename">ギルドコード.cgi</code> を <code class="filename">soldout/guild</code> ディレクトリへ、
+ギルドマーク画像 <code class="filename">guild-ギルドコード.png</code> を <code class="filename">soldout/image</code> ディレクトリへアップロードしてください。
+一定時間経過後、自動的に反映されます。</p>
+<p>なお、他のサイトのギルドデータを組み込むことに関してはセキュリティ上の危険は少ないと思います。
+が、信用できないサイトからのギルド設定ファイル等は破棄しましょう。
+また、信用できるサイトだとしても設定ファイルの内容は確認しておきましょう。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; ギルドについて</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

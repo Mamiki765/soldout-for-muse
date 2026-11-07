@@ -1,0 +1,835 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; <a href="customize.html">カスタマイズ目次</a> &gt; 各種関数表</p>
+<hr /></p>
+<p>SOLD OUT カスタマイズに利用できる関数の説明です。</p>
+<ul><li>
+<a href="#1">表記について</a>
+<ul><li>
+<a href="#2">構文</a>
+</li>
+<li>
+<a href="#3">戻り値</a>
+</li></ul></li>
+<li>
+<a href="#4">関数の package について</a>
+</li>
+<li>
+<a href="#5">ファイル&amp;データ操作関数</a>
+<ul><li>
+<a href="#6">Lock</a>
+</li>
+<li>
+<a href="#7">UnLock</a>
+</li>
+<li>
+<a href="#8">CheckLockStatus</a>
+</li>
+<li>
+<a href="#9">DataRead</a>
+</li>
+<li>
+<a href="#10">DataWrite</a>
+</li>
+<li>
+<a href="#WriteLog">WriteLog</a>
+</li>
+<li>
+<a href="#12">DataFilesBackup</a>
+</li>
+<li>
+<a href="#13">DataCommitOrAbort</a>
+</li>
+<li>
+<a href="#14">OpenAndCheck</a>
+</li>
+<li>
+<a href="#15">RenameAndCheck</a>
+</li>
+<li>
+<a href="#GetTownData">GetTownData</a>
+</li>
+<li>
+<a href="#SetTownData">SetTownData</a>
+</li></ul></li>
+<li>
+<a href="#18">エラー処理関数</a>
+<ul><li>
+<a href="#19">OutError</a>
+</li>
+<li>
+<a href="#20">WriteErrorLog</a>
+</li></ul></li>
+<li>
+<a href="#21">内部処理用関数</a>
+<ul><li>
+<a href="#22">GetPage</a>
+</li>
+<li>
+<a href="#23">GetPageControl</a>
+</li>
+<li>
+<a href="#24">GetTagImgGuild</a>
+</li>
+<li>
+<a href="#25">GetStockTime</a>
+</li>
+<li>
+<a href="#GetUserDataEx">GetUserDataEx</a>
+</li>
+<li>
+<a href="#SetUserDataEx">SetUserDataEx</a>
+</li>
+<li>
+<a href="#28">EditMoney</a>
+</li>
+<li>
+<a href="#29">EditTime</a>
+</li>
+<li>
+<a href="#30">GetID2UserName</a>
+</li>
+<li>
+<a href="#31">GetMenuTag</a>
+</li>
+<li>
+<a href="#32">RequireFile</a>
+</li></ul></li>
+<li>
+<a href="#33">汎用関数</a>
+<ul><li>
+<a href="#34">GetPath</a>
+</li>
+<li>
+<a href="#35">CheckCount</a>
+</li>
+<li>
+<a href="#36">CutStr</a>
+</li>
+<li>
+<a href="#37">EscapeHTML</a>
+</li>
+<li>
+<a href="#38">GetFileTime</a>
+</li>
+<li>
+<a href="#39">GetTime2HMS</a>
+</li>
+<li>
+<a href="#40">GetTime2FormatTime</a>
+</li>
+<li>
+<a href="#41">GetTagA</a>
+</li></ul></li>
+<li>
+<a href="#42">package item 関数, package event 関数</a>
+<ul><li>
+<a href="#item%3a%3aWriteLog%20event%3a%3aWriteLog">item::WriteLog event::WriteLog</a>
+</li>
+<li>
+<a href="#item%3a%3aDebugLog%20event%3a%3aDebugLog">item::DebugLog event::DebugLog</a>
+</li>
+<li>
+<a href="#item%3a%3aUseItem">item::UseItem</a>
+</li>
+<li>
+<a href="#item%3a%3aUseItemSub">item::UseItemSub</a>
+</li>
+<li>
+<a href="#item%3a%3aAddItem">item::AddItem</a>
+</li>
+<li>
+<a href="#item%3a%3aAddItemSub">item::AddItemSub</a>
+</li></ul></li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">表記について</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="2" id="2">構文</a></h3>
+<p>呼び出し時の関数名と引数を示します。</p>
+<p>引数表記に関しては、以下の表記ルールを用いています。</p>
+<dl><dt>
+引数名がない場合</dt>
+<dd>
+引数を要求しません。
+</dd>
+<dt>
+シングルクォート('')で囲んでいない引数名</dt>
+<dd>
+数値を引数として要求しています。
+</dd>
+<dt>
+シングルクォート('')で囲んでいる引数名</dt>
+<dd>
+文字列を引数として要求しています。
+</dd>
+<dt>
+[ ] で囲まれた引数</dt>
+<dd>
+省略可能であることを示します。
+</dd></dl><h3 class="subsection"><small><a href="#top">△</a></small> <a name="3" id="3">戻り値</a></h3>
+<p>関数が返す値の意味を示します。</p>
+<dl><dt>
+シングルクォート('')で囲んでいない戻り値名</dt>
+<dd>
+数値が戻り値として返されます。
+</dd>
+<dt>
+シングルクォート('')で囲んでいる戻り値名</dt>
+<dd>
+文字列が戻り値として返されます。
+</dd>
+<dt>
+「なし」の場合</dt>
+<dd>
+返される値に意味はありません。
+</dd></dl><h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">関数の package について</a></h2>
+<p>特に表記がない場合は <code>package main</code> に属しています。
+<code>package item</code> や <code>package event</code> からの呼び出し時には
+明示的に <code>main::function()</code> として呼び出してください。</p>
+<p>また、<code>package main</code> に属する関数はいつでも(どの処理からも)呼び出せると思いますが、
+<code>package item</code> や <code>package event</code> に属する関数は、利用できる場面が限定されます。
+利用可能な場面の詳細はそれぞれの関数説明をご覧下さい。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">ファイル&amp;データ操作関数</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="6" id="6">Lock</a></h3>
+構文 <code>Lock()</code><br />戻り値 <code>なし</code><br /><p>データ更新用に排他ロックをかけます。別のプロセスの<a href="#6">Lock</a>をブロックします。</p>
+<p>各種データを書き換える前にはまずロックし、その後必要なデータを読み書きしてください。
+ロックせずにデータを書き換えた場合は、同時アクセス等が原因でデータが破損する可能性があります。</p>
+<p>データ書き換え後はすみやかに<a href="#7">UnLock</a>にてロックを解除してください。</p>
+<p><a href="#6">Lock</a>呼び出しは入れ子にすることが出来ますが、実際にロックするのは最初だけです。</p>
+<p>ロックに失敗した場合は致命的エラーとして処理を中断し、エラーがあったことをログに記録します。</p>
+<pre class="display">
+Lock(); # ロック
+DataRead();
+DataWrite();
+DataCommitOrAbort();
+UnLock();
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="7" id="7">UnLock</a></h3>
+構文 <code>UnLock()</code><br />戻り値 <code>なし</code><br /><p>ロック(<a href="#6">Lock</a>)を解除します。</p>
+<p><a href="#6">Lock</a>呼び出しが入れ子になっている場合は、最後の<a href="#7">UnLock</a>でロック解除されます。</p>
+<p>ロック解除に失敗した場合は致命的エラーとして処理を中断し、エラーがあったことをログに記録します。</p>
+<p>ロックされている間は、他の店舗は一切作業が出来ません。
+ロックは必要最小限かつロック解除はすみやかに行ってください。</p>
+<pre class="display">
+Lock();
+DataRead();
+DataWrite();
+DataCommitOrAbort();
+UnLock(); # ロック解除
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="8" id="8">CheckLockStatus</a></h3>
+構文 <code>CheckLockStatus()</code><br />戻り値 <code>なし</code><br /><p>現在<a href="#6">Lock</a>されているかどうかを確認します。
+ファイル更新を行う前に念のためチェックしたい場合に利用できます。</p>
+<p><a href="#6">Lock</a>されていなければ致命的エラーとして処理を中断し、エラーがあったことをログに記録します。</p>
+<pre class="display">
+CheckLockStatus(); # 事前にロックされているかチェック
+DataRead();
+DataWrite();
+DataCommitOrAbort();
+UnLock();
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="9" id="9">DataRead</a></h3>
+構文 <code>DataRead()</code><br />戻り値 <code>なし</code><br /><p>店舗や街のデータを読み込みます。
+読み込んだデータは変更ができます。
+<a href="customize2.html">商品データ記述文法</a> や <a href="customize3.html">各種データ表</a>内の $DT @DT 等を参考にしてください。</p>
+<pre class="display">
+Lock();
+DataRead(); # データ読み込み
+DataWrite();
+DataCommitOrAbort();
+UnLock();
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="10" id="10">DataWrite</a></h3>
+構文 <code>DataWrite()</code><br />戻り値 <code>なし</code><br /><p><a href="#9">DataRead</a>で読み込んだデータを書き込みます。
+事前に<a href="#6">Lock</a>する必要があります。</p>
+<p>書き込みに失敗した場合は致命的エラーとして処理を中断し、エラーがあったことをログに記録します。</p>
+<p>なお、書き込みに成功したとしても、<a href="#13">DataCommitOrAbort</a>を行わなければ反映されません。
+<a href="#10">DataWrite</a>を反映させるためには必ず<a href="#13">DataCommitOrAbort</a>を行ってください。</p>
+<p>また、<code class="filename">soldout/_config.cgi</code>の設定に従い、データのバックアップ作業を行います。
+こちらは<a href="#13">DataCommitOrAbort</a>実行の有無に関係なく行われます。</p>
+<pre class="display">
+Lock();
+DataRead();
+DataWrite(); # 書き込み&amp;バックアップ
+DataCommitOrAbort();
+UnLock();
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="WriteLog" id="WriteLog">WriteLog</a></h3>
+構文 <code>WriteLog(重要度,対象店舗ID,送信元店舗ID,'メッセージ',Lockの有無)</code><br />戻り値 <code>なし</code><br /><p>最近の出来事にメッセージを記録します。</p>
+<p>※<a href="#item%3a%3aWriteLog%20event%3a%3aWriteLog">item::WriteLog event::WriteLog</a> とは引数が違います。</p>
+<dl><dt>
+重要度</dt>
+<dd>
+メッセージの重要度を数値で指定します。
+(0:一般 1:重要 2:情報)
+</dd>
+<dt>
+対象店舗ID</dt>
+<dd>
+メッセージを見られる店舗のID(数値)を指定します。
+0を指定した場合は全店舗が見られるメッセージになります。
+</dd>
+<dt>
+送信元店舗ID</dt>
+<dd>
+メッセージの送信元店舗のID(数値)を指定します。
+0を指定した場合はシステムメッセージとなります。
+このパラメータは掲示板や井戸端の為のものですので、
+最近の出来事で利用する場合は0を指定してください。
+</dd>
+<dt>
+メッセージ</dt>
+<dd>
+最近の出来事に表示したいメッセージそのものです。
+</dd>
+<dt>
+Lockの有無</dt>
+<dd>
+既に<a href="#6">Lock</a>されている場合は 1 を。
+<a href="#6">Lock</a>されていない場合は 0 を指定してください。
+0 が指定された場合は
+「<a href="#6">Lock</a> データ書き込み <a href="#7">UnLock</a>」
+といった一連の処理が自動的に行われます。
+</dd></dl><pre class="display">
+WriteLog(0,0,0,'一般メッセージ',1);
+WriteLog(1,0,0,'重要メッセージ',1);
+WriteLog(2,0,0,'情報メッセージ',1);
+WriteLog(0,0,123,'店舗ID123用(秘)メッセージ',1);
+</pre>戻り値 <code>なし</code><br /><p>{
+    my($mode,$from,$to,$msg,$nolock)=@_;</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="12" id="12">DataFilesBackup</a></h3>
+構文 <code>DataFilesBackup()</code><br />戻り値 <code>なし</code><br /><p><code class="filename">soldout/_config.cgi</code>の設定に従い、データのバックアップを行います。</p>
+<pre class="display">
+Lock();
+DataFilesBackup();
+UnLock();
+# ロックしないとバックアップ中にファイルが変更されて不整合が起こる可能性があります。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="13" id="13">DataCommitOrAbort</a></h3>
+構文 <code>DataCommitOrAbort(['abort'])</code><br />戻り値 <code>なし</code><br /><p>引数がない場合は、
+<code class="filename">soldout/data/temp</code>への書き込みデータファイルを<code class="filename">soldout/data</code>へ上書き反映させます。
+複数のファイルを同時に更新する必要がある場合に利用してください。</p>
+<p>引数が 'abort' の場合は、<code class="filename">soldout/data/temp</code>への書き込みを全て破棄します。</p>
+<p class="display">note:複数のファイルを同時に更新する際 perl の処理が何らかの原因で中断されると、
+片方は更新されたがもう片方は更新されなかった等、ファイル間のデータに不整合が起きる可能性があります。
+それを出来る限り防ぐための関数です。
+この関数を利用すると、「全ファイル更新完了」か「全ファイル更新破棄」となります。</p>
+<pre class="display">
+Lock();
+DataRead();
+DataWrite();
+DataCommitOrAbort(); # 書き込み反映
+UnLock();
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="14" id="14">OpenAndCheck</a></h3>
+構文 <code>OpenAndCheck('書き込み用ファイル名')</code><br />戻り値 <code>なし(書き込み用ファイルハンドルOUTがオープンされます)</code><br /><p>新規書き込み用ファイルを念入りにオープンし、ファイルハンドル<code>OUT</code>を作成します。
+使用済みの<code>OUT</code>は手動で閉じてください。(<code>close OUT</code>)</p>
+<pre class="display">
+my $out_file=GetPath('test'); # data/test.cgi
+OpenAndCheck($out_file);
+print OUT &quot;test\n&quot;;
+close OUT;
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="15" id="15">RenameAndCheck</a></h3>
+構文 <code>RenameAndCheck('リネーム前のファイル名','リネーム後のファイル名')</code><br />戻り値 <code>なし</code><br /><p>ファイルを念入りにリネームします。</p>
+<p>失敗した場合は致命的エラーとして処理を中断し、エラーがあったことをログに記録します。</p>
+<pre class="display">
+my $old_file=GetPath('test-old'); # data/test-old.cgi
+my $new_file=GetPath('test-new'); # data/test-new.cgi
+RenameAndCheck($old_file,$new_file);
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="GetTownData" id="GetTownData">GetTownData</a></h3>
+構文 <code>GetTownData('キーワード')</code><br />戻り値 <code>キーワードに対応するデータ</code><br /><p>サイト固有のデータとして記録されているキーワードのデータを取得します。</p>
+<p>データを記録するには <a href="#SetTownData">SetTownData</a> を使用します。</p>
+<pre class="display">
+my $sum_tax=GetTownData('sum_tax');
+$sum_tax+=$today_tax;
+SetTownData('sum_tax',$sum_tax);
+# $today_tax を 'sum_tax' という街データとして累計保存する
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="SetTownData" id="SetTownData">SetTownData</a></h3>
+構文 <code>SetTownData('キーワード','データ')</code><br />戻り値 <code>セットされたエスケープ済みデータ(確認用)</code><br /><p>サイト固有のデータを記録します。キーワードとデータを指定してください。</p>
+<p>記録されたデータは <a href="#GetTownData">GetTownData</a> で取得できます。</p>
+<pre class="display">
+my $sum_tax=GetTownData('sum_tax');
+$sum_tax+=$today_tax;
+SetTownData('sum_tax',$sum_tax);
+# $today_tax を 'sum_tax' という街データとして累計保存する
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="18" id="18">エラー処理関数</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="19" id="19">OutError</a></h3>
+構文 <code>OutError('エラーメッセージ')</code><br />戻り値 <code>なし(exitします)</code><br /><p>エラーメッセージを表示し、処理を中断します。
+<a href="#6">Lock</a>していた場合は自動的に解除され、
+<a href="#13">DataCommitOrAbort</a>していない書き込みデータは破棄されます。</p>
+<pre class="display">
+OutError('エラーのため終了します');
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="20" id="20">WriteErrorLog</a></h3>
+構文 <code>WriteErrorLog('エラーメッセージ','ログ種別コード(ファイル名ベース部分)')</code><br />戻り値 <code>なし</code><br /><p>エラーメッセージを、指定されたログ種別コードのログファイルへ追記します。</p>
+<pre class="display">
+WriteErrorLog('エラー','error');
+WriteErrorLog('移転エラー','movetown');
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="21" id="21">内部処理用関数</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="22" id="22">GetPage</a></h3>
+構文 <code>GetPage(現在のページ番号,1ページのレコード数,レコード総数)</code><br />戻り値 <code>(現在のページ番号,開始レコード番号,終了レコード番号,次ページの番号,前ページの番号,ページ総数)</code><br /><p>1 ページに入りきれないような配列(レコード)のために、ページ計算を行います。</p>
+<p>ページ番号は 0 から始まります。 1 ページ目は 0 、 2 ページ目は 1 、 3 ページ目は 2 、という対応になります。</p>
+<p>引数詳細</p>
+<dl><dt>
+現在のページ番号</dt>
+<dd>
+現在保持しているページ番号です。保持していなければ 0 で構いません。
+</dd>
+<dt>
+1ページのレコード数</dt>
+<dd>
+1ページのレコード数です。1ページに表示できる件数と思ってください。
+</dd>
+<dt>
+レコード総数</dt>
+<dd>
+全レコード数です。
+</dd></dl><p>戻り値詳細</p>
+<dl><dt>
+現在のページ番号</dt>
+<dd>
+補正された正しいページ番号です。
+</dd>
+<dt>
+開始レコード番号</dt>
+<dd>
+現在のページに対するレコードの開始番号です。
+</dd>
+<dt>
+終了レコード番号</dt>
+<dd>
+現在のページに対するレコードの終了番号です。
+</dd>
+<dt>
+次ページの番号</dt>
+<dd>
+次ページの番号です。次ページが無ければ 0 になります。
+</dd>
+<dt>
+前ページの番号</dt>
+<dd>
+前ページの番号です。前ページが無ければ -1 になります。
+</dd>
+<dt>
+ページ総数</dt>
+<dd>
+ページの総数です。
+</dd></dl><pre class="display">
+# $now_page       : 現在のページ番号
+# $LIST_PAGE_ROWS : 1ページの行数
+# @MESSAGE        : メッセージ配列
+# $disp           : 出力HTML
+# $type           : 追加パラメータ(type)
+my($page,$pagestart,$pageend,$pagenext,$pageprev,$pagemax)=GetPage($now_page,$LIST_PAGE_ROWS,scalar(@MESSAGE));
+$disp.=GetPageControl($pageprev,$pagenext,&quot;&amp;type=$type&quot;,&quot;pg&quot;,$pagemax,$page).&quot;\n&quot;;
+$disp.=&quot;現在のページ &quot;.($page+1).&quot;\n&quot;;
+$disp.=&quot;最後のページ &quot;.($pagemax+1).&quot;\n&quot;;
+$disp.=&quot;次のページ &quot;.($pagenext+1).&quot;\n&quot;;
+$disp.=&quot;前のページ &quot;.($pageprev+1).&quot;\n&quot;;
+foreach my $line (@MESSAGE[$pagestart..$page_end])
+{
+    $disp.=$line.&quot;\n&quot;;
+}
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="23" id="23">GetPageControl</a></h3>
+構文 <code>GetPageControl(前ページの番号,次ページの番号,'追加パラメータ','ページ番号のパラメータ名',ページ総数,現在のページ番号)</code><br />戻り値 <code>'ページコントロール用HTML'</code><br /><p><a href="#22">GetPage</a>等で得られた情報を元に、ページコントロール用 HTML を生成します。</p>
+<p>引数詳細</p>
+<dl><dt>
+前ページの番号</dt>
+<dd>
+前ページの番号を指定します。前ページが無ければ -1 が設定されます。
+<a href="#22">GetPage</a>の戻り値をそのまま利用できます。
+</dd>
+<dt>
+次ページの番号</dt>
+<dd>
+次ページの番号を指定します。次ページが無ければ 0 が設定されます。
+<a href="#22">GetPage</a>の戻り値をそのまま利用できます。
+</dd>
+<dt>
+'追加パラメータ'</dt>
+<dd>
+ページコントロール用のアンカー<var>&lt;a href=&quot;....?....&amp;add&quot;&gt;...&lt;/a&gt;</var>の &add に相当する部分を指定します。
+追加すべきパラメータが無ければ '' を指定します。
+</dd>
+<dt>
+'ページ番号のパラメータ名'</dt>
+<dd>
+ページ番号を表すパラメータ名を指定します。'' を指定すると、デフォルトの 'pg' が設定されます。
+</dd>
+<dt>
+ページ総数</dt>
+<dd>
+ページの総数を指定します。
+<a href="#22">GetPage</a>の戻り値をそのまま利用できます。
+</dd>
+<dt>
+現在のページ番号</dt>
+<dd>
+補正された正しいページ番号を設定します。
+<a href="#22">GetPage</a>の戻り値をそのまま利用できます。
+</dd></dl><pre class="display">
+# $now_page       : 現在のページ番号
+# $LIST_PAGE_ROWS : 1ページの行数
+# @MESSAGE        : メッセージ配列
+# $disp           : 出力HTML
+# $type           : 追加パラメータ(type)
+my($page,$pagestart,$pageend,$pagenext,$pageprev,$pagemax)=GetPage($now_page,$LIST_PAGE_ROWS,scalar(@MESSAGE));
+$disp.=GetPageControl($pageprev,$pagenext,&quot;&amp;type=$type&quot;,&quot;pg&quot;,$pagemax,$page).&quot;\n&quot;;
+$disp.=&quot;現在のページ &quot;.($page+1).&quot;\n&quot;;
+$disp.=&quot;最後のページ &quot;.($pagemax+1).&quot;\n&quot;;
+$disp.=&quot;次のページ &quot;.($pagenext+1).&quot;\n&quot;;
+$disp.=&quot;前のページ &quot;.($pageprev+1).&quot;\n&quot;;
+foreach my $line (@MESSAGE[$pagestart..$page_end])
+{
+    $disp.=$line.&quot;\n&quot;;
+}
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="24" id="24">GetTagImgGuild</a></h3>
+構文 <code>GetTagImgGuild('ギルドコード'[,'noimage'[,'movetown']])</code><br />戻り値 <code>'ギルドマーク画像用HTMLもしくはギルド名'</code><br /><p>ギルドコードからギルドマーク画像の HTML(<var>&lt;img&gt;</var>)やギルド名を取得します。
+引数により、取得できる文字列が変わります。</p>
+<p>存在しないギルドコードを指定した場合は「解散したギルド」というギルド名に置き換えられます。</p>
+<p>引数詳細</p>
+<dl><dt>
+ギルドコード</dt>
+<dd>
+ギルドコードです。必須です。
+</dd>
+<dt>
+noimage (movetownと共に省略可)</dt>
+<dd>
+ギルド画像のHTMLではなく、ギルド名の文字列そのものを取得したい場合に指定します。
+ただし、「？？？？所属」という様に、「所属」が付加されます。
+また、携帯端末でのアクセス時には、自動的に noimage が設定されます。
+引数自体は 'noimage' という文字列を指定してください。
+</dd>
+<dt>
+movetown (省略可)</dt>
+<dd>
+存在しないギルドコードを指定した場合、「この街に存在しないギルド」という文字列を返すようになります。
+移転条件表示用の引数です。
+引数自体は 'movetown' という文字列を指定してください。
+</dd></dl><pre class="display">
+my $guild_html=GetTagImgGuild('mutoysblue'); # mutoysblue というギルドコードのギルドのHTML
+my $guild_name=GetTagImgGuild('mutoysblue','noimage'); # mutoysblue というギルドコードのギルドの名称
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="25" id="25">GetStockTime</a></h3>
+構文 <code>GetStockTime(持ち時間データ($DT-&gt;{time}相当))</code><br />戻り値 <code>持ち時間秒数</code><br /><p>持ち時間を表す時刻データ(最後に作業を完了した時刻)から、実際の持ち時間秒数を取得します。</p>
+<p>持ち時間が設定(<code class="filename">soldout/_config.cgi</code>)された最大時間を超えていれば、最大時間に補正されます。</p>
+<pre class="display">
+my $stock_time=GetStockTime($DT-&gt;{time}); # 持ち時間取得
+my $stock_time_string=GetTime2HMS($stock_time);
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="GetUserDataEx" id="GetUserDataEx">GetUserDataEx</a></h3>
+構文 <code>GetUserDataEx($DT,'キーワード')</code><br />戻り値 <code>キーワードに対応するユーザデータ</code><br /><p>$DT->{user}のデータを安全に取得します。</p>
+<p>$DT->{user}を直接操作する場合と違い、特殊文字であるカンマ(,)、コロン(:)、改行(\n)等も取得できますが、
+そのためにはあらかじめ<a href="#SetUserDataEx">SetUserDataEx</a>でデータを設定する必要があります。</p>
+<p>つまり、同じキーワードに対しては、$DT->{user}を直接操作するか、
+<a href="#GetUserDataEx">GetUserDataEx</a>と<a href="#SetUserDataEx">SetUserDataEx</a>を経由させるかで、統一する必要があります。</p>
+<p>カスタマイズ互換性維持のために $DT->{user} の直接操作も可能ですが、
+今後は <a href="#GetUserDataEx">GetUserDataEx</a>と<a href="#SetUserDataEx">SetUserDataEx</a> の利用をお勧めします。</p>
+<p>なお、'_so_' から始まるキーワードはシステム予約としていますので、使用しないでください。</p>
+<pre class="display">
+my $in_time=GetUserDataEx($DT,'town_in');
+# $in_time に $DT-&gt;{user}{town_in} を取得する。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="SetUserDataEx" id="SetUserDataEx">SetUserDataEx</a></h3>
+構文 <code>SetUserDataEx($DT,'キーワード','データ')</code><br />戻り値 <code>セットされたエスケープ済みデータ(確認用)</code><br /><p>$DT->{user}のデータを安全に記録します。キーワードとデータを指定してください。</p>
+<p>記録されたデータは <a href="#GetUserDataEx">GetUserDataEx</a> で取得できます。</p>
+<p>なお、'_so_' から始まるキーワードはシステム予約としていますので、使用しないでください。</p>
+<pre class="display">
+SetUserDataEx($DT,'town_in',time());
+# 現時刻を $DT-&gt;{user}{town_in} に記録する。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="28" id="28">EditMoney</a></h3>
+構文 <code>EditMoney($DT,増減額)</code><br />戻り値 <code>なし</code><br /><p>$DT の資金(money)を増減します。</p>
+<p>最大金額を超えたり\0 未満になった場合は補正されます。</p>
+<pre class="display">
+EditMoney($DT,-1234);
+# $DT-&gt;{money}から\1234引きます。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="29" id="29">EditTime</a></h3>
+構文 <code>EditTime($DT,増減持ち時間)</code><br />戻り値 <code>なし</code><br /><p>$DT の持ち時間を増減します。</p>
+<pre class="display">
+EditTime($DT,12*60*60);
+# 持ち時間を12時間(12*60*60秒)増やします。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="30" id="30">GetID2UserName</a></h3>
+構文 <code>GetID2UserName(ユーザID)</code><br />戻り値 <code>('店舗名','ユーザ名')</code><br /><p>ユーザ ID($DT->{id})から店舗名とユーザ名を取得します。</p>
+<p>存在しないユーザ ID の場合は('閉店済','')を返します。</p>
+<pre class="display">
+my($shopname,$username)=GetID2UserName($DT-&gt;{id});
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="31" id="31">GetMenuTag</a></h3>
+構文 <code>GetMenuTag('ファイル名(ベース部分)','表示文字列'[,'付加するパラメータ'])</code><br />戻り値 <code>'アンカー&lt;a&gt;...&lt;/a&gt;文字列'</code><br /><p>メニューとなるアンカー <var>&lt;a href=&quot;....&quot;&gt;....&lt;/a&gt;</var> を取得します。
+すでにログインされている場合は、ログイン情報(ユーザ名やセッション情報など)も付加します。</p>
+<p>引数詳細</p>
+<dl><dt>
+ファイル名(ベース部分)</dt>
+<dd>
+リンクとして呼び出したいスクリプトのベース部分を指定します。
+</dd>
+<dt>
+表示文字列</dt>
+<dd>
+<var>&lt;a&gt;????&lt;/a&gt;</var>の????の部分の文字列を指定します。
+</dd>
+<dt>
+付加するパラメータ (省略可)</dt>
+<dd>
+URLに付加するパラメータ(&????=????等)を指定します。
+</dd></dl><pre class="display">
+my $menu_1=GetMenuTag('test','テストページ'); test.cgi へのリンクHTML
+my $menu_2=GetMenuTag('test','テストページ','&amp;type=1'); test.cgi へのリンクHTML(パラメータ付)
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="32" id="32">RequireFile</a></h3>
+構文 <code>RequireFile('読み込むファイル名')</code><br />戻り値 <code>なし</code><br /><p><code class="filename">soldout/custom</code>、<code class="filename">soldout/inc</code> の順に指定されたファイルを探し、読み込みます。</p>
+<pre class="display">
+RequireFile('custom.cgi');
+# custom/custom.cgi、inc/custom.cgi の順に検索し、見つかった方を読み込む。
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="33" id="33">汎用関数</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="34" id="34">GetPath</a></h3>
+構文 <code>GetPath(['ディレクトリ',...,]'ファイル名(ベース部分)')</code><br />戻り値 <code>'ファイルパス'</code><br /><p>ディレクトリとファイル名(ベース部分)を元に、規定の拡張子が付いたファイルパスを取得します。</p>
+<p>ディレクトリを省略し、ファイル名のみ指定された場合は、
+ディレクトリに<code class="filename">soldout/data</code>が指定されたものとみなされます。</p>
+<pre class="display">
+GetPath('test'); # data/test.cgi
+GetPath('test_dir','test'); # test_dir/test.cgi
+GetPath('test_dir','test_dir2','test'); # test_dir/test_dir2/test.cgi
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="35" id="35">CheckCount</a></h3>
+構文 <code>CheckCount(入力値1,入力値2,最小値,最大値)</code><br />戻り値 <code>補正された値</code><br /><p>主にユーザの入力値補正に使います。デフォルト値と最小値、最大値の補正を行います。また、小数を切り捨てます。</p>
+<p>引数詳細</p>
+<dl><dt>
+入力値1</dt>
+<dd>
+補正したい入力値です。入力値2が 0 や '' の場合に利用されます。主にデフォルトの値を設定するために使います。
+</dd>
+<dt>
+入力値2</dt>
+<dd>
+補正したい入力値です。入力値1より優先されます。
+</dd>
+<dt>
+最小値</dt>
+<dd>
+この値より小さい値はこの値に補正されます。
+</dd>
+<dt>
+最大値</dt>
+<dd>
+この値より大きい値はこの値に補正されます。
+</dd></dl><pre class="display">
+# $input_count : ユーザ入力されたカウント
+$input_count=CheckCount(100,$input_count,50,150);
+# 補正後の $input_count
+# 入力値が0か空文字の場合 : 100
+# 入力値が数値ではない場合: 100
+# 入力値が50未満の場合    : 50
+# 入力値が150を超える場合 : 150
+# 入力値が小数を含む場合  : 小数切り捨て
+# それ以外の場合          : 補正しません
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="36" id="36">CutStr</a></h3>
+構文 <code>CutStr('SJIS文字列',最大文字列長)</code><br />戻り値 <code>'補正された文字列'</code><br /><p>文字列を指定された長さ(byte)に切り詰めます。</p>
+<p>日本語コードは SHIFT JIS のみ対応しています。
+切り詰める境界が SHIFT JIS の第 1 バイトと第 2 バイトの間になった場合は、
+第 1 バイトを含めて切り捨てます。</p>
+<pre class="display">
+require 'jcode.pl';    # jcode.pl を利用して
+jcode::sjis(\$string); # $string を SHIFT JIS に変換
+$string=CutStr($string,40);
+# 半角40文字(全角20文字)以内に切り詰めます。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="37" id="37">EscapeHTML</a></h3>
+構文 <code>EscapeHTML('HTML文字列')</code><br />戻り値 <code>'エスケープされた文字列'</code><br /><p>HTML で特別な意味を持つ文字
+&amp; &lt; &gt; &quot; を
+<var> &amp;amp; &amp;lt; &amp;gt; &amp;quot; </var> にエスケープします。</p>
+<p>ユーザ入力された文字列を表示する場合は、危険なタグを無効にするためにこの関数を通してから表示するといいでしょう。</p>
+<pre class="display">
+my $escape=EscapeHTML('&lt;img src=&quot;analyze.cgi?&quot;&gt;');
+# $escape は '&amp;lt;img src=&amp;quot;analyze.cgi&amp;quot;&amp;gt;' になります。
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="38" id="38">GetFileTime</a></h3>
+構文 <code>GetFileTime('ファイル名(ベース部分)')</code><br />戻り値 <code>時刻秒数(GMT)</code><br /><p><code class="filename">soldout/data</code>に存在するファイルの最終更新時刻を取得します。</p>
+<pre class="display">
+my $file_time=GetFileTime('test'); # data/test.cgi の最終更新時刻を取得
+my $file_time_string_1=GetTime2FormatTime($file_time);
+my $file_time_string_2=GetTime2FormatTime($file_time,'full');
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="39" id="39">GetTime2HMS</a></h3>
+構文 <code>GetTime2HMS(時間秒数)</code><br />戻り値 <code>'時間を表す文字列'</code><br /><p>秒数から「?日」「?時間」「?時間?分」「?分」「?秒」といった形式を取得します。</p>
+<pre class="display">
+my $stock_time=GetStockTime($DT-&gt;{time});
+my $stock_time_string=GetTime2HMS($stock_time); # 持ち時間秒数を読みやすい形式で取得
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="40" id="40">GetTime2FormatTime</a></h3>
+構文 <code>GetTime2FormatTime(時刻秒数(GMT)[,'full'])</code><br />戻り値 <code>'時刻を表す文字列'</code><br /><p>時刻秒数から「 01/23 04:56 」「 01/23 」「 04:56 」といった形式を取得します。</p>
+<p>引数 'full' が指定された場合は、常に「 01/23 04:56 」といった「日付 時刻」形式になります。</p>
+<p>引数 'full' が省略された場合は、「本日もしくは 12 時間以内」では「 04:56 」という時刻形式となり、
+それ以外の場合は「 01/23 」といった日付形式になります。</p>
+<pre class="display">
+my $file_time=GetFileTime('test');
+my $file_time_string_1=GetTime2FormatTime($file_time); # data/test.cgi の最終更新時刻を読める形式で取得 (??/?? or ??:??)
+my $file_time_string_2=GetTime2FormatTime($file_time,'full');# data/test.cgi の最終更新時刻を読める形式で取得 (??/?? ??:??)
+</pre><h3 class="subsection"><small><a href="#top">△</a></small> <a name="41" id="41">GetTagA</a></h3>
+構文 <code>GetTagA('表示文字列','リンク先URL'[,'リンク無し'[,'target属性']])</code><br />戻り値 <code>'アンカータグ文字列'</code><br /><p>リンク用タグ(アンカータグ<var>&lt;a&gt;</var>)を取得します。</p>
+<dl><dt>
+表示文字列</dt>
+<dd>
+<var>&lt;a&gt;????&lt;/a&gt;</var>の????の部分の文字列を指定します。
+</dd>
+<dt>
+リンク先URL</dt>
+<dd>
+リンク先のURLを指定します。
+</dd>
+<dt>
+リンク無し ('target属性' と共に省略可)</dt>
+<dd>
+リンクではなくただの文字列を取得したい場合に指定します。'nolink' を指定してください。
+条件によってリンクを無効にしたい場合等に使用します。
+0 か '' を指定すると普通にリンクを取得します。
+</dd>
+<dt>
+target属性 (省略可)</dt>
+<dd>
+<var>&lt;a target=&quot;????&quot;&gt;</var> の ???? の部分を指定します。
+</dd></dl><pre class="display">
+my $link_1=GetTagA('テストリンク','test.html'); # test.html へのリンクHTML
+my $link_2=GetTagA('テストリンク','test.html','nolonk'); # テストリンク という文字列(非HTML)
+my $link_3=GetTagA('テストリンク','test.html','','_blank'); # test.html へのリンクHTML(target=&quot;_blank&quot;付)
+my $link_4=GetTagA('テストリンク','test.html',$login ? '' : 'nolonk'); # $login が真の場合はリンク/偽の場合は非リンク
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="42" id="42">package item 関数, package event 関数</a></h2>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aWriteLog%20event%3a%3aWriteLog" id="item%3a%3aWriteLog%20event%3a%3aWriteLog">item::WriteLog event::WriteLog</a></h3>
+構文 <code>item::WriteLog(重要度,対象店舗ID,'メッセージ')</code><br />構文 <code>event::WriteLog(重要度,対象店舗ID,'メッセージ')</code><br />戻り値 <code>なし</code><br /><p>最近の出来事にメッセージを記録します。</p>
+<p>※<a href="#WriteLog">WriteLog</a> とは引数が違います。注意してください。
+なお、本関数は内部で <a href="#WriteLog">WriteLog</a> を呼び出しています。</p>
+<dl><dt>
+重要度</dt>
+<dd>
+メッセージの重要度を数値で指定します。
+(0:一般 1:重要 2:情報)
+</dd>
+<dt>
+対象店舗ID</dt>
+<dd>
+メッセージを見られる店舗のID(数値)を指定します。
+0を指定した場合は全店舗が見られるメッセージになります。
+</dd>
+<dt>
+メッセージ</dt>
+<dd>
+最近の出来事に表示したいメッセージそのものです。
+</dd></dl><pre class="display">
+WriteLog(0,0,'一般メッセージ');
+WriteLog(1,0,'重要メッセージ');
+WriteLog(2,0,'情報メッセージ');
+WriteLog(0,123,'店舗ID123用(秘)メッセージ');
+</pre><p>item::WriteLog 利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40ITEM">商品データ記述文法 &gt; @@ITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCITEM">商品データ記述文法 &gt; @@FUNCITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCUPDATE">商品データ記述文法 &gt; @@FUNCUPDATE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCTURN">商品データ記述文法 &gt; @@FUNCTURN</a>
+</li></ul><p>event::WriteLog 利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40EVENT">商品データ記述文法 &gt; @@EVENT</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCEVENT">商品データ記述文法 &gt; @@FUNCEVENT</a>
+</li></ul><h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aDebugLog%20event%3a%3aDebugLog" id="item%3a%3aDebugLog%20event%3a%3aDebugLog">item::DebugLog event::DebugLog</a></h3>
+構文 <code>item::DebugLog('メッセージ')</code><br />構文 <code>event::DebugLog('メッセージ')</code><br />戻り値 <code>なし</code><br /><p><code class="filename">soldout/_config.cgi</code>の設定により、開発時のデバッグ用ログ出力を行います。
+出力されたログは管理メニューから参照できます。</p>
+<pre class="display">
+DebugLog('デバッグログ');
+</pre><p>item::DebugLog 利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40ITEM">商品データ記述文法 &gt; @@ITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCITEM">商品データ記述文法 &gt; @@FUNCITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCUPDATE">商品データ記述文法 &gt; @@FUNCUPDATE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCTURN">商品データ記述文法 &gt; @@FUNCTURN</a>
+</li></ul><p>event::DebugLog 利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40EVENT">商品データ記述文法 &gt; @@EVENT</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCEVENT">商品データ記述文法 &gt; @@FUNCEVENT</a>
+</li></ul><h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aUseItem" id="item%3a%3aUseItem">item::UseItem</a></h3>
+構文 <code>item::UseItem(商品番号,消費数[,'メッセージ'])</code><br />戻り値 <code>なし</code><br /><p>パッケージ変数 $item::DT の店舗に対して商品番号の商品を消費させます。
+残りが 0 以下になった場合は 0 に補正されます。</p>
+<p>メッセージがあると、その旨通知されます。メッセージは省略可能です。</p>
+<pre class="display">
+UseItem(12,34);
+UseItem(12,34,'No.12を消費しました');
+</pre><p>利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li></ul><h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aUseItemSub" id="item%3a%3aUseItemSub">item::UseItemSub</a></h3>
+構文 <code>item::UseItemSub(商品番号,消費数,対象店舗データ($DT))</code><br />戻り値 <code>実際の消費数</code><br /><p><a href="#item%3a%3aUseItem">item::UseItem</a>の下請け関数ですが、汎用的に利用できます。</p>
+<p>対象店舗データの商品在庫から商品番号の商品を消費させます。
+残りが 0 以下になった場合は 0 に補正されます。</p>
+<pre class="display">
+UseItemSub(12,34,$DT);
+</pre><p>利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40ITEM">商品データ記述文法 &gt; @@ITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCITEM">商品データ記述文法 &gt; @@FUNCITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCUPDATE">商品データ記述文法 &gt; @@FUNCUPDATE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCTURN">商品データ記述文法 &gt; @@FUNCTURN</a>
+</li></ul><h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aAddItem" id="item%3a%3aAddItem">item::AddItem</a></h3>
+構文 <code>item::AddItem(商品番号,取得数[,'メッセージ'])</code><br />戻り値 <code>なし</code><br /><p>パッケージ変数 $item::DT の店舗に対して商品番号の商品を取得させます。
+所持最大数を超えた場合は最大数に補正されます。</p>
+<p>メッセージがあると、その旨通知されます。メッセージは省略可能です。</p>
+<pre class="display">
+AddItem(12,34);
+AddItem(12,34,'No.12を取得しました');
+</pre><p>利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li></ul><h3 class="subsection"><small><a href="#top">△</a></small> <a name="item%3a%3aAddItemSub" id="item%3a%3aAddItemSub">item::AddItemSub</a></h3>
+構文 <code>item::AddItemSub(商品番号,取得数,対象店舗データ($DT))</code><br />戻り値 <code>実際の取得数</code><br /><p><a href="#item%3a%3aAddItem">item::AddItem</a>の下請け関数ですが、汎用的に利用できます。</p>
+<p>対象店舗データの商品在庫から商品番号の商品を取得させます。
+所持最大数を超えた場合は最大数に補正されます。</p>
+<pre class="display">
+AddItemSub(12,34,$DT);
+</pre><p>利用可能範囲</p>
+<ul><li>
+<a href="customize2.html#%40%40ITEM">商品データ記述文法 &gt; @@ITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40USE">商品データ記述文法 &gt; @@USE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCITEM">商品データ記述文法 &gt; @@FUNCITEM</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCUPDATE">商品データ記述文法 &gt; @@FUNCUPDATE</a>
+</li>
+<li>
+<a href="customize2.html#%40%40FUNCTURN">商品データ記述文法 &gt; @@FUNCTURN</a>
+</li></ul><p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; <a href="customize.html">カスタマイズ目次</a> &gt; 各種関数表</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

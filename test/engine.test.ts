@@ -1,0 +1,129 @@
+// SOLD OUT for Muse — ゲーム本体のテスト
+// This program is free software under the GNU GPL v2 or later. See LICENSE.
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { DEFAULT_CONFIG } from '../src/config.js';
+import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
+import { buy, editShowcase, enterShop, openShop, deposit } from '../src/engine/actions.js';
+import { Game, GameError } from '../src/engine/game.js';
+import { getWholeStore } from '../src/engine/market.js';
+import { seededRng } from '../src/engine/rng.js';
+import { turn } from '../src/engine/turn.js';
+import { newWorld, type World } from '../src/engine/types.js';
+import { useItemAction } from '../src/engine/use.js';
+
+const T0 = 1_800_000_000;
+
+function step(world: World, now: number, seed: number): Game {
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(seed), now);
+  turn(g);
+  return g;
+}
+
+function assertSane(world: World): void {
+  for (const s of world.shops) {
+    for (const [k, v] of Object.entries(s)) {
+      if (typeof v === 'number') assert.ok(Number.isFinite(v), `${s.shopname}.${k} = ${v}`);
+    }
+    for (const v of s.item) assert.ok(Number.isFinite(v) && v >= 0, `item ${v}`);
+    assert.ok(s.rank >= 0 && s.rank <= 10000);
+  }
+  for (const v of world.wholestore) assert.ok(Number.isFinite(v) && v >= 0);
+  assert.ok(Number.isFinite(world.people));
+}
+
+test('商品データが原作どおり 79 商品読み込める', () => {
+  assert.equal(MAX_ITEM, 79);
+  assert.equal(BASE_ITEMS[1].name, '薬草');
+  assert.equal(BASE_ITEMS[70].name, 'ナユタの首飾り');
+});
+
+test('開店して、市場から仕入れて、並べて、時間がたつと売れる', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  let g = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
+  const a = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  openShop(g, { name: 'bob', shopname: 'ボブの店' });
+  assert.equal(world.shops.length, 2);
+  assert.equal(a.money, 100000);
+  assert.equal(a.showcasecount, 1);
+  assert.equal(a.item[itemNoByName('陳列棚増築取壊キット') - 1], 1);
+
+  // 市場に商品が入るまで時間を進める
+  let now = T0;
+  for (let i = 0; i < 12; i++) {
+    now += 600;
+    g = step(world, now, 100 + i);
+  }
+  assertSane(world);
+  const cases = getWholeStore(g);
+  assert.ok(cases.length > 0, '市場に商品が入荷している');
+
+  // 薬草 (1) を仕入れて並べる
+  const yakusou = itemNoByName('薬草');
+  g = new Game(world, DEFAULT_CONFIG, seededRng(7), now);
+  const shopA = world.shops.find((s) => s.name === 'alice')!;
+  enterShop(g, shopA, true);
+  const msg = buy(g, shopA, { from: 0, itemno: yakusou, count: 30 });
+  assert.match(msg, /市場より薬草を/);
+  assert.ok(shopA.item[yakusou - 1] > 0);
+  editShowcase(g, shopA, { slot: 0, itemno: yakusou, percent: 100 });
+  assert.equal(shopA.showcase[0], yakusou);
+
+  const before = shopA.item[yakusou - 1];
+  for (let i = 0; i < 36; i++) {
+    now += 600;
+    g = step(world, now, 1000 + i);
+    assertSane(world);
+  }
+  const after = world.shops.find((s) => s.name === 'alice')!;
+  assert.ok(after.item[yakusou - 1] < before, `売れている ${before} -> ${after.item[yakusou - 1]}`);
+  assert.ok(after.moneystock > 0);
+
+  g = new Game(world, DEFAULT_CONFIG, seededRng(9), now);
+  enterShop(g, after, true);
+  deposit(g, after, after.moneystock);
+  assert.equal(after.moneystock, 0);
+});
+
+test('3日間 (決算を2回またぐ) 動かしても値が壊れない', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  let g = new Game(world, DEFAULT_CONFIG, seededRng(2), T0);
+  for (let i = 0; i < 8; i++) openShop(g, { name: 'm' + i, shopname: 'ミューズ' + i + '号店' });
+  let now = T0;
+  for (let i = 0; i < 6 * 24 * 3; i++) {
+    now += 600;
+    g = step(world, now, 5000 + i);
+    if (i % 12 === 0) {
+      // 各店がときどき仕入れて並べる
+      for (const s of [...world.shops]) {
+        const cases = getWholeStore(g);
+        if (!cases.length) break;
+        const c = cases[i % cases.length];
+        enterShop(g, s, true);
+        try {
+          buy(g, s, { from: 0, itemno: c.itemno, count: 5 });
+          editShowcase(g, s, { slot: 0, itemno: c.itemno, percent: 110 });
+        } catch (e) {
+          if (!(e instanceof GameError)) throw e;
+        }
+      }
+    }
+    assertSane(world);
+  }
+  assert.ok(world.shops.some((s) => s.rankingyesterday > 0), '決算が行われた');
+  assert.ok(world.periodLog.length > 0);
+});
+
+test('商品を使う: 資金調達の方法 (ティッシュ配り)', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(3), T0);
+  const s = openShop(g, { name: 'carol', shopname: 'キャロル堂' });
+  const no = itemNoByName('資金調達の方法');
+  s.item[no - 1] = 1;
+  enterShop(g, s, true);
+  const before = s.money;
+  const u = useItemAction(g, s, no, 0, { count: 2 });
+  assert.ok(u.result.count > 0);
+  assert.equal(s.money, before + 3000 * u.result.count);
+});

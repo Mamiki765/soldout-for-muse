@@ -1,0 +1,144 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; 広域掲示板機能について</p>
+<hr /></p>
+<p>SOLD OUT の広域掲示板に関する説明書です。</p>
+<ul><li>
+<a href="#1">広域掲示板とは</a>
+</li>
+<li>
+<a href="#care">注意点</a>
+</li>
+<li>
+<a href="#3">広域掲示板システムを利用できる条件</a>
+</li>
+<li>
+<a href="#4">広域掲示板システムの概要</a>
+</li>
+<li>
+<a href="#5">広域掲示板システムの有効化</a>
+</li>
+<li>
+<a href="#6">広域掲示板特有の街設定</a>
+<ul><li>
+<a href="#7">gmsgurl　[<code class="filename">soldout/gmsg.cgi</code>のURL]</a>
+</li>
+<li>
+<a href="#8">recvgmsgurl　[<code class="filename">soldout/gmsg-s.cgi</code>のURL]</a>
+</li>
+<li>
+<a href="#9">url　[街へのリンクURL]</a>
+</li>
+<li>
+<a href="#10">password　[発言元証明用パスワード]</a>
+</li></ul></li>
+<li>
+<a href="#11">広域掲示板カテゴリー機能</a>
+</li>
+<li>
+<a href="#12">広域掲示板網参加の方法(広域掲示板センターURL入手方法)</a>
+</li>
+<li>
+<a href="#13">広域掲示板の無効化</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">広域掲示板とは</a></h2>
+<p>その街から出ることなく、別の街の店舗オーナーと掲示板を通して交流できるシステムです。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="care" id="care">注意点</a></h2>
+<p>広域掲示板は、多くの独立したサイトが繋がっているという、非常に大規模な相互連携システムです。
+場合によっては、繋がっているサイト全体に迷惑をかける可能性もありますので、仕組みをよく理解してからご利用下さい。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">広域掲示板システムを利用できる条件</a></h2>
+<p>別途、広域掲示板センターサイトへの登録が必要です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">広域掲示板システムの概要</a></h2>
+<p>広域掲示板への書き込みは、センターへ直接アクセスするようになっています。
+センターは、その書き込まれた内容を即座に各街へ配信します。
+街側のメンテナンス中等で配信できなかったメッセージは、次回配信時にまとめて再配信されます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">広域掲示板システムの有効化</a></h2>
+<p>広域掲示板システムを有効にするには、<code class="filename">soldout/_config.cgi</code> にて
+「街コードの設定」と「広域掲示板センター URL の設定」と「広域掲示板使用の設定」を行い、
+自分の「街の設定ファイル」を <code class="filename">soldout/town</code> ディレクトリへ作成します。</p>
+<p>街コードと街設定ファイルは移転システムのものと共通です。
+既に移転システムが稼働中であれば、別途用意する必要はありません。
+その場合は、「広域掲示板センター URL の設定」と「広域掲示板使用の設定」だけで有効になります。</p>
+<p>移転システムを使用していない場合は、<a href="town.html">移転機能について</a> を参考に「街コード」「街設定ファイル」を設定してください。</p>
+<p>広域掲示板センター URL には、センター側から指示された URL を設定します。(URL の入手方法は後述)</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="6" id="6">広域掲示板特有の街設定</a></h2>
+<p>広域掲示板では、特有の街設定があります。
+通常の街設定ファイル内に、以下の項目を追加記述してください。</p>
+<blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="7" id="7">gmsgurl 　[<code class="filename">soldout/gmsg.cgi</code>の URL]</a></h3>
+<p>設置した <code class="filename">soldout/gmsg.cgi</code> の URL を指定します。
+省略された場合は、街設定の「 url 」を利用して自動設定しますので、
+特別な理由がない限り設定する必要はありません。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="8" id="8">recvgmsgurl　[<code class="filename">soldout/gmsg-s.cgi</code>のURL]</a></h3>
+<p>設置した <code class="filename">soldout/gmsg-s.cgi</code> の URL を指定します。
+省略された場合は、街設定の「 url 」を利用して自動設定しますので、
+特別な理由がない限り設定する必要はありません。</p></blockquote>
+</p>
+<p>また、以下の項目を移転システムと共用します。必須です。</p>
+<blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="9" id="9">url 　[街へのリンク URL]</a></h3>
+<p>gmsgurl や recvgmsgurl が設定されていない場合は、
+この url を元に gmsgurl や recvgmsgurl を自動的に設定します。
+url の設定が <code class="filename">soldout/index.cgi</code> ではない場合は、 gmsgurl や recvgmsgurl を手動設定してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="10" id="10">password　[発言元証明用パスワード]</a></h3>
+<p>発言する際に広域掲示板センターへ提示される認証コードの元になるパスワードです。
+半角英数で 10 ～ 30 文字程度が妥当です。
+覚える必要はありませんので、推測されにくいデタラメなパスワードを設定してください。</p></blockquote>
+</p>
+<pre class="display">
+記述例
+gmsgurl=http://mutoys/cgi-bin/soldout/gmsg.cgi
+recvgmsgurl=http://mutoys/cgi-bin/soldout/gmsg-s.cgi
+url=http://mutoys/cgi-bin/soldout/index.cgi
+password=himitsunokotoba
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="11" id="11">広域掲示板カテゴリー機能</a></h2>
+<p>投稿される話題の分類/振り分けのためとして、広域掲示板に複数のカテゴリーを設け、
+それぞれのカテゴリー毎に受信/配信の許可.拒否設定が可能となっています。</p>
+<p>デフォルトでは、 _global という広域掲示板網全体に配信されるカテゴリーのみ有効になっています。</p>
+<p>新カテゴリーの作成や、受信するカテゴリーの設定は <code class="filename">soldout/_config.cgi</code> にて行いますが、
+実際にそれらのカテゴリーが有効になるかどうかは、所属する広域掲示板センターの設定に委ねられます。
+カテゴリーの取り扱いに関しては、所属する広域掲示板センターの管理人さんとよく話し合ってください。</p>
+<p>なお、カテゴリーとは別に、所属する広域掲示板センター直属の街への配信や受信は常に有効です。
+無効にすることは出来ません。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="12" id="12">広域掲示板網参加の方法(広域掲示板センターURL入手方法)</a></h2>
+<p>広域掲示板を実際に有効にするには、広域掲示板センターサイトへの登録が必要です。
+広域掲示板には、書き込みを各街へ配信してくれるサイトが必要です。
+それが広域掲示板センターサイトです。</p>
+<p>まずは、その「広域掲示板センターサイト」を見つけてください。</p>
+<p>見つかりましたら、その広域掲示板網へ参加できるかどうかを調べます。
+参加条件等がホームページのどこかに書いてあるかもしれません。
+管理人さんに問い合わせが必要かもしれません。
+1 つの広域掲示板網には上限数がありますので、参加できない可能性もあります。</p>
+<p>参加できそうなサイトが見つかりましたら、
+管理人さんへ「広域掲示板網に参加させて欲しいのですが」といった趣旨の連絡をいれてください。
+その際、以下の内容を伝えてください。
+また、「参加させてもらう」ということを忘れないでください。</p>
+<p>その結果、参加が認められた場合は、作成した街設定ファイル <code class="filename">soldout/town/街コード.cgi</code> を渡します。
+折り返し、相手から「広域掲示板センター URL 」が送られてくると思います。
+送られてきた URL を、<code class="filename">soldout/_config.cgi</code> へ設定してください。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="13" id="13">広域掲示板の無効化</a></h2>
+<p>参加させてもらっている「広域掲示板センターサイト」の管理人さんへ脱退願いの連絡をいれてください。</p>
+<p>その後、脱退願いが受理されたり、
+しばらく待っても返答がない場合は <code class="filename">soldout/_config.cgi</code> の「広域掲示板使用」を無効に設定してください。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; 広域掲示板機能について</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

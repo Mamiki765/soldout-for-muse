@@ -1,0 +1,315 @@
+<p><?xml version="1.0" encoding="Shift_JIS"?>
+<!DOCTYPE html PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<link rev="made" href="mailto:info@mutoys.com" />
+<link rel="index" href="index.html" />
+<link href="manual.css" type="text/css" rel="stylesheet" />
+<title>SOLD OUT MANUAL 2004-03-18</title>
+</head>
+<body>
+<h1 class="title">SOLD OUT MANUAL 2004-03-18</h1>
+<p><a href="index.html">総合目次</a> &gt; 移転機能について</p>
+<hr /></p>
+<p>SOLD OUT の移転システムに関する説明書です。</p>
+<ul><li>
+<a href="#1">移転とは</a>
+</li>
+<li>
+<a href="#2">移転システムを利用できる条件</a>
+</li>
+<li>
+<a href="#3">移転システムの概要</a>
+</li>
+<li>
+<a href="#4">移転システムの有効化</a>
+</li>
+<li>
+<a href="#5">街設定ファイル書式</a>
+<ul><li>
+<a href="#6">name　[街の名称]</a>
+</li>
+<li>
+<a href="#7">comment　[コメント]</a>
+</li>
+<li>
+<a href="#8">recvshopurl　[<code class="filename">soldout/recv-shop.cgi</code>のURL]</a>
+</li>
+<li>
+<a href="#9">url　[街へのリンクURL]</a>
+</li>
+<li>
+<a href="#10">password　[移転元証明用パスワード]</a>
+</li>
+<li>
+<a href="#11">position　[街の位置]</a>
+</li>
+<li>
+<a href="#12">blockip　[同一IPアドレスの拒否]</a>
+</li>
+<li>
+<a href="#13">myaddr　[移転元証明用IPアドレス(正規表現)]</a>
+</li>
+<li>
+<a href="#14">group　[グループ設定]</a>
+</li>
+<li>
+<a href="#15">allowguild　[移転許可ギルド]</a>
+</li>
+<li>
+<a href="#16">denyguild　[移転拒否ギルド]</a>
+</li>
+<li>
+<a href="#17">onlyguild　[ギルド所属のみ移転許可]</a>
+</li>
+<li>
+<a href="#18">noguild　[ギルド所属のみ移転拒否]</a>
+</li>
+<li>
+<a href="#19">allowmoney　[移転許可資金]</a>
+</li>
+<li>
+<a href="#20">denymoney　[移転拒否資金]</a>
+</li>
+<li>
+<a href="#21">allowtopcount　[移転許可トップ獲得回数]</a>
+</li>
+<li>
+<a href="#22">denytopcount　[移転拒否トップ獲得回数]</a>
+</li>
+<li>
+<a href="#23">allowfoundation　[移転許可開業期間]</a>
+</li>
+<li>
+<a href="#24">denyfoundation　[移転拒否開業期間]</a>
+</li>
+<li>
+<a href="#25">allowjob　[移転許可職業]</a>
+</li>
+<li>
+<a href="#26">denyjob　[移転拒否職業]</a>
+</li>
+<li>
+<a href="#27">onlyjob　[職業ありのみ移転許可]</a>
+</li>
+<li>
+<a href="#28">nojob　[職業ありのみ移転拒否]</a>
+</li>
+<li>
+<a href="#29">allowuserdata　[受け入れる$DT->{user}のキー]</a>
+</li></ul></li>
+<li>
+<a href="#30">街設定ファイルの更新</a>
+</li>
+<li>
+<a href="#31">他の街と移転関係を結びたい場合</a>
+</li>
+<li>
+<a href="#32">他の街から設定ファイルを受け取った場合</a>
+</li>
+<li>
+<a href="#33">移転先の削除方法</a>
+</li>
+<li>
+<a href="#34">移転機能の無効化</a>
+</li></ul><h2 class="section"><small><a href="#top">△</a></small> <a name="1" id="1">移転とは</a></h2>
+<p>店舗を別のサイトの街へ移転できるサイト間移動システムです。
+店舗データそのものを移動させます。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="2" id="2">移転システムを利用できる条件</a></h2>
+<p>サーバの設定や規約で「 socket を利用した外部との通信」が許可されていない場合、<strong>移転機能は利用できません</strong>。</p>
+<p>socket 利用が許可されている場合は移転システムが利用できます。</p>
+<p>また、以下の説明で利用/設定方法が分からない場合も難しいと思われます。
+分からないままでの移転機能利用は<strong>セキュリティ上大変危険ですし相手にも迷惑をかける可能性が高い</strong>です。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="3" id="3">移転システムの概要</a></h2>
+<p>移転システムの基本は、 1 対の街(SOLD OUT)同士の相互リンクになります。
+双方にお互いの設定ファイルを設置することで、お互いに移転し合えるようになります。
+片方が移転システムを拒否すれば、お互いに移転は不可能になります。
+(設定ミス以外での移転一方通行はあり得ない)</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="4" id="4">移転システムの有効化</a></h2>
+<p>移転システムを有効にするには、<code class="filename">soldout/_config.cgi</code> にて「移転機能の有効化」と「街コードの設定」を行います。</p>
+<p>街コードとは「<strong>半角英数 10 文字以内小文字のみ</strong>」で表される「街固有の識別コード」です。
+他の街と重複してはいけません。
+他の街のコードと重複しないように気を付けてください。
+街コードは、貿易システムと共用です。</p>
+<p>街コードを決定したら、<code class="filename">soldout/_config.cgi</code> で「移転機能の有効化」を設定し、
+「街コードを設定」してください。
+この時点で初めて移転機能が有効になります。</p>
+<p>その後、<code class="filename">soldout/town/街コード.cgi</code> というファイルを新規作成します。
+そのファイルへ、次項の「街設定ファイル書式」に従って街の内容/設定を記述します。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="5" id="5">街設定ファイル書式</a></h2>
+<p>街設定ファイルの書式(構文)は以下の通りです。</p>
+<blockquote><pre>キー=設定内容
+キー=設定内容
+キー=設定内容
+:
+</pre></blockquote>
+<ul><li>
+1行に1項目ずつ設定内容を記述していきます。キーの一覧は以下の通りです。
+</li>
+<li>
+日本語を使用する場合は、SHIFT-JIS(SJIS)で記述してください。
+</li>
+<li>
+# から改行までは注釈扱いとなり無視されます。
+</li></ul><blockquote><p><h3 class="subsection"><small><a href="#top">△</a></small> <a name="6" id="6">name 　[街の名称]</a></h3>
+<p>街の名称を設定してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="7" id="7">comment　[コメント]</a></h3>
+<p>街の簡単な紹介コメントです。長すぎると迷惑になりますので簡潔に記述してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="8" id="8">recvshopurl　[<code class="filename">soldout/recv-shop.cgi</code>のURL]</a></h3>
+<p>移転受け入れ時の <code class="filename">soldout/recv-shop.cgi</code>の URL です。
+<code class="filename">soldout/recv-shop.cgi</code>はリネーム可能ですので、
+セキュリティを考慮してリネームした場合はリネームした場合の URL を記述してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="9" id="9">url　[街へのリンクURL]</a></h3>
+<p>移転システム利用者の利便性を重視して設定してください。街への直接リンクが望ましいです。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="10" id="10">password　[移転元証明用パスワード]</a></h3>
+<p>移転する際に相手へ提示される認証コードの元になるパスワードです。
+半角英数で 10 ～ 30 文字程度が妥当です。
+覚える必要はありませんので、推測されにくいデタラメなパスワードを設定してください。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="11" id="11">position　[街の位置]</a></h3>
+<p>x 座標,y 座標 の書式で街の絶対位置を記述します。
+値はｘ座標、ｙ座標それぞれ -1000 ～ +1000 程度の範囲で記述してください。
+街の位置により、移転先までの距離が決まり、移動にかかる時間が計算されます。
+現在のところ、座標 1 ポイントは約 400 ｍに該当します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="12" id="12">blockip　[同一IPアドレスの拒否]</a></h3>
+<p>すでに同じ IP アドレスからアクセスされている店舗がある場合、移転を拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="13" id="13">myaddr　[移転元証明用IPアドレス(正規表現)]</a></h3>
+<p>移転する際に「自サイト(街)からの移転」であることを証明/許可するための、
+自サイトの IP アドレスを正規表現で記述します。
+移転先に「自サイトを名乗る不正アクセス」を防ぐために、可能な限り設定しましょう。
+また、もしこの項目が設定されていない街設定ファイルを受け取った場合は、
+その街からの移転状況をログで確認し、記述を追加しておきましょう。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="14" id="14">group　[グループ設定]</a></h3>
+<p>自サイトにいくつかの街を立ち上げている場合、
+それらをグループ化するためのグループコード(任意)を半角英数にて記述します。
+同じグループ内での移転では、同一 IP アドレス&ブラウザの自動アクセス制限チェックの設定が引き継がれます。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="15" id="15">allowguild　[移転許可ギルド]</a></h3>
+<p>移転受入を許可するギルドのコードをカンマ(,)で区切って記述します。
+これを設定した場合は、許可以外のギルドは受け入れません。
+(無所属は移転可能)</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="16" id="16">denyguild　[移転拒否ギルド]</a></h3>
+<p>移転受入を拒否するギルドのコードをカンマ(,)で区切って記述します。
+これを設定した場合は、拒否以外のギルドのみ受け入れます。
+(無所属は移転可能)</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="17" id="17">onlyguild　[ギルド所属のみ移転許可]</a></h3>
+<p>ギルドに所属している場合のみ移転を許可します。
+allowguild や denyjob との組み合わせで、特定ギルドのみ移転可能になります。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="18" id="18">noguild　[ギルド所属のみ移転拒否]</a></h3>
+<p>ギルドに所属している場合のみ移転を拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="19" id="19">allowmoney　[移転許可資金]</a></h3>
+<p>移転受入を許可する資金額を記述します。
+設定額より多い資金の店舗のみ受け入れます。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="20" id="20">denymoney　[移転拒否資金]</a></h3>
+<p>移転受入を拒否する資金額を記述します。
+設定額より多い資金の店舗の受け入れを拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="21" id="21">allowtopcount　[移転許可トップ獲得回数]</a></h3>
+<p>移転受入を許可するトップ獲得回数を記述します。
+設定より多いトップ獲得回数の店舗のみ受け入れます。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="22" id="22">denytopcount　[移転拒否トップ獲得回数]</a></h3>
+<p>移転受入を拒否するトップ獲得回数を記述します。
+設定より多いトップ獲得回数の店舗の受け入れを拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="23" id="23">allowfoundation　[移転許可開業期間]</a></h3>
+<p>移転受入を許可する新装開店からの開業期間(秒)を記述します。
+設定より長い開業期間の店舗のみ受け入れます。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="24" id="24">denyfoundation　[移転拒否開業期間]</a></h3>
+<p>移転受入を拒否する新装開店からの開業期間(秒)を記述します。
+設定より長い開業期間の店舗の受け入れを拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="25" id="25">allowjob　[移転許可職業]</a></h3>
+<p>移転受入を許可する職業のコードをカンマ(,)で区切って記述します。
+これを設定した場合は、許可以外の職業は受け入れません。
+(無職は移転可能)</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="26" id="26">denyjob　[移転拒否職業]</a></h3>
+<p>移転受入を拒否する職業のコードをカンマ(,)で区切って記述します。
+これを設定した場合は、拒否以外の職業のみ受け入れます。
+(無職は移転可能)</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="27" id="27">onlyjob　[職業ありのみ移転許可]</a></h3>
+<p>職業がある場合のみ移転を許可します。
+allowjob や denyjob との組み合わせで、特定職業のみ移転可能になります。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="28" id="28">nojob　[職業ありのみ移転拒否]</a></h3>
+<p>職業がある場合のみ移転を拒否します。</p>
+<h3 class="subsection"><small><a href="#top">△</a></small> <a name="29" id="29">allowuserdata　[受け入れる$DT->{user}のキー]</a></h3>
+<p>$DT->{user}の各項目のうち、受け入れる項目のキーをカンマ(,)区切りで記述します。</p>
+<p>受け入れるキーを制限することで、
+不要なキーを受け入れずに負荷を軽減させることが出来ます。</p>
+<p>受け入れ拒否されたキーは商品の保管と同じ様に一時保管され、
+そのキーを受け入れる街へ移転した際に返還されます。</p>
+<p>'none' とだけ設定すると、全項目の受け入れを拒否します。(allowuserdata=none)</p>
+<p>ただし、'none' を他のキーと併用した場合は単なるキーとみなされます。
+（ allowuserdata=param1,none では param1 と none というキーを受け入れます）</p>
+<p>また、この設定(allowuserdata)が無い場合は、全てのキーを受け入れます。
+(古いバージョンと互換性がある状態です)</p>
+<p>'_so_' から始まるキーはシステムで利用するキーですので、制限はかけられません。（全て受け入れます）</p>
+</blockquote>
+</p>
+<pre class="display">
+記述例
+name=MUTOYS中心街
+comment=MUTOYSの中心に位置する街です
+recvshopurl=http://mutoys/cgi-bin/soldout/recv-shop.cgi
+url=http://mutoys/cgi-bin/soldout/index.cgi
+password=himitsunokotoba
+group=mutoys
+myaddr=.
+position=10,20
+# シャープ(#)から行末まではコメントと見なされます
+#blocksameip=on
+#allowguild=mutoysblue,mutoysred
+#denyguild=mutoysblue,mutoysred
+#allowmoney=10000
+#denymoney=10000000000
+#allowtopcount=10
+#denytopcount=10
+#allowfoundation=86400
+#denyfoundation=86400
+#allowuserdata=param1,param2,param3
+</pre><h2 class="section"><small><a href="#top">△</a></small> <a name="30" id="30">街設定ファイルの更新</a></h2>
+<p><code class="filename">soldout/town</code> ディレクトリへ上書きしてください。即反映されます。</p>
+<p>同時に、設定ファイルを関係サイトの管理人さんに渡し、更新をお願いしてください。
+更新されるまでは、相手先のサイトで表示されるあなたの街の情報が古いままになります。
+(実際の移転受け入れ条件は更新されていますが、表示が矛盾します)</p>
+<p>また、パスワードや URL 等、移転時の接続に必要な情報が変更された場合は移転出来ません。
+相手先で更新されることを待ちましょう。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="31" id="31">他の街と移転関係を結びたい場合</a></h2>
+<p>まずその街の管理人さんと連絡を取り、その旨お願いします。
+その際、自分の街の紹介(URL や街名はもちろん、特色等)も添えてお願いしましょう。</p>
+<p>その結果同意が得られたら、作成した街設定ファイル <code class="filename">soldout/town/街コード.cgi</code> を渡します。
+折り返し相手の街の設定ファイルが送られてくると思います。
+送られてきたファイルは次項の手順で設置して下さい。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="32" id="32">他の街から設定ファイルを受け取った場合</a></h2>
+<p>その街と移転関係を結ぶのに同意であれば、
+受け取ったファイルを <code class="filename">soldout/town</code> ディレクトリへアップロードしてください。
+即反映されます。</p>
+<p>ただし、実際の移転には相手の準備も完了している必要があります。
+ですから、相手へ「アップロード完了しました」という趣旨の連絡を入れましょう。
+そうすれば、相手からもアップロード完了の通知が届くことになります。</p>
+<p>相手からアップロード完了通知が来ているのにも関わらず移転できない場合は設定ミス等が考えられますので、
+設定ファイルを見直しましょう。
+移転受け入れが出来ない理由は <code class="filename">soldout/log/moveshop.cgi</code> ログに記録されていますので、
+それも管理メニューから確認してください。</p>
+<p>最低でも「 recvshopurl 」「 password 」「 myaddr(省略化)」の設定が妥当であれば移転可能です。
+スペルミス等に注意してください。</p>
+<p>なお、他のサイトの街データを組み込むことに関してはセキュリティ上の危険が少なからず伴います。
+信用できないサイトからの街設定ファイル等は破棄しましょう。
+また、信用できるサイトだとしても設定ファイルの内容は確認しておきましょう。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="33" id="33">移転先の削除方法</a></h2>
+<p>削除したい街の <code class="filename">soldout/town/街コード.cgi</code> を削除してください。
+即反映されます。
+その街へ移転することも、その街からの移転を受け入れることも即座に無効になります。</p>
+<h2 class="section"><small><a href="#top">△</a></small> <a name="34" id="34">移転機能の無効化</a></h2>
+<p><code class="filename">soldout/_config.cgi</code> の街コード設定を "" に設定してください。
+移転機能が全て無効になります。</p>
+<p><small><a href="#top">△</a></small></p>
+<hr /><p><a href="index.html">総合目次</a> &gt; 移転機能について</p>
+<hr /><div class="footer">
+<address>
+Copyright (C) 2001-2002 MUTOYS.<br />
+<a href="http://mutoys.com/">MUTOYS(ムートイズ) http://mutoys.com/</a><br />
+<a href="mailto:info@mutoys.com">info@mutoys.com</a><br />
+管理人：MU<br />
+画像作成：NAYUTA<br />
+</address>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# SOLD OUT for Muse。apps/soldout に置いて、ほかのアプリとは別の compose として動かす。
+# 起動: docker compose up -d --build
+# 招待コード: docker compose run --rm soldout set-invite <コード>
+# 観戦用の合言葉 (Muse Party と同じもの): docker compose run --rm soldout set-viewer-key <合言葉>
+name: soldout
+
+services:
+  soldout:
+    build: .
+    image: soldout-for-muse:local
+    init: true
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      PUBLIC_URL: "https://soldout.museimg.party"   # 見学用リンクの頭。実際のURLに合わせる
+      # Muse Party のトークンで遊べるようにする (Party の GET /api/me で持ち主を確かめる)。消すと招待コードだけになる
+      PARTY_URL: "https://museimg.party"
+      PARTY_PUBLIC_URL: "https://museimg.party"     # 観戦画面のメニューに出す Party へのリンク
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8951:8080"   # NPM か cloudflared からだけ届く。外には出さない
+    # ---- 同居先を守る上限 ----
+    # Muse Party と SOLD OUT は muse.slice にまとめて、合計 1 OCPU・3GB に抑える
+    # (slice は Muse Party 側の手順で作る: CPUQuota=100%, MemoryMax=3G)
+    cgroup_parent: muse.slice
+    cpus: 0.5                  # slice の中でも SOLD OUT は半分まで
+    cpu_shares: 205            # 取り合いでは同居先が勝つ
+    mem_limit: 512m
+    mem_reservation: 256m
+    memswap_limit: 512m
+    pids_limit: 64
+    read_only: true
+    tmpfs: ["/tmp:size=16m"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
