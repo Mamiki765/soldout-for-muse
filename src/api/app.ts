@@ -19,6 +19,7 @@ import { newToken, sha256, Store } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
+import { PartyAuth, type PartyVerifier, type PartyWho } from './party.js';
 
 export interface AppOptions {
   store: Store;
@@ -39,6 +40,10 @@ export interface AppOptions {
   imagesDir?: string;
   /** 配布するソースのフォルダ (リポジトリの中身) */
   sourceDir?: string;
+  /** Muse Party のトークンを確かめる関数 (PARTY_URL から作る)。無ければ Party のトークンは使えない */
+  partyVerifier?: PartyVerifier;
+  /** 観戦画面から飛ぶ Muse Party の URL */
+  partyPublicUrl?: string;
 }
 
 interface Reply {
@@ -73,6 +78,8 @@ export class App {
   readonly ratePerMinute: number;
   readonly imagesDir: string | undefined;
   readonly source: SourceTree | undefined;
+  readonly party: PartyAuth | undefined;
+  readonly partyPublicUrl: string;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number }>();
@@ -89,6 +96,8 @@ export class App {
     this.ratePerMinute = o.ratePerMinute ?? 60;
     this.imagesDir = o.imagesDir;
     this.source = o.sourceDir ? new SourceTree(o.sourceDir) : undefined;
+    this.party = o.partyVerifier ? new PartyAuth(o.partyVerifier) : undefined;
+    this.partyPublicUrl = (o.partyPublicUrl ?? '').replace(/\/$/, '');
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
@@ -135,6 +144,7 @@ export class App {
   private onShopClosed(shopId: number): void {
     this.store.deleteTokensOf(shopId);
     this.store.deleteViewKeysOf(shopId);
+    this.store.unlinkPartyShop(shopId);
   }
 
   // ---------------------------------------------------------------------------
@@ -190,13 +200,36 @@ export class App {
     res.end(body);
   }
 
-  private auth(req: IncomingMessage): number {
-    const h = req.headers.authorization ?? '';
-    const m = /^Bearer\s+(\S+)$/i.exec(h);
-    if (!m) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です');
-    const shopId = this.store.shopIdByToken(m[1]);
-    if (shopId === undefined) throw new HttpError(401, 'トークンが正しくありません');
-    this.rateLimit('t:' + sha256(m[1]).slice(0, 16));
+  private bearer(req: IncomingMessage): string | undefined {
+    const m = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '');
+    return m?.[1];
+  }
+
+  /** Party のトークンなら持ち主を確かめる。Party と組んでいない・SOLD OUT のトークンなら undefined */
+  private async partyWho(token: string): Promise<PartyWho | undefined> {
+    if (!this.party || token.startsWith('so_')) return undefined;
+    try {
+      return await this.party.who(token);
+    } catch (e) {
+      console.error(e);
+      throw new HttpError(503, 'Muse Party に確認できませんでした。少したってから試してください');
+    }
+  }
+
+  private async auth(req: IncomingMessage): Promise<number> {
+    const token = this.bearer(req);
+    if (!token) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です');
+    // 確かめに行く前に数える (Party に問い合わせが殺到しないように)
+    this.rateLimit('t:' + sha256(token).slice(0, 16));
+    let shopId = this.store.shopIdByToken(token);
+    if (shopId === undefined) {
+      const who = await this.partyWho(token);
+      if (!who) throw new HttpError(401, 'トークンが正しくありません');
+      shopId = this.store.shopIdByPartyOwner(who.ownerId);
+      if (shopId === undefined) {
+        throw new HttpError(404, 'まだお店がありません。POST /api/v1/register に {"shopname":"お店の名前"} を送ると開店できます (招待コードは不要です)');
+      }
+    }
     return shopId;
   }
 
@@ -264,7 +297,7 @@ export class App {
     }
     if (method === 'POST' && p === '/register') return this.register(req);
 
-    const shopId = this.auth(req);
+    const shopId = await this.auth(req);
 
     if (method === 'GET') {
       const { g } = this.game();
@@ -353,6 +386,10 @@ export class App {
   private async register(req: IncomingMessage): Promise<Reply> {
     this.rateLimit('register');
     const body = await this.body(req);
+    const bearer = this.bearer(req);
+    const who = bearer ? await this.partyWho(bearer) : undefined;
+    if (bearer && this.party && !bearer.startsWith('so_') && !who) throw new HttpError(401, 'Muse Party のトークンが正しくありません');
+    if (who) return this.registerParty(who, body);
     const invite = String(body.invite ?? '');
     const hash = this.store.getSetting('invite_hash');
     if (!hash || !invite || sha256(invite) !== hash) throw new HttpError(403, '招待コードが正しくありません');
@@ -367,6 +404,25 @@ export class App {
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
       'まず GET /api/v1/help を読んでください。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
+  }
+
+  /** Muse Party の人の開店。招待コードは要らず、トークンも Party のものをそのまま使う */
+  private registerParty(who: PartyWho, body: Record<string, unknown>): Reply {
+    const had = this.store.shopIdByPartyOwner(who.ownerId);
+    if (had !== undefined && this.world.shops.some((s) => s.id === had && s.status)) {
+      throw new HttpError(409, 'すでにお店があります (1人1店です。別人格でも同じです)');
+    }
+    if (had !== undefined) this.store.unlinkPartyShop(had);
+    const { g } = this.game();
+    const name = String(body.name ?? '') || who.ownerId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 12);
+    const shop = act.openShop(g, { name, shopname: String(body.shopname ?? '') });
+    this.save(g);
+    this.store.linkPartyOwner(who.ownerId, shop.id, g.now);
+    const text =
+      `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
+      'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
+      'まず GET /api/v1/help を読んでください。\n';
+    return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
   }
 
   // ---------------------------------------------------------------------------

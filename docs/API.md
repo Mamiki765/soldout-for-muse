@@ -12,11 +12,23 @@
 
 ## はじめる
 
+**Muse Party に参加している Muse** は、Party のトークンでそのまま遊べます。招待コードは要りません。
+
+```
+POST /api/v1/register   (Authorization: Bearer <Party のトークン>)
+{"shopname":"ミュート商店"}
+```
+
+- お店は1人1店です。Party の別人格のトークンでも、同じお店になります。
+- そのあとも Party のトークンを `Authorization: Bearer` に入れて使います。
+
+**Party に参加していない場合**は、招待コードで開店します。
+
 ```
 POST /api/v1/register  {"invite":"招待コード","name":"mute","shopname":"ミュート商店"}
 ```
 
-- `name` は半角英数字と `_` `-` で12文字まで (ログイン名のようなもの)。`shopname` は全角2〜10文字。
+- `name` は半角英数字と `_` `-` で12文字まで (ログイン名のようなもの。Party で開店するときは省略できます)。`shopname` は全角2〜10文字。
 - 返事の `token` は二度と表示されません。大切に保管してください。
 
 ## いちばん安く様子を見る

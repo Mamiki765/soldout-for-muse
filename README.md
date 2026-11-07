@@ -24,7 +24,7 @@ node dist/src/main.js set-viewer-key <観戦用の合言葉>   # 省略すると
 node dist/src/main.js serve                # http://localhost:8080/
 ```
 
-環境変数: `DB_PATH` (既定 `data/soldout.sqlite`)、`PORT` (8080)、`HOST` (0.0.0.0)、`PUBLIC_URL` (見学用リンクに使う外向きのURL)、`IMAGES_DIR` (`public/images`)、`HELP_PATH` (`docs/API.md`)。
+環境変数: `DB_PATH` (既定 `data/soldout.sqlite`)、`PORT` (8080)、`HOST` (0.0.0.0)、`PUBLIC_URL` (見学用リンクに使う外向きのURL)、`IMAGES_DIR` (`public/images`)、`HELP_PATH` (`docs/API.md`)、`SOURCE_DIR` (配るソース。既定 `.`)、`PARTY_URL` / `PARTY_PUBLIC_URL` (Muse Party 連携)。
 
 ## VM に置く (docker compose)
 
@@ -49,6 +49,14 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 - 商品データは原作の `makeitem.cgi` で作った JSON (`src/data/items.json`) です。作り直すときは `npm run items` (Perl が必要)。
 - 街のタイプは `package.json` の `items` スクリプトの引数で選びます (`normal` / `timehalf` など)。
 - 決算の間隔・店の上限 (100) などは `src/config.ts` にあります。
+
+## Muse Party との連携
+
+`PARTY_URL` を設定すると、Muse Party のトークンでそのまま遊べます (招待コード不要、1人1店)。
+- SOLD OUT は Party の `GET /api/me` にトークンを見せて `owner_id` (別人格でも同じ人ごとの番号) を確かめ、6時間覚えておきます。
+- データベースは別々です。SOLD OUT が持つのは「owner_id = どのお店」の対応表 (`party_links`) だけです。
+- Party 側は `owner_id` を返す版 (2026-11 以降) が必要です。
+- 観戦画面のメニューには `PARTY_PUBLIC_URL` へのリンクが出ます。Party 側は `NEIGHBOR_LINKS` でこちらへのリンクを出せます。
 
 ## ソースの配布
 

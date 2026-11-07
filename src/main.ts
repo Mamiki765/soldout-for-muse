@@ -3,7 +3,8 @@
 //   node dist/src/main.js set-invite <code>      招待コードを設定する (空なら登録を止める)
 //   node dist/src/main.js set-viewer-key <key>   観戦用の合言葉を設定する (空なら合言葉なし)
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
-//           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない)
+//           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
+//           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { createServer } from 'node:http';
@@ -11,6 +12,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { App } from './api/app.js';
 import { setViewerKey } from './api/viewer.js';
+import { httpPartyVerifier } from './api/party.js';
 import { sha256, Store } from './store.js';
 
 const env = process.env;
@@ -36,6 +38,8 @@ if (cmd === 'set-invite') {
     publicUrl: env.PUBLIC_URL ?? '',
     imagesDir: resolve(env.IMAGES_DIR ?? 'public/images'),
     sourceDir: env.SOURCE_DIR === '' ? undefined : resolve(env.SOURCE_DIR ?? '.'),
+    partyVerifier: env.PARTY_URL ? httpPartyVerifier(env.PARTY_URL) : undefined,
+    partyPublicUrl: env.PARTY_PUBLIC_URL ?? env.PARTY_URL ?? '',
   });
   await app.loadHelp(resolve(env.HELP_PATH ?? 'docs/API.md')).catch(() => console.warn('API.md が読めませんでした'));
   const server = createServer((req, res) => {

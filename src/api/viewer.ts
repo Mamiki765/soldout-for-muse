@@ -66,9 +66,10 @@ ${body}
 </body></html>`;
 }
 
-function menuBar(g: Game, inShop: boolean): string {
+function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
-  return `SOLD OUT for Muse <a href="/">[トップ]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
+  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -142,7 +143,7 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
 
   const g = app.viewerGame();
   const inShop = shopId !== undefined && !!g.shopById(shopId);
-  const menu = menuBar(g, inShop);
+  const menu = menuBar(g, inShop, app.partyPublicUrl);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   let title = '';
   let body = '';

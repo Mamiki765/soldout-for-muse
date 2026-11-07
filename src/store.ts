@@ -53,6 +53,9 @@ export class Store {
         shop_id INTEGER NOT NULL, shopname TEXT NOT NULL, msg TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS posts_board ON posts(board, id);
+      CREATE TABLE IF NOT EXISTS party_links (
+        owner_id TEXT PRIMARY KEY, shop_id INTEGER NOT NULL UNIQUE, created_at INTEGER NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS view_links (
         key_hash TEXT PRIMARY KEY, shop_id INTEGER NOT NULL, expires_at INTEGER NOT NULL, kind TEXT NOT NULL
       );
@@ -149,6 +152,21 @@ export class Store {
 
   deleteTokensOf(shopId: number): void {
     this.db.prepare('DELETE FROM tokens WHERE shop_id = ?').run(shopId);
+  }
+
+  // ---- Muse Party の人 (owner_id) とお店の対応 ----
+
+  shopIdByPartyOwner(ownerId: string): number | undefined {
+    const row = this.db.prepare('SELECT shop_id FROM party_links WHERE owner_id = ?').get(ownerId) as { shop_id: number } | undefined;
+    return row?.shop_id;
+  }
+
+  linkPartyOwner(ownerId: string, shopId: number, now: number): void {
+    this.db.prepare('INSERT INTO party_links(owner_id,shop_id,created_at) VALUES(?,?,?)').run(ownerId, shopId, now);
+  }
+
+  unlinkPartyShop(shopId: number): void {
+    this.db.prepare('DELETE FROM party_links WHERE shop_id = ?').run(shopId);
   }
 
   // ---- 見学用リンク (人間が店長室を見るための鍵) ----
