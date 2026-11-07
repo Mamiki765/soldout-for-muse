@@ -44,6 +44,11 @@ export interface AppOptions {
   partyVerifier?: PartyVerifier;
   /** 観戦画面から飛ぶ Muse Party の URL */
   partyPublicUrl?: string;
+  /**
+   * 別のサイトの下で動かすときの頭 (例 "/soldout")。
+   * Muse の金庫は登録したドメインにだけトークンを差し込むので、Party と同じドメインの下に置けるようにする。
+   */
+  basePath?: string;
 }
 
 interface Reply {
@@ -84,6 +89,7 @@ export class App {
   readonly source: SourceTree | undefined;
   readonly party: PartyAuth | undefined;
   readonly partyPublicUrl: string;
+  readonly basePath: string;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number }>();
@@ -102,6 +108,8 @@ export class App {
     this.source = o.sourceDir ? new SourceTree(o.sourceDir) : undefined;
     this.party = o.partyVerifier ? new PartyAuth(o.partyVerifier) : undefined;
     this.partyPublicUrl = (o.partyPublicUrl ?? '').replace(/\/$/, '');
+    this.basePath = (o.basePath ?? '').replace(/\/+$/, '');
+    if (this.basePath && !this.basePath.startsWith('/')) this.basePath = '/' + this.basePath;
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
@@ -157,6 +165,15 @@ export class App {
   async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     let reply: Reply;
     const url = new URL(req.url ?? '/', 'http://localhost');
+    if (this.basePath) {
+      if (url.pathname === this.basePath) {
+        res.writeHead(301, { location: this.basePath + '/' + url.search });
+        res.end();
+        return;
+      }
+      // 頭付きでも頭なしでも受け付ける (サブドメインからの直接アクセスもそのまま動く)
+      if (url.pathname.startsWith(this.basePath + '/')) url.pathname = url.pathname.slice(this.basePath.length);
+    }
     const wantJson = url.searchParams.get('format') === 'json' || (req.headers.accept ?? '').startsWith('application/json');
     try {
       reply = await this.route(req, url, wantJson);
@@ -181,7 +198,7 @@ export class App {
       return;
     }
     if (r.html !== undefined) {
-      body = r.html;
+      body = this.basePath ? withBase(r.html, this.basePath) : r.html;
       type = 'text/html; charset=utf-8';
     } else if (wantJson && r.json !== undefined) {
       body = JSON.stringify(r.json);
@@ -191,6 +208,8 @@ export class App {
       type = 'text/plain; charset=utf-8';
     }
     const headers: Record<string, string> = { 'content-type': type, 'cache-control': 'no-cache', ...(r.headers ?? {}) };
+    if (this.basePath && headers.location?.startsWith('/')) headers.location = this.basePath + headers.location;
+    if (this.basePath && headers['set-cookie']) headers['set-cookie'] = headers['set-cookie'].replace('Path=/;', `Path=${this.basePath}/;`);
     if (r.status === 200 && req.method === 'GET') {
       const etag = '"' + createHash('sha1').update(body).digest('base64url').slice(0, 16) + '"';
       headers.etag = etag;
@@ -722,4 +741,9 @@ function clampNum(s: string | null, min: number, max: number, d: number): number
 
 function countAbove(last: number, seen: number, count: () => number): number {
   return last > seen ? count() : 0;
+}
+
+/** HTML の中の「/ で始まるリンク」に頭を付ける (href / src / action / 画像の差し替え) */
+export function withBase(html: string, base: string): string {
+  return html.replace(/\b(href|src|action)="\/(?!\/)/g, `$1="${base}/`).replace(/this\.src='\/(?!\/)/g, `this.src='${base}/`);
 }

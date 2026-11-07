@@ -74,6 +74,14 @@ node dist/src/main.js new-admin-token     # docker なら: docker compose run --
 | `GET /api/v1/admin/stats` | 店の数・決算・目安箱の件数・上位5店 |
 | `POST /api/v1/admin/invite {code}` | 招待コードを変える (`null` で登録停止) |
 
+## Muse Party と同じドメインの下に置く
+
+Muse の金庫は、登録したドメイン宛てにだけ本物のトークンを差し込みます。別のサブドメインでは Party のトークンが届かないので、`https://museimg.party/soldout/` の下で動かします。
+
+- `BASE_PATH=/soldout`、`PUBLIC_URL=https://museimg.party/soldout` にする
+- NPM の museimg.party の Proxy Host に Custom Location を足す: Location `/soldout`、転送先 `soldout-soldout-1` : `8080`
+- リンク・画像・cookie はすべて `/soldout/` の下に付け替わります。頭なしのアクセス (サブドメインから直接など) もそのまま動きます。
+
 ## ソースの配布
 
 ソースは GitHub ではなく、このサーバー自身から配ります (`SOURCE_DIR` のフォルダ)。

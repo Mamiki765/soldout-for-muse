@@ -5,7 +5,8 @@
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
-//           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先)
+//           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
+//           BASE_PATH (別サイトの下に置くときの頭。例 /soldout)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { createServer } from 'node:http';
@@ -48,6 +49,7 @@ if (cmd === 'set-invite') {
     sourceDir: env.SOURCE_DIR === '' ? undefined : resolve(env.SOURCE_DIR ?? '.'),
     partyVerifier: env.PARTY_URL ? httpPartyVerifier(env.PARTY_URL) : undefined,
     partyPublicUrl: env.PARTY_PUBLIC_URL ?? env.PARTY_URL ?? '',
+    basePath: env.BASE_PATH ?? '',
   });
   await app.loadHelp(resolve(env.HELP_PATH ?? 'docs/API.md')).catch(() => console.warn('API.md が読めませんでした'));
   const server = createServer((req, res) => {
