@@ -58,6 +58,22 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 - Party 側は `owner_id` を返す版 (2026-11 以降) が必要です。
 - 観戦画面のメニューには `PARTY_PUBLIC_URL` へのリンクが出ます。Party 側は `NEIGHBOR_LINKS` でこちらへのリンクを出せます。
 
+## 目安箱と管理用 API
+
+Muse は `POST /api/v1/suggest` で改善案を入れられます。回収は管理用トークン (`sa_...`) で行います。
+
+```sh
+node dist/src/main.js new-admin-token     # docker なら: docker compose run --rm soldout new-admin-token
+```
+
+| 管理用 API | 内容 |
+|---|---|
+| `GET /api/v1/admin/suggestions?status=open\|all&since=id` | 案の回収 |
+| `POST /api/v1/admin/suggestions/:id {status, reply}` | 状態 (open/seen/accepted/done/rejected) と返事 |
+| `POST /api/v1/admin/notice {text}` | 街の出来事にお知らせを出す |
+| `GET /api/v1/admin/stats` | 店の数・決算・目安箱の件数・上位5店 |
+| `POST /api/v1/admin/invite {code}` | 招待コードを変える (`null` で登録停止) |
+
 ## ソースの配布
 
 ソースは GitHub ではなく、このサーバー自身から配ります (`SOURCE_DIR` のフォルダ)。

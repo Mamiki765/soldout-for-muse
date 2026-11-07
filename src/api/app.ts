@@ -15,7 +15,7 @@ import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
 import { useItemAction, useResultMessages } from '../engine/use.js';
-import { newToken, sha256, Store } from '../store.js';
+import { newToken, sha256, Store, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
@@ -65,6 +65,10 @@ class HttpError extends Error {
 const SEEN_LOG = '_api_seen_log';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
+const SEEN_SUGGEST = '_api_seen_suggest';
+/** 目安箱: 1店あたり 24 時間に出せる案の数と、1件の長さ (文字) */
+const SUGGEST_PER_DAY = 5;
+const SUGGEST_MAX_CHARS = 800;
 
 export class App {
   readonly store: Store;
@@ -297,6 +301,8 @@ export class App {
     }
     if (method === 'POST' && p === '/register') return this.register(req);
 
+    if (p.startsWith('/admin/')) return this.admin(req, method, p.slice('/admin'.length), q);
+
     const shopId = await this.auth(req);
 
     if (method === 'GET') {
@@ -332,6 +338,15 @@ export class App {
         }
         case '/log':
           return this.readLog(dt, q);
+        case '/suggest': {
+          const list = this.store.suggestionsOf(dt.id, clampNum(q.get('limit'), 1, 50, 10));
+          const latest = Math.max(0, ...list.map((s) => s.updated_at));
+          if (latest > Number(dt.user[SEEN_SUGGEST] ?? 0)) {
+            dt.user[SEEN_SUGGEST] = String(latest);
+            this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
+          }
+          return { status: 200, text: v.suggestionsText(list), json: list };
+        }
         case '/chat':
         case '/bbs':
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
@@ -358,6 +373,8 @@ export class App {
           return this.post(shopId, p.slice(1) as 'chat' | 'bbs', body);
         case '/view-link':
           return this.viewLink(shopId, body);
+        case '/suggest':
+          return this.suggest(shopId, body);
       }
     }
     throw new HttpError(404, 'ありません');
@@ -514,6 +531,7 @@ export class App {
       newMine: this.store.countLogsSince(dt.id, seen, 'me'),
       newTown: this.store.countLogsSince(dt.id, seen, 'town'),
       newChat: countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
+      newReplies: this.store.countSuggestionUpdates(dt.id, Number(dt.user[SEEN_SUGGEST] ?? 0)),
       newBbs: countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
     };
   }
@@ -578,6 +596,90 @@ export class App {
     if (wait > 0) throw new GameError('連続投稿は出来ません。あと' + wait + '秒お待ち下さい。');
     const id = this.store.addPost({ board, time: g.now, shop_id: dt.id, shopname: dt.shopname, msg }, board === 'bbs' ? this.maxBbs : this.maxChat);
     return { status: 200, text: `OK ${board === 'bbs' ? '掲示板' : '井戸端'}に書き込みました (${id})\n`, json: { ok: true, id } };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 目安箱 (Muse からの改善案)
+
+  private suggest(shopId: number, body: Record<string, unknown>): Reply {
+    const { g } = this.game();
+    const dt = this.me(g, shopId);
+    const text = String(body.text ?? '').replace(/\r\n?/g, '\n').trim();
+    if (!text) throw new GameError('案の中身がありません');
+    if ([...text].length > SUGGEST_MAX_CHARS) throw new GameError(`案は${SUGGEST_MAX_CHARS}文字までです (今${[...text].length}文字)`);
+    if (this.store.countSuggestionsSince(dt.id, g.now - 86400) >= SUGGEST_PER_DAY) {
+      throw new GameError(`目安箱に入れられるのは24時間に${SUGGEST_PER_DAY}件までです`);
+    }
+    const id = this.store.addSuggestion(dt.id, dt.shopname, text, g.now);
+    return { status: 201, text: `OK 目安箱に入れました (#${id})。返事は GET /api/v1/suggest で見られます\n`, json: { ok: true, id } };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 管理用 (管理用トークン sa_... を持つ人だけ。ミュート用)
+
+  private adminAuth(req: IncomingMessage): void {
+    const token = this.bearer(req);
+    this.rateLimit('a:' + sha256(token ?? '').slice(0, 16));
+    const hash = this.store.getSetting('admin_token_hash');
+    if (!token || !hash || !token.startsWith('sa_') || sha256(token) !== hash) throw new HttpError(403, '管理用のトークンが必要です');
+  }
+
+  private async admin(req: IncomingMessage, method: string, p: string, q: URLSearchParams): Promise<Reply> {
+    this.adminAuth(req);
+    if (method === 'GET' && p === '/suggestions') {
+      const list = this.store.listSuggestions({ status: q.get('status') ?? 'open', since: Number(q.get('since') ?? 0) || 0, limit: clampNum(q.get('limit'), 1, 200, 50) });
+      return { status: 200, text: v.suggestionsText(list, true), json: list };
+    }
+    const sm = /^\/suggestions\/(\d+)$/.exec(p);
+    if (method === 'POST' && sm) {
+      const body = await this.body(req);
+      const s = this.store.getSuggestion(Number(sm[1]));
+      if (!s) throw new HttpError(404, 'その案はありません');
+      const status = String(body.status ?? s.status);
+      if (!(SUGGESTION_STATUS as readonly string[]).includes(status)) throw new HttpError(400, 'status は ' + SUGGESTION_STATUS.join(' / ') + ' のどれかです');
+      const reply = body.reply === undefined ? s.reply : String(body.reply).slice(0, 800);
+      this.store.updateSuggestion(s.id, status, reply, this.clock());
+      return { status: 200, text: `OK #${s.id} を ${status} にしました\n`, json: { ok: true } };
+    }
+    if (method === 'POST' && p === '/notice') {
+      const body = await this.body(req);
+      const text = String(body.text ?? '').replace(/[\r\n]+/g, ' ').trim();
+      if (!text || [...text].length > 200) throw new HttpError(400, 'お知らせは1〜200文字です');
+      const { g } = this.game();
+      g.writeLog(1, 0, 0, '【お知らせ】' + text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+      this.save(g);
+      return { status: 200, text: 'OK 街の出来事にお知らせを出しました\n', json: { ok: true } };
+    }
+    if (method === 'POST' && p === '/invite') {
+      const body = await this.body(req);
+      const code = body.code === null || body.code === '' ? undefined : String(body.code ?? '');
+      if (code !== undefined && code.length < 8) throw new HttpError(400, '招待コードは8文字以上にしてください (null で登録停止)');
+      this.store.setSetting('invite_hash', code ? sha256(code) : undefined);
+      return { status: 200, text: code ? 'OK 招待コードを変えました\n' : 'OK 招待コードでの登録を止めました\n', json: { ok: true } };
+    }
+    if (method === 'GET' && p === '/stats') {
+      const { g } = this.game();
+      const counts = this.store.countSuggestionsByStatus();
+      const top = g.shops.slice(0, 5).map((s, i) => `${i + 1}位 ${s.shopname} 点${s.point}`);
+      const d = {
+        shops: g.shops.length,
+        max_shops: this.config.maxUser,
+        people: this.world.people,
+        events: g.eventMessages,
+        next_period: g.nextPeriodTime(),
+        last_turn: this.world.lasttime,
+        suggestions: counts,
+        party: !!this.party,
+        invite: !!this.store.getSetting('invite_hash'),
+      };
+      const text =
+        `店${d.shops}/${d.max_shops} 人口${d.people} 次の決算${v.jst(d.next_period)} 最後の計算${v.jst(d.last_turn)}\n` +
+        `目安箱 ${Object.entries(counts).map(([k, n]) => `${k}${n}`).join(' ') || 'なし'} | Party連携${d.party ? 'あり' : 'なし'} 招待コード${d.invite ? 'あり' : 'なし'}\n` +
+        (d.events.length ? 'イベント ' + d.events.join('/') + '\n' : '') +
+        (top.length ? top.join(' / ') + '\n' : '');
+      return { status: 200, text, json: { ...d, top: g.shops.slice(0, 5).map((s) => ({ id: s.id, shop: s.shopname, point: s.point })) } };
+    }
+    throw new HttpError(404, 'ありません');
   }
 
   // ---------------------------------------------------------------------------

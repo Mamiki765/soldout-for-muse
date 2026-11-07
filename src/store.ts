@@ -11,6 +11,21 @@ export interface StoredLog extends LogEntry {
   id: number;
 }
 
+/** 目安箱の案 */
+export interface Suggestion {
+  id: number;
+  time: number;
+  shop_id: number;
+  shopname: string;
+  text: string;
+  /** open=未読 / seen=読んだ / accepted=採用 / done=実装済み / rejected=見送り */
+  status: string;
+  reply: string;
+  updated_at: number;
+}
+
+export const SUGGESTION_STATUS = ['open', 'seen', 'accepted', 'done', 'rejected'] as const;
+
 /** 掲示板・井戸端の書き込み */
 export interface BoardPost {
   id: number;
@@ -53,6 +68,11 @@ export class Store {
         shop_id INTEGER NOT NULL, shopname TEXT NOT NULL, msg TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS posts_board ON posts(board, id);
+      CREATE TABLE IF NOT EXISTS suggestions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, shop_id INTEGER NOT NULL, shopname TEXT NOT NULL,
+        text TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', reply TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS suggestions_shop ON suggestions(shop_id, id);
       CREATE TABLE IF NOT EXISTS party_links (
         owner_id TEXT PRIMARY KEY, shop_id INTEGER NOT NULL UNIQUE, created_at INTEGER NOT NULL
       );
@@ -152,6 +172,47 @@ export class Store {
 
   deleteTokensOf(shopId: number): void {
     this.db.prepare('DELETE FROM tokens WHERE shop_id = ?').run(shopId);
+  }
+
+  // ---- 目安箱 ----
+
+  addSuggestion(shopId: number, shopname: string, text: string, now: number): number {
+    const r = this.db.prepare('INSERT INTO suggestions(time,shop_id,shopname,text,updated_at) VALUES(?,?,?,?,?)').run(now, shopId, shopname, text, now);
+    return Number(r.lastInsertRowid);
+  }
+
+  countSuggestionsSince(shopId: number, since: number): number {
+    return (this.db.prepare('SELECT COUNT(*) AS c FROM suggestions WHERE shop_id = ? AND time >= ?').get(shopId, since) as { c: number }).c;
+  }
+
+  suggestionsOf(shopId: number, limit: number): Suggestion[] {
+    return this.db.prepare('SELECT * FROM suggestions WHERE shop_id = ? ORDER BY id DESC LIMIT ?').all(shopId, limit) as unknown as Suggestion[];
+  }
+
+  /** 返事や状態が、seen より後に変わった自分の案の数 */
+  countSuggestionUpdates(shopId: number, seen: number): number {
+    return (this.db.prepare('SELECT COUNT(*) AS c FROM suggestions WHERE shop_id = ? AND updated_at > ? AND updated_at > time').get(shopId, seen) as { c: number }).c;
+  }
+
+  listSuggestions(opts: { status?: string; since?: number; limit: number }): Suggestion[] {
+    const where = ['id > ?'];
+    const args: (string | number)[] = [opts.since ?? 0];
+    if (opts.status && opts.status !== 'all') { where.push('status = ?'); args.push(opts.status); }
+    args.push(opts.limit);
+    return this.db.prepare(`SELECT * FROM suggestions WHERE ${where.join(' AND ')} ORDER BY id ASC LIMIT ?`).all(...args) as unknown as Suggestion[];
+  }
+
+  getSuggestion(id: number): Suggestion | undefined {
+    return this.db.prepare('SELECT * FROM suggestions WHERE id = ?').get(id) as unknown as Suggestion | undefined;
+  }
+
+  updateSuggestion(id: number, status: string, reply: string, now: number): void {
+    this.db.prepare('UPDATE suggestions SET status = ?, reply = ?, updated_at = ? WHERE id = ?').run(status, reply, now, id);
+  }
+
+  countSuggestionsByStatus(): Record<string, number> {
+    const rows = this.db.prepare('SELECT status, COUNT(*) AS c FROM suggestions GROUP BY status').all() as { status: string; c: number }[];
+    return Object.fromEntries(rows.map((r) => [r.status, r.c]));
   }
 
   // ---- Muse Party の人 (owner_id) とお店の対応 ----

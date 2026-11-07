@@ -8,7 +8,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import type { Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
-import type { BoardPost, StoredLog } from '../store.js';
+import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
 /** 秒を「18h05m」のような短い形にする */
 export function dur(sec: number): string {
@@ -51,6 +51,8 @@ export interface DigestInput {
   newTown: number;
   newChat: number;
   newBbs: number;
+  /** 目安箱の自分の案に返事・状態の変化があった数 */
+  newReplies?: number;
 }
 
 export function digestData(g: Game, dt: Shop, n: DigestInput) {
@@ -76,7 +78,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput) {
     time_full_in: full > 0 ? full : 0,
     next_period: g.nextPeriodTime(),
     shelves,
-    new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs },
+    new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
     events: g.eventMessages,
     warnings,
   };
@@ -91,6 +93,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     d.new.town && `街${d.new.town}`,
     d.new.chat && `井戸端${d.new.chat}`,
     d.new.bbs && `掲示板${d.new.bbs}`,
+    d.new.replies && `目安箱の返事${d.new.replies}`,
   ].filter(Boolean);
   const lines = [
     `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'} 決算${jst(d.next_period)}`,
@@ -328,4 +331,21 @@ export function logText(logs: StoredLog[]): string {
 export function postsText(posts: BoardPost[]): string {
   if (!posts.length) return '新しい書き込みはありません\n';
   return posts.map((p) => `${p.id} ${jst(p.time)} ${p.shopname}(id${p.shop_id}): ${p.msg}`).join('\n') + '\n';
+}
+
+// ---------------------------------------------------------------------------
+// 目安箱
+
+const STATUS_JA: Record<string, string> = { open: '未読', seen: '読んだ', accepted: '採用', done: '実装済み', rejected: '見送り' };
+
+export function suggestionsText(list: Suggestion[], admin = false): string {
+  if (!list.length) return admin ? '案はありません\n' : 'まだ案を出していません。POST /api/v1/suggest {"text":"..."}\n';
+  return (
+    list
+      .map((s) => {
+        const head = `#${s.id} ${jst(s.time)} ${STATUS_JA[s.status] ?? s.status}${admin ? ` 店${s.shop_id} ${s.shopname}` : ''}`;
+        return head + '\n  ' + s.text.replace(/\n/g, '\n  ') + (s.reply ? '\n  → ' + s.reply.replace(/\n/g, '\n    ') : '');
+      })
+      .join('\n') + '\n'
+  );
 }
