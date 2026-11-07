@@ -61,7 +61,11 @@ export interface Shop {
   status: number;
 }
 
-/** 最近の出来事 1 件。原作 log-s0/s1 の 1 行。 */
+/**
+ * 最近の出来事 1 件。原作 log-s0/s1 の 1 行。
+ * 原作は 1 日ごとにファイルを世代交代して 1〜2 日分を残していた。
+ * この移植では保存側 (store) が通し番号を付けて、logExpireTime の 2 倍より古いものを消す。
+ */
 export interface LogEntry {
   time: number;
   /** 0:通常 1:重要 2:街の出来事 3:噂 */
@@ -87,13 +91,7 @@ export interface World {
   /** 街の拡張データ ($DTtown) */
   town: Record<string, string>;
   shops: Shop[];
-  /** 最近の出来事 (原作 log-s0)。新しい順 */
-  log0: LogEntry[];
-  /** ひとつ前の世代の最近の出来事 (原作 log-s1)。新しい順 */
-  log1: LogEntry[];
-  /** 最近の出来事を世代交代した時刻 */
-  logRotatedAt: number;
-  /** 前回の決算の記録 (原作 period.cgi)。新しい順 */
+  /** 前回の決算のときの出来事 (原作 period.cgi)。古い順 */
   periodLog: LogEntry[];
 }
 
@@ -146,9 +144,6 @@ export function newWorld(now: number, maxItem: number): World {
     events: {},
     town: {},
     shops: [],
-    log0: [],
-    log1: [],
-    logRotatedAt: now,
     periodLog: [],
   };
 }

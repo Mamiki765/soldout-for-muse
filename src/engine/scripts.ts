@@ -83,7 +83,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // 資金調達の方法
   'book-work:_local_1'(g, dt, u, { count }) {
     dt.money += Number(u.params[0]) * count;
-    const ret = '\\' + Number(u.params[0]) * count + 'ゲット！';
+    const ret = '￥' + Number(u.params[0]) * count + 'ゲット！';
     log(g, 0, dt.id, 'バイトし、' + ret);
     log(g, 3, 0, dt.shopname + 'がバイトしたようです');
     return ret;
@@ -203,7 +203,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
           }
         }
         ret = '万引きは成功しました';
-        if (manbikiCount) log(g, 2, 0, `${dts.shopname}が総額\\${manbikiCount}の万引き被害に遭いました`);
+        if (manbikiCount) log(g, 2, 0, `${dts.shopname}が総額￥${manbikiCount}の万引き被害に遭いました`);
         if (u.arg.message && manbikiCount) log(g, 2, 0, dt.shopname + 'からの犯行声明:「' + u.arg.message + '」');
         if (!manbikiCount) log(g, 2, 0, dts.shopname + 'に入った万引き犯は何も取らずに逃げました');
       }
@@ -337,7 +337,7 @@ export const EVENT_FUNCS: Record<string, EventFunc> = {
         dt.item[itemno - 1] -= cnt;
         count += cnt * dt.price[idx];
       }
-      if (count) return [0, dt.shopname + 'が総額\\' + count + 'の万引き被害に遭いました'];
+      if (count) return [0, dt.shopname + 'が総額￥' + count + 'の万引き被害に遭いました'];
       return [0, dt.shopname + 'に入った万引き犯は何も取らずに逃げました'];
     }
     return [0];
@@ -360,7 +360,7 @@ export const EVENT_FUNCS: Record<string, EventFunc> = {
         dt.item[itemno - 1] -= cnt;
         count += cnt * dt.price[idx];
       }
-      if (count) return [0, dt.shopname + 'が総額\\' + count + 'の強盗被害に遭いました'];
+      if (count) return [0, dt.shopname + 'が総額￥' + count + 'の強盗被害に遭いました'];
       return [0, dt.shopname + 'に入った強盗犯は何も取らずに逃げました'];
     }
     return [0];
@@ -371,7 +371,7 @@ export const EVENT_FUNCS: Record<string, EventFunc> = {
       if (g.rand(1000) > 300) continue;
       dt.money += Number(money);
       if (dt.money > g.maxMoney) dt.money = g.maxMoney;
-      return [0, dt.shopname + 'へ\\' + money + 'の補助金が支給されました'];
+      return [0, dt.shopname + 'へ￥' + money + 'の補助金が支給されました'];
     }
     return [0];
   },
@@ -405,7 +405,7 @@ export const EVENT_FUNCS: Record<string, EventFunc> = {
           dt.moneystock += getmoney;
           // 原作は入金庫に足したあと資金(money)のほうを上限で丸めている。そのまま再現する
           if (dt.money > g.maxMoney) dt.money = g.maxMoney;
-          log(g, hit <= 3 ? 1 : 2, 0, `${dt.shopname}が${hit}等\\${getmoney}を当てました！`);
+          log(g, hit <= 3 ? 1 : 2, 0, `${dt.shopname}が${hit}等￥${getmoney}を当てました！`);
         }
       }
     }

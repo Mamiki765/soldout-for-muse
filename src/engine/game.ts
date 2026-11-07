@@ -48,6 +48,8 @@ export class Game {
   timeSendItem: number = CATALOG.timeSendItem;
   /** 決算処理中かどうか ($PERIOD_MODE) */
   periodMode = false;
+  /** このリクエストで増えた最近の出来事。保存側がまとめて書き込む */
+  readonly newLogs: LogEntry[] = [];
 
   constructor(world: World, config: GameConfig, rng: Rng, now: number) {
     this.world = world;
@@ -110,12 +112,7 @@ export class Game {
   writeLog(mode: number, from: number, to: number, msg: string): void {
     const entry: LogEntry = { time: this.now, mode, from, to, msg };
     if (this.periodMode) this.world.periodLog.push(entry);
-    if (this.world.logRotatedAt < this.now - this.config.logExpireTime) {
-      this.world.log1 = this.world.log0;
-      this.world.log0 = [];
-      this.world.logRotatedAt = this.now;
-    }
-    this.world.log0.unshift(entry);
+    this.newLogs.push(entry);
   }
 
   /** 原作 GetDTPoint */

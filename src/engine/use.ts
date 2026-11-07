@@ -290,7 +290,7 @@ export function useResultMessages(g: Game, dt: Shop, u: RtUse): string[] {
   if (!count) return ['実行できませんでした'];
   if (u.result.function_return) out.push(...u.result.function_return.split('<br>').filter(Boolean));
   out.push(`${count}${u.scale}`);
-  if (u.money * count) out.push(`費用:\\${u.money * count}`);
+  if (u.money * count) out.push(`費用:￥${u.money * count}`);
   out.push(`時間:${formatHms(itemUseTime(dt, u) * count)}`);
   for (const m of u.result.addmsg) if (m) out.push(m);
   if (u.result.additem.length) {

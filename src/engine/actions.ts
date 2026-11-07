@@ -185,7 +185,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
 
   const item = g.items[itemno];
   const ret =
-    `${dts ? dts.shopname : '市場'}より${item.name}を${num}${item.scale}@\\${price}(計\\${price * num})にて仕入ました` +
+    `${dts ? dts.shopname : '市場'}より${item.name}を${num}${item.scale}@￥${price}(計￥${price * num})にて仕入ました` +
     `/${formatHms(usetime)}消費`;
   g.writeLog(0, dt.id, 0, ret);
 
@@ -261,7 +261,7 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   dt.money += money;
   dt.moneystock -= money;
   g.useTime(g.timeDeal(money));
-  const ret = '\\' + money + '入金しました';
+  const ret = '￥' + money + '入金しました';
   g.writeLog(0, dt.id, 0, ret);
   return ret;
 }
