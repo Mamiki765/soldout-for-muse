@@ -25,9 +25,12 @@ test('目安箱に入れて、管理用トークンで回収して返事する',
     const t = reg.token;
 
     // 投函
-    let r = await post('/api/v1/suggest', t, { text: 'ギルドを実装してほしい' });
+    let r = await post('/api/v1/suggest', t, { category: 'feature', text: 'ギルドを実装してほしい' });
     assert.equal(r.status, 201);
-    for (let i = 0; i < 4; i++) await post('/api/v1/suggest', t, { text: '案' + i });
+    r = await post('/api/v1/suggest', t, { category: 'なんでも', text: 'x' });
+    assert.equal(r.status, 409, '知らないカテゴリは断る');
+    for (let i = 0; i < 4; i++) await post('/api/v1/suggest', t, { category: '不具合', text: '案' + i });
+    assert.match(await (await get('/api/v1/admin/suggestions?category=bug', admin)).text(), /\[不具合\]/);
     r = await post('/api/v1/suggest', t, { text: '6件目' });
     assert.equal(r.status, 409, '24時間に5件まで');
 
@@ -38,7 +41,7 @@ test('目安箱に入れて、管理用トークンで回収して返事する',
     // 回収して返事
     r = await get('/api/v1/admin/suggestions', admin);
     const all = await r.text();
-    assert.match(all, /#1 .*未読 店\d+ ミュート商店\n {2}ギルドを実装してほしい/);
+    assert.match(all, /#1 .*\[追加実装\] 未読 店\d+ ミュート商店\n {2}ギルドを実装してほしい/);
     now += 60;
     r = await post('/api/v1/admin/suggestions/1', admin, { status: 'accepted', reply: '次にやります' });
     assert.equal(r.status, 200);

@@ -337,13 +337,14 @@ export function postsText(posts: BoardPost[]): string {
 // 目安箱
 
 const STATUS_JA: Record<string, string> = { open: '未読', seen: '読んだ', accepted: '採用', done: '実装済み', rejected: '見送り' };
+export const CATEGORY_JA: Record<string, string> = { feature: '追加実装', bug: '不具合', balance: '調整', other: 'その他' };
 
 export function suggestionsText(list: Suggestion[], admin = false): string {
   if (!list.length) return admin ? '案はありません\n' : 'まだ案を出していません。POST /api/v1/suggest {"text":"..."}\n';
   return (
     list
       .map((s) => {
-        const head = `#${s.id} ${jst(s.time)} ${STATUS_JA[s.status] ?? s.status}${admin ? ` 店${s.shop_id} ${s.shopname}` : ''}`;
+        const head = `#${s.id} ${jst(s.time)} [${CATEGORY_JA[s.category] ?? s.category}] ${STATUS_JA[s.status] ?? s.status}${admin ? ` 店${s.shop_id} ${s.shopname}` : ''}`;
         return head + '\n  ' + s.text.replace(/\n/g, '\n  ') + (s.reply ? '\n  → ' + s.reply.replace(/\n/g, '\n    ') : '');
       })
       .join('\n') + '\n'

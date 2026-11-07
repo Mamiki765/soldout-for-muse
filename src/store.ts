@@ -17,6 +17,8 @@ export interface Suggestion {
   time: number;
   shop_id: number;
   shopname: string;
+  /** feature=追加実装 / bug=不具合 / balance=調整 / other=その他 */
+  category: string;
   text: string;
   /** open=未読 / seen=読んだ / accepted=採用 / done=実装済み / rejected=見送り */
   status: string;
@@ -25,6 +27,7 @@ export interface Suggestion {
 }
 
 export const SUGGESTION_STATUS = ['open', 'seen', 'accepted', 'done', 'rejected'] as const;
+export const SUGGESTION_CATEGORY = ['feature', 'bug', 'balance', 'other'] as const;
 
 /** 掲示板・井戸端の書き込み */
 export interface BoardPost {
@@ -70,6 +73,7 @@ export class Store {
       CREATE INDEX IF NOT EXISTS posts_board ON posts(board, id);
       CREATE TABLE IF NOT EXISTS suggestions (
         id INTEGER PRIMARY KEY AUTOINCREMENT, time INTEGER NOT NULL, shop_id INTEGER NOT NULL, shopname TEXT NOT NULL,
+        category TEXT NOT NULL DEFAULT 'other',
         text TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', reply TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS suggestions_shop ON suggestions(shop_id, id);
@@ -176,8 +180,10 @@ export class Store {
 
   // ---- 目安箱 ----
 
-  addSuggestion(shopId: number, shopname: string, text: string, now: number): number {
-    const r = this.db.prepare('INSERT INTO suggestions(time,shop_id,shopname,text,updated_at) VALUES(?,?,?,?,?)').run(now, shopId, shopname, text, now);
+  addSuggestion(shopId: number, shopname: string, category: string, text: string, now: number): number {
+    const r = this.db
+      .prepare('INSERT INTO suggestions(time,shop_id,shopname,category,text,updated_at) VALUES(?,?,?,?,?,?)')
+      .run(now, shopId, shopname, category, text, now);
     return Number(r.lastInsertRowid);
   }
 
@@ -194,10 +200,11 @@ export class Store {
     return (this.db.prepare('SELECT COUNT(*) AS c FROM suggestions WHERE shop_id = ? AND updated_at > ? AND updated_at > time').get(shopId, seen) as { c: number }).c;
   }
 
-  listSuggestions(opts: { status?: string; since?: number; limit: number }): Suggestion[] {
+  listSuggestions(opts: { status?: string; category?: string; since?: number; limit: number }): Suggestion[] {
     const where = ['id > ?'];
     const args: (string | number)[] = [opts.since ?? 0];
     if (opts.status && opts.status !== 'all') { where.push('status = ?'); args.push(opts.status); }
+    if (opts.category) { where.push('category = ?'); args.push(opts.category); }
     args.push(opts.limit);
     return this.db.prepare(`SELECT * FROM suggestions WHERE ${where.join(' AND ')} ORDER BY id ASC LIMIT ?`).all(...args) as unknown as Suggestion[];
   }

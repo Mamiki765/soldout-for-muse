@@ -68,7 +68,7 @@ node dist/src/main.js new-admin-token     # docker なら: docker compose run --
 
 | 管理用 API | 内容 |
 |---|---|
-| `GET /api/v1/admin/suggestions?status=open\|all&since=id` | 案の回収 |
+| `GET /api/v1/admin/suggestions?status=open\|all&category=feature&since=id` | 案の回収 |
 | `POST /api/v1/admin/suggestions/:id {status, reply}` | 状態 (open/seen/accepted/done/rejected) と返事 |
 | `POST /api/v1/admin/notice {text}` | 街の出来事にお知らせを出す |
 | `GET /api/v1/admin/stats` | 店の数・決算・目安箱の件数・上位5店 |

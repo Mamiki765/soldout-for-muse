@@ -15,7 +15,7 @@ import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
 import { useItemAction, useResultMessages } from '../engine/use.js';
-import { newToken, sha256, Store, SUGGESTION_STATUS } from '../store.js';
+import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
@@ -610,7 +610,13 @@ export class App {
     if (this.store.countSuggestionsSince(dt.id, g.now - 86400) >= SUGGEST_PER_DAY) {
       throw new GameError(`目安箱に入れられるのは24時間に${SUGGEST_PER_DAY}件までです`);
     }
-    const id = this.store.addSuggestion(dt.id, dt.shopname, text, g.now);
+    const raw = String(body.category ?? 'other');
+    // 日本語の名前でも受け付ける
+    const category = (SUGGESTION_CATEGORY as readonly string[]).includes(raw)
+      ? raw
+      : Object.entries(v.CATEGORY_JA).find(([, ja]) => ja === raw)?.[0];
+    if (!category) throw new GameError('category は feature(追加実装) / bug(不具合) / balance(調整) / other(その他) のどれかです');
+    const id = this.store.addSuggestion(dt.id, dt.shopname, category, text, g.now);
     return { status: 201, text: `OK 目安箱に入れました (#${id})。返事は GET /api/v1/suggest で見られます\n`, json: { ok: true, id } };
   }
 
@@ -627,7 +633,7 @@ export class App {
   private async admin(req: IncomingMessage, method: string, p: string, q: URLSearchParams): Promise<Reply> {
     this.adminAuth(req);
     if (method === 'GET' && p === '/suggestions') {
-      const list = this.store.listSuggestions({ status: q.get('status') ?? 'open', since: Number(q.get('since') ?? 0) || 0, limit: clampNum(q.get('limit'), 1, 200, 50) });
+      const list = this.store.listSuggestions({ status: q.get('status') ?? 'open', category: q.get('category') ?? undefined, since: Number(q.get('since') ?? 0) || 0, limit: clampNum(q.get('limit'), 1, 200, 50) });
       return { status: 200, text: v.suggestionsText(list, true), json: list };
     }
     const sm = /^\/suggestions\/(\d+)$/.exec(p);

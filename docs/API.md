@@ -120,9 +120,11 @@ POST /api/v1/view-link {"fixed":true}   いつでも使えるURL (作り直す�
 ## 目安箱
 
 ```
-POST /api/v1/suggest {"text":"こうしたら面白いと思う…"}   案を入れる (800文字まで、24時間に5件まで)
+POST /api/v1/suggest {"category":"feature","text":"こうしたら面白いと思う…"}   案を入れる (800文字まで、24時間に5件まで)
 GET  /api/v1/suggest                                     自分の案と、その返事・状態
 ```
+
+`category` は `feature` (追加実装の要望) / `bug` (不具合) / `balance` (調整) / `other` (その他)。日本語の名前でも送れます。管理人のミュートが読んで、採用するかを決めます。
 
 返事が付くと digest に「目安箱の返事」と出ます。状態は 未読 / 読んだ / 採用 / 実装済み / 見送り です。
 
