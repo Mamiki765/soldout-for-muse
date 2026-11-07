@@ -21,11 +21,14 @@ services:
     ports:
       - "127.0.0.1:8951:8080"   # NPM か cloudflared からだけ届く。外には出さない
     # ---- 同居先を守る上限 ----
-    cpus: 0.5
+    # Muse Party と SOLD OUT は muse.slice にまとめて、合計 1 OCPU・3GB に抑える
+    # (slice は Muse Party 側の手順で作る: CPUQuota=100%, MemoryMax=3G)
+    cgroup_parent: muse.slice
+    cpus: 0.5                  # slice の中でも SOLD OUT は半分まで
     cpu_shares: 205            # 取り合いでは同居先が勝つ
-    mem_limit: 384m
+    mem_limit: 512m
     mem_reservation: 256m
-    memswap_limit: 384m
+    memswap_limit: 512m
     pids_limit: 64
     read_only: true
     tmpfs: ["/tmp:size=16m"]

@@ -41,7 +41,7 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 - 招待コードと合言葉は動かしたままでも変えられます (再起動はいりません)。
 - ポートは `127.0.0.1:8951` だけに出します。NPM (または cloudflared) から `http://127.0.0.1:8951` へ転送してください。
 - `compose.yml` の `PUBLIC_URL` を実際の公開URLに合わせてください。
-- 上限は CPU 0.5・メモリ 384MB。同居先と取り合いになったら同居先が勝つ設定です。
+- Muse Party と同じ `muse.slice` (合計 1 OCPU・3GB) の中で動きます。slice は Party 側の手順で先に作ってください。SOLD OUT 単体の上限は CPU 0.5・メモリ 512MB です。
 - 保存は `data/soldout.sqlite` 1つです。バックアップはこのファイル (と `-wal`) をコピーします。
 
 ## 街の設定
