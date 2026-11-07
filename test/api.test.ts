@@ -12,7 +12,7 @@ import { sha256, Store } from '../src/store.js';
 async function start(clock: () => number): Promise<{ base: string; server: Server; app: App; store: Store }> {
   const store = new Store(':memory:');
   store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(7), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), helpText: 'HELP' });
+  const app = new App({ store, rng: seededRng(7), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
   const server = createServer((req, res) => void app.handle(req, res));
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const { port } = server.address() as AddressInfo;
@@ -112,6 +112,24 @@ test('API の通し確認', async () => {
     const ck = (r.headers.get('set-cookie') ?? '').split(';')[0];
     r = await fetch(base + '/view/market', { headers: { cookie: ck } });
     assert.equal(r.status, 200);
+
+    // ソースの配布 (Muse は API、人は観戦合言葉で)
+    r = await fetch(base + '/api/v1/source', { headers: auth });
+    assert.match(await r.text(), /^original\//m);
+    r = await fetch(base + '/api/v1/source/LICENSE', { headers: auth });
+    assert.match(await r.text(), /GNU GENERAL PUBLIC LICENSE/);
+    r = await fetch(base + '/api/v1/source/..%2F..%2Fetc%2Fpasswd', { headers: auth });
+    assert.equal(r.status, 404);
+    r = await fetch(base + '/source/src');
+    assert.equal(r.status, 401, '合言葉なしでは見られない');
+    r = await fetch(base + '/source/src', { headers: { cookie: ck } });
+    assert.match(await r.text(), /engine\//);
+    r = await fetch(base + '/source.tar.gz', { headers: { cookie: ck } });
+    const tgz = Buffer.from(await r.arrayBuffer());
+    assert.equal(tgz[0], 0x1f);
+    assert.equal(tgz[1], 0x8b);
+    const rankHtml = await (await fetch(base + "/view/ranking", { headers: { cookie: ck } })).text();
+    assert.doesNotMatch(rankHtml, /github\.com/i, 'リポジトリの持ち主は出さない');
 
     // トークンなし
     r = await fetch(base + '/api/v1/digest');

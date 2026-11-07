@@ -3,7 +3,7 @@
 //   node dist/src/main.js set-invite <code>      招待コードを設定する (空なら登録を止める)
 //   node dist/src/main.js set-viewer-key <key>   観戦用の合言葉を設定する (空なら合言葉なし)
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
-//           IMAGES_DIR (public/images), HELP_PATH (docs/API.md)
+//           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { createServer } from 'node:http';
@@ -35,6 +35,7 @@ if (cmd === 'set-invite') {
     store,
     publicUrl: env.PUBLIC_URL ?? '',
     imagesDir: resolve(env.IMAGES_DIR ?? 'public/images'),
+    sourceDir: env.SOURCE_DIR === '' ? undefined : resolve(env.SOURCE_DIR ?? '.'),
   });
   await app.loadHelp(resolve(env.HELP_PATH ?? 'docs/API.md')).catch(() => console.warn('API.md が読めませんでした'));
   const server = createServer((req, res) => {

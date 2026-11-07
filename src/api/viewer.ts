@@ -14,12 +14,14 @@ import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, jst } from './views.js';
+import { SourceTree } from './source.js';
 
 interface Reply {
   status: number;
   html?: string;
   text?: string;
   headers?: Record<string, string>;
+  binary?: { data: Buffer; type: string };
 }
 
 /** 見学用リンクで入ったときのセッション (メモリだけ。再起動したら入り直し) */
@@ -60,7 +62,7 @@ function page(title: string, menu: string, body: string): string {
 <title>SOLD OUT for Muse:${esc(title)}</title><style>${STYLE}</style></head><body>
 ${menu}<hr>
 ${body}
-<hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降 / <a href="https://github.com/Mamiki765/soldout-for-muse">ソース</a></small>
+<hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降 / <a href="/source">ソース</a></small>
 </body></html>`;
 }
 
@@ -132,6 +134,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
         ),
       };
     }
+  }
+
+  if (url.pathname === '/source' || url.pathname.startsWith('/source/') || url.pathname === '/source.tar.gz') {
+    return { ...sourcePage(app, url.pathname), headers: { ...headers } };
   }
 
   const g = app.viewerGame();
@@ -306,4 +312,33 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
 
   s += '<hr>●最近の出来事 (このお店)<br>' + logTable(app.store.readLogs(dt.id, { limit: 30, scope: 'me' }));
   return s;
+}
+
+/** ソースの閲覧ページ。ディレクトリは一覧、文字のファイルはそのまま、一式は tar.gz */
+function sourcePage(app: App, pathname: string): Reply {
+  const tree = app.source;
+  if (!tree) return { status: 404, html: page('ソース', '', 'ソースの配布は設定されていません') };
+  if (pathname === '/source.tar.gz') {
+    return { status: 200, binary: { data: tree.tarGz(), type: 'application/gzip' }, headers: { 'content-disposition': 'attachment; filename="soldout-for-muse.tar.gz"' } };
+  }
+  const r = tree.resolve(pathname.slice('/source'.length));
+  if (!r) return { status: 404, html: page('ソース', '', 'ありません') };
+  if (r.kind === 'file') {
+    const b = tree.read(r.file);
+    if (r.file.path.startsWith('public/images/')) return { status: 302, headers: { location: '/' + r.file.path.slice('public/'.length) } };
+    if (!SourceTree.isText(b)) return { status: 200, binary: { data: b, type: 'application/octet-stream' } };
+    return { status: 200, text: b.toString('utf8') };
+  }
+  const up = r.path ? `<a href="/source/${r.path.split('/').slice(0, -1).map(encodeURIComponent).join('/')}">../</a><br>` : '';
+  const rows = r.entries
+    .map((e) => {
+      const href = '/source/' + [...(r.path ? r.path.split('/') : []), e.name].map(encodeURIComponent).join('/');
+      return `<tr><td><a href="${esc(href)}">${esc(e.name)}${e.dir ? '/' : ''}</a></td><td style="text-align:right">${e.dir ? '' : e.size}</td></tr>`;
+    })
+    .join('');
+  const intro = r.path
+    ? ''
+    : 'SOLD OUT for Muse のソース一式です (GNU GPL v2 以降)。原作は <a href="/source/original">original/</a>、遊び方は <a href="/source/docs/API.md">docs/API.md</a>。<br>' +
+      '<a href="/source.tar.gz">一式をダウンロード (tar.gz)</a> / Muse は <code>GET /api/v1/source/&lt;パス&gt;</code> でも読めます。<hr>';
+  return { status: 200, html: page('ソース', '<a href="/">[トップ]</a>', `${intro}●/${esc(r.path)}<br>${up}<table>${rows}</table>`) };
 }

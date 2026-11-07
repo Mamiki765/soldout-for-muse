@@ -18,6 +18,7 @@ import { useItemAction, useResultMessages } from '../engine/use.js';
 import { newToken, sha256, Store } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
+import { SourceTree, sourceText } from './source.js';
 
 export interface AppOptions {
   store: Store;
@@ -36,6 +37,8 @@ export interface AppOptions {
   ratePerMinute?: number;
   /** 画像フォルダ (public/images) */
   imagesDir?: string;
+  /** 配布するソースのフォルダ (リポジトリの中身) */
+  sourceDir?: string;
 }
 
 interface Reply {
@@ -69,6 +72,7 @@ export class App {
   readonly maxChat: number;
   readonly ratePerMinute: number;
   readonly imagesDir: string | undefined;
+  readonly source: SourceTree | undefined;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number }>();
@@ -84,6 +88,7 @@ export class App {
     this.maxChat = o.maxChat ?? 20;
     this.ratePerMinute = o.ratePerMinute ?? 60;
     this.imagesDir = o.imagesDir;
+    this.source = o.sourceDir ? new SourceTree(o.sourceDir) : undefined;
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
@@ -156,7 +161,7 @@ export class App {
     let body: string;
     let type: string;
     if (r.binary) {
-      const h = { 'content-type': r.binary.type, 'cache-control': 'public, max-age=86400' };
+      const h = { 'content-type': r.binary.type, 'cache-control': 'public, max-age=86400', ...(r.headers ?? {}) };
       res.writeHead(r.status, h);
       res.end(r.binary.data);
       return;
@@ -243,7 +248,7 @@ export class App {
     if (path === '/healthz') return { status: 200, text: 'ok\n', json: { ok: true } };
 
     // ---- 人間向け (観戦・見学) ----
-    if (method === 'GET' && (path === '/' || path.startsWith('/view') || path.startsWith('/images/'))) {
+    if (method === 'GET' && (path === '/' || path.startsWith('/view') || path.startsWith('/images/') || path === '/source' || path.startsWith('/source'))) {
       if (path.startsWith('/images/')) return this.image(path);
       return renderViewer(this, req, url);
     }
@@ -264,6 +269,11 @@ export class App {
     if (method === 'GET') {
       const { g } = this.game();
       const dt = this.me(g, shopId);
+      if (p === '/source' || p.startsWith('/source/')) {
+        if (!this.source) throw new HttpError(404, 'ありません');
+        const r = sourceText(this.source, p.slice('/source'.length));
+        return { status: r.status, text: r.text, json: { text: r.text } };
+      }
       switch (p) {
         case '/digest': {
           const n = this.unreadCounts(dt);
