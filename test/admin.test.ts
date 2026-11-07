@@ -34,6 +34,11 @@ test('目安箱に入れて、管理用トークンで回収して返事する',
     r = await post('/api/v1/suggest', t, { text: '6件目' });
     assert.equal(r.status, 409, '24時間に5件まで');
 
+    // 管理用トークンで /me を聞くと role admin (保管庫の接続確認向け)
+    r = await get('/api/v1/me?format=json', admin);
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), { role: 'admin' });
+
     // 一般のトークンでは管理 API は使えない
     r = await get('/api/v1/admin/suggestions', t);
     assert.equal(r.status, 403);

@@ -3,6 +3,8 @@
 //   node dist/src/main.js set-invite <code>      招待コードを設定する (空なら登録を止める)
 //   node dist/src/main.js set-viewer-key <key>   観戦用の合言葉を設定する (空なら合言葉なし)
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
+//   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
+//   node dist/src/main.js admin-revoke <店名|店id> やめる
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
@@ -40,6 +42,25 @@ if (cmd === 'set-invite') {
   store.close();
   console.log('管理用トークンを作りました (前のものは使えなくなります。二度と表示されません)');
   console.log(token);
+} else if (cmd === 'admin-grant' || cmd === 'admin-revoke') {
+  // 店名か店id を指定。その店のトークン (Party のトークンも) で管理 API が使えるようになる / やめる
+  const store = new Store(dbPath);
+  const world = store.loadWorld(Math.floor(Date.now() / 1000));
+  const shop = world.shops.find((s) => String(s.id) === arg || s.shopname === arg || s.name === arg);
+  const cur = (store.getSetting('admin_shops') ?? '').split(',').filter(Boolean).map(Number);
+  if (cmd === 'admin-grant') {
+    if (!shop) {
+      console.error('その店が見つかりません: ' + (arg ?? '') + '\n店: ' + world.shops.map((s) => `${s.id} ${s.shopname}`).join(' / '));
+      process.exit(1);
+    }
+    store.setSetting('admin_shops', [...new Set([...cur, shop.id])].join(','));
+    console.log(`${shop.shopname} (店id ${shop.id}) を管理者にしました`);
+  } else {
+    const id = shop?.id ?? Number(arg);
+    store.setSetting('admin_shops', cur.filter((x) => x !== id).join(',') || undefined);
+    console.log(`店id ${id} の管理者をやめました`);
+  }
+  store.close();
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
   const app = new App({
@@ -71,6 +92,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店>]');
   process.exit(2);
 }

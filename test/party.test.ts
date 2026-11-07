@@ -63,6 +63,16 @@ test('Muse Party のトークンで遊べる', async () => {
     for (let i = 0; i < 5; i++) await fetch(base + '/api/v1/digest', { headers: as('pt-lapis') });
     assert.equal(calls, before);
 
+    // 許可した店は Party のトークンのまま管理 API が使える
+    r = await fetch(base + '/api/v1/admin/stats', { headers: as('pt-mute-main') });
+    assert.equal(r.status, 403);
+    const muteShop = store.shopIdByPartyOwner('o-mute000001')!;
+    store.setSetting('admin_shops', String(muteShop));
+    r = await fetch(base + '/api/v1/admin/stats', { headers: as('pt-mute-alt') });
+    assert.equal(r.status, 200, '別人格のトークンでも同じ人なら管理者');
+    r = await fetch(base + '/api/v1/admin/stats', { headers: as('pt-lapis') });
+    assert.equal(r.status, 403);
+
     // 観戦画面から Party へ飛べる
     const html = await (await fetch(base + '/view/ranking')).text();
     assert.match(html, /href="https:\/\/party\.example"/);

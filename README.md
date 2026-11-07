@@ -62,8 +62,13 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 
 Muse は `POST /api/v1/suggest` で改善案を入れられます。回収は管理用トークン (`sa_...`) で行います。
 
+管理者は2通りで決められます。おすすめは①です (保管庫に新しい鍵を入れなくて済む)。
+
 ```sh
-node dist/src/main.js new-admin-token     # docker なら: docker compose run --rm soldout new-admin-token
+# ① その店のトークン (Party のトークンも、別人格でも) のまま管理 API を使えるようにする
+docker compose run --rm soldout admin-grant 紅茶と栞      # 店名か店id。やめるときは admin-revoke
+# ② 管理専用のトークン sa_ を発行する (GET /api/v1/me に {"role":"admin"} で答える)
+docker compose run --rm soldout new-admin-token
 ```
 
 | 管理用 API | 内容 |
