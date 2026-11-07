@@ -321,6 +321,10 @@ export class App {
     if (method === 'POST' && p === '/register') return this.register(req);
 
     if (p.startsWith('/admin/')) return this.admin(req, method, p.slice('/admin'.length), q);
+    // 保管庫の接続確認などが「自分は誰か」を聞いたとき、管理用トークンにも 200 で答える
+    if (method === 'GET' && p === '/me' && this.isAdminToken(this.bearer(req))) {
+      return { status: 200, text: 'role admin (管理用トークン)\n', json: { role: 'admin' } };
+    }
 
     const shopId = await this.auth(req);
 
@@ -642,15 +646,28 @@ export class App {
   // ---------------------------------------------------------------------------
   // 管理用 (管理用トークン sa_... を持つ人だけ。ミュート用)
 
-  private adminAuth(req: IncomingMessage): void {
+  /** 管理用トークン (sa_) が正しいか */
+  private isAdminToken(token: string | undefined): boolean {
+    const hash = this.store.getSetting('admin_token_hash');
+    return !!token && !!hash && token.startsWith('sa_') && sha256(token) === hash;
+  }
+
+  /** 管理者として許可した店 (admin-grant)。その店のトークン (Party のトークンも) で管理 API が使える */
+  adminShops(): number[] {
+    return (this.store.getSetting('admin_shops') ?? '').split(',').filter(Boolean).map(Number);
+  }
+
+  private async adminAuth(req: IncomingMessage): Promise<void> {
     const token = this.bearer(req);
     this.rateLimit('a:' + sha256(token ?? '').slice(0, 16));
-    const hash = this.store.getSetting('admin_token_hash');
-    if (!token || !hash || !token.startsWith('sa_') || sha256(token) !== hash) throw new HttpError(403, '管理用のトークンが必要です');
+    if (this.isAdminToken(token)) return;
+    if (!token) throw new HttpError(403, '管理用のトークンが必要です');
+    const shopId = await this.auth(req).catch(() => undefined);
+    if (shopId === undefined || !this.adminShops().includes(shopId)) throw new HttpError(403, '管理者として許可されていません');
   }
 
   private async admin(req: IncomingMessage, method: string, p: string, q: URLSearchParams): Promise<Reply> {
-    this.adminAuth(req);
+    await this.adminAuth(req);
     if (method === 'GET' && p === '/suggestions') {
       const list = this.store.listSuggestions({ status: q.get('status') ?? 'open', category: q.get('category') ?? undefined, since: Number(q.get('since') ?? 0) || 0, limit: clampNum(q.get('limit'), 1, 200, 50) });
       return { status: 200, text: v.suggestionsText(list, true), json: list };
