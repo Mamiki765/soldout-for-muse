@@ -42,6 +42,8 @@ export class Game {
   readonly items: RtItem[];
   /** 開催中イベントの説明 (@EVENTMSG) */
   readonly eventMessages: string[] = [];
+  /** 開催中イベント (説明と終わる時刻) */
+  readonly activeEvents: { code: string; info: string; endsAt: number }[] = [];
   /** 操作中の店 ($DT)。行動しない処理では undefined */
   dt: Shop | undefined;
   /** 仕入時間。店や職業で変わる ($TIME_SEND_ITEM) */
@@ -74,6 +76,7 @@ export class Game {
     const ev = EVENTS.get(code);
     if (!ev) return;
     if (ev.info) this.eventMessages.push(ev.info);
+    this.activeEvents.push({ code, info: ev.info ?? code, endsAt: this.world.events[code] ?? 0 });
     for (const p of ev.params) {
       const item = this.items[p.item_no] as unknown as Record<string, number>;
       if (!item) continue;
