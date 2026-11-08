@@ -244,7 +244,10 @@ export class Store {
     this.db.prepare('INSERT INTO view_links(key_hash,shop_id,expires_at,kind) VALUES(?,?,?,?)').run(sha256(key), shopId, expiresAt, kind);
   }
 
-  /** 見学用の鍵を確かめる。1回使い切りのリンクはここで消す */
+  /**
+   * 見学用の鍵を確かめる。期限切れはここで消す。
+   * 30分のリンクも期限内なら何度でも開ける (チャットアプリのリンクプレビューが先に開いても、本人が開けるように)
+   */
   takeViewKey(key: string, now: number): number | undefined {
     const h = sha256(key);
     const row = this.db.prepare('SELECT shop_id, expires_at, kind FROM view_links WHERE key_hash = ?').get(h) as
@@ -255,7 +258,6 @@ export class Store {
       this.db.prepare('DELETE FROM view_links WHERE key_hash = ?').run(h);
       return undefined;
     }
-    if (row.kind === 'link') this.db.prepare('DELETE FROM view_links WHERE key_hash = ?').run(h);
     return row.shop_id;
   }
 

@@ -80,6 +80,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput) {
     shelves,
     new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
     events: g.eventMessages,
+    /** 開催中イベントと残り時間 (秒) */
+    events_detail: g.activeEvents.map((e) => ({ code: e.code, info: e.info, ends_at: e.endsAt, left: Math.max(0, e.endsAt - g.now) })),
     warnings,
   };
 }
@@ -101,7 +103,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   ];
   const tail: string[] = [];
   if (news.length) tail.push('新着 ' + news.join(' '));
-  if (d.events.length) tail.push('イベント ' + d.events.join('/'));
+  if (d.events_detail.length) tail.push('イベント ' + d.events_detail.map((e) => `${e.info}(あと${dur(e.left)})`).join('/'));
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
   return lines.join('\n') + '\n';

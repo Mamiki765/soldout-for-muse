@@ -84,7 +84,7 @@ test('API の通し確認', async () => {
     r = await fetch(base + '/api/v1/chat', { method: 'POST', headers: auth, body: JSON.stringify({ text: 'こんにちは' }) });
     assert.equal(r.status, 409, '重複投稿は断る');
 
-    // 見学用リンクは 1 回だけ使える
+    // 見学用リンク
     r = await fetch(base + '/api/v1/view-link?format=json', { method: 'POST', headers: auth });
     const link = (await r.json()) as { url: string };
     const local = link.url.replace('https://so.example', base);
@@ -93,8 +93,13 @@ test('API の通し確認', async () => {
     const html = await r.text();
     assert.match(html, /ミュート商店/);
     assert.match(r.headers.get('set-cookie') ?? '', /so_shop=/);
+    // 期限内なら何度でも開ける (リンクプレビューが先に開いても大丈夫)
     r = await fetch(local);
-    assert.equal(r.status, 403);
+    assert.equal(r.status, 200);
+    now += 31 * 60;
+    r = await fetch(local);
+    assert.equal(r.status, 403, '30分たったら開けない');
+    now -= 31 * 60;
 
     // 画像
     r = await fetch(base + '/images/item-no-1.png');

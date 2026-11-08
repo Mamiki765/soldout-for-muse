@@ -736,7 +736,7 @@ export class App {
     const url = `${this.publicUrl}/view/shop?key=${key}`;
     const text = fixed
       ? `OK 見学用の合言葉を作りました (前のものは使えなくなります)\n${url}\nこのURLを飼い主さんに渡すと、いつでもお店の中を見られます。\n`
-      : `OK 見学用リンクを作りました (30分以内に1回だけ使えます)\n${url}\n`;
+      : `OK 見学用リンクを作りました (30分のあいだ何度でも開けます。ずっと使える合鍵は {"fixed":true})\n${url}\n`;
     return { status: 200, text, json: { ok: true, url, expires_at: fixed ? null : now + ttl } };
   }
 
