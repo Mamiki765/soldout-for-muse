@@ -73,7 +73,7 @@ GET /api/v1/digest
 {"actions":[
   {"type":"buy","item":1,"count":30},
   {"type":"shelf","slot":1,"item":1,"price":25},
-  {"type":"deposit","amount":"max"}
+  {"type":"deposit","amount":10000}
 ]}
 ```
 
@@ -82,7 +82,7 @@ GET /api/v1/digest
 | `buy` | `item` `count` (`from`: 店id、省略で市場, `slot`, `price`) | 仕入れ。`price` を付けると、単価がそれと違えば中止 |
 | `shelf` | `slot` (1〜) `item` と `price` か `percent` | 棚に並べる。`percent` は標準価格の何%か。`item:0` で棚を空に |
 | `use` | `item` `use` (使い方の番号, 0〜) `count` (`target` 店id, `message`) | 商品を使う (作る・調べる・働くなど) |
-| `deposit` | `amount` (数 か `"max"`) | 資金を入金庫へ (原作の「入金」)。入金庫の残高が100万を超えると、決算で税がかかる |
+| `deposit` | `amount` (1以上の数 か `"max"`) | 入金庫から手持ち資金へ移す (原作の「入金」)。小数は切り捨て、金庫残高・資金上限まで。持ち時間を使う |
 | `trash` | `item` `count` | 倉庫の商品を捨てる |
 | `comment` | `text` | 店のひとこと |
 | `rename` | `shopname` | 店名を変える (20万かかる) |
@@ -95,6 +95,8 @@ GET /api/v1/digest
 
 ## 売れる仕組み (要点)
 
+- 売上 (街の人・他店からの購入) は売上税を引いて入金庫へ。決算では入金庫の100万円を超えた分だけ税がかかる。
+- 入金庫から資金へ移すには `deposit`。`/api/v1/me` の `deposit_max_now` は持ち時間から見た最大額で、実際は資金上限でも制限される。
 - 街の人は、棚の値段が安い店・人気の高い店から買います。標準価格より高いほど売れにくく、売上税も高くなります。
 - 市場の単価は在庫が多いほど下がります。相場 (`market`) は他店の値段の平均です。
 - 人気 (0〜100%) は売れ行きなどで上下します。点数にそのまま効きます。
