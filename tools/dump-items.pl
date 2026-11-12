@@ -129,10 +129,10 @@ for my $e (@out_event) {
 my %define = map { ($_ => $g_define->{$_}) } grep { !ref $g_define->{$_} } keys %$g_define;
 my %functions = map { ($_ => $g_define->{function}{$_}) } keys %{ $g_define->{function} };
 
-# Muse v1.1.0 の差分。原作配布物は参照用のまま保持する。
+# Muse v0.2.0 の差分。原作配布物は参照用のまま保持する。
 # --original は移植元との比較・回帰検証用 (追加を適用しない)。
 if (!grep { $_ eq '--original' } @ARGV) {
-	open(my $fashion_fh, '<:raw', "$FindBin::Bin/fashion-v110.json") or die $!;
+	open(my $fashion_fh, '<:raw', "$FindBin::Bin/fashion-v020.json") or die $!;
 	my $fashion = JSON::PP->new->utf8->decode(do { local $/; <$fashion_fh> });
 	close $fashion_fh;
 	# 原作パーサーの文字列はUTF-8バイト列。追加定義も同じ表現に揃える。
@@ -150,12 +150,12 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	my $lines = sub {
 		my ($rows, $default_proba) = @_;
 		return [ map {
-			die "v1.1.0: unknown item $_->[0]" if !$by_no{$_->[0]};
+			die "v0.2.0: unknown item $_->[0]" if !$by_no{$_->[0]};
 			{ item_no => $_->[0], count => $_->[1], proba => $_->[2] // $default_proba }
 		} @$rows ];
 	};
 	for my $spec (@{ $fashion->{items} }) {
-		die "v1.1.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		die "v0.2.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
 		my $ref = $by_no{$spec->{market_reference}} or die 'unknown market reference';
 		my $it = $copy->($by_no{2});
 		@$it{keys %$spec} = values %$spec;
@@ -176,7 +176,9 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		my $u = $copy->($book->{uses}[0]);
 		$u->{no} = scalar @{ $book->{uses} };
 		$u->{needexp} = $spec->{needexp};
-		$u->{use} = $lines->($spec->{materials} // [], 1000);
+		# 置き先の本の既存USEと同じく、非消費の工具 (count 1・proba 0) を所持条件として先頭に置く。
+		$u->{use} = [ @{ $lines->([ map { [$_, 1, 0] } @{ $spec->{tools} // [] } ], 0) },
+			@{ $lines->($spec->{materials} // [], 1000) } ];
 		if (defined $spec->{product}) {
 			my $name = $by_no{$spec->{product}}{name};
 			$u->{name} = $name . 'を作成する';

@@ -15,7 +15,7 @@ const oldRecipes = [
 ];
 
 export const UPDATES = [{
-  version: '1.1.0',
+  version: '0.2.0',
   date: '2026-11-13',
   title: 'ファッション枠アップデート',
   summary: 'ファッションの完成品7種と新素材16種を追加しました。全102種の商品で商売を楽しめます。',

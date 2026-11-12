@@ -1,4 +1,4 @@
-// v1.1.0 実装仕様書の確定値と原作79種の差分制限を検証する。
+// v0.2.0 実装仕様書の確定値と原作79種の差分制限を検証する。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -75,6 +75,9 @@ const changedMaterials = [
   [[7,2],[90,5],[8,2]], [[5,4],[6,4],[7,4],[102,4],[8,3]],
 ];
 const triples = (u: UseDef['use']) => u.map((l) => [l.item_no, l.count, l.proba]);
+// 置き先の本の既存USEと同じ、非消費の工具 (count 1・proba 0) の所持条件
+const BOOK_TOOLS: Record<number, number[]> = { 66: [18, 19], 20: [18] };
+const toolsOf = (book: number) => BOOK_TOOLS[book] ?? [];
 
 test('102種の番号・正式名・確定値と、全USEの参照が正しい', () => {
   assert.equal(MAX_ITEM, 102);
@@ -109,7 +112,7 @@ test('既存79種は4レシピと末尾へのUSE追加以外に差分がなく�
     assert.deepEqual(actual, expected, `No.${old.no}`);
   }
   assert.deepEqual(current.events, original.events);
-  assert.deepEqual(current.define, { ...original.define, version: '1.1.0' });
+  assert.deepEqual(current.define, { ...original.define, version: '0.2.0' });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 
@@ -117,14 +120,42 @@ test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕
   for (const [book,product,ingredients,get,proba,time,exptime,lostbook] of production) {
     const u = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!;
     assert.ok(u, BASE_ITEMS[product].name);
-    assert.deepEqual(triples(u.use), ingredients.map(([n,c]) => [n,c,1000]));
+    assert.deepEqual(triples(u.use), [...toolsOf(book).map((n) => [n,1,0]), ...ingredients.map(([n,c]) => [n,c,1000])]);
     assert.deepEqual(triples(u.get), [[product,get,proba]]);
     assert.deepEqual([u.time,u.exptime,u.func,u.params[0],u.needexp], [time,exptime,'lostbook',String(lostbook),null]);
     assert.deepEqual(u.jobs, [{ job:book === 20 ? 'weapon' : 'tool', key:'times', op:'/', value:2 }]);
   }
   assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19);
   const choker = BASE_ITEMS[66].uses.find((u) => u.get[0]?.item_no === 84)!;
-  assert.deepEqual(choker.use.map((l) => BASE_ITEMS[l.item_no].name), ['ミスリル線','草織り布','なめし革','エーテル']);
+  assert.deepEqual(choker.use.map((l) => BASE_ITEMS[l.item_no].name), ['鍛冶屋の技術','魔法の知識','ミスリル線','草織り布','なめし革','エーテル']);
+});
+
+test('装飾細工入門・剣の鍛え方の新規USEは、既存USEと同じ工具を所持条件に持つ', () => {
+  for (const book of [66, 20]) {
+    const tools = (u: UseDef) => u.use.filter((l) => l.proba === 0).map((l) => [l.item_no, l.count]);
+    const existing = originalByNo(book).uses;
+    // 既存USEのうちナユタの首飾り以外が持つ共通の工具と一致させる (目利きの真髄は付けない)
+    for (const u of existing) assert.ok(toolsOf(book).every((n) => tools(u).some(([no]) => no === n)), u.name!);
+    for (const u of BASE_ITEMS[book].uses.slice(existing.length)) {
+      assert.deepEqual(tools(u), toolsOf(book).map((n) => [n, 1]), u.name!);
+    }
+  }
+  for (const book of [16, 17]) for (const u of BASE_ITEMS[book].uses) assert.ok(u.use.every((l) => l.proba > 0), u.name!);
+});
+
+test('工具を1つでも欠くと新規5件は実行できず、状態も変わらない', () => {
+  for (const [book,product,ingredients] of production.filter(([book]) => toolsOf(book).length)) {
+    for (const missing of toolsOf(book)) {
+      const { g,dt } = fixture(book,book === 20 ? 'weapon':'tool');
+      for (const [no,count] of ingredients) dt.item[no-1] = count;
+      for (const n of toolsOf(book)) if (n !== missing) dt.item[n-1] = 1;
+      const useNo = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!.no;
+      assert.equal(checkUses(g,dt,loadUses(g,book)).find((u) => u.no === useNo)!.useok, false);
+      const before = structuredClone(dt);
+      assert.throws(() => useItemAction(g,dt,book,useNo,{count:1}), GameError);
+      assert.deepEqual(dt,before);
+    }
+  }
 });
 
 test('追加採取の5ゲート・複数産出・熟練と、既存の行き先を維持', () => {
@@ -171,6 +202,7 @@ test('新規生産は1セットごとの材料を消費し、一致職業の時�
   for (const [book,product,ingredients,get,,time] of production) {
     const { g,dt } = fixture(book,book === 20 ? 'weapon':'tool');
     for (const [no,count] of ingredients) dt.item[no-1] = count*2;
+    for (const n of toolsOf(book)) dt.item[n-1] = 1;
     const useNo = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!.no;
     const before = dt.time;
     const u = useItemAction(g,dt,book,useNo,{count:2});
@@ -178,6 +210,7 @@ test('新規生産は1セットごとの材料を消費し、一致職業の時�
     assert.equal(dt.time-before,time); // (基礎時間/2) × 2セット
     assert.equal(dt.item[product-1],get*2);
     for (const [no] of ingredients) assert.equal(dt.item[no-1],0);
+    for (const n of toolsOf(book)) assert.equal(dt.item[n-1],1, '工具は消費しない');
   }
 });
 

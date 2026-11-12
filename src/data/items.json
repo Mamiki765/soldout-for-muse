@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.1.0"
+      "version" : "0.2.0"
    },
    "errors" : [],
    "events" : [
@@ -4542,6 +4542,11 @@
                "time" : 7200,
                "use" : [
                   {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
                      "count" : 8,
                      "item_no" : 5,
                      "proba" : 1000
@@ -4602,6 +4607,11 @@
                "scale" : "セット",
                "time" : 7200,
                "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
                   {
                      "count" : 6,
                      "item_no" : 89,
@@ -9565,6 +9575,16 @@
                "time" : 7200,
                "use" : [
                   {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
                      "count" : 20,
                      "item_no" : 93,
                      "proba" : 1000
@@ -9620,6 +9640,16 @@
                "scale" : "セット",
                "time" : 14400,
                "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
                   {
                      "count" : 15,
                      "item_no" : 98,
@@ -9686,6 +9716,16 @@
                "scale" : "セット",
                "time" : 18000,
                "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
                   {
                      "count" : 10,
                      "item_no" : 102,

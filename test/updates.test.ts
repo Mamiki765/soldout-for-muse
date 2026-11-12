@@ -20,7 +20,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'1.1.0');
+    assert.equal(data.version,'0.2.0');
     const update = data.updates[0];
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -58,8 +58,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const auth = {authorization:'Bearer '+token};
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
-    assert.equal(digest.split('\n').filter((l) => l.startsWith('v1.1.0:')).length,1);
-    assert.ok(digest.endsWith('v1.1.0: ファッション枠と新素材を追加。詳細は /updates\n'));
+    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.0:')).length,1);
+    assert.ok(digest.endsWith('v0.2.0: ファッション枠と新素材を追加。詳細は /updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
@@ -75,7 +75,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
-    assert.equal(dt.user._seen_version,'1.1.0');
+    assert.equal(dt.user._seen_version,'0.2.0');
     dt.user._seen_version = '0.1.0'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
