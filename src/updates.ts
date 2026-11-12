@@ -4,6 +4,10 @@
 import { BASE_ITEMS, CATALOG } from './data/catalog.js';
 
 export const APP_VERSION = CATALOG.version;
+/** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
+export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /updates`;
+export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
+/** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
 export const UPDATE_NOTICE = `v${APP_VERSION}: ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates`;
 
 const materials = (rows: number[][]) => rows.map(([item, count]) => ({ item, name: BASE_ITEMS[item].name, count }));

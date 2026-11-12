@@ -63,8 +63,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const auth = {authorization:'Bearer '+token};
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
-    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.0:')).length,1);
-    assert.ok(digest.endsWith('v0.2.0: ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates\n'));
+    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.0 更新あり')).length,1);
+    assert.ok(digest.endsWith('v0.2.0 更新あり /updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
@@ -79,12 +79,23 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.2.0: ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
     assert.equal(dt.user._seen_version,'0.2.0');
     dt.user._seen_version = '0.1.0'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,2);
+
+    // digest の短い案内はデプロイ (この版の初回起動) から7日間だけ。再起動しても起点は変わらない。
+    const since = 1_800_000_000;
+    assert.equal(store.getSetting('update_since:0.2.0'),String(since));
+    for (const [now,shown] of [[since+7*86400-1,true],[since+7*86400,false]] as const) {
+      app = new App({store,basePath,clock:()=>now});
+      assert.equal(app.updateSince,since);
+      const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();
+      assert.equal(text.includes('v0.2.0 更新あり /updates'),shown,text);
+    }
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
     store.close();

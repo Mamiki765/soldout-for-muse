@@ -20,7 +20,7 @@ import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, type PartyVerifier, type PartyWho } from './party.js';
-import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
+import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 
 export interface AppOptions {
   store: Store;
@@ -115,6 +115,19 @@ export class App {
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
+    // この版で初めて起動した時刻をデプロイ時刻として記録する (再起動しても変わらない)
+    const sinceKey = 'update_since:' + APP_VERSION;
+    const since = Number(this.store.getSetting(sinceKey));
+    this.updateSince = Number.isFinite(since) && since > 0 ? since : this.clock();
+    if (!(since > 0)) this.store.setSetting(sinceKey, String(this.updateSince));
+  }
+
+  /** この版のデプロイ時刻 (秒) */
+  readonly updateSince: number;
+
+  /** デプロイから一定期間だけ digest に付ける短い案内 */
+  digestNotice(): string | null {
+    return this.clock() < this.updateSince + DIGEST_NOTICE_SECONDS ? DIGEST_NOTICE : null;
   }
 
   // ---------------------------------------------------------------------------
@@ -355,7 +368,7 @@ export class App {
       switch (p) {
         case '/digest': {
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n);
+          const d = v.digestData(g, dt, n, this.digestNotice());
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
@@ -507,7 +520,7 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt));
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice());
       digest = d;
       tail = v.digestText(d);
     }
