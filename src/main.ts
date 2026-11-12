@@ -5,6 +5,7 @@
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
+//   node dist/src/main.js seed-market [時間=12]    新素材 (plus のある追加品) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
@@ -18,6 +19,11 @@ import { App } from './api/app.js';
 import { setViewerKey } from './api/viewer.js';
 import { httpPartyVerifier } from './api/party.js';
 import { newToken, sha256, Store } from './store.js';
+import { BASE_ITEMS } from './data/catalog.js';
+import { DEFAULT_CONFIG } from './config.js';
+import { Game } from './engine/game.js';
+import { seedWholeStore } from './engine/market.js';
+import { APP_VERSION, UPDATES } from './updates.js';
 
 const env = process.env;
 const dbPath = resolve(env.DB_PATH ?? 'data/soldout.sqlite');
@@ -61,6 +67,31 @@ if (cmd === 'set-invite') {
     console.log(`店id ${id} の管理者をやめました`);
   }
   store.close();
+} else if (cmd === 'seed-market') {
+  // 今回の版で追加した品のうち plus のあるもの (市場在庫が時間で増減する素材) が対象。
+  // 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、必ず止めてから実行する。
+  const hours = Number(arg ?? 12);
+  if (!(hours > 0 && hours <= 72)) {
+    console.error('時間は 1〜72 で指定してください');
+    process.exit(2);
+  }
+  const store = new Store(dbPath);
+  const key = 'market_seeded:' + APP_VERSION;
+  if (store.getSetting(key)) {
+    console.error(`v${APP_VERSION} の初期投入は済んでいます (${store.getSetting(key)})。二重には入れません`);
+    store.close();
+    process.exit(1);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const world = store.loadWorld(now);
+  const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
+  const targets = UPDATES[0].new_items.map((it) => it.item).filter((no) => BASE_ITEMS[no].plus !== 0);
+  const rows = seedWholeStore(g, targets, hours);
+  store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2);
+  store.setSetting(key, `${new Date(now * 1000).toISOString()} ${hours}時間ぶん`);
+  store.close();
+  console.log(`市場に新素材を ${hours} 時間ぶん入れました (人口 ${world.people}、店 ${world.shops.length})`);
+  for (const r of rows) console.log(`${r.no} ${r.name}: ${r.before} → ${r.after} (+${r.add})`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
   const app = new App({
@@ -92,6 +123,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店>]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間]]');
   process.exit(2);
 }

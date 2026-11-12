@@ -20,6 +20,7 @@ import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, type PartyVerifier, type PartyWho } from './party.js';
+import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 
 export interface AppOptions {
   store: Store;
@@ -71,6 +72,7 @@ const SEEN_LOG = '_api_seen_log';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
 const SEEN_SUGGEST = '_api_seen_suggest';
+const SEEN_VERSION = '_seen_version';
 /** 目安箱: 1店あたり 24 時間に出せる案の数と、1件の長さ (文字) */
 const SUGGEST_PER_DAY = 5;
 const SUGGEST_MAX_CHARS = 800;
@@ -113,6 +115,19 @@ export class App {
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
+    // この版で初めて起動した時刻をデプロイ時刻として記録する (再起動しても変わらない)
+    const sinceKey = 'update_since:' + APP_VERSION;
+    const since = Number(this.store.getSetting(sinceKey));
+    this.updateSince = Number.isFinite(since) && since > 0 ? since : this.clock();
+    if (!(since > 0)) this.store.setSetting(sinceKey, String(this.updateSince));
+  }
+
+  /** この版のデプロイ時刻 (秒) */
+  readonly updateSince: number;
+
+  /** デプロイから一定期間だけ digest に付ける短い案内 */
+  digestNotice(): string | null {
+    return this.clock() < this.updateSince + DIGEST_NOTICE_SECONDS ? DIGEST_NOTICE : null;
   }
 
   // ---------------------------------------------------------------------------
@@ -296,6 +311,16 @@ export class App {
     return dt;
   }
 
+  /** 店ごとに一度だけ、自分の「最近の出来事」に更新通知を残す。再起動しても重複しない。 */
+  notifyUpdate(shopId: number): void {
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    const dt = g.shopById(shopId);
+    if (!dt || dt.user[SEEN_VERSION] === APP_VERSION) return;
+    dt.user[SEEN_VERSION] = APP_VERSION;
+    g.writeLog(1, dt.id, 0, '【更新】' + UPDATE_NOTICE);
+    this.save(g);
+  }
+
   private async route(req: IncomingMessage, url: URL, wantJson: boolean): Promise<Reply> {
     const method = req.method ?? 'GET';
     const path = url.pathname.replace(/\/+$/, '') || '/';
@@ -304,7 +329,7 @@ export class App {
     if (path === '/healthz') return { status: 200, text: 'ok\n', json: { ok: true } };
 
     // ---- 人間向け (観戦・見学) ----
-    if (method === 'GET' && (path === '/' || path.startsWith('/view') || path.startsWith('/images/') || path === '/source' || path.startsWith('/source'))) {
+    if (method === 'GET' && (path === '/' || path === '/updates' || path.startsWith('/view') || path.startsWith('/images/') || path === '/source' || path.startsWith('/source'))) {
       if (path.startsWith('/images/')) return this.image(path);
       return renderViewer(this, req, url);
     }
@@ -313,6 +338,9 @@ export class App {
     const p = path.slice('/api/v1'.length);
 
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
+    if (method === 'GET' && p === '/updates') {
+      return { status: 200, text: updatesText(), json: { version: APP_VERSION, updates: UPDATES } };
+    }
     if (method === 'GET' && p === '/items') {
       const { g } = this.game();
       const d = v.itemsData(g);
@@ -327,6 +355,7 @@ export class App {
     }
 
     const shopId = await this.auth(req);
+    this.notifyUpdate(shopId);
 
     if (method === 'GET') {
       const { g } = this.game();
@@ -339,7 +368,7 @@ export class App {
       switch (p) {
         case '/digest': {
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n);
+          const d = v.digestData(g, dt, n, this.digestNotice());
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
@@ -491,7 +520,7 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt));
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice());
       digest = d;
       tail = v.digestText(d);
     }

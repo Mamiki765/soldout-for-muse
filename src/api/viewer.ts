@@ -15,6 +15,7 @@ import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, jst } from './views.js';
 import { SourceTree } from './source.js';
+import { APP_VERSION, UPDATE_NOTICE, UPDATES, materialText } from '../updates.js';
 
 interface Reply {
   status: number;
@@ -69,7 +70,7 @@ ${body}
 function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
   const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -143,6 +144,7 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
 
   const g = app.viewerGame();
   const inShop = shopId !== undefined && !!g.shopById(shopId);
+  if (inShop) app.notifyUpdate(shopId!);
   const menu = menuBar(g, inShop, app.partyPublicUrl);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   let title = '';
@@ -152,6 +154,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     case '/':
       title = 'トップ';
       body = topPage(app, g);
+      break;
+    case '/updates':
+      title = '更新履歴';
+      body = updatesPage();
       break;
     case '/view/ranking':
       title = 'ランキング';
@@ -195,7 +201,28 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     default:
       return { status: 404, headers, html: page('なし', menu, 'ページがありません') };
   }
-  return { status: 200, headers, html: page(title, menu, `<div class="wrap">${body}</div>`) };
+  return { status: 200, headers, html: page(title, menu, `${updateNotice(app.basePath)}<div class="wrap">${body}</div>`) };
+}
+
+/** 人間の観戦画面ではブラウザーごとに一度だけ。合言葉確認後の成功ページで表示する。 */
+function updateNotice(basePath: string): string {
+  return `<p id="update-notice" role="status" hidden>更新がありました。${esc(UPDATE_NOTICE)} <a href="/updates">更新履歴を読む</a></p>
+<script>(()=>{try{const key=${JSON.stringify('soldout_seen_update:' + basePath)};const version=${JSON.stringify(APP_VERSION)};if(localStorage.getItem(key)!==version){document.getElementById('update-notice').hidden=false;localStorage.setItem(key,version)}}catch{}})()</script>`;
+}
+
+function updatesPage(): string {
+  return '<h2>更新履歴</h2>' + UPDATES.map((u) => `<article>
+<h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
+<h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
+${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>
+<h4>職業ごとの変化</h4><p>${esc(u.jobs_note)}</p><table><tr><th>職業</th><th>変化</th></tr>
+${u.jobs.map((j) => `<tr><td>${esc(j.job)}</td><td>${esc(j.text)}</td></tr>`).join('')}</table>
+<h4>新規採取5種と熟練度</h4><p>${esc(u.mastery)}</p><ul>
+${u.gathering.map((g) => `<li>${esc(g.name)} — ${esc(g.map.name)}、必要熟練${g.needexp} (${g.needexp / 10}%)</li>`).join('')}</ul>
+<h4>装飾品4種の材料変更（1セット）</h4><p>${esc(u.recipe_reason)}</p>
+<table><tr><th>品目</th><th>変更前 → 変更後</th></tr>
+${u.recipe_changes.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(materialText(r.before))} → ${esc(materialText(r.after))}</td></tr>`).join('')}</table>
+<h4>数値の考え方</h4><p>${esc(u.balance)}</p></article>`).join('');
 }
 
 function validViewerCookie(app: App, v: string | undefined): boolean {

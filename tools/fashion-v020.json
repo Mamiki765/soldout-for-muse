@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "items": [
+    {"no":80,"code":"grass-cloth","name":"草織り布","info":"繊維草を織り、折りたたんだ素朴な布","scale":"枚","type":1,"price":400,"cost":40,"popular":7200,"limit":2000,"plus":-3600,"market_reference":41},
+    {"no":81,"code":"leopard-miniskirt","name":"ヒョウ柄ミニスカート","info":"ヒョウ柄が目を引くミニスカート","scale":"着","type":8,"price":12000,"cost":600,"popular":129600,"limit":50,"plus":0,"market_reference":67},
+    {"no":82,"code":"platform-boots","name":"厚底ブーツ","info":"厚い靴底が特徴のショートブーツ","scale":"足","type":8,"price":18000,"cost":900,"popular":172800,"limit":50,"plus":0,"market_reference":67},
+    {"no":83,"code":"loose-socks","name":"ルーズソックス","info":"たっぷりの布をたるませたソックス","scale":"足","type":8,"price":15000,"cost":750,"popular":172800,"limit":50,"plus":0,"market_reference":67},
+    {"no":84,"code":"glitter-choker","name":"ラメのチョーカー","info":"ラメと一粒の飾りがきらめくチョーカー","scale":"個","type":8,"price":16000,"cost":800,"popular":172800,"limit":50,"plus":0,"market_reference":67},
+    {"no":85,"code":"leather-longcoat","name":"革のロングコート","info":"丁寧になめした革を使うロングコート","scale":"着","type":8,"price":24000,"cost":1200,"popular":259200,"limit":30,"plus":0,"market_reference":67},
+    {"no":86,"code":"gem-brooch","name":"宝石のブローチ","info":"大きな宝石をあしらったブローチ","scale":"個","type":8,"price":24000,"cost":1200,"popular":259200,"limit":30,"plus":0,"market_reference":67},
+    {"no":87,"code":"parquet-haircomb","name":"寄木の髪飾り","info":"香木の寄木模様を楽しむ髪飾り","scale":"個","type":8,"price":20000,"cost":1000,"popular":172800,"limit":50,"plus":0,"market_reference":67},
+    {"no":88,"code":"iron-ore","name":"鉄鉱石","info":"鉄を含む重い岩塊","scale":"個","type":1,"price":150,"cost":20,"popular":3600,"limit":2000,"plus":-1200,"market_reference":5},
+    {"no":89,"code":"mithril-ore","name":"ミスリル原石","info":"青白い輝きのミスリル原石","scale":"個","type":1,"price":500,"cost":50,"popular":7200,"limit":1000,"plus":-1200,"market_reference":6},
+    {"no":90,"code":"orichalcum-ore","name":"オリハルコン原石","info":"黄緑金色の金属脈を持つ原石","scale":"個","type":1,"price":900,"cost":80,"popular":10800,"limit":500,"plus":-1200,"market_reference":7},
+    {"no":91,"code":"resin","name":"樹脂","info":"木から採れた琥珀色の樹脂","scale":"個","type":1,"price":300,"cost":30,"popular":4800,"limit":2000,"plus":-1200,"market_reference":2},
+    {"no":92,"code":"iron-sand","name":"砂鉄","info":"河床に集まった黒い鉄の粒","scale":"個","type":1,"price":200,"cost":30,"popular":3600,"limit":2000,"plus":-1200,"market_reference":5},
+    {"no":93,"code":"gem-ore","name":"宝石原石","info":"母岩に結晶が埋まった宝石の原石","scale":"個","type":1,"price":500,"cost":50,"popular":7200,"limit":1000,"plus":-1200,"market_reference":8},
+    {"no":94,"code":"aromatic-wood","name":"香木","info":"ほのかな香りを持つ赤みのある木片","scale":"本","type":1,"price":600,"cost":60,"popular":7200,"limit":1000,"plus":-1200,"market_reference":4},
+    {"no":95,"code":"bark","name":"樹皮","info":"木から薄くはがした樹皮","scale":"枚","type":1,"price":200,"cost":30,"popular":3600,"limit":2000,"plus":-1200,"market_reference":3},
+    {"no":96,"code":"fiber-grass","name":"繊維草","info":"布に加工できる長い繊維を持つ草","scale":"本","type":1,"price":100,"cost":20,"popular":2400,"limit":2000,"plus":43200,"market_reference":1},
+    {"no":97,"code":"refined-steel-plate","name":"精鋼板","info":"精製した鋼の板","scale":"枚","type":1,"price":1600,"cost":90,"popular":14400,"limit":700,"plus":-3600,"market_reference":41},
+    {"no":98,"code":"mithril-wire","name":"ミスリル線","info":"細く延ばして巻いたミスリルの線","scale":"巻","type":1,"price":3000,"cost":120,"popular":28800,"limit":500,"plus":-3600,"market_reference":41},
+    {"no":99,"code":"lumber-board","name":"製材板","info":"丸太から切り出した木の板","scale":"枚","type":1,"price":900,"cost":60,"popular":10800,"limit":1000,"plus":-3600,"market_reference":41},
+    {"no":100,"code":"resin-board","name":"樹脂板","info":"樹脂を塗り重ねて仕上げた板","scale":"枚","type":1,"price":1500,"cost":80,"popular":14400,"limit":700,"plus":-3600,"market_reference":41},
+    {"no":101,"code":"tanned-leather","name":"なめし革","info":"樹皮と樹脂で丁寧になめした革","scale":"枚","type":1,"price":1400,"cost":80,"popular":14400,"limit":700,"plus":-3600,"market_reference":41},
+    {"no":102,"code":"polished-gem","name":"研磨宝石","info":"磨いてカットした宝石","scale":"個","type":1,"price":2500,"cost":100,"popular":21600,"limit":500,"plus":-3600,"market_reference":41}
+  ],
+  "production": [
+    {"book":16,"product":80,"materials":[[96,20],[1,10],[3,4]],"get":20,"proba":800,"time":3600,"exptime":2400,"lostbook":50,"job":"tool"},
+    {"book":17,"product":99,"materials":[[4,6]],"get":20,"proba":900,"time":3600,"exptime":2400,"lostbook":50,"job":"tool"},
+    {"book":16,"product":101,"materials":[[2,30],[95,20],[91,10]],"get":20,"proba":800,"time":3600,"exptime":2400,"lostbook":50,"job":"tool"},
+    {"book":20,"product":97,"tools":[18],"materials":[[5,8],[88,20],[92,10]],"get":20,"proba":800,"time":7200,"exptime":4800,"lostbook":70,"job":"weapon"},
+    {"book":20,"product":98,"tools":[18],"materials":[[89,6],[6,4]],"get":20,"proba":600,"time":7200,"exptime":4800,"lostbook":70,"job":"weapon"},
+    {"book":17,"product":100,"materials":[[99,6],[91,10]],"get":10,"proba":900,"time":7200,"exptime":4800,"lostbook":70,"job":"tool"},
+    {"book":66,"product":102,"tools":[18,19],"materials":[[93,20],[80,4]],"get":10,"proba":900,"time":7200,"exptime":4800,"lostbook":70,"job":"tool"},
+    {"book":16,"product":81,"materials":[[101,30],[80,30],[2,30],[97,4]],"get":10,"proba":800,"time":10800,"exptime":7200,"lostbook":100,"job":"tool"},
+    {"book":16,"product":82,"materials":[[101,20],[99,10],[100,10],[97,8],[80,10]],"get":10,"proba":600,"time":14400,"exptime":10800,"lostbook":100,"job":"tool"},
+    {"book":16,"product":83,"materials":[[80,50],[101,10],[2,10]],"get":10,"proba":400,"time":10800,"exptime":7200,"lostbook":100,"job":"tool"},
+    {"book":66,"product":84,"tools":[18,19],"materials":[[98,15],[80,10],[101,4],[32,10]],"get":10,"proba":600,"time":14400,"exptime":10800,"lostbook":100,"job":"tool"},
+    {"book":16,"product":85,"materials":[[101,30],[80,30],[2,30],[68,10]],"get":10,"proba":400,"time":18000,"exptime":14400,"lostbook":150,"job":"tool"},
+    {"book":66,"product":86,"tools":[18,19],"materials":[[102,10],[98,6],[6,8],[67,10],[8,4]],"get":10,"proba":400,"time":18000,"exptime":14400,"lostbook":150,"job":"tool"},
+    {"book":17,"product":87,"materials":[[100,30],[99,10],[94,15],[91,10],[68,4]],"get":10,"proba":600,"time":14400,"exptime":10800,"lostbook":100,"job":"tool"}
+  ],
+  "gathering": [
+    {"book":9,"name":"砂鉄の河床を探る","needexp":200,"products":[[88,80,800],[92,40,750]]},
+    {"book":9,"name":"青晶洞を探索する","needexp":400,"products":[[89,30,800],[93,20,750]]},
+    {"book":9,"name":"深層の鉱脈を掘る","needexp":600,"products":[[90,18,800],[93,12,750],[8,5,100]]},
+    {"book":12,"name":"樹脂林で樹液を採る","needexp":200,"products":[[91,30,800],[95,30,800]]},
+    {"book":12,"name":"香木林を探索する","needexp":400,"products":[[94,15,800],[96,50,800]]}
+  ],
+  "recipe_changes": [
+    {"use":0,"materials":[[5,6],[88,20],[92,5]]},
+    {"use":1,"materials":[[6,4],[8,3]]},
+    {"use":2,"materials":[[7,2],[90,5],[8,2]]},
+    {"use":3,"materials":[[5,4],[6,4],[7,4],[102,4],[8,3]]}
+  ]
+}

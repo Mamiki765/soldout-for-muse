@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "2002-12-02"
+      "version" : "0.2.0"
    },
    "errors" : [],
    "events" : [
@@ -1653,6 +1653,161 @@
                "scale" : "往復",
                "time" : 14400,
                "use" : []
+            },
+            {
+               "action" : "採取しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 80,
+                     "item_no" : 88,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 40,
+                     "item_no" : 92,
+                     "proba" : 750
+                  }
+               ],
+               "info" : "砂鉄の河床を探る",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "砂鉄の河床を探る",
+               "needexp" : 200,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 3,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
+            },
+            {
+               "action" : "採取しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 89,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 93,
+                     "proba" : 750
+                  }
+               ],
+               "info" : "青晶洞を探索する",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "青晶洞を探索する",
+               "needexp" : 400,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 4,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
+            },
+            {
+               "action" : "採取しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 18,
+                     "item_no" : 90,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 12,
+                     "item_no" : 93,
+                     "proba" : 750
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 8,
+                     "proba" : 100
+                  }
+               ],
+               "info" : "深層の鉱脈を掘る",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "深層の鉱脈を掘る",
+               "needexp" : 600,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 5,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
             }
          ],
          "wslimit" : 0.7
@@ -2504,6 +2659,106 @@
                "scale" : "往復",
                "time" : 14400,
                "use" : []
+            },
+            {
+               "action" : "探索しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 91,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 95,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "樹脂林で樹液を採る",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "樹脂林で樹液を採る",
+               "needexp" : 200,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 4,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
+            },
+            {
+               "action" : "探索しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 15,
+                     "item_no" : 94,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 50,
+                     "item_no" : 96,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "香木林を探索する",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "香木林を探索する",
+               "needexp" : 400,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 5,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
             }
          ],
          "wslimit" : 1
@@ -3131,6 +3386,392 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 2400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 80,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "草織り布を作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "草織り布を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 2,
+               "okmsg" : "草織り布を作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 96,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 1,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 3,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 2400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 101,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "なめし革を作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "なめし革を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 3,
+               "okmsg" : "なめし革を作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 2,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 95,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 91,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 81,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "ヒョウ柄ミニスカートを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ヒョウ柄ミニスカートを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "ヒョウ柄ミニスカートを作りました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 10800,
+               "use" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 2,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 97,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 82,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "厚底ブーツを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "厚底ブーツを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "厚底ブーツを作りました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 100,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 97,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 83,
+                     "proba" : 400
+                  }
+               ],
+               "info" : "ルーズソックスを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ルーズソックスを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "ルーズソックスを作りました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 10800,
+               "use" : [
+                  {
+                     "count" : 50,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 2,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 14400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 85,
+                     "proba" : 400
+                  }
+               ],
+               "info" : "革のロングコートを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "革のロングコートを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "革のロングコートを作りました",
+               "params" : [
+                  "150",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 18000,
+               "use" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 2,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 68,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 1
@@ -3362,6 +4003,184 @@
                   {
                      "count" : 4,
                      "item_no" : 4,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 2400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 99,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "製材板を作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "製材板を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "製材板を作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 6,
+                     "item_no" : 4,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 4800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 100,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "樹脂板を作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "樹脂板を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "樹脂板を作りました",
+               "params" : [
+                  "70",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 6,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 91,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 87,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "寄木の髪飾りを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "寄木の髪飾りを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "寄木の髪飾りを作りました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 30,
+                     "item_no" : 100,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 15,
+                     "item_no" : 94,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 91,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 68,
                      "proba" : 1000
                   }
                ]
@@ -3674,6 +4493,133 @@
                   {
                      "count" : 20,
                      "item_no" : 7,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 4800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 97,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "精鋼板を作成します",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "精鋼板を作成する",
+               "needexp" : null,
+               "ngmsg" : "鍛えるのに失敗しました…",
+               "no" : 4,
+               "okmsg" : "精鋼板を作りました",
+               "params" : [
+                  "70",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 88,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 92,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 4800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 98,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "ミスリル線を作成します",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ミスリル線を作成する",
+               "needexp" : null,
+               "ngmsg" : "鍛えるのに失敗しました…",
+               "no" : 5,
+               "okmsg" : "ミスリル線を作りました",
+               "params" : [
+                  "70",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 6,
+                     "item_no" : 89,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 6,
                      "proba" : 1000
                   }
                ]
@@ -8345,8 +9291,18 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 6,
                      "item_no" : 5,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 88,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 92,
                      "proba" : 1000
                   }
                ]
@@ -8406,12 +9362,12 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 4,
                      "item_no" : 6,
                      "proba" : 1000
                   },
                   {
-                     "count" : 2,
+                     "count" : 3,
                      "item_no" : 8,
                      "proba" : 1000
                   }
@@ -8472,8 +9428,13 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 2,
                      "item_no" : 7,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 90,
                      "proba" : 1000
                   },
                   {
@@ -8543,22 +9504,250 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 4,
                      "item_no" : 5,
                      "proba" : 1000
                   },
                   {
-                     "count" : 20,
+                     "count" : 4,
                      "item_no" : 6,
                      "proba" : 1000
                   },
                   {
-                     "count" : 20,
+                     "count" : 4,
                      "item_no" : 7,
                      "proba" : 1000
                   },
                   {
+                     "count" : 4,
+                     "item_no" : 102,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 3,
+                     "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 4800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 102,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "研磨宝石を作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "研磨宝石を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "研磨宝石を作りました",
+               "params" : [
+                  "70",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 93,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 84,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "ラメのチョーカーを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ラメのチョーカーを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "ラメのチョーカーを作りました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 15,
+                     "item_no" : 98,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 32,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 14400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 86,
+                     "proba" : 400
+                  }
+               ],
+               "info" : "宝石のブローチを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "宝石のブローチを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "宝石のブローチを作りました",
+               "params" : [
+                  "150",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 18000,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 102,
+                     "proba" : 1000
+                  },
+                  {
                      "count" : 6,
+                     "item_no" : 98,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 6,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 67,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
                      "item_no" : 8,
                      "proba" : 1000
                   }
@@ -9772,6 +10961,673 @@
             }
          ],
          "wslimit" : 0
+      },
+      {
+         "code" : "grass-cloth",
+         "cost" : 40,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "繊維草を織り、折りたたんだ素朴な布",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "草織り布",
+         "no" : 80,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 400,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "leopard-miniskirt",
+         "cost" : 600,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ヒョウ柄が目を引くミニスカート",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ヒョウ柄ミニスカート",
+         "no" : 81,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 129600,
+         "price" : 12000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "着",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "platform-boots",
+         "cost" : 900,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "厚い靴底が特徴のショートブーツ",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "厚底ブーツ",
+         "no" : 82,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 18000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "足",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "loose-socks",
+         "cost" : 750,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "たっぷりの布をたるませたソックス",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ルーズソックス",
+         "no" : 83,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 15000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "足",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "glitter-choker",
+         "cost" : 800,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ラメと一粒の飾りがきらめくチョーカー",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ラメのチョーカー",
+         "no" : 84,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 16000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "leather-longcoat",
+         "cost" : 1200,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "丁寧になめした革を使うロングコート",
+         "limit" : 30,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "革のロングコート",
+         "no" : 85,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 24000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "着",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "gem-brooch",
+         "cost" : 1200,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "大きな宝石をあしらったブローチ",
+         "limit" : 30,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "宝石のブローチ",
+         "no" : 86,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 24000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "parquet-haircomb",
+         "cost" : 1000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "香木の寄木模様を楽しむ髪飾り",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "寄木の髪飾り",
+         "no" : 87,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 20000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "iron-ore",
+         "cost" : 20,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "鉄を含む重い岩塊",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "鉄鉱石",
+         "no" : 88,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 3600,
+         "price" : 150,
+         "pricebase" : 300,
+         "pricehalf" : 800,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "mithril-ore",
+         "cost" : 50,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "青白い輝きのミスリル原石",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ミスリル原石",
+         "no" : 89,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 500,
+         "pricebase" : 300,
+         "pricehalf" : 600,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 200
+      },
+      {
+         "code" : "orichalcum-ore",
+         "cost" : 80,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "黄緑金色の金属脈を持つ原石",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "オリハルコン原石",
+         "no" : 90,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 900,
+         "pricebase" : 300,
+         "pricehalf" : 600,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 150
+      },
+      {
+         "code" : "resin",
+         "cost" : 30,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "木から採れた琥珀色の樹脂",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "樹脂",
+         "no" : 91,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 4800,
+         "price" : 300,
+         "pricebase" : 100,
+         "pricehalf" : 700,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "iron-sand",
+         "cost" : 30,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "河床に集まった黒い鉄の粒",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "砂鉄",
+         "no" : 92,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 3600,
+         "price" : 200,
+         "pricebase" : 300,
+         "pricehalf" : 800,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "gem-ore",
+         "cost" : 50,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "母岩に結晶が埋まった宝石の原石",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "宝石原石",
+         "no" : 93,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 500,
+         "pricebase" : 100,
+         "pricehalf" : 500,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 20
+      },
+      {
+         "code" : "aromatic-wood",
+         "cost" : 60,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ほのかな香りを持つ赤みのある木片",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "香木",
+         "no" : 94,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 600,
+         "pricebase" : 100,
+         "pricehalf" : 500,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "bark",
+         "cost" : 30,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "木から薄くはがした樹皮",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "樹皮",
+         "no" : 95,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 3600,
+         "price" : 200,
+         "pricebase" : 200,
+         "pricehalf" : 600,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "fiber-grass",
+         "cost" : 20,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "布に加工できる長い繊維を持つ草",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "繊維草",
+         "no" : 96,
+         "param" : null,
+         "plus" : 43200,
+         "point" : 1000,
+         "popular" : 2400,
+         "price" : 100,
+         "pricebase" : 1000,
+         "pricehalf" : 10000,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 400
+      },
+      {
+         "code" : "refined-steel-plate",
+         "cost" : 90,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "精製した鋼の板",
+         "limit" : 700,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "精鋼板",
+         "no" : 97,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 14400,
+         "price" : 1600,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "mithril-wire",
+         "cost" : 120,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "細く延ばして巻いたミスリルの線",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ミスリル線",
+         "no" : 98,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 28800,
+         "price" : 3000,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "巻",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "lumber-board",
+         "cost" : 60,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "丸太から切り出した木の板",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "製材板",
+         "no" : 99,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 900,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "resin-board",
+         "cost" : 80,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "樹脂を塗り重ねて仕上げた板",
+         "limit" : 700,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "樹脂板",
+         "no" : 100,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 14400,
+         "price" : 1500,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "tanned-leather",
+         "cost" : 80,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "樹皮と樹脂で丁寧になめした革",
+         "limit" : 700,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "なめし革",
+         "no" : 101,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 14400,
+         "price" : 1400,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "枚",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "polished-gem",
+         "cost" : 100,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "磨いてカットした宝石",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "研磨宝石",
+         "no" : 102,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 21600,
+         "price" : 2500,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",
