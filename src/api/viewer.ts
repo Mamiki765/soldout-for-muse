@@ -215,6 +215,8 @@ function updatesPage(): string {
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
 <h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
 ${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>
+<h4>職業ごとの変化</h4><p>${esc(u.jobs_note)}</p><table><tr><th>職業</th><th>変化</th></tr>
+${u.jobs.map((j) => `<tr><td>${esc(j.job)}</td><td>${esc(j.text)}</td></tr>`).join('')}</table>
 <h4>新規採取5種と熟練度</h4><p>${esc(u.mastery)}</p><ul>
 ${u.gathering.map((g) => `<li>${esc(g.name)} — ${esc(g.map.name)}、必要熟練${g.needexp} (${g.needexp / 10}%)</li>`).join('')}</ul>
 <h4>装飾品4種の材料変更（1セット）</h4><p>${esc(u.recipe_reason)}</p>

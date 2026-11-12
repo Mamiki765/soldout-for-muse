@@ -31,7 +31,10 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.deepEqual(update.recipe_changes[0].after,[{item:5,name:'鉄塊',count:6},{item:88,name:'鉄鉱石',count:20},{item:92,name:'砂鉄',count:5}]);
     res = await fetch(base+'/api/v1/updates');
     assert.match(res.headers.get('content-type')!,/text\/plain/);
-    assert.match(await res.text(),/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
+    const text = await res.text();
+    assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
+    assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
+    assert.deepEqual(update.jobs.map((j) => j.job),['山師','武器屋','薬屋','道具屋']);
     res = await fetch(base+'/updates');
     assert.equal(res.status,200);
     let html = await res.text();
@@ -41,6 +44,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     }
     assert.ok(html.includes('作るほど赤字'));
     assert.ok(html.includes('街の1日の需要'));
+    for (const j of update.jobs) assert.ok(html.includes(j.job) && html.includes(j.text));
+    assert.ok(html.includes('職業ボーナス'));
     assert.match(html,/href="[^"]*\/updates"/);
 
     // 履歴も観戦画面と同じ合言葉を使い、basePathを維持する。
@@ -59,7 +64,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
     assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.0:')).length,1);
-    assert.ok(digest.endsWith('v0.2.0: ファッション枠と新素材を追加。詳細は /updates\n'));
+    assert.ok(digest.endsWith('v0.2.0: ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
