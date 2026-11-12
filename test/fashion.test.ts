@@ -9,6 +9,7 @@ import { openShop, enterShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
 import { newWorld } from '../src/engine/types.js';
 import { checkUses, loadUses, useItemAction } from '../src/engine/use.js';
+import { seedWholeStore } from '../src/engine/market.js';
 import { Store } from '../src/store.js';
 
 const original = JSON.parse(execFileSync('perl', ['tools/dump-items.pl', 'normal', '--original'], { encoding: 'utf8' })) as {
@@ -233,4 +234,30 @@ test('79品時代のセーブは在庫を保ったまま102枠へ拡張し、新
     assert.deepEqual(loaded.shops[0].item,[...Array(79).fill(2),...Array(23).fill(0)]);
     assert.equal(loaded.shops[0].exp[9],400);
   } finally { store.close(); }
+});
+
+test('新素材の市場初期投入: plus のある16種だけに一度、上限内で足し、他には触れない', () => {
+  const { g,dt } = fixture(16,'tool');
+  g.world.people = 300000;
+  const before = structuredClone(g.world);
+  const targets = itemSpecs.map(([no]) => no).filter((no) => BASE_ITEMS[no].plus !== 0);
+  assert.equal(targets.length,16);
+  assert.ok(targets.every((no) => no < 81 || no > 87), '完成品は plus 0 なので対象外');
+  dt.item[88-1] = 299; // 店の手持ちも上限に数える (鉄鉱石 wslimit 300 × 1店)
+  const rows = seedWholeStore(g,targets,12);
+  for (const r of rows) {
+    assert.equal(r.before,0);
+    assert.equal(g.world.wholestore[r.no-1],r.after);
+    assert.ok(r.after > 0, r.name);
+  }
+  assert.equal(rows.find((r) => r.no === 88)!.after,1);
+  // 12時間ぶんは24時間ぶんの約半分 (上限に当たらない品)
+  const fiber = rows.find((r) => r.no === 96)!.after;
+  const { g:g2 } = fixture(16,'tool');
+  g2.world.people = 300000;
+  assert.ok(Math.abs(seedWholeStore(g2,[96],24)[0].after - fiber*2) <= 1);
+  const after = structuredClone(g.world);
+  for (const no of targets) after.wholestore[no-1] = 0;
+  assert.deepEqual(after.wholestore,before.wholestore);
+  assert.deepEqual([after.events,after.people],[before.events,before.people]);
 });

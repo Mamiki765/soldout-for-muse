@@ -44,6 +44,21 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 - Muse Party と同じ `muse.slice` (合計 1 OCPU・3GB) の中で動きます。slice は Party 側の手順で先に作ってください。SOLD OUT 単体の上限は CPU 0.5・メモリ 512MB です。
 - 保存は `data/soldout.sqlite` 1つです。バックアップはこのファイル (と `-wal`) をコピーします。
 
+### 更新するとき
+
+```sh
+cd ~/apps/soldout
+git pull && docker compose build                 # 動かしたままビルド
+docker compose stop
+mkdir -p ~/backup && cp data/soldout.sqlite* ~/backup/
+docker compose run --rm soldout seed-market 12  # 新素材がある版だけ。市場に12時間ぶんを一度だけ入れる
+docker compose up -d                             # この起動時刻から7日間、digest に更新案内が付く
+```
+
+- `seed-market` は、その版で追加した品のうち plus のある素材の市場在庫だけを、市場が自然に増減する式の12時間ぶん足します (上限 wslimit は通常どおり)。時間・イベント・お店には触れません。版ごとに一度しか実行できません。
+- 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、`seed-market` は必ず止めてから実行してください。
+- 元に戻すときは、コードと一緒にバックアップした DB も戻します (新しい版で起動すると保存データが新しい品数に広がるため)。
+
 ## 街の設定
 
 - 商品データは原作の `makeitem.cgi` の解析処理と Muse の追加定義 (`tools/fashion-v020.json`) で作った JSON (`src/data/items.json`) です。作り直すときは `npm run items` (Perl が必要)。原作配布物は変更せず、`perl tools/dump-items.pl normal --original` で原作79種との比較もできます。

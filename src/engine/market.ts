@@ -98,3 +98,30 @@ export function checkWholeStore(g: Game): void {
     if (g.world.wholestore[cnt - 1] < 0) g.world.wholestore[cnt - 1] = 0;
   }
 }
+
+/**
+ * 追加素材の市場在庫を、市場が自然に増減するときと同じ式 (turn.ts。乱数部分は期待値 0.75 倍) で hours 時間ぶん1回だけ足す。
+ * plus が負の素材は時間を進めても市場に出ない (減る側) ため、リリース時の初期投入に使う。
+ * 時間・イベント・お店には触れず、対象品の市場在庫だけを変える。上限 (wslimit) は通常どおり効く。
+ */
+export function seedWholeStore(g: Game, itemNos: number[], hours: number) {
+  const w = g.world;
+  const shopcount = g.shops.length || 1;
+  return itemNos.map((no) => {
+    const item = g.items[no];
+    const before = w.wholestore[no - 1];
+    let add = 0;
+    if (item.plus !== 0) {
+      add = Math.trunc(0.75 *
+        ((hours * 3600 / Math.abs(item.plus)) * w.people) /
+          (100000 / ((g.config.maxUser + (g.shops.length - 1) - 1) * 0.2 + 1)),
+      );
+    }
+    let held = 0;
+    for (const dt of g.shops) held += dt.item[no - 1];
+    const limitcount = item.wslimit < 0 ? -item.wslimit : Math.trunc(item.wslimit * shopcount + 0.99);
+    const after = Math.max(before, Math.min(before + add, limitcount - held));
+    w.wholestore[no - 1] = after;
+    return { no, name: item.name, before, add: after - before, after };
+  });
+}
