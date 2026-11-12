@@ -133,6 +133,7 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
       }
     }
   }
+  if ((dt.exp[u.itemno] ?? 0) < u.needexp) return 0;
   const before = u.def.func_before;
   if (before) {
     const fn = USE_BEFORE_FUNCS[`${u.itemcode}:${before}`] ?? USE_BEFORE_FUNCS[before];

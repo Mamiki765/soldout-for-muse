@@ -3,6 +3,7 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { CATALOG } from '../data/catalog.js';
+import { APP_VERSION, UPDATE_NOTICE } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import type { Shop } from '../engine/types.js';
@@ -81,6 +82,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput) {
     new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
     events: g.eventMessages,
     warnings,
+    version: APP_VERSION,
+    update: UPDATE_NOTICE,
   };
 }
 
@@ -105,6 +108,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.events.length) tail.push('イベント ' + d.events.join('/'));
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
+  lines.push(d.update);
   return lines.join('\n') + '\n';
 }
 

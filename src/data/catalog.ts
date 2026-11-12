@@ -1,5 +1,5 @@
 // SOLD OUT for Muse — 商品データ (items.json) の型と読み込み。
-// items.json は tools/dump-items.pl が原作 inc-item-data.cgi から生成する。
+// items.json は tools/dump-items.pl が原作定義＋Muse追加定義から生成する。
 // Copyright (C) 2001-2004 MUTOYS (original), SOLD OUT for Muse contributors (port)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 

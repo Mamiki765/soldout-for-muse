@@ -38,7 +38,7 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 200);
     const etag = r.headers.get('etag')!;
     const digest = await r.text();
-    assert.ok(digest.split('\n').length <= 4, digest);
+    assert.ok(digest.split('\n').length <= 5, digest); // 従来の要約＋更新案内1行
     r = await fetch(base + '/api/v1/digest', { headers: { ...auth, 'if-none-match': etag } });
     assert.equal(r.status, 304);
 

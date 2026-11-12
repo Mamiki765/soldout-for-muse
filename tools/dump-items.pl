@@ -129,6 +129,76 @@ for my $e (@out_event) {
 my %define = map { ($_ => $g_define->{$_}) } grep { !ref $g_define->{$_} } keys %$g_define;
 my %functions = map { ($_ => $g_define->{function}{$_}) } keys %{ $g_define->{function} };
 
+# Muse v1.1.0 の差分。原作配布物は参照用のまま保持する。
+# --original は移植元との比較・回帰検証用 (追加を適用しない)。
+if (!grep { $_ eq '--original' } @ARGV) {
+	open(my $fashion_fh, '<:raw', "$FindBin::Bin/fashion-v110.json") or die $!;
+	my $fashion = JSON::PP->new->utf8->decode(do { local $/; <$fashion_fh> });
+	close $fashion_fh;
+	# 原作パーサーの文字列はUTF-8バイト列。追加定義も同じ表現に揃える。
+	my $as_bytes;
+	$as_bytes = sub {
+		my ($v) = @_;
+		return { map { $_ => $as_bytes->($v->{$_}) } keys %$v } if ref($v) eq 'HASH';
+		return [ map { $as_bytes->($_) } @$v ] if ref($v) eq 'ARRAY';
+		utf8::encode($v) if defined($v) && !ref($v) && utf8::is_utf8($v);
+		return $v;
+	};
+	$fashion = $as_bytes->($fashion);
+	my %by_no = map { $_->{no} => $_ } @items;
+	my $copy = sub { JSON::PP->new->decode(JSON::PP->new->encode($_[0])) };
+	my $lines = sub {
+		my ($rows, $default_proba) = @_;
+		return [ map {
+			die "v1.1.0: unknown item $_->[0]" if !$by_no{$_->[0]};
+			{ item_no => $_->[0], count => $_->[1], proba => $_->[2] // $default_proba }
+		} @$rows ];
+	};
+	for my $spec (@{ $fashion->{items} }) {
+		die "v1.1.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		my $ref = $by_no{$spec->{market_reference}} or die 'unknown market reference';
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		delete $it->{market_reference};
+		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+	for my $change (@{ $fashion->{recipe_changes} }) {
+		my $u = $by_no{66}{uses}[$change->{use}];
+		# 非消費の工具 (need/proba=0) は変更しない。
+		$u->{use} = [ (grep { $_->{proba} == 0 } @{ $u->{use} }), @{ $lines->($change->{materials}, 1000) } ];
+	}
+	for my $spec (@{ $fashion->{production} }, @{ $fashion->{gathering} }) {
+		my $book = $by_no{$spec->{book}};
+		my $u = $copy->($book->{uses}[0]);
+		$u->{no} = scalar @{ $book->{uses} };
+		$u->{needexp} = $spec->{needexp};
+		$u->{use} = $lines->($spec->{materials} // [], 1000);
+		if (defined $spec->{product}) {
+			my $name = $by_no{$spec->{product}}{name};
+			$u->{name} = $name . 'を作成する';
+			$u->{info} = $name . 'を作成します';
+			$u->{okmsg} = $name . 'を作りました';
+			@$u{qw(time exptime)} = @$spec{qw(time exptime)};
+			$u->{params}[0] = "$spec->{lostbook}";
+			$u->{jobs} = [{ job => $spec->{job}, key => 'times', op => '/', value => 2 }];
+			$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
+		} else {
+			$u->{name} = $spec->{name};
+			$u->{info} = $spec->{name};
+			$u->{time} = 10800;
+			$u->{exptime} = 5400;
+			$u->{exp} = 10;
+			$u->{get} = $lines->($spec->{products}, 1000);
+		}
+		push @{ $book->{uses} }, $u;
+	}
+	$define{version} = $fashion->{version};
+}
+
 binmode STDOUT, ':raw';
 print JSON::PP->new->canonical->pretty->encode({
 	source => 'original/soldout/inc/inc-item-data.cgi',

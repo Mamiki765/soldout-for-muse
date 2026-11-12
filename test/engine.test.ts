@@ -33,8 +33,8 @@ function assertSane(world: World): void {
   assert.ok(Number.isFinite(world.people));
 }
 
-test('商品データが原作どおり 79 商品読み込める', () => {
-  assert.equal(MAX_ITEM, 79);
+test('原作79種と追加23種、計102商品を読み込める', () => {
+  assert.equal(MAX_ITEM, 102);
   assert.equal(BASE_ITEMS[1].name, '薬草');
   assert.equal(BASE_ITEMS[70].name, 'ナユタの首飾り');
 });
