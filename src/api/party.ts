@@ -10,7 +10,14 @@ export interface PartyWho {
   name: string;
 }
 
-/** トークンを確かめる関数。正しくなければ undefined、Party に届かなければ例外 */
+/** Party がこのトークンの人を止めている (一時停止・失効)。トークン自体は本物 */
+export class PartyBlocked extends Error {
+  constructor(readonly reason: string) {
+    super('party: ' + reason);
+  }
+}
+
+/** トークンを確かめる関数。正しくなければ undefined、止められていれば PartyBlocked、Party に届かなければ例外 */
 export type PartyVerifier = (token: string) => Promise<PartyWho | undefined>;
 
 export function httpPartyVerifier(baseUrl: string, timeoutMs = 5000): PartyVerifier {
@@ -20,7 +27,14 @@ export function httpPartyVerifier(baseUrl: string, timeoutMs = 5000): PartyVerif
       headers: { authorization: 'Bearer ' + token, accept: 'application/json', 'user-agent': 'soldout-for-muse' },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (r.status === 401 || r.status === 403) return undefined;
+    if (r.status === 401) return undefined;
+    if (r.status === 403) {
+      // Party の 403 は JSON の {"error": "suspended" | "token_revoked"}。JSON でない 403 (Cloudflare の遮断など) は
+      // 「トークンが違う」と取り違えないよう、届かなかった扱いにする
+      const j = (await r.json().catch(() => undefined)) as { error?: unknown } | undefined;
+      if (typeof j?.error === 'string') throw new PartyBlocked(j.error);
+      throw new Error('party: HTTP 403 (JSON でない返事)');
+    }
     if (!r.ok) throw new Error('party: HTTP ' + r.status);
     const j = (await r.json()) as { owner_id?: unknown; name?: unknown };
     if (typeof j.owner_id !== 'string' || !j.owner_id) throw new Error('party: owner_id がありません (Party が古い可能性)');
@@ -63,6 +77,7 @@ export class PartyAuth {
     try {
       who = await this.verify(token);
     } catch (e) {
+      if (e instanceof PartyBlocked) throw e;
       this.downUntil = Date.now() + this.downMs;
       // Party に届かないときは、前に確かめた結果があればそれを使う
       if (hit?.who) return hit.who;

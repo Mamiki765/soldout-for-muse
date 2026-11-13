@@ -19,7 +19,7 @@ import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from 
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
-import { PartyAuth, type PartyVerifier, type PartyWho } from './party.js';
+import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 
 export interface AppOptions {
@@ -262,9 +262,33 @@ export class App {
     res.end(body);
   }
 
+  /**
+   * Authorization ヘッダーからトークンを取り出す。Muse Party と同じく、金庫の設定ゆれ
+   * (小文字の bearer、Bearer の二重、前後の空白、Bearer なしでトークンだけ) を許す。
+   * Party では通るのにこちらだけ 401、を起こさないため。
+   */
   private bearer(req: IncomingMessage): string | undefined {
-    const m = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '');
-    return m?.[1];
+    let h = (req.headers.authorization ?? '').trim();
+    let stripped = false;
+    while (/^bearer\s/i.test(h)) {
+      h = h.slice(6).trim();
+      stripped = true;
+    }
+    if (!h || /\s/.test(h)) return undefined;
+    if (!stripped && !/^(mct|mat|so|sa)_/.test(h)) return undefined;
+    return h;
+  }
+
+  /** 401 の文面。招待コードを入れている・Party に届かない形、を見分けられるように */
+  private badToken(token: string, party: boolean): HttpError {
+    if (token.startsWith('mip_')) {
+      return new HttpError(401, 'mip_ で始まるのは Muse Party の招待コードで、トークンではありません。Party の参加ページ (https://museimg.party/join) で登録したときに1回だけ表示された mct_ で始まるトークンを使ってください');
+    }
+    return new HttpError(
+      401,
+      (party ? 'Muse Party のトークンが正しくありません' : 'トークンが正しくありません') +
+        '。使えるのは Muse Party の参加者トークン (mct_...) か、SOLD OUT で発行したトークン (so_...) です。Party の GET https://museimg.party/api/me が 200 になるか先に確かめてください',
+    );
   }
 
   /** Party のトークンなら持ち主を確かめる。Party と組んでいない・SOLD OUT のトークンなら undefined */
@@ -274,6 +298,10 @@ export class App {
       return await this.party.who(token);
     } catch (e) {
       if (e instanceof HttpError) throw e;
+      if (e instanceof PartyBlocked) {
+        const why = e.reason === 'token_revoked' ? 'このトークンは Muse Party で失効しています' : e.reason === 'suspended' ? 'Muse Party で一時停止中です' : `Muse Party で止められています (${e.reason})`;
+        throw new HttpError(403, why + '。繰り返し試さず、オーナーに伝えてください');
+      }
       console.error(e);
       throw new HttpError(503, `Muse Party に確認できませんでした。${PARTY_RETRY_SECONDS}秒以上待ってから試してください`, PARTY_RETRY_SECONDS);
     }
@@ -281,13 +309,13 @@ export class App {
 
   private async auth(req: IncomingMessage): Promise<number> {
     const token = this.bearer(req);
-    if (!token) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です');
+    if (!token) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です (ヘッダーが届いていないか、形が違います。金庫のコネクタのホストが museimg.party で、置き場所が Authorization ヘッダーか確かめてください)');
     // 確かめに行く前に数える (Party に問い合わせが殺到しないように)
     this.rateLimit('t:' + sha256(token).slice(0, 16));
     let shopId = this.store.shopIdByToken(token);
     if (shopId === undefined) {
       const who = await this.partyWho(token);
-      if (!who) throw new HttpError(401, 'トークンが正しくありません');
+      if (!who) throw this.badToken(token, false);
       shopId = this.store.shopIdByPartyOwner(who.ownerId);
       if (shopId === undefined) {
         throw new HttpError(404, 'まだお店がありません。POST /api/v1/register に {"shopname":"お店の名前"} を送ると開店できます (招待コードは不要です)');
@@ -502,7 +530,7 @@ export class App {
     if (bearer) this.rateLimit('r:' + sha256(bearer).slice(0, 16), this.registerPerMinute, `登録は1トークン1分${this.registerPerMinute}回まで`);
     const body = await this.body(req);
     const who = bearer ? await this.partyWho(bearer) : undefined;
-    if (bearer && this.party && !bearer.startsWith('so_') && !who) throw new HttpError(401, 'Muse Party のトークンが正しくありません');
+    if (bearer && this.party && !bearer.startsWith('so_') && !who) throw this.badToken(bearer, true);
     if (who) return this.registerParty(who, body);
     const inviteFail = `招待コードの失敗は全体で1分${this.inviteFailPerMinute}回まで`;
     this.rateLimit('invite-fail', this.inviteFailPerMinute, inviteFail, false);

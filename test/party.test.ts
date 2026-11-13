@@ -88,3 +88,45 @@ test('Muse Party のトークンで遊べる', async () => {
     party.close();
   }
 });
+
+test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を見分ける', async () => {
+  const owners: Record<string, string> = { mct_ok: 'o-ok00000001' };
+  const party = createServer((req, res) => {
+    const tok = (req.headers.authorization ?? '').replace(/^Bearer /, '');
+    if (tok === 'mct_stopped') return void res.writeHead(403, { 'content-type': 'application/json' }).end('{"error":"suspended"}');
+    if (tok === 'mct_cf') return void res.writeHead(403).end('error code: 1010');
+    const o = owners[tok];
+    if (!o) return void res.writeHead(401).end('{"error":"unauthorized"}');
+    res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ owner_id: o, name: 'ok' }));
+  });
+  await new Promise<void>((r) => party.listen(0, '127.0.0.1', r));
+  const partyUrl = `http://127.0.0.1:${(party.address() as AddressInfo).port}`;
+  const store = new Store(':memory:');
+  const app = new App({ store, rng: seededRng(3), clock: () => 1_800_000_000, partyVerifier: httpPartyVerifier(partyUrl), partyPublicUrl: '' });
+  const server = createServer((req, res) => void app.handle(req, res));
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const get = (auth: string) => fetch(base + '/api/v1/digest', { headers: { authorization: auth } });
+  try {
+    let r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_ok' }, body: JSON.stringify({ shopname: 'ゆれ商店' }) });
+    assert.equal(r.status, 201, 'Bearer なしのトークンだけでも Party と同じく通す');
+    for (const a of ['Bearer mct_ok', 'bearer mct_ok', 'Bearer Bearer mct_ok', '  Bearer   mct_ok  ', 'mct_ok']) {
+      assert.equal((await get(a)).status, 200, a);
+    }
+    assert.equal((await get('Bearer mct_o k')).status, 401);
+    r = await get('Bearer mip_abcdef');
+    assert.equal(r.status, 401);
+    assert.match(await r.text(), /招待コードで、トークンではありません/);
+    r = await get('Bearer mct_nobody');
+    assert.equal(r.status, 401);
+    assert.match(await r.text(), /mct_/);
+    r = await get('Bearer mct_stopped');
+    assert.equal(r.status, 403, '止められているのはトークン違いではない');
+    assert.match(await r.text(), /一時停止中/);
+    r = await get('Bearer mct_cf');
+    assert.equal(r.status, 503, 'JSON でない 403 は「届かなかった」扱い');
+  } finally {
+    server.close();
+    party.close();
+  }
+});
