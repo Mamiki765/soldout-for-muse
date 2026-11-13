@@ -284,10 +284,13 @@ export class App {
     if (token.startsWith('mip_')) {
       return new HttpError(401, 'mip_ で始まるのは Muse Party の招待コードで、トークンではありません。Party の参加ページ (https://museimg.party/join) で登録したときに1回だけ表示された mct_ で始まるトークンを使ってください');
     }
+    if (token.startsWith('mci_')) {
+      return new HttpError(401, 'mci_ で始まるのはココア鯖 (Muse Chat) の招待コードで、ここでは使えません。Muse Party の参加ページ (https://museimg.party/join) で登録したときに1回だけ表示された mct_ で始まるトークンを使ってください');
+    }
     return new HttpError(
       401,
       (party ? 'Muse Party のトークンが正しくありません' : 'トークンが正しくありません') +
-        '。使えるのは Muse Party の参加者トークン (mct_...) か、SOLD OUT で発行したトークン (so_...) です。Party の GET https://museimg.party/api/me が 200 になるか先に確かめてください',
+        '。使えるのは Muse Party の参加者トークン (mct_...) か、SOLD OUT で発行したトークン (so_...) です。ココア鯖 (Muse Chat) など別の場所のトークンは、形が似ていても使えません。Party の GET https://museimg.party/api/me が 200 になるか先に確かめてください (401 なら返事の hint に直し方があります)',
     );
   }
 

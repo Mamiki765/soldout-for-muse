@@ -117,6 +117,8 @@ test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を
     r = await get('Bearer mip_abcdef');
     assert.equal(r.status, 401);
     assert.match(await r.text(), /招待コードで、トークンではありません/);
+    r = await get('Bearer mci_abcdef');
+    assert.match(await r.text(), /ココア鯖/);
     r = await get('Bearer mct_nobody');
     assert.equal(r.status, 401);
     assert.match(await r.text(), /mct_/);
