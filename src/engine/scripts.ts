@@ -129,6 +129,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   },
 
   // 陳列棚増築取壊キット
+  // 結果に棚の増減と決算ごとの棚の維持費を数字で出す (案: リカさんより)。原作は「陳列棚をN個にしました」だけ。
   'edit-showcase:_local_1'(g, dt, u) {
     const oldcnt = dt.showcasecount;
     const newcnt = Number(u.params[0]);
@@ -143,10 +144,9 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       dt.showcase.splice(newcnt);
       dt.price.splice(newcnt);
     }
-    const ret = `陳列棚を${dt.showcasecount}個にしました`;
-    log(g, 0, dt.id, ret);
+    log(g, 0, dt.id, `陳列棚を${dt.showcasecount}個にしました`);
     log(g, 3, 0, `${dt.shopname}の陳列棚が${dt.showcasecount}個になりました`);
-    return ret;
+    return showcaseChangeText(oldcnt, newcnt);
   },
 
   // 禁断の書 悪い噂を流す
@@ -268,6 +268,30 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       ret += '職業が「不定」になりました';
     }
     return ret;
+  },
+};
+
+/** 決算ごとにかかる棚の維持費 */
+export function showcaseCost(count: number): number {
+  return CATALOG.showcaseCost[count - 1] ?? 0;
+}
+
+/** 「棚 5→3: 陳列枠-2、棚の維持費(決算ごと) ￥200000→￥5000」 */
+export function showcaseChangeText(oldcnt: number, newcnt: number): string {
+  const diff = newcnt - oldcnt;
+  return `棚 ${oldcnt}→${newcnt}: 陳列枠${diff > 0 ? '+' : ''}${diff}、棚の維持費(決算ごと) ￥${showcaseCost(oldcnt)}→￥${showcaseCost(newcnt)}`;
+}
+
+/**
+ * 使う前の取りやめ判定。文字列を返したら、何も消費せずに NG にする。
+ * キーは USE_FUNCS と同じ。
+ */
+export const USE_CANCEL_CHECKS: Record<string, (dt: Shop, u: RtUse) => string | undefined> = {
+  // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない (案: リカさんより)
+  'edit-showcase:_local_1'(dt, u) {
+    const newcnt = Number(u.params[0]);
+    if (newcnt === dt.showcasecount) return `棚は今も${newcnt}個です。変更なし (キャンセル。何も消費していません)`;
+    return undefined;
   },
 };
 

@@ -127,3 +127,31 @@ test('商品を使う: 資金調達の方法 (ティッシュ配り)', () => {
   assert.ok(u.result.count > 0);
   assert.equal(s.money, before + 3000 * u.result.count);
 });
+
+test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセル、変えたら増減と維持費を数字で返す', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  const now = T0 + 24 * 3600;
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(3), now);
+  const a = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  a.time = now - 48 * 3600;
+  enterShop(g, a, true);
+  const kit = itemNoByName('陳列棚増築取壊キット');
+  const before = { money: a.money, time: a.time };
+
+  // use:0 は「棚を1つにする」。今も1つなのでキャンセル
+  assert.throws(() => useItemAction(g, a, kit, 0, { count: 1 }), (e: unknown) => e instanceof GameError && /変更なし/.test(e.message));
+  assert.equal(a.item[kit - 1], 1);
+  assert.deepEqual({ money: a.money, time: a.time }, before);
+
+  // use:2 は「棚を3つにする」(増築)
+  const u = useItemAction(g, a, kit, 2, { count: 1 });
+  assert.equal(a.showcasecount, 3);
+  assert.equal(u.result.function_return, '棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000');
+  assert.equal(a.item[kit - 1], 0);
+
+  // 取り壊し
+  a.item[kit - 1] = 1;
+  const d = useItemAction(g, a, kit, 0, { count: 1 });
+  assert.equal(a.showcasecount, 1);
+  assert.equal(d.result.function_return, '棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0');
+});

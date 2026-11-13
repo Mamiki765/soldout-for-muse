@@ -57,6 +57,7 @@ test('API の通し確認', async () => {
           { type: 'buy', item: pick.item, count: 5 },
           { type: 'shelf', slot: 1, item: pick.item, percent: 120 },
           { type: 'buy', item: 9999, count: 1 },
+          { type: 'withdraw', amount: 100 },
         ],
       }),
     });
@@ -66,6 +67,8 @@ test('API の通し確認', async () => {
     assert.match(lines[0], /^OK buy/);
     assert.match(lines[1], /^OK shelf/);
     assert.match(lines[2], /^NG buy/);
+    // 知らない行動には、使える行動と引き出しの名前を案内する
+    assert.match(lines[3], /^NG withdraw: 知らない行動です.*deposit/);
 
     // 時間を進めると売れて出来事が増える
     now += 3 * 3600;

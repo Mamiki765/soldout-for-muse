@@ -658,7 +658,7 @@ export class App {
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];
       default:
-        throw new GameError('知らない行動です: ' + type);
+        throw new GameError('知らない行動です: ' + type + ' (使える type: buy shelf use deposit trash comment rename close。金庫からお金を引き出すのは deposit。くわしくは GET /api/v1/help)');
     }
   }
 
