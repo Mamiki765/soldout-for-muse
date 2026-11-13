@@ -2,7 +2,7 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { CATALOG } from '../data/catalog.js';
+import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
@@ -133,7 +133,7 @@ export function meData(g: Game, dt: Shop) {
     id: dt.id,
     name: dt.name,
     shop: dt.shopname,
-    job: dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定',
+    job: jobName(dt) || '不定',
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -234,10 +234,23 @@ export function specialtyType(g: Game, dt: Shop): number {
   return type > 0 ? type : 0;
 }
 
-/** 職業の表示名。不定なら '' (原作のランキングは不定を出さない) */
+/**
+ * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
+ * 山師 (job=material) は探鉱夫と木こりの区別がないので、熟練の高い地図で「山師(探鉱夫)」「山師(木こり)」と出す。
+ * 同じなら「山師」だけ (案: リカさんより)
+ */
 export function jobName(dt: Shop): string {
-  return dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '';
+  if (!dt.job) return '';
+  const name = CATALOG.jobTypes[dt.job] ?? dt.job;
+  if (dt.job !== 'material') return name;
+  const mine = dt.exp[MAP_MINE] ?? 0;
+  const forest = dt.exp[MAP_FOREST] ?? 0;
+  if (mine === forest) return name;
+  return `${name}(${mine > forest ? '探鉱夫' : '木こり'})`;
 }
+/** 近くの鉱山への地図 (探鉱夫の熟練の集約先) / 近くの山への地図 (木こり) */
+const MAP_MINE = itemNoByName('近くの鉱山への地図');
+const MAP_FOREST = itemNoByName('近くの山への地図');
 
 export function rankingData(g: Game) {
   return g.shops.map((s, i) => {

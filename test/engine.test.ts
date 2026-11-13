@@ -173,6 +173,13 @@ test('ランキングに職業と「○専門店」を出す (原作 inc-html-ra
   r = rankingData(g)[0];
   assert.equal(r.specialty, '原料');
   assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
+  // 山師は熟練の高い地図で呼び分ける (同じなら山師だけ)
+  a.job = 'material';
+  assert.equal(rankingData(g)[0].job, '山師');
+  a.exp[itemNoByName('近くの鉱山への地図')] = 300;
+  assert.equal(rankingData(g)[0].job, '山師(探鉱夫)');
+  a.exp[itemNoByName('近くの山への地図')] = 500;
+  assert.equal(rankingData(g)[0].job, '山師(木こり)');
 });
 
 test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リカさんより)', () => {

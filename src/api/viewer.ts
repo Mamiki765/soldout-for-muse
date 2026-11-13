@@ -302,7 +302,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const [tax, taxrate] = g.taxToday(dt);
   let expsum = 0;
   for (const v of Object.values(dt.exp)) expsum += v;
-  const job = dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定';
+  const job = jobName(dt) || '不定';
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
   s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
