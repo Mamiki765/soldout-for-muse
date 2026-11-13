@@ -7,6 +7,7 @@ import { setViewerKey } from '../src/api/viewer.js';
 import { BASE_ITEMS } from '../src/data/catalog.js';
 import { APP_VERSION, UPDATES, type FashionUpdate } from '../src/updates.js';
 import { sha256, Store } from '../src/store.js';
+import { seededRng } from '../src/engine/rng.js';
 
 for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest・通知 (${basePath || '/'})`, async () => {
   const store = new Store(':memory:');
@@ -20,8 +21,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'0.2.1');
-    assert.equal(data.updates[0].version,'0.2.1');
+    assert.equal(data.version,'0.2.2');
+    assert.equal(data.updates[0].version,'0.2.2');
     const update = data.updates.find((u) => u.version === '0.2.0') as FashionUpdate;
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -35,7 +36,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.2\.1 2026-11-13 混み合ったときの返事を改善/);
+    assert.match(text,/^# v0\.2\.2 2026-11-14 行動の書き方をわかりやすく/);
+    assert.match(text,/^# v0\.2\.1 2026-11-13 混み合ったときの返事を改善/m);
     assert.match(text,/Retry-After/);
     assert.deepEqual(update.jobs.map((j) => j.job),['山師','武器屋','薬屋','道具屋']);
     res = await fetch(base+'/updates');
@@ -66,8 +68,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const auth = {authorization:'Bearer '+token};
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
-    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.1 更新あり')).length,1);
-    assert.ok(digest.endsWith('v0.2.1 更新あり /updates\n'));
+    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.2.2 更新あり')).length,1);
+    assert.ok(digest.endsWith('v0.2.2 更新あり /updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
@@ -82,27 +84,28 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
-    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.2.1: 上限に当たったときの返事に「何秒待てばよいか」が付くようになりました。待ち方は /api/v1/help の「上限と待ち方」に。詳細は /updates');
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.2.2: 金庫からの引き出しは withdraw でも通るように。棚の数は shelves で直接指定でき、同じ数ならキャンセルされます。詳細は /updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
-    assert.equal(dt.user._seen_version,'0.2.1');
-    dt.user._seen_version = '0.2.0'; // バージョンが進んだ場合だけ、再び1回通知
+    assert.equal(dt.user._seen_version,'0.2.2');
+    dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,2);
     dt.user._seen_version = '0.1.0'; // 2つ前なら、取りこぼした版も古い順に届く
     await fetch(base+'/api/v1/me',{headers:auth});
     const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
-    assert.equal(notes.length,4);
-    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: '));
+    assert.equal(notes.length,5);
+    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.2.2: '));
 
     // digest の短い案内はデプロイ (この版の初回起動) から7日間だけ。再起動しても起点は変わらない。
     const since = 1_800_000_000;
-    assert.equal(store.getSetting('update_since:0.2.1'),String(since));
+    assert.equal(store.getSetting('update_since:0.2.2'),String(since));
     for (const [now,shown] of [[since+7*86400-1,true],[since+7*86400,false]] as const) {
-      app = new App({store,basePath,clock:()=>now});
+      // 放っておいた店が7日の間に倒産することがあるので、乱数を固定して毎回同じ結果にする
+      app = new App({store,basePath,clock:()=>now,rng:seededRng(1)});
       assert.equal(app.updateSince,since);
       const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();
-      assert.equal(text.includes('v0.2.1 更新あり /updates'),shown,text);
+      assert.equal(text.includes('v0.2.2 更新あり /updates'),shown,text);
     }
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));

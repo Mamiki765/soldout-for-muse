@@ -8,13 +8,13 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_CONFIG, type GameConfig } from '../config.js';
-import { MAX_ITEM } from '../data/catalog.js';
+import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
-import { useItemAction, useResultMessages } from '../engine/use.js';
+import { loadUses, useItemAction, useResultMessages } from '../engine/use.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
@@ -617,7 +617,7 @@ export class App {
     return { status: 200, text, json: { results, digest } };
   }
 
-  private doAction(g: Game, dt: Shop, type: string, a: Record<string, unknown>): string[] {
+  private doAction(g: Game, dt: Shop, typeIn: string, a: Record<string, unknown>): string[] {
     const n = (k: string, d?: number): number => {
       const x = a[k];
       if (x === undefined || x === null || x === '') {
@@ -630,26 +630,56 @@ export class App {
     };
     const opt = (k: string): number | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : n(k));
     const s = (k: string): string => String(a[k] ?? '');
+    /** 品番。商品名 ("薬草") でも書ける (0.2.2) */
+    const item = (k: string, d?: number): number => {
+      const x = a[k];
+      if (typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x))) return itemByName(x.trim());
+      return n(k, d);
+    };
+    /** "max" / "all" を「いま持っている数」として読む (0.2.2) */
+    const isAll = (k: string): boolean => a[k] === 'max' || a[k] === 'all';
+    const type = ACTION_ALIASES[typeIn] ?? typeIn;
     switch (type) {
       case 'buy':
-        return [act.buy(g, dt, { from: n('from', 0), itemno: n('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price') })];
+        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price') })];
       case 'shelf':
       case 'showcase':
-        return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: n('item', 0), price: opt('price'), percent: opt('percent') })];
+        return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
       case 'use': {
-        const u = useItemAction(g, dt, n('item'), n('use', 0), {
+        const itemno = item('item');
+        // 使い方は番号 (0始まり) か、使い方の名前 ("陳列棚を3つにする") で書ける (0.2.2)
+        let useNo: number;
+        if (typeof a.use === 'string' && a.use.trim() !== '' && !Number.isFinite(Number(a.use))) {
+          const name = a.use.trim();
+          const found = loadUses(g, itemno).find((x) => x.name === name);
+          if (!found) throw new GameError(`使い方「${name}」はありません。GET /api/v1/items/${itemno} の「使い方」を見てください`);
+          useNo = found.no;
+        } else useNo = n('use', 0);
+        const u = useItemAction(g, dt, itemno, useNo, {
           count: n('count', 1),
           target: opt('target'),
           message: s('message'),
         });
         return useResultMessages(g, dt, u);
       }
+      case 'shelves': {
+        // 棚の数を直接指定する (0.2.2)。中身は陳列棚増築取壊キットの use と同じ
+        const count = n('count');
+        const kit = itemNoByName('陳列棚増築取壊キット');
+        const found = loadUses(g, kit).find((x) => Number(x.params[0]) === count);
+        if (!found) throw new GameError(`棚は1〜${loadUses(g, kit).length}個の範囲で指定してください`);
+        if (!dt.item[kit - 1]) throw new GameError('陳列棚増築取壊キットを持っていません (使うとなくなります。市場で仕入れられます)');
+        const u = useItemAction(g, dt, kit, found.no, { count: 1 });
+        return useResultMessages(g, dt, u);
+      }
       case 'deposit': {
-        const amount = a.amount === 'max' ? act.maxDeposit(g, dt) : n('amount');
+        const amount = isAll('amount') ? act.maxDeposit(g, dt) : n('amount');
         return [act.deposit(g, dt, amount)];
       }
-      case 'trash':
-        return [act.trash(g, dt, n('item'), n('count'))];
+      case 'trash': {
+        const itemno = item('item');
+        return [act.trash(g, dt, itemno, isAll('count') ? (dt.item[itemno - 1] ?? 0) : n('count'))];
+      }
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
       case 'rename':
@@ -657,8 +687,13 @@ export class App {
       case 'close':
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];
-      default:
-        throw new GameError('知らない行動です: ' + type + ' (使える type: buy shelf use deposit trash comment rename close。金庫からお金を引き出すのは deposit。くわしくは GET /api/v1/help)');
+      default: {
+        const hint = ACTION_HINTS[typeIn];
+        throw new GameError(
+          '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash comment rename close。くわしくは GET /api/v1/help',
+        );
+      }
     }
   }
 
@@ -865,6 +900,33 @@ export class App {
   async loadHelp(path: string): Promise<void> {
     (this as { helpText: string }).helpText = await readFile(path, 'utf8');
   }
+}
+
+/** AI が思いつきやすい別名 → 正式な type (0.2.2)。正式な名前はそのまま使える */
+const ACTION_ALIASES: Record<string, string> = {
+  withdraw: 'deposit',
+  discard: 'trash',
+  dispose: 'trash',
+  display: 'shelf',
+};
+
+/** 別名にはしないが、送られがちな名前への案内 */
+const ACTION_HINTS: Record<string, string> = {
+  sell: '売るには shelf で棚に並べます。お客が買っていきます',
+  price: '値段は shelf の price か percent で付けます',
+  craft: '作るのは use です。GET /api/v1/items/品番 で使い方を見られます',
+  make: '作るのは use です。GET /api/v1/items/品番 で使い方を見られます',
+  build: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
+  expand: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
+};
+
+/** 商品名 (または商品コード) から品番 */
+function itemByName(name: string): number {
+  for (let no = 1; no <= MAX_ITEM; no++) {
+    const it = BASE_ITEMS[no];
+    if (it && (it.name === name || it.code === name)) return no;
+  }
+  throw new GameError(`「${name}」という商品はありません。品番か、GET /api/v1/items の名前で書いてください`);
 }
 
 function clampNum(s: string | null, min: number, max: number, d: number): number {

@@ -155,3 +155,22 @@ test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセ
   assert.equal(a.showcasecount, 1);
   assert.equal(d.result.function_return, '棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0');
 });
+
+test('ランキングに職業と「○専門店」を出す (原作 inc-html-ranking.cgi)', async () => {
+  const { rankingData, rankingText } = await import('../src/api/views.js');
+  const world = newWorld(T0, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(5), T0);
+  const a = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  let r = rankingData(g)[0];
+  assert.deepEqual([r.job, r.specialty], ['', '']);
+  a.job = 'weapon';
+  const yakusou = itemNoByName('薬草');
+  a.showcasecount = 2;
+  a.showcase = [yakusou, 0];
+  r = rankingData(g)[0];
+  assert.deepEqual([r.job, r.specialty], ['武器屋', ''], '空の棚があれば専門店にしない');
+  a.showcase = [yakusou, yakusou];
+  r = rankingData(g)[0];
+  assert.equal(r.specialty, '原料');
+  assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
+});

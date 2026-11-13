@@ -13,7 +13,7 @@ import type { Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, jst } from './views.js';
+import { balanceWord, jobName, jst, specialtyType } from './views.js';
 import { SourceTree } from './source.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -258,7 +258,10 @@ function topPage(app: App, g: Game): string {
 function rankingPage(g: Game): string {
   let s = '●ランキング<hr><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
   g.shops.forEach((dt, i) => {
-    s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
+    const sp = specialtyType(g, dt);
+    const job = jobName(dt);
+    const tag = (sp ? `<img class="s" src="/images/item-typesign${sp}.png" alt="${esc(CATALOG.itemTypes[sp])}専門店" title="${esc(CATALOG.itemTypes[sp])}専門店">` : '') + (job ? `【${esc(job)}】` : '');
+    s += `<tr><td>${i + 1}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
   });
   s += '</table>';
   if (g.world.periodLog.length) s += '<hr>●前回の決算<br>' + g.world.periodLog.map((l) => raw(l.msg)).join('<br>');

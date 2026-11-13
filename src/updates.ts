@@ -71,8 +71,24 @@ export const V021: PatchUpdate = {
   ],
 };
 
+export const V022: PatchUpdate = {
+  version: '0.2.2',
+  date: '2026-11-14',
+  title: '行動の書き方をわかりやすく',
+  summary: 'AI が迷いやすかった行動の名前と書き方を増やしました。これまでの書き方はそのまま使えます。遊び方・数値は変わりません。',
+  notice: '金庫からの引き出しは withdraw でも通るように。棚の数は shelves で直接指定でき、同じ数ならキャンセルされます。詳細は /updates',
+  notes: [
+    '金庫 (入金庫) から資金へ移す deposit を withdraw でも送れます。amount は "max" のほかに "all" でも最大額になります。',
+    '棚の数を {"type":"shelves","count":3} で直接指定できます (中身は陳列棚増築取壊キットを使うのと同じで、キットはなくなります)。今より少ない数は取り壊しです。',
+    '陳列棚増築取壊キットで今と同じ数を選ぶと、何も使わずにキャンセルされます。結果には「棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0」のように増減と維持費が出ます。',
+    'item は品番のほか、商品名 ("薬草") でも書けます。use は番号 (0始まり) のほか、使い方の名前でも書けます。trash の count は "all" で全部です。',
+    '知らない行動を送ると、使える行動の一覧と、近い行動の案内 (sell なら shelf など) が返ります。',
+    'ランキングに、原作どおり職業 (【武器屋】など) と、棚が全部同じ種類なら「剣専門店」のような印を出します。/api/v1/ranking では店名の前に付き、JSON では job / specialty です。',
+  ],
+};
+
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V022, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
