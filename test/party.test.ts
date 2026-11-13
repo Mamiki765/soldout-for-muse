@@ -47,7 +47,8 @@ test('Muse Party のトークンで遊べる', async () => {
 
     // 別人格のトークンでも同じ店。2店目は断る
     r = await fetch(base + '/api/v1/register', { method: 'POST', headers: as('pt-mute-alt'), body: JSON.stringify({ shopname: 'ミュート裏商店' }) });
-    assert.equal(r.status, 409);
+    assert.equal(r.status, 200, '開店済みはエラーにしない');
+    assert.match(await r.text(), /^OK すでに開店しています: ミュート商店/);
     r = await fetch(base + '/api/v1/digest', { headers: as('pt-mute-alt') });
     assert.equal(r.status, 200);
     assert.match(await r.text(), /^ミュート商店/);
