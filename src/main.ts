@@ -5,7 +5,7 @@
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
-//   node dist/src/main.js seed-market [時間=12]    新素材 (plus のある追加品) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
+//   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
 // 環境変数: DB_PATH (data/soldout.sqlite), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
@@ -68,7 +68,8 @@ if (cmd === 'set-invite') {
   }
   store.close();
 } else if (cmd === 'seed-market') {
-  // 今回の版で追加した品のうち plus のあるもの (市場在庫が時間で増減する素材) が対象。
+  // 今回の版で追加した品のうち plus が正のもの (時間で市場に湧く素材) だけが対象。
+  // plus が負の品は時間で市場から減る側 (プレイヤーが作って供給する) なので、在庫を入れてはいけない。
   // 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、必ず止めてから実行する。
   const hours = Number(arg ?? 12);
   if (!(hours > 0 && hours <= 72)) {
@@ -86,7 +87,7 @@ if (cmd === 'set-invite') {
   const world = store.loadWorld(now);
   const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
   const latest = UPDATES[0];
-  const targets = 'new_items' in latest ? latest.new_items.map((it) => it.item).filter((no) => BASE_ITEMS[no].plus !== 0) : [];
+  const targets = 'new_items' in latest ? latest.new_items.map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0) : [];
   if (!targets.length) {
     console.log(`v${APP_VERSION} では新しい素材を追加していないので、初期投入は要りません`);
     store.close();
