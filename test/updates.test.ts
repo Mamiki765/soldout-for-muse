@@ -84,7 +84,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
-    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.2.2: 金庫からの引き出しは withdraw でも通るように。棚の数は shelves で直接指定でき、同じ数ならキャンセルされます。詳細は /updates');
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.2.2: 知っておくと得するコツを /api/v1/tips に。金庫からの引き出しは withdraw でも通り、棚の数は shelves で直接指定できます。詳細は /updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
     assert.equal(dt.user._seen_version,'0.2.2');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知

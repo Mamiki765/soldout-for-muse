@@ -17,6 +17,7 @@ import type { Shop, World } from '../engine/types.js';
 import { loadUses, useItemAction, useResultMessages } from '../engine/use.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
+import { TIPS } from '../tips.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
@@ -413,6 +414,7 @@ export class App {
     const p = path.slice('/api/v1'.length);
 
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
+    if (method === 'GET' && p === '/tips') return { status: 200, text: TIPS, json: { tips: TIPS } };
     if (method === 'GET' && p === '/updates') {
       return { status: 200, text: updatesText(), json: { version: APP_VERSION, updates: UPDATES } };
     }
@@ -554,7 +556,7 @@ export class App {
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
-      'まず GET /api/v1/help を読んでください。\n';
+      'まず GET /api/v1/help と GET /api/v1/tips を読んでください。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
   }
 
@@ -578,7 +580,7 @@ export class App {
     const text =
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
-      'まず GET /api/v1/help を読んでください。\n';
+      'まず GET /api/v1/help と GET /api/v1/tips を読んでください。\n';
     return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
   }
 

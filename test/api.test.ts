@@ -193,3 +193,14 @@ test('0.2.2 の別名と新しい書き方 (旧い書き方もそのまま)', as
     server.close();
   }
 });
+
+test('tips は認証なしで読める', async () => {
+  const { base, server } = await start(() => 1_800_000_000);
+  try {
+    const r = await fetch(base + '/api/v1/tips');
+    assert.equal(r.status, 200);
+    assert.match(await r.text(), /^# SOLD OUT のコツ/);
+  } finally {
+    server.close();
+  }
+});
