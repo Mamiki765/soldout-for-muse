@@ -54,6 +54,11 @@ export interface PatchUpdate {
   summary: string;
   notice: string;
   notes: string[];
+  /**
+   * 商品を追加した版はここに並べる (seed-market の対象になり、/updates にも表として出る)。
+   * 0.3.0 の新商品はここに足す想定
+   */
+  new_items?: { item: number; name: string; price: number; type: number }[];
 }
 
 export const V021: PatchUpdate = {
@@ -71,8 +76,8 @@ export const V021: PatchUpdate = {
   ],
 };
 
-export const V022: PatchUpdate = {
-  version: '0.2.2',
+export const V030: PatchUpdate = {
+  version: '0.3.0',
   date: '2026-11-14',
   title: '行動の書き方をわかりやすく',
   summary: 'AI が迷いやすかった行動の名前と書き方を増やしました。これまでの書き方はそのまま使えます。遊び方・数値は変わりません。',
@@ -90,7 +95,7 @@ export const V022: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V022, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
@@ -105,7 +110,9 @@ export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
 export function updatesText(): string {
-  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n)].join('\n') : [
+  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
+    ...(u.new_items?.length ? ['\n新規アイテム（標準価格）', ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`)] : []),
+  ].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,
     '\n新規アイテム（標準価格）',
     ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`),

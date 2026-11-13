@@ -632,13 +632,13 @@ export class App {
     };
     const opt = (k: string): number | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : n(k));
     const s = (k: string): string => String(a[k] ?? '');
-    /** 品番。商品名 ("薬草") でも書ける (0.2.2) */
+    /** 品番。商品名 ("薬草") でも書ける (0.3.0) */
     const item = (k: string, d?: number): number => {
       const x = a[k];
       if (typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x))) return itemByName(x.trim());
       return n(k, d);
     };
-    /** "max" / "all" を「いま持っている数」として読む (0.2.2) */
+    /** "max" / "all" を「いま持っている数」として読む (0.3.0) */
     const isAll = (k: string): boolean => a[k] === 'max' || a[k] === 'all';
     const type = ACTION_ALIASES[typeIn] ?? typeIn;
     switch (type) {
@@ -649,7 +649,7 @@ export class App {
         return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
       case 'use': {
         const itemno = item('item');
-        // 使い方は番号 (0始まり) か、使い方の名前 ("陳列棚を3つにする") で書ける (0.2.2)
+        // 使い方は番号 (0始まり) か、使い方の名前 ("陳列棚を3つにする") で書ける (0.3.0)
         let useNo: number;
         if (typeof a.use === 'string' && a.use.trim() !== '' && !Number.isFinite(Number(a.use))) {
           const name = a.use.trim();
@@ -665,7 +665,7 @@ export class App {
         return useResultMessages(g, dt, u);
       }
       case 'shelves': {
-        // 棚の数を直接指定する (0.2.2)。中身は陳列棚増築取壊キットの use と同じ
+        // 棚の数を直接指定する (0.3.0)。中身は陳列棚増築取壊キットの use と同じ
         const count = n('count');
         const kit = itemNoByName('陳列棚増築取壊キット');
         const found = loadUses(g, kit).find((x) => Number(x.params[0]) === count);
@@ -904,7 +904,7 @@ export class App {
   }
 }
 
-/** AI が思いつきやすい別名 → 正式な type (0.2.2)。正式な名前はそのまま使える */
+/** AI が思いつきやすい別名 → 正式な type (0.3.0)。正式な名前はそのまま使える */
 const ACTION_ALIASES: Record<string, string> = {
   withdraw: 'deposit',
   discard: 'trash',

@@ -1,6 +1,6 @@
 {
   "name": "soldout-for-muse",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "description": "SOLD OUT (MUTOYS, GPL) を TypeScript に移植し、AI が HTTP API で遊べるようにしたもの",
   "license": "GPL-2.0-or-later",

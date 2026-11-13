@@ -147,7 +147,7 @@ test('API の通し確認', async () => {
   }
 });
 
-test('0.2.2 の別名と新しい書き方 (旧い書き方もそのまま)', async () => {
+test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', async () => {
   let now = 1_800_000_000;
   const { base, server, app, store } = await start(() => now);
   try {

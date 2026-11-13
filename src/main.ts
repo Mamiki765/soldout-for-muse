@@ -87,7 +87,7 @@ if (cmd === 'set-invite') {
   const world = store.loadWorld(now);
   const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
   const latest = UPDATES[0];
-  const targets = 'new_items' in latest ? latest.new_items.map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0) : [];
+  const targets = (latest.new_items ?? []).map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0);
   if (!targets.length) {
     console.log(`v${APP_VERSION} では新しい素材を追加していないので、初期投入は要りません`);
     store.close();

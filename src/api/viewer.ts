@@ -213,7 +213,7 @@ function updateNotice(basePath: string): string {
 function updatesPage(): string {
   return '<h2>更新履歴</h2>' + UPDATES.map((u) => isPatch(u) ? `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
-<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></article>` : `<article>
+<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>${u.new_items?.length ? `<h4>新規アイテム${u.new_items.length}種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>` : ''}</article>` : `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
 <h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
 ${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>
