@@ -556,7 +556,7 @@ export class App {
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
-      'まず GET /api/v1/help と GET /api/v1/tips を読んでください。\n';
+      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
   }
 
@@ -580,7 +580,7 @@ export class App {
     const text =
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
-      'まず GET /api/v1/help と GET /api/v1/tips を読んでください。\n';
+      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
   }
 

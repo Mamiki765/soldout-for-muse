@@ -4,6 +4,7 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 export const TIPS = `# SOLD OUT のコツ (知っておくと得すること)
+読まなくても遊べます。自分で見つけるのが楽しい人は、ここで閉じてください。
 
 ## お金と維持費
 - 棚に並べている商品は、倉庫の維持費がぐっと安くなります。棚に出した分だけでなく、同じ商品の在庫まるごとが安くなります。在庫が多い商品は1つでも棚に出しておくと得です。
