@@ -3,12 +3,6 @@
 
 import { BASE_ITEMS, CATALOG } from './data/catalog.js';
 
-export const APP_VERSION = CATALOG.version;
-/** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
-export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /updates`;
-export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
-/** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
-export const UPDATE_NOTICE = `v${APP_VERSION}: ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates`;
 
 const materials = (rows: number[][]) => rows.map(([item, count]) => ({ item, name: BASE_ITEMS[item].name, count }));
 const oldRecipes = [
@@ -18,10 +12,15 @@ const oldRecipes = [
   [[5, 20], [6, 20], [7, 20], [8, 6]],
 ];
 
-export const UPDATES = [{
+/** 商品データの版 (0.2.0 で追加した品の定義の版) */
+export const CATALOG_VERSION = CATALOG.version;
+
+/** 0.2.0: ファッション枠 (商品の追加を含む版の形) */
+export const V020 = {
   version: '0.2.0',
   date: '2026-11-13',
   title: 'ファッション枠アップデート',
+  notice: 'ファッション品と新素材を追加。道具屋に看板商品ができ、山師・武器屋・薬屋とつながる生産ルートができました。詳細は /updates',
   summary: 'ファッションの完成品7種と新素材16種を追加しました。全102種の商品で商売を楽しめます。',
   new_items: BASE_ITEMS.slice(80, 103).map((it) => ({ item: it.no, name: it.name, price: it.price, type: it.type })),
   gathering: [9, 12].flatMap((no) => BASE_ITEMS[no].uses.filter((u) => u.needexp !== null).map((u) => ({
@@ -44,13 +43,51 @@ export const UPDATES = [{
   })),
   recipe_reason: '従来のレシピでは材料費が標準価格を大きく上回り、作るほど赤字になっていたため、材料構成を見直しました。価格・生産個数・成功率と、消費しない工具の条件は変更していません。',
   balance: '新規品の生産量は街の1日の需要程度に抑え、既存の最上位品を超える儲けにはしていません。素材を集め、加工し、ファッション品に仕上げる商売の選択肢が増えます。',
-}];
+};
+export type FashionUpdate = typeof V020;
+
+/** 小さな修正の版 (箇条書きだけ) */
+export interface PatchUpdate {
+  version: string;
+  date: string;
+  title: string;
+  summary: string;
+  notice: string;
+  notes: string[];
+}
+
+export const V021: PatchUpdate = {
+  version: '0.2.1',
+  date: '2026-11-13',
+  title: '混み合ったときの返事を改善',
+  summary: '参加者が増えても登録や手番が詰まりにくいように、上限の数え方と、上限に当たったときの返事を見直しました。遊び方・数値・上限の回数 (1トークン1分60回) は変わりません。',
+  notice: '上限に当たったときの返事に「何秒待てばよいか」が付くようになりました。待ち方は /api/v1/help の「上限と待ち方」に。詳細は /updates',
+  notes: [
+    '429 (上限) と 503 (Muse Party に確認できない) の返事に Retry-After ヘッダーと、待つ秒数 (JSON では retry_after) が付きます。その秒数だけ待ってから続けてください。',
+    'お店があるのに POST /api/v1/register を送ると、エラーではなく「開店済み」(200) と店id・店名が返ります。返事を取り損ねたときは、同じ内容で送り直せば大丈夫です。',
+    '登録の上限を、全員で1つの枠から「トークンごと」の枠に分けました。ほかの Muse の連打に巻き込まれて登録できない、ということがなくなります。',
+    'Muse Party への確認は全体で1分30回まで、招待コードの失敗は全体で1分10回までにしました (総当たり・問い合わせの殺到よけ)。ふつうに遊ぶぶんには当たりません。',
+    'Muse Party が一時的に応答しないときは、しばらく問い合わせを控え、前に確かめた結果があればそのまま遊べるようにしました。',
+  ],
+};
+
+/** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V021, V020];
+
+export const APP_VERSION = UPDATES[0].version;
+/** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
+export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /updates`;
+export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
+/** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
+export const UPDATE_NOTICE = `v${APP_VERSION}: ${UPDATES[0].notice}`;
+
+export const isPatch = (u: PatchUpdate | FashionUpdate): u is PatchUpdate => 'notes' in u;
 
 export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
 export function updatesText(): string {
-  return UPDATES.map((u) => [
+  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n)].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,
     '\n新規アイテム（標準価格）',
     ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`),

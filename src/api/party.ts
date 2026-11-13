@@ -31,11 +31,16 @@ export function httpPartyVerifier(baseUrl: string, timeoutMs = 5000): PartyVerif
 /** 確かめた結果を覚えておく。正しいトークンは長め、正しくないものは短め */
 export class PartyAuth {
   private cache = new Map<string, { who: PartyWho | undefined; until: number }>();
+  /** Party に届かなかったら、この時刻まで聞きに行かない (不調のあいだ毎回待たせない・追い打ちしない) */
+  private downUntil = 0;
 
   constructor(
     private readonly verify: PartyVerifier,
     private readonly okTtl = 6 * 3600 * 1000,
     private readonly ngTtl = 60 * 1000,
+    /** 聞きに行く直前に呼ぶ (全体の回数を数える。上限なら例外を投げる) */
+    private readonly beforeFetch?: () => void,
+    private readonly downMs = 20 * 1000,
   ) {}
 
   async who(token: string): Promise<PartyWho | undefined> {
@@ -43,10 +48,22 @@ export class PartyAuth {
     const now = Date.now();
     const hit = this.cache.get(key);
     if (hit && hit.until > now) return hit.who;
+    if (now < this.downUntil) {
+      if (hit?.who) return hit.who;
+      throw new Error('party: しばらく問い合わせを控えています');
+    }
+    try {
+      this.beforeFetch?.();
+    } catch (e) {
+      // 確認が混んでいるときも、前に確かめた結果があればそれで通す
+      if (hit?.who) return hit.who;
+      throw e;
+    }
     let who: PartyWho | undefined;
     try {
       who = await this.verify(token);
     } catch (e) {
+      this.downUntil = Date.now() + this.downMs;
       // Party に届かないときは、前に確かめた結果があればそれを使う
       if (hit?.who) return hit.who;
       throw e;

@@ -37,6 +37,12 @@ export interface AppOptions {
   maxChat?: number;
   /** 1 トークンあたりのリクエスト上限 (1分あたり) */
   ratePerMinute?: number;
+  /** 登録 (register) のトークンごとの上限 (1分あたり) */
+  registerPerMinute?: number;
+  /** Muse Party への確認 (覚えていないトークンだけ) の全体の上限 (1分あたり) */
+  partyChecksPerMinute?: number;
+  /** 招待コードの失敗の全体の上限 (1分あたり) */
+  inviteFailPerMinute?: number;
   /** 画像フォルダ (public/images) */
   imagesDir?: string;
   /** 配布するソースのフォルダ (リポジトリの中身) */
@@ -63,10 +69,14 @@ interface Reply {
 }
 
 class HttpError extends Error {
-  constructor(readonly status: number, message: string) {
+  /** retryAfter: 何秒待てばよいか (Retry-After ヘッダーと JSON の retry_after に載せる) */
+  constructor(readonly status: number, message: string, readonly retryAfter?: number) {
     super(message);
   }
 }
+
+/** Muse Party に確認できないときに待ってもらう秒数 */
+const PARTY_RETRY_SECONDS = 30;
 
 const SEEN_LOG = '_api_seen_log';
 const SEEN_CHAT = '_api_seen_chat';
@@ -87,6 +97,9 @@ export class App {
   readonly maxBbs: number;
   readonly maxChat: number;
   readonly ratePerMinute: number;
+  readonly registerPerMinute: number;
+  readonly partyChecksPerMinute: number;
+  readonly inviteFailPerMinute: number;
   readonly imagesDir: string | undefined;
   readonly source: SourceTree | undefined;
   readonly party: PartyAuth | undefined;
@@ -94,7 +107,8 @@ export class App {
   readonly basePath: string;
   world: World;
   private images = new Map<string, Buffer>();
-  private buckets = new Map<string, { tokens: number; at: number }>();
+  private buckets = new Map<string, { tokens: number; at: number; cap: number }>();
+  private bucketsSweptAt = 0;
 
   constructor(o: AppOptions) {
     this.store = o.store;
@@ -106,9 +120,16 @@ export class App {
     this.maxBbs = o.maxBbs ?? 100;
     this.maxChat = o.maxChat ?? 20;
     this.ratePerMinute = o.ratePerMinute ?? 60;
+    this.registerPerMinute = o.registerPerMinute ?? 6;
+    this.partyChecksPerMinute = o.partyChecksPerMinute ?? 30;
+    this.inviteFailPerMinute = o.inviteFailPerMinute ?? 10;
     this.imagesDir = o.imagesDir;
     this.source = o.sourceDir ? new SourceTree(o.sourceDir) : undefined;
-    this.party = o.partyVerifier ? new PartyAuth(o.partyVerifier) : undefined;
+    // Party に聞きに行くのは「覚えていないトークン」のときだけ。その回数を全体で数える (毎回違うトークンで来られても Party に殺到しない)
+    this.party = o.partyVerifier
+      ? new PartyAuth(o.partyVerifier, undefined, undefined, () =>
+          this.rateLimit('party', this.partyChecksPerMinute, '混み合っています (Muse Party への確認が集中しています)'))
+      : undefined;
     this.partyPublicUrl = (o.partyPublicUrl ?? '').replace(/\/$/, '');
     this.basePath = (o.basePath ?? '').replace(/\/+$/, '');
     if (this.basePath && !this.basePath.startsWith('/')) this.basePath = '/' + this.basePath;
@@ -194,7 +215,10 @@ export class App {
       reply = await this.route(req, url, wantJson);
     } catch (e) {
       if (e instanceof GameError) reply = { status: 409, text: 'NG ' + e.message + '\n', json: { ok: false, error: e.message } };
-      else if (e instanceof HttpError) reply = { status: e.status, text: 'NG ' + e.message + '\n', json: { ok: false, error: e.message } };
+      else if (e instanceof HttpError) {
+        reply = { status: e.status, text: 'NG ' + e.message + '\n', json: { ok: false, error: e.message, ...(e.retryAfter ? { retry_after: e.retryAfter } : {}) } };
+        if (e.retryAfter) reply.headers = { 'retry-after': String(e.retryAfter) };
+      }
       else {
         console.error(e);
         reply = { status: 500, text: 'NG サーバーの内部エラーです\n', json: { ok: false, error: 'internal' } };
@@ -249,8 +273,9 @@ export class App {
     try {
       return await this.party.who(token);
     } catch (e) {
+      if (e instanceof HttpError) throw e;
       console.error(e);
-      throw new HttpError(503, 'Muse Party に確認できませんでした。少したってから試してください');
+      throw new HttpError(503, `Muse Party に確認できませんでした。${PARTY_RETRY_SECONDS}秒以上待ってから試してください`, PARTY_RETRY_SECONDS);
     }
   }
 
@@ -271,15 +296,30 @@ export class App {
     return shopId;
   }
 
-  private rateLimit(key: string): void {
+  /**
+   * トークンバケット。cap 回ぶん貯まり、1分で cap 回ぶん戻る。
+   * 足りなければ 429 と「何秒待てばよいか」を返す。consume=false なら数えずに確かめるだけ。
+   */
+  private rateLimit(key: string, cap = this.ratePerMinute, what = `1トークン1分${this.ratePerMinute}回まで`, consume = true): void {
     const now = Date.now() / 1000;
-    const cap = this.ratePerMinute;
-    const b = this.buckets.get(key) ?? { tokens: cap, at: now };
+    this.sweepBuckets(now);
+    const b = this.buckets.get(key) ?? { tokens: cap, at: now, cap };
     b.tokens = Math.min(cap, b.tokens + ((now - b.at) * cap) / 60);
     b.at = now;
-    if (b.tokens < 1) throw new HttpError(429, '少し間をあけてください (1分あたりの上限を超えました)');
-    b.tokens -= 1;
+    b.cap = cap;
     this.buckets.set(key, b);
+    if (b.tokens < 1) {
+      const wait = Math.max(1, Math.ceil(((1 - b.tokens) * 60) / cap));
+      throw new HttpError(429, `少し間をあけてください。${wait}秒後にもう一度どうぞ (${what})`, wait);
+    }
+    if (consume) b.tokens -= 1;
+  }
+
+  /** 満タンに戻ったバケットは消す (違うトークンがたくさん来てもメモリが増え続けない) */
+  private sweepBuckets(now: number): void {
+    if (now - this.bucketsSweptAt < 600) return;
+    this.bucketsSweptAt = now;
+    for (const [k, b] of this.buckets) if (b.tokens + ((now - b.at) * b.cap) / 60 >= b.cap) this.buckets.delete(k);
   }
 
   private async body(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -316,7 +356,11 @@ export class App {
     const g = new Game(this.world, this.config, this.rng, this.clock());
     const dt = g.shopById(shopId);
     if (!dt || dt.user[SEEN_VERSION] === APP_VERSION) return;
+    const seen = dt.user[SEEN_VERSION];
+    // 前に見た版があれば、そのあとの版を古い順に全部 (続けて更新したときに取りこぼさない)。初めての店は最新だけ
+    const missed = seen ? UPDATES.filter((u) => newerVersion(u.version, String(seen))).reverse() : [];
     dt.user[SEEN_VERSION] = APP_VERSION;
+    if (missed.length > 1) for (const u of missed.slice(0, -1)) g.writeLog(1, dt.id, 0, `【更新】v${u.version}: ${u.notice}`);
     g.writeLog(1, dt.id, 0, '【更新】' + UPDATE_NOTICE);
     this.save(g);
   }
@@ -453,15 +497,21 @@ export class App {
   // 登録
 
   private async register(req: IncomingMessage): Promise<Reply> {
-    this.rateLimit('register');
-    const body = await this.body(req);
     const bearer = this.bearer(req);
+    // 登録の上限はトークンごと (ほかの Muse の連打に巻き込まれない)。トークンなし (招待コード) は失敗だけを全体で数える
+    if (bearer) this.rateLimit('r:' + sha256(bearer).slice(0, 16), this.registerPerMinute, `登録は1トークン1分${this.registerPerMinute}回まで`);
+    const body = await this.body(req);
     const who = bearer ? await this.partyWho(bearer) : undefined;
     if (bearer && this.party && !bearer.startsWith('so_') && !who) throw new HttpError(401, 'Muse Party のトークンが正しくありません');
     if (who) return this.registerParty(who, body);
+    const inviteFail = `招待コードの失敗は全体で1分${this.inviteFailPerMinute}回まで`;
+    this.rateLimit('invite-fail', this.inviteFailPerMinute, inviteFail, false);
     const invite = String(body.invite ?? '');
     const hash = this.store.getSetting('invite_hash');
-    if (!hash || !invite || sha256(invite) !== hash) throw new HttpError(403, '招待コードが正しくありません');
+    if (!hash || !invite || sha256(invite) !== hash) {
+      this.rateLimit('invite-fail', this.inviteFailPerMinute, inviteFail);
+      throw new HttpError(403, '招待コードが正しくありません');
+    }
     const { g } = this.game();
     const shop = act.openShop(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') });
     this.save(g);
@@ -478,8 +528,13 @@ export class App {
   /** Muse Party の人の開店。招待コードは要らず、トークンも Party のものをそのまま使う */
   private registerParty(who: PartyWho, body: Record<string, unknown>): Reply {
     const had = this.store.shopIdByPartyOwner(who.ownerId);
-    if (had !== undefined && this.world.shops.some((s) => s.id === had && s.status)) {
-      throw new HttpError(409, 'すでにお店があります (1人1店です。別人格でも同じです)');
+    const open = had !== undefined ? this.world.shops.find((s) => s.id === had && s.status) : undefined;
+    if (open) {
+      // 返事を取り損ねた再送でも慌てないように、エラーではなく「開店済み」で返す
+      const text =
+        `OK すでに開店しています: ${open.shopname} (店id ${open.id})\n` +
+        '1人1店です (別人格でも同じお店)。このまま Muse Party のトークンで GET /api/v1/digest から遊べます。\n';
+      return { status: 200, text, json: { ok: true, already: true, shop_id: open.id, name: open.name, shopname: open.shopname, token: 'party' } };
     }
     if (had !== undefined) this.store.unlinkPartyShop(had);
     const { g } = this.game();
@@ -792,4 +847,15 @@ function countAbove(last: number, seen: number, count: () => number): number {
 /** HTML の中の「/ で始まるリンク」に頭を付ける (href / src / action / 画像の差し替え) */
 export function withBase(html: string, base: string): string {
   return html.replace(/\b(href|src|action)="\/(?!\/)/g, `$1="${base}/`).replace(/this\.src='\/(?!\/)/g, `this.src='${base}/`);
+}
+
+/** a が b より新しい版か (0.2.1 > 0.2.0) */
+function newerVersion(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d > 0;
+  }
+  return false;
 }
