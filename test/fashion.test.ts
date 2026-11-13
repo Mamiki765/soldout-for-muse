@@ -236,28 +236,34 @@ test('79品時代のセーブは在庫を保ったまま102枠へ拡張し、新
   } finally { store.close(); }
 });
 
-test('新素材の市場初期投入: plus のある16種だけに一度、上限内で足し、他には触れない', () => {
+test('新素材の市場初期投入: plus が正の品だけに一度、上限内で足し、減る側と他には触れない', () => {
   const { g,dt } = fixture(16,'tool');
   g.world.people = 300000;
   const before = structuredClone(g.world);
-  const targets = itemSpecs.map(([no]) => no).filter((no) => BASE_ITEMS[no].plus !== 0);
-  assert.equal(targets.length,16);
-  assert.ok(targets.every((no) => no < 81 || no > 87), '完成品は plus 0 なので対象外');
-  dt.item[88-1] = 299; // 店の手持ちも上限に数える (鉄鉱石 wslimit 300 × 1店)
+  const withPlus = itemSpecs.map(([no]) => no).filter((no) => BASE_ITEMS[no].plus !== 0);
+  const targets = withPlus.filter((no) => BASE_ITEMS[no].plus > 0);
+  assert.deepEqual(targets,[96],'v0.2.0 で市場に湧くのは繊維草だけ');
+  assert.ok(withPlus.every((no) => no < 81 || no > 87), '完成品は plus 0 なので対象外');
+  // 減る側 (plus 負) を渡しても足さない
+  const neg = seedWholeStore(g,withPlus.filter((no) => BASE_ITEMS[no].plus < 0),12);
+  assert.equal(neg.length,15);
+  for (const r of neg) assert.deepEqual([r.before,r.add,r.after],[0,0,0],r.name);
+  dt.item[96-1] = 0;
   const rows = seedWholeStore(g,targets,12);
-  for (const r of rows) {
-    assert.equal(r.before,0);
-    assert.equal(g.world.wholestore[r.no-1],r.after);
-    assert.ok(r.after > 0, r.name);
-  }
-  assert.equal(rows.find((r) => r.no === 88)!.after,1);
+  const fiber = rows[0].after;
+  assert.ok(fiber > 0);
   // 12時間ぶんは24時間ぶんの約半分 (上限に当たらない品)
-  const fiber = rows.find((r) => r.no === 96)!.after;
   const { g:g2 } = fixture(16,'tool');
   g2.world.people = 300000;
   assert.ok(Math.abs(seedWholeStore(g2,[96],24)[0].after - fiber*2) <= 1);
+  // 店の手持ちも上限に数える
+  const { g:g3,dt:dt3 } = fixture(16,'tool');
+  g3.world.people = 300000;
+  const cap = Math.trunc(g3.items[96].wslimit * g3.shops.length + 0.99);
+  dt3.item[96-1] = cap - 1;
+  assert.equal(seedWholeStore(g3,[96],12)[0].after,1);
   const after = structuredClone(g.world);
-  for (const no of targets) after.wholestore[no-1] = 0;
+  after.wholestore[96-1] = 0;
   assert.deepEqual(after.wholestore,before.wholestore);
   assert.deepEqual([after.events,after.people],[before.events,before.people]);
 });
