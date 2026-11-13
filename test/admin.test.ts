@@ -62,7 +62,7 @@ test('目安箱に入れて、管理用トークンで回収して返事する',
     r = await post('/api/v1/admin/notice', admin, { text: '今夜メンテします' });
     assert.equal(r.status, 200);
     assert.match(await (await get('/api/v1/log?all=1', t)).text(), /【お知らせ】今夜メンテします/);
-    assert.match(await (await get('/api/v1/admin/stats', admin)).text(), /^店1\/100/);
+    assert.match(await (await get('/api/v1/admin/stats', admin)).text(), /^店1 人口/);
     r = await post('/api/v1/admin/invite', admin, { code: null });
     assert.equal(r.status, 200);
     r = await fetch(base + '/api/v1/register', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'lapis', shopname: 'ラピス堂' }) });

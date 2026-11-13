@@ -92,6 +92,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,2);
     dt.user._seen_version = '0.1.0'; // 2つ前なら、取りこぼした版も古い順に届く
+    // 7日放置すると、優勝賞品の店番ロボット (維持費3万/日) で倒産することがある。下の確認は倒産と関係ないので資金を足しておく
+    dt.money = 10_000_000;
     await fetch(base+'/api/v1/me',{headers:auth});
     const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
     assert.equal(notes.length,5);
@@ -101,7 +103,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const since = 1_800_000_000;
     assert.equal(store.getSetting('update_since:0.2.2'),String(since));
     for (const [now,shown] of [[since+7*86400-1,true],[since+7*86400,false]] as const) {
-      // 放っておいた店が7日の間に倒産することがあるので、乱数を固定して毎回同じ結果にする
+      // 乱数を固定して毎回同じ結果にする
       app = new App({store,basePath,clock:()=>now,rng:seededRng(1)});
       assert.equal(app.updateSince,since);
       const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();

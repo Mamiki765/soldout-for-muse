@@ -115,7 +115,7 @@ export function seedWholeStore(g: Game, itemNos: number[], hours: number) {
     if (item.plus > 0) {
       add = Math.trunc(0.75 *
         ((hours * 3600 / Math.abs(item.plus)) * w.people) /
-          (100000 / ((g.config.maxUser + (g.shops.length - 1) - 1) * 0.2 + 1)),
+          (100000 / ((g.marketUsers() + (g.shops.length - 1) - 1) * 0.2 + 1)),
       );
     }
     let held = 0;

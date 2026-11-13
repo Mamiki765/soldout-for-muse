@@ -229,6 +229,11 @@ export class Game {
   }
 
   /** 原作 GetExpireTimeExtend */
+  /** 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。max(marketUserBase, 店数) */
+  marketUsers(): number {
+    return Math.max(this.config.marketUserBase, this.shops.length);
+  }
+
   expireTimeExtend(dt: Shop): number {
     let ex = Math.trunc((dt.lastlogin - dt.foundation) / 86400) * this.config.expireExTime;
     if (ex > this.config.expireMaxTime) ex = this.config.expireMaxTime;

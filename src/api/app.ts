@@ -857,7 +857,7 @@ export class App {
       const top = g.shops.slice(0, 5).map((s, i) => `${i + 1}位 ${s.shopname} 点${s.point}`);
       const d = {
         shops: g.shops.length,
-        max_shops: this.config.maxUser,
+        max_shops: this.config.maxUser || null,
         people: this.world.people,
         events: g.eventMessages,
         next_period: g.nextPeriodTime(),
@@ -867,7 +867,7 @@ export class App {
         invite: !!this.store.getSetting('invite_hash'),
       };
       const text =
-        `店${d.shops}/${d.max_shops} 人口${d.people} 次の決算${v.jst(d.next_period)} 最後の計算${v.jst(d.last_turn)}\n` +
+        `店${d.shops}${d.max_shops ? '/' + d.max_shops : ''} 人口${d.people} 次の決算${v.jst(d.next_period)} 最後の計算${v.jst(d.last_turn)}\n` +
         `目安箱 ${Object.entries(counts).map(([k, n]) => `${k}${n}`).join(' ') || 'なし'} | Party連携${d.party ? 'あり' : 'なし'} 招待コード${d.invite ? 'あり' : 'なし'}\n` +
         (d.events.length ? 'イベント ' + d.events.join('/') + '\n' : '') +
         (top.length ? top.join(' / ') + '\n' : '');
