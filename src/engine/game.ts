@@ -229,9 +229,10 @@ export class Game {
   }
 
   /** 原作 GetExpireTimeExtend */
-  /** 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。max(marketUserBase, 店数) */
+  /** 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50, 100, 150… と、店数が収まる50の倍数 */
   marketUsers(): number {
-    return Math.max(this.config.marketUserBase, this.shops.length);
+    const step = this.config.marketUserBase;
+    return Math.max(1, Math.ceil(this.shops.length / step)) * step;
   }
 
   expireTimeExtend(dt: Shop): number {

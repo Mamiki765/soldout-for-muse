@@ -175,12 +175,14 @@ test('ランキングに職業と「○専門店」を出す (原作 inc-html-ra
   assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
 });
 
-test('開店数に上限なし・市場の入荷式は max(50, 店数) (案: リカさんより)', () => {
+test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リカさんより)', () => {
   const world = newWorld(T0, MAX_ITEM);
   const g = new Game(world, DEFAULT_CONFIG, seededRng(9), T0);
   for (let i = 0; i < 35; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
   assert.equal(g.marketUsers(), 50, '50店までは原作既定の50');
-  for (let i = 35; i < 120; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  for (let i = 35; i < 51; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  assert.equal(g.marketUsers(), 100, '51店から100');
+  for (let i = 51; i < 120; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
   assert.equal(world.shops.length, 120, '100店を超えても開店できる');
-  assert.equal(g.marketUsers(), 120);
+  assert.equal(g.marketUsers(), 150);
 });
