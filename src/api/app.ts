@@ -533,7 +533,9 @@ export class App {
     if (bearer) this.rateLimit('r:' + sha256(bearer).slice(0, 16), this.registerPerMinute, `登録は1トークン1分${this.registerPerMinute}回まで`);
     const body = await this.body(req);
     const who = bearer ? await this.partyWho(bearer) : undefined;
-    if (bearer && this.party && !bearer.startsWith('so_') && !who) throw this.badToken(bearer, true);
+    // 招待コードで開店する人の金庫が、別の値 (ココア鯖のトークンなど) を勝手に付けて送ってくることがある。
+    // 招待コードが入っていれば、そちらで開店できるようにする (v0.2.1 までの厳しい読み方では、Bearer なしの値は無視されて通っていた)
+    if (bearer && this.party && !bearer.startsWith('so_') && !who && !body.invite) throw this.badToken(bearer, true);
     if (who) return this.registerParty(who, body);
     const inviteFail = `招待コードの失敗は全体で1分${this.inviteFailPerMinute}回まで`;
     this.rateLimit('invite-fail', this.inviteFailPerMinute, inviteFail, false);

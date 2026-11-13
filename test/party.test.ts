@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import { App } from '../src/api/app.js';
 import { httpPartyVerifier } from '../src/api/party.js';
@@ -114,6 +115,12 @@ test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を
       assert.equal((await get(a)).status, 200, a);
     }
     assert.equal((await get('Bearer mct_o k')).status, 401);
+    // 金庫が別の値を付けてきても、招待コードがあれば招待コードで開店できる (前の版で通っていた道を閉ざさない)
+    store.setSetting('invite_hash', createHash('sha256').update('mip_good').digest('hex'));
+    r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ invite: 'mip_good', name: 'kaede', shopname: 'かえで商店' }) });
+    assert.equal(r.status, 201, await r.clone().text());
+    r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ shopname: 'だめ商店' }) });
+    assert.equal(r.status, 401);
     r = await get('Bearer mip_abcdef');
     assert.equal(r.status, 401);
     assert.match(await r.text(), /招待コードで、トークンではありません/);
