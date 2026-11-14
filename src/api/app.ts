@@ -13,7 +13,7 @@ import * as act from '../engine/actions.js';
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
-import type { Shop, World } from '../engine/types.js';
+import { shownPeople, type Shop, type World } from '../engine/types.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
@@ -903,7 +903,7 @@ export class App {
       const d = {
         shops: g.shops.length,
         max_shops: this.config.maxUser || null,
-        people: this.world.people,
+        people: shownPeople(this.world),
         events: g.eventMessages,
         next_period: g.nextPeriodTime(),
         last_turn: this.world.lasttime,

@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { CATALOG } from '../data/catalog.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
-import type { Shop } from '../engine/types.js';
+import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
@@ -253,7 +253,7 @@ function topPage(app: App, g: Game): string {
   const top = g.shops.slice(0, 5);
   let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
-  s += `●ランキング (人口 ${g.world.people}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
+  s += `●ランキング (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
   top.forEach((dt, i) => (s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td></tr>`));
   s += '</table><a href="/view/ranking">[もっと見る]</a><hr>●最近の出来事<br>';
   s += logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));

@@ -6,7 +6,7 @@ import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
-import type { Shop } from '../engine/types.js';
+import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
@@ -208,7 +208,7 @@ export function marketData(g: Game) {
     const it = g.items[c.itemno];
     return { item: c.itemno, name: it.name, stock: c.stock, price: c.price, std: it.price, market: it.marketprice, balance: it.uppoint };
   });
-  return { people: g.world.people, events: g.eventMessages, items: cases };
+  return { people: shownPeople(g.world), events: g.eventMessages, items: cases };
 }
 
 /** 原作 GetMarketStatusGraph の文字版: 均衡/飽和/不足 */

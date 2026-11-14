@@ -177,6 +177,9 @@ export function newShop(id: number, maxItem: number): Shop {
   };
 }
 
+/** 画面に出す人口。内部の値は10倍で持っている (原作 inc-html-ranking.cgi の int($DTpeople/10)) */
+export const shownPeople = (w: { people: number }): number => Math.trunc(w.people / 10);
+
 /** 原作 admin.cgi の初期化と同じ初期状態 (人口100000, 次のid 100) */
 export function newWorld(now: number, maxItem: number): World {
   return {
