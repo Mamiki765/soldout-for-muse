@@ -127,3 +127,82 @@ test('商品を使う: 資金調達の方法 (ティッシュ配り)', () => {
   assert.ok(u.result.count > 0);
   assert.equal(s.money, before + 3000 * u.result.count);
 });
+
+test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセル、変えたら増減と維持費を数字で返す', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  const now = T0 + 24 * 3600;
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(3), now);
+  const a = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  a.time = now - 48 * 3600;
+  enterShop(g, a, true);
+  const kit = itemNoByName('陳列棚増築取壊キット');
+  const before = { money: a.money, time: a.time };
+
+  // use:0 は「棚を1つにする」。今も1つなのでキャンセル
+  assert.throws(() => useItemAction(g, a, kit, 0, { count: 1 }), (e: unknown) => e instanceof GameError && /変更なし/.test(e.message));
+  assert.equal(a.item[kit - 1], 1);
+  assert.deepEqual({ money: a.money, time: a.time }, before);
+
+  // use:2 は「棚を3つにする」(増築)
+  // 増やすときも、confirm が無ければ見込みだけ
+  assert.throws(
+    () => useItemAction(g, a, kit, 2, { count: 1 }),
+    (e: unknown) => e instanceof GameError && e.message.startsWith('確認: 棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000、増築費用￥50000 時間4時間') && /confirm/.test(e.message),
+  );
+  assert.deepEqual([a.showcasecount, a.item[kit - 1], a.money, a.time], [1, 1, before.money, before.time]);
+  const u = useItemAction(g, a, kit, 2, { count: 1, confirm: true });
+  assert.equal(a.showcasecount, 3);
+  assert.equal(u.result.function_return, '棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000');
+  assert.equal(a.item[kit - 1], 0);
+
+  // 取り壊し: confirm が無ければ見込みだけ返して何も変えない
+  a.item[kit - 1] = 1;
+  a.showcase[1] = itemNoByName('薬草');
+  const money = a.money;
+  assert.throws(
+    () => useItemAction(g, a, kit, 0, { count: 1 }),
+    (e: unknown) => e instanceof GameError && e.message.startsWith('確認: 棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0 (外れる: 棚2:薬草。在庫は倉庫に残ります)') && /confirm/.test(e.message),
+  );
+  assert.deepEqual([a.showcasecount, a.item[kit - 1], a.money], [3, 1, money]);
+  const d = useItemAction(g, a, kit, 0, { count: 1, confirm: true });
+  assert.equal(a.showcasecount, 1);
+  assert.equal(d.result.function_return, '棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0');
+});
+
+test('ランキングに職業と「○専門店」を出す (原作 inc-html-ranking.cgi)', async () => {
+  const { rankingData, rankingText } = await import('../src/api/views.js');
+  const world = newWorld(T0, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(5), T0);
+  const a = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  let r = rankingData(g)[0];
+  assert.deepEqual([r.job, r.specialty], ['', '']);
+  a.job = 'weapon';
+  const yakusou = itemNoByName('薬草');
+  a.showcasecount = 2;
+  a.showcase = [yakusou, 0];
+  r = rankingData(g)[0];
+  assert.deepEqual([r.job, r.specialty], ['武器屋', ''], '空の棚があれば専門店にしない');
+  a.showcase = [yakusou, yakusou];
+  r = rankingData(g)[0];
+  assert.equal(r.specialty, '原料');
+  assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
+  // 山師は熟練の高い地図で呼び分ける (同じなら山師だけ)
+  a.job = 'material';
+  assert.equal(rankingData(g)[0].job, '山師');
+  a.exp[itemNoByName('近くの鉱山への地図')] = 300;
+  assert.equal(rankingData(g)[0].job, '山師(探鉱夫)');
+  a.exp[itemNoByName('近くの山への地図')] = 500;
+  assert.equal(rankingData(g)[0].job, '山師(木こり)');
+});
+
+test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リカさんより)', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(9), T0);
+  for (let i = 0; i < 35; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  assert.equal(g.marketUsers(), 50, '50店までは原作既定の50');
+  for (let i = 35; i < 51; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  assert.equal(g.marketUsers(), 100, '51店から100');
+  for (let i = 51; i < 120; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  assert.equal(world.shops.length, 120, '100店を超えても開店できる');
+  assert.equal(g.marketUsers(), 150);
+});

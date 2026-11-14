@@ -13,7 +13,7 @@ import type { Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, jst } from './views.js';
+import { balanceWord, jobName, jst, specialtyType } from './views.js';
 import { SourceTree } from './source.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -213,7 +213,7 @@ function updateNotice(basePath: string): string {
 function updatesPage(): string {
   return '<h2>更新履歴</h2>' + UPDATES.map((u) => isPatch(u) ? `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
-<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></article>` : `<article>
+<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>${u.new_items?.length ? `<h4>新規アイテム${u.new_items.length}種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>` : ''}</article>` : `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
 <h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
 ${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>
@@ -258,7 +258,10 @@ function topPage(app: App, g: Game): string {
 function rankingPage(g: Game): string {
   let s = '●ランキング<hr><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
   g.shops.forEach((dt, i) => {
-    s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
+    const sp = specialtyType(g, dt);
+    const job = jobName(dt);
+    const tag = (sp ? `<img class="s" src="/images/item-typesign${sp}.png" alt="${esc(CATALOG.itemTypes[sp])}専門店" title="${esc(CATALOG.itemTypes[sp])}専門店">` : '') + (job ? `【${esc(job)}】` : '');
+    s += `<tr><td>${i + 1}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
   });
   s += '</table>';
   if (g.world.periodLog.length) s += '<hr>●前回の決算<br>' + g.world.periodLog.map((l) => raw(l.msg)).join('<br>');
@@ -299,7 +302,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const [tax, taxrate] = g.taxToday(dt);
   let expsum = 0;
   for (const v of Object.values(dt.exp)) expsum += v;
-  const job = dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定';
+  const job = jobName(dt) || '不定';
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
   s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
