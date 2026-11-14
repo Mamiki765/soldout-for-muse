@@ -458,7 +458,7 @@ export function ordersText(d: ReturnType<typeof ordersData>): string {
   if (d.today) {
     const t = d.today;
     lines.push(
-      `今日 募集${t.posted}/${t.posts_max}回 掲示中${t.open}/${t.open_max}件 応じた${t.filled}/${t.fills_max}件` +
+      `今日 募集${t.posted}/${t.posts_max}回 掲示中${t.open}/${t.open_max}件 応じた${t.filled}/${t.fills_max}種類` +
         (t.delivered_to.length ? ` 納品済みの相手 ${t.delivered_to.join(',')}` : ''),
     );
   }

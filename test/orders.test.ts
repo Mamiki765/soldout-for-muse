@@ -91,7 +91,7 @@ test('1個も届かずに期限切れなら、代金も時間も全部戻る', (
   assert.equal(world.orders!.length, 0);
 });
 
-test('制限: 単価・期限・同時件数・同じ相手1日1箱 (逆向きは別)・まとめ納品・最低納品数', () => {
+test('制限: 単価・期限・同時件数・同じ相手1日1セット (逆向きは別)・まとめ納品・最低納品数', () => {
   const { world, buyer, seller, other } = setup();
   const mk = (dt: Shop, req: Partial<{ price: number; count: number; hours: number; min: number; itemno: number }>) =>
     act(world, dt, T0, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24, ...req }));
@@ -112,7 +112,7 @@ test('制限: 単価・期限・同時件数・同じ相手1日1箱 (逆向き�
 
   // 最低納品数
   assert.throws(() => act(world, seller, T0 + 1, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 3 }])), /以上/);
-  // 2種類を1箱で
+  // 2種類を1セットで
   const msgs = act(world, seller, T0 + 2, (g) =>
     deliver(g, g.shopById(seller.id)!, buyer.id, [
       { order: o1.id, count: 5 },
@@ -121,11 +121,11 @@ test('制限: 単価・期限・同時件数・同じ相手1日1箱 (逆向き�
   );
   assert.equal(msgs.length, 2);
   assert.equal(world.orders!.find((o) => o.id === o2.id), undefined, '集め終わった募集は消える');
-  // 同じ相手へ2箱目は不可
-  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /1日1箱/);
+  // 同じ相手へ2セット目は不可
+  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /1日1セット/);
   // 別の店からは納品できる
   act(world, other, T0 + 4, (g) => deliver(g, g.shopById(other.id)!, buyer.id, [{ order: o1.id, count: 5 }]));
-  // 逆向き (買い手→売り手) は別に1箱
+  // 逆向き (買い手→売り手) は別に1セット
   const o3 = mk(seller, {});
   world.shops.find((s) => s.id === buyer.id)!.item[LEATHER - 1] += 10;
   act(world, buyer, T0 + 5, (g) => deliver(g, g.shopById(buyer.id)!, seller.id, [{ order: o3.id, count: 10 }]));
@@ -134,7 +134,7 @@ test('制限: 単価・期限・同時件数・同じ相手1日1箱 (逆向き�
   assert.throws(() => act(world, other, T0 + 6, (g) => deliver(g, g.shopById(other.id)!, other.id, [{ order: o4.id, count: 1 }])), /自分/);
 });
 
-test('応じられる募集は1日10件、出せる募集は棚×3回 (決算で戻る)', () => {
+test('応じられる募集は1日10種類、出せる募集は棚×3回 (決算で戻る)', () => {
   const { world, seller } = setup();
   const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
   const buyers: Shop[] = [];
@@ -148,7 +148,7 @@ test('応じられる募集は1日10件、出せる募集は棚×3回 (決算で
   for (let i = 0; i < 10; i++) {
     act(world, seller, T0 + i + 1, (g) => deliver(g, g.shopById(seller.id)!, buyers[i].id, [{ order: ids[i], count: 1 }]));
   }
-  assert.throws(() => act(world, seller, T0 + 20, (g) => deliver(g, g.shopById(seller.id)!, buyers[10].id, [{ order: ids[10], count: 1 }])), /10件/);
+  assert.throws(() => act(world, seller, T0 + 20, (g) => deliver(g, g.shopById(seller.id)!, buyers[10].id, [{ order: ids[10], count: 1 }])), /10種類/);
 
   // 出す回数: 棚1つなら1日3回。取り下げても戻らない
   const b = buyers[0];
@@ -223,7 +223,7 @@ test('期限切れは決算より先に処理される (長くアクセスが無
   assert.equal(world.orders!.length, 0);
 });
 
-test('箱の途中で失敗したら、先に入れた分も含めて全部元に戻る', () => {
+test('セットの途中で失敗したら、先に入れた分も含めて全部元に戻る', () => {
   const { world, buyer, seller } = setup();
   world.shops.find((s) => s.id === buyer.id)!.showcasecount = 2;
   const o1 = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24 }));

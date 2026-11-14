@@ -30,7 +30,7 @@ export const ORDER_RULES = {
 export const ORDER_RULES_LINE =
   `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
   `募集は同時に棚の数まで・1日に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
-  `納品は同じ相手へ1日1箱・応じるのは1日${ORDER_RULES.fillsPerDay}件まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る。`;
+  `納品は同じ店へ1日1セットまで (その店の募集なら何種類でも1セットにまとめて届けられる)・応じられるのは全部で1日${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る。`;
 
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
@@ -198,21 +198,21 @@ export interface DeliverLine {
 }
 
 /**
- * 納品 (段ボール1箱)。同じ募集主の募集なら、複数の品を1箱にまとめて渡せる。
- * 同じ相手へは1日1箱まで (逆向きは別に1箱)。応じた募集は1件ずつ数えて1日10件まで。
+ * 納品 (1セット)。同じ募集主の募集なら、複数の品を1セットにまとめて渡せる。
+ * 同じ相手へは1日1セットまで (逆向きは別に1セット)。応じた募集は1件ずつ「種類」と数えて1日10種類まで。
  */
 export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): string[] {
   if (!lines.length) throw new GameError('納品する募集を指定してください');
-  if (lines.length > 8) throw new GameError(`上限: 1箱に入れられる募集は8件までです (今${lines.length}件)`);
+  if (lines.length > 8) throw new GameError(`上限: 1セットに入れられるのは8種類までです (今${lines.length}種類)`);
   const buyer = g.shopById(Math.trunc(toId));
   if (!buyer) throw new GameError('その店は見つかりません');
   if (buyer === dt) throw new GameError('自分の募集には納品できません');
   const stats = orderStats(g);
   const pair = `${dt.id}>${buyer.id}`;
-  if (stats.pairs[pair]) throw new GameError(`上限: ${buyer.shopname}への納品は今日1/1箱 (同じ相手へは1日1箱)。あと0箱です。決算で戻ります。1箱にこの店の募集を最大8件まとめられます`);
+  if (stats.pairs[pair]) throw new GameError(`上限: ${buyer.shopname}への納品は今日1/1セット (同じ店へは1日1セット)。決算で戻ります。次からは届けたい募集をまとめて1セットで送ってください`);
   const done = stats.filled[dt.id] ?? 0;
   if (done + lines.length > ORDER_RULES.fillsPerDay) {
-    throw new GameError(`上限: 今日応じた募集 ${done}/${ORDER_RULES.fillsPerDay}件。あと${Math.max(0, ORDER_RULES.fillsPerDay - done)}件なので、この箱の${lines.length}件は入りません。決算で戻ります`);
+    throw new GameError(`上限: 今日応じた募集 ${done}/${ORDER_RULES.fillsPerDay}種類。あと${Math.max(0, ORDER_RULES.fillsPerDay - done)}種類なので、このセットの${lines.length}種類は入りません。決算で戻ります`);
   }
   const seen = new Set<number>();
   const msgs: string[] = [];
