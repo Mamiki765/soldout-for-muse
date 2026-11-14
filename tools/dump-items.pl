@@ -254,14 +254,20 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
 	}
 	for my $spec (@{ $v030->{gathering} }) {
+		# 行き先ごとの費用と地図摩耗は省略不可（暗黙の0円/10%を防ぐ）。
+		die "v0.3.0: gathering money/lostbook missing: $spec->{name}"
+			if !defined $spec->{money} || !defined $spec->{lostbook};
+		die "v0.3.0: invalid gathering money/lostbook: $spec->{name}"
+			if $spec->{money} < 0 || $spec->{lostbook} < 0 || $spec->{lostbook} > 1000;
 		my $u = $new_use->($spec);
+		$u->{money} = 0 + $spec->{money};
 		$u->{name} = $u->{info} = $spec->{name};
 		$u->{okmsg} = undef;
 		$u->{time} = 10800;
 		$u->{exptime} = 5400;
 		$u->{exp} = 10;
 		$u->{func} = 'lostbook';
-		$u->{params} = ['100', undef, undef, undef];
+		$u->{params} = ["" . $spec->{lostbook}, undef, undef, undef];
 		$u->{get} = $lines->($spec->{products}, 1000);
 	}
 
