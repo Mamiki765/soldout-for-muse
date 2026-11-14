@@ -98,7 +98,7 @@ test('3日間 (決算を2回またぐ) 動かしても値が壊れない', () =>
     if (i % 12 === 0) {
       // 各店がときどき仕入れて並べる
       for (const s of [...world.shops]) {
-        const cases = getWholeStore(g);
+        const cases = getWholeStore(g).filter((c) => BASE_ITEMS[c.itemno].type !== 2); // 高い本は買えず並ばないので除く
         if (!cases.length) break;
         const c = cases[i % cases.length];
         enterShop(g, s, true);

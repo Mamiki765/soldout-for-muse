@@ -176,7 +176,7 @@
    "cost": 1000,
    "popular": 259200,
    "limit": 5,
-   "plus": 0,
+   "plus": 27648000,
    "market_reference": 20
   },
   {
@@ -190,7 +190,7 @@
    "cost": 1000,
    "popular": 259200,
    "limit": 5,
-   "plus": 0,
+   "plus": 27648000,
    "market_reference": 20
   }
  ],
