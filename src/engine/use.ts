@@ -27,6 +27,8 @@ export interface UseResult {
   function?: string;
   function_return?: string;
   expold?: number;
+  /** count が 0 になった理由 (結果の「実行できませんでした」に添える) */
+  failReason?: string;
 }
 
 /** 使用の引数 ($USE->{arg} を解析したもの) */
@@ -205,19 +207,29 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
 
 /** 原作 UseItem($USE,$count) */
 export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
-  let count = countIn;
+  // 実行数は 0 未満にしない (負の数で材料が増え、できた品が減るのを防ぐ)
+  let count = Math.max(0, Math.trunc(countIn) || 0);
+  let why = count ? '' : '数量が0です';
+  const cap = (n: number, reason: string) => {
+    n = Math.max(0, Math.trunc(n) || 0);
+    if (n < count) count = n;
+    if (!count && !why) why = reason;
+  };
   const usetime = itemUseTime(dt, u);
-  if ((dt.exp[u.itemno] ?? 0) < u.needexp) count = 0;
-  if (dt.money < u.money * count) count = Math.trunc(dt.money / u.money);
-  // 時間クーポンの残りも使える
-  const avail = g.now - dt.time + g.couponTime(dt);
-  if (usetime * count > avail) count = Math.trunc(avail / usetime);
+  if ((dt.exp[u.itemno] ?? 0) < u.needexp) cap(0, '熟練が足りません');
+  if (u.money > 0 && dt.money < u.money * count) cap(dt.money / u.money, '資金が足りません');
+  // 時間クーポンの残りも使える。持ち時間がマイナス (待ち中) でも、クーポンの分は使える (useTime と同じ扱い)
+  const avail = g.usableTime(dt);
+  if (usetime > 0 && usetime * count > avail) cap(avail / usetime, '持ち時間が足りません');
   for (const line of u.use) {
     const itemcount = line.count * (line.proba === 0 ? 1 : count);
-    if (dt.item[line.no - 1] < itemcount) count = Math.trunc(dt.item[line.no - 1] / line.count);
+    if (dt.item[line.no - 1] < itemcount) cap(line.count > 0 ? dt.item[line.no - 1] / line.count : 0, `${g.items[line.no].name}が足りません`);
   }
   u.result.count = count;
-  if (!count) return; // count が 0 なら失敗
+  if (!count) { // count が 0 なら失敗 (何も変えない)
+    u.result.failReason = why || undefined;
+    return;
+  }
   u.result.useitem = [];
   u.result.additem = [];
 
@@ -295,7 +307,7 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
 export function useResultMessages(g: Game, dt: Shop, u: RtUse): string[] {
   const out: string[] = [];
   const count = u.result.count;
-  if (!count) return ['実行できませんでした'];
+  if (!count) return [u.result.failReason ? `実行できませんでした (${u.result.failReason})` : '実行できませんでした'];
   if (u.result.function_return) out.push(...u.result.function_return.split('<br>').filter(Boolean));
   out.push(`${count}${u.scale}`);
   if (u.money * count) out.push(`費用:￥${u.money * count}`);

@@ -199,9 +199,13 @@ export class Game {
     return Number.isFinite(left) && left > 0 ? Math.min(left, this.config.couponTime) : 0;
   }
 
-  /** 行動に使える時間 = クーポン残り + 持ち時間 (秒) */
+  /**
+   * 行動に使える時間 = クーポン残り + 持ち時間 (秒)。
+   * 持ち時間がマイナス (待ち中) のときは 0 として数える。useTime はクーポンから先に払うので、
+   * 待ち中でもクーポンの分は使える (マイナス分がクーポンを食うことはない)。
+   */
   usableTime(dt: Shop): number {
-    return this.couponTime(dt) + this.stockTime(dt);
+    return this.couponTime(dt) + Math.max(0, this.stockTime(dt));
   }
 
   /** 今週のクーポンが配られた時刻 (直近の couponWeekday 曜 couponHour 時) */
