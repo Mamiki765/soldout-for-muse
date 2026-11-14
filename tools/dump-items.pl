@@ -205,10 +205,99 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	open(my $v030_fh, '<:raw', "$FindBin::Bin/v030.json") or die $!;
 	my $v030 = JSON::PP->new->utf8->decode(do { local $/; <$v030_fh> });
 	close $v030_fh;
+	$v030 = $as_bytes->($v030);
 	for my $add (@{ $v030->{job_bonus_add} }) {
 		my $u = $by_no{$add->{book}}{uses}[$add->{use}] or die "v0.3.0: unknown use $add->{book}/$add->{use}";
 		die "v0.3.0: duplicate job bonus $add->{book}/$add->{use}" if grep { $_->{job} eq $add->{job} } @{ $u->{jobs} };
 		push @{ $u->{jobs} }, { job => $add->{job}, key => 'times', op => '/', value => 2 };
+	}
+
+	# Muse v0.3.0 の追加品 (薬屋・酪農家・本屋・行商人・山師の新ライン)。置き場は各職業の転職の集約先。
+	for my $spec (@{ $v030->{items} }) {
+		die "v0.3.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		my $ref = $by_no{$spec->{market_reference}} or die 'unknown market reference';
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		delete $it->{market_reference};
+		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+	# 置き場の uses[0] をひな型に写し、ひな型固有の処理 (剣市の収穫2倍、ミノ牛乳を飲む) は外す。
+	my $new_use = sub {
+		my ($spec) = @_;
+		my $book = $by_no{$spec->{book}} or die "v0.3.0: unknown book $spec->{book}";
+		my $u = $copy->($book->{uses}[0]);
+		$u->{no} = scalar @{ $book->{uses} };
+		$u->{needexp} = $spec->{needexp};
+		$u->{$_} = undef for qw(func_before local_func_before func_info local_func_info local_func arg argmessage argselect);
+		$u->{money} = 0;
+		$u->{jobs} = [{ job => $spec->{job}, key => 'times', op => '/', value => 2 }];
+		# 工具は消費しない所持条件 (proba 0)。数字だけなら1個、[品番,個数] なら個数ぶん要る
+		my @tools = map { ref $_ ? [$_->[0], $_->[1], 0] : [$_, 1, 0] } @{ $spec->{tools} // [] };
+		$u->{use} = [ @{ $lines->(\@tools, 0) }, @{ $lines->($spec->{materials} // [], 1000) } ];
+		push @{ $book->{uses} }, $u;
+		return $u;
+	};
+	for my $spec (@{ $v030->{production} }) {
+		my $u = $new_use->($spec);
+		my $name = $by_no{$spec->{product}}{name};
+		$u->{name} = $name . ($by_no{$spec->{product}}{type} == 2 ? 'を執筆する' : 'を作成する');
+		$u->{info} = $name . 'を作ります';
+		$u->{okmsg} = $name . 'を作りました';
+		$u->{ngmsg} = '作成に失敗しました…';
+		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
+		$u->{func} = defined $spec->{lostbook} ? 'lostbook' : undef;
+		$u->{params} = [defined $spec->{lostbook} ? "$spec->{lostbook}" : undef, undef, undef, undef];
+		if ($spec->{toolwear}) {
+			# 道具の本 (112・113) は1セットごとに toolwear/1000 ですり切れる (1回の実行で最大1冊)
+			my ($tool) = grep { !ref $_ && $by_no{$_}{type} == 2 } @{ $spec->{tools} };
+			$u->{func} = 'lostbooktool';
+			$u->{params} = [$u->{params}[0] // '0', "$tool", "$spec->{toolwear}", undef];
+		}
+		$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
+	}
+	for my $spec (@{ $v030->{gathering} }) {
+		my $u = $new_use->($spec);
+		$u->{name} = $u->{info} = $spec->{name};
+		$u->{okmsg} = undef;
+		$u->{time} = 10800;
+		$u->{exptime} = 5400;
+		$u->{exp} = 10;
+		$u->{func} = 'lostbook';
+		$u->{params} = [$spec->{lostbook} // '100', undef, undef, undef];
+		$u->{get} = $lines->($spec->{products}, 1000);
+	}
+
+	# イベント: 既存の変更 (原作で無効だった「不足」の復活を含む) と追加
+	my %ev_by_code = map { $_->{code} => $_ } @events;
+	my $params = sub { [ map { die "v0.3.0: unknown item $_->{item_no}" if !$by_no{$_->{item_no}}; +{ %$_ } } @{ $_[0] // [] } ] };
+	for my $ch (@{ $v030->{event_changes} }) {
+		my $e = $ev_by_code{$ch->{code}} or die "v0.3.0: unknown event $ch->{code}";
+		for my $k (keys %{ $ch->{set} // {} }) {
+			my $v = $ch->{set}{$k};
+			$e->{$k} = $k eq 'auto_start' ? ($v ? JSON::PP::true : JSON::PP::false) : $k eq 'group' ? "$v" : $v;
+		}
+		my %raw = map { $_ => 1 } @{ $ch->{popular_raw} // [] };
+		for my $p (@{ $e->{params} }) {
+			$p->{value} = 1.5 if $raw{$p->{item_no}} && $p->{key} eq 'popular' && $p->{op} eq '*';
+		}
+		push @{ $e->{params} }, @{ $params->($ch->{add_params}) };
+	}
+	for my $spec (@{ $v030->{events} }) {
+		die "v0.3.0: duplicate event $spec->{code}" if $ev_by_code{$spec->{code}};
+		push @events, {
+			code => $spec->{code}, group => "$spec->{group}", startproba => $spec->{startproba},
+			auto_start => ($spec->{auto_start} ? JSON::PP::true : JSON::PP::false),
+			basetime => $spec->{basetime}, plustime => $spec->{plustime},
+			info => $spec->{info}, startmsg => $spec->{startmsg}, endmsg => $spec->{endmsg},
+			startfunc => undef, startfuncparam => undef, endfunc => undef, endfuncparam => undef,
+			nowfunc => undef, nowfuncparam => undef,
+			local_funcstart => undef, local_funcend => undef, local_funcnow => undef,
+			params => $params->($spec->{params}),
+		};
 	}
 	$define{version} = $v030->{version};
 }

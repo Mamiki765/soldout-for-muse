@@ -1,11 +1,1178 @@
 {
-  "version": "0.3.0",
-  "job_bonus_add": [
-    {"book": 16, "use": 0, "job": "tool", "note": "革の盾 (防具屋のボーナスは残す)"},
-    {"book": 16, "use": 1, "job": "tool", "note": "革の胸当て"},
-    {"book": 17, "use": 0, "job": "tool", "note": "木刀 (武器屋のボーナスは残す)"},
-    {"book": 17, "use": 1, "job": "tool", "note": "木の杖"},
-    {"book": 17, "use": 2, "job": "tool", "note": "木の盾 (防具屋のボーナスは残す)"},
-    {"book": 17, "use": 3, "job": "tool", "note": "木の胸当て"}
-  ]
+ "version": "0.3.0",
+ "job_bonus_add": [
+  {
+   "book": 16,
+   "use": 0,
+   "job": "tool",
+   "note": "革の盾 (防具屋のボーナスは残す)"
+  },
+  {
+   "book": 16,
+   "use": 1,
+   "job": "tool",
+   "note": "革の胸当て"
+  },
+  {
+   "book": 17,
+   "use": 0,
+   "job": "tool",
+   "note": "木刀 (武器屋のボーナスは残す)"
+  },
+  {
+   "book": 17,
+   "use": 1,
+   "job": "tool",
+   "note": "木の杖"
+  },
+  {
+   "book": 17,
+   "use": 2,
+   "job": "tool",
+   "note": "木の盾 (防具屋のボーナスは残す)"
+  },
+  {
+   "book": 17,
+   "use": 3,
+   "job": "tool",
+   "note": "木の胸当て"
+  }
+ ],
+ "items": [
+  {
+   "no": 103,
+   "code": "sugar",
+   "name": "砂糖",
+   "info": "港町から運ばれる白い砂糖",
+   "scale": "袋",
+   "type": 1,
+   "price": 300,
+   "cost": 30,
+   "popular": 4800,
+   "limit": 2000,
+   "plus": -1200,
+   "market_reference": 91
+  },
+  {
+   "no": 104,
+   "code": "spice",
+   "name": "香辛料",
+   "info": "遠い国の香りの強い実と皮",
+   "scale": "袋",
+   "type": 1,
+   "price": 800,
+   "cost": 80,
+   "popular": 10800,
+   "limit": 1000,
+   "plus": -1200,
+   "market_reference": 94
+  },
+  {
+   "no": 105,
+   "code": "spirit-herb",
+   "name": "霊草",
+   "info": "霧の谷にだけ生える薬草",
+   "scale": "株",
+   "type": 1,
+   "price": 900,
+   "cost": 90,
+   "popular": 10800,
+   "limit": 1000,
+   "plus": -1200,
+   "market_reference": 94
+  },
+  {
+   "no": 106,
+   "code": "scented-oil",
+   "name": "香油",
+   "info": "香木と霊草を蒸して取った油",
+   "scale": "瓶",
+   "type": 1,
+   "price": 2000,
+   "cost": 150,
+   "popular": 21600,
+   "limit": 700,
+   "plus": -3600,
+   "market_reference": 102
+  },
+  {
+   "no": 107,
+   "code": "mino-cream",
+   "name": "ミノクリーム",
+   "info": "ミノ牛乳から分けた濃い乳脂",
+   "scale": "個",
+   "type": 1,
+   "price": 900,
+   "cost": 60,
+   "popular": 10800,
+   "limit": 1000,
+   "plus": -3600,
+   "market_reference": 101
+  },
+  {
+   "no": 108,
+   "code": "perfume",
+   "name": "香水",
+   "info": "香油を重ねた上品な香り",
+   "scale": "瓶",
+   "type": 3,
+   "price": 15000,
+   "cost": 750,
+   "popular": 172800,
+   "limit": 50,
+   "plus": 0,
+   "market_reference": 67
+  },
+  {
+   "no": 109,
+   "code": "elixir",
+   "name": "エリクシル",
+   "info": "霊草を煮詰めた万能の霊薬",
+   "scale": "瓶",
+   "type": 3,
+   "price": 30000,
+   "cost": 1500,
+   "popular": 259200,
+   "limit": 30,
+   "plus": 0,
+   "market_reference": 67
+  },
+  {
+   "no": 110,
+   "code": "mino-gelato",
+   "name": "ミノ・ジェラート",
+   "info": "濃いミノクリームの氷菓",
+   "scale": "個",
+   "type": 3,
+   "price": 5000,
+   "cost": 250,
+   "popular": 86400,
+   "limit": 100,
+   "plus": 0,
+   "market_reference": 67
+  },
+  {
+   "no": 111,
+   "code": "royal-cheesecake",
+   "name": "ロイヤルチーズケーキ",
+   "info": "ミノチーズとクリームの焼き菓子",
+   "scale": "切れ",
+   "type": 3,
+   "price": 20000,
+   "cost": 1000,
+   "popular": 172800,
+   "limit": 50,
+   "plus": 0,
+   "market_reference": 67
+  },
+  {
+   "no": 112,
+   "code": "book-perfumery",
+   "name": "『調香の手引き』",
+   "info": "香水・霊薬の作り方。持っていると薬調合入門で香水とエリクシルを作れる",
+   "scale": "冊",
+   "type": 2,
+   "price": 80000,
+   "cost": 1000,
+   "popular": 259200,
+   "limit": 5,
+   "plus": 27648000,
+   "market_reference": 20
+  },
+  {
+   "no": 113,
+   "code": "book-confection",
+   "name": "『乳菓のレシピ』",
+   "info": "ミノ乳を使った菓子の作り方。持っているとミノ牛乳から菓子を作れる",
+   "scale": "冊",
+   "type": 2,
+   "price": 80000,
+   "cost": 1000,
+   "popular": 259200,
+   "limit": 5,
+   "plus": 27648000,
+   "market_reference": 20
+  }
+ ],
+ "production": [
+  {
+   "book": 15,
+   "product": 106,
+   "needexp": 200,
+   "tools": [],
+   "materials": [
+    [
+     94,
+     10
+    ],
+    [
+     105,
+     10
+    ],
+    [
+     32,
+     10
+    ]
+   ],
+   "get": 20,
+   "proba": 900,
+   "time": 7200,
+   "exptime": 4800,
+   "exp": 10,
+   "lostbook": 50,
+   "job": "drug"
+  },
+  {
+   "book": 15,
+   "product": 108,
+   "needexp": 400,
+   "tools": [
+    112
+   ],
+   "materials": [
+    [
+     106,
+     20
+    ],
+    [
+     104,
+     10
+    ],
+    [
+     32,
+     10
+    ]
+   ],
+   "get": 10,
+   "proba": 600,
+   "time": 14400,
+   "exptime": 9600,
+   "exp": 10,
+   "lostbook": 30,
+   "job": "drug",
+   "toolwear": 30
+  },
+  {
+   "book": 15,
+   "product": 109,
+   "needexp": 800,
+   "tools": [
+    112
+   ],
+   "materials": [
+    [
+     106,
+     20
+    ],
+    [
+     105,
+     30
+    ],
+    [
+     33,
+     10
+    ],
+    [
+     8,
+     4
+    ]
+   ],
+   "get": 10,
+   "proba": 400,
+   "time": 18000,
+   "exptime": 10800,
+   "exp": 10,
+   "lostbook": 30,
+   "job": "drug",
+   "toolwear": 30
+  },
+  {
+   "book": 26,
+   "product": 107,
+   "tools": [
+    [
+     25,
+     10
+    ]
+   ],
+   "materials": [
+    [
+     26,
+     30
+    ],
+    [
+     103,
+     10
+    ]
+   ],
+   "get": 20,
+   "proba": 900,
+   "time": 2400,
+   "exptime": 2400,
+   "exp": 0,
+   "lostbook": null,
+   "job": "cow"
+  },
+  {
+   "book": 26,
+   "product": 110,
+   "tools": [
+    113
+   ],
+   "materials": [
+    [
+     107,
+     30
+    ],
+    [
+     103,
+     20
+    ],
+    [
+     104,
+     5
+    ]
+   ],
+   "get": 20,
+   "proba": 600,
+   "time": 5400,
+   "exptime": 5400,
+   "exp": 0,
+   "lostbook": null,
+   "job": "cow",
+   "toolwear": 30
+  },
+  {
+   "book": 26,
+   "product": 111,
+   "tools": [
+    113
+   ],
+   "materials": [
+    [
+     107,
+     40
+    ],
+    [
+     36,
+     4
+    ],
+    [
+     103,
+     20
+    ],
+    [
+     104,
+     5
+    ]
+   ],
+   "get": 10,
+   "proba": 600,
+   "time": 9600,
+   "exptime": 9600,
+   "exp": 0,
+   "lostbook": null,
+   "job": "cow",
+   "toolwear": 30
+  },
+  {
+   "book": 10,
+   "product": 112,
+   "tools": [],
+   "materials": [
+    [
+     10,
+     2
+    ],
+    [
+     15,
+     1
+    ],
+    [
+     106,
+     5
+    ]
+   ],
+   "get": 1,
+   "proba": 1000,
+   "time": 21600,
+   "exptime": 10800,
+   "exp": 30,
+   "lostbook": null,
+   "job": "book"
+  },
+  {
+   "book": 10,
+   "product": 113,
+   "tools": [],
+   "materials": [
+    [
+     10,
+     2
+    ],
+    [
+     36,
+     2
+    ],
+    [
+     107,
+     10
+    ]
+   ],
+   "get": 1,
+   "proba": 1000,
+   "time": 21600,
+   "exptime": 10800,
+   "exp": 30,
+   "lostbook": null,
+   "job": "book"
+  }
+ ],
+ "gathering": [
+  {
+   "book": 14,
+   "name": "港町で買い付け",
+   "lostbook": "150",
+   "needexp": 200,
+   "products": [
+    [
+     103,
+     50,
+     800
+    ],
+    [
+     104,
+     15,
+     800
+    ]
+   ],
+   "job": "peddle"
+  },
+  {
+   "book": 14,
+   "name": "隊商と取引する",
+   "lostbook": "150",
+   "needexp": 400,
+   "products": [
+    [
+     104,
+     25,
+     800
+    ],
+    [
+     105,
+     10,
+     600
+    ],
+    [
+     8,
+     3,
+     500
+    ]
+   ],
+   "job": "peddle"
+  },
+  {
+   "book": 12,
+   "name": "霊草の谷を探す",
+   "needexp": 600,
+   "products": [
+    [
+     105,
+     20,
+     800
+    ],
+    [
+     94,
+     10,
+     750
+    ]
+   ],
+   "job": "material"
+  }
+ ],
+ "event_changes": [
+  {
+   "code": "plusdown-yakusou",
+   "set": {
+    "basetime": 86400,
+    "plustime": 86400
+   }
+  },
+  {
+   "code": "boom-posyon",
+   "set": {
+    "startproba": 150
+   },
+   "add_params": [
+    {
+     "item_no": 109,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 109,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    }
+   ]
+  },
+  {
+   "code": "plusup-tetu",
+   "add_params": [
+    {
+     "item_no": 88,
+     "key": "plus",
+     "op": "=",
+     "value": 360
+    },
+    {
+     "item_no": 92,
+     "key": "plus",
+     "op": "=",
+     "value": 360
+    }
+   ]
+  },
+  {
+   "code": "plusup-misuriru",
+   "add_params": [
+    {
+     "item_no": 89,
+     "key": "plus",
+     "op": "=",
+     "value": 480
+    }
+   ]
+  },
+  {
+   "code": "plusup-oriharukon",
+   "add_params": [
+    {
+     "item_no": 90,
+     "key": "plus",
+     "op": "=",
+     "value": 600
+    }
+   ]
+  },
+  {
+   "code": "priceup-tetu",
+   "set": {
+    "startproba": 50,
+    "auto_start": true,
+    "group": "16"
+   },
+   "popular_raw": [
+    5
+   ],
+   "add_params": [
+    {
+     "item_no": 88,
+     "key": "price",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 88,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 92,
+     "key": "price",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 92,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 97,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 97,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 67,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 67,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 73,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 73,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 74,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 74,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "priceup-misuriru",
+   "set": {
+    "startproba": 35,
+    "auto_start": true,
+    "group": "17"
+   },
+   "popular_raw": [
+    6
+   ],
+   "add_params": [
+    {
+     "item_no": 89,
+     "key": "price",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 89,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 98,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 98,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 68,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 68,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 75,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 75,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "priceup-oriharukon",
+   "set": {
+    "startproba": 25,
+    "auto_start": true,
+    "group": "18"
+   },
+   "popular_raw": [
+    7
+   ],
+   "add_params": [
+    {
+     "item_no": 90,
+     "key": "price",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 90,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 69,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 69,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 76,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 76,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "priceup-yakusou",
+   "set": {
+    "startproba": 200,
+    "auto_start": true
+   },
+   "popular_raw": [
+    1
+   ]
+  }
+ ],
+ "events": [
+  {
+   "code": "boom-fashion",
+   "group": "24",
+   "info": "ファッションが流行しています",
+   "startmsg": "ファッションブームがやってきました",
+   "endmsg": "ファッションブームが落ち着きました",
+   "startproba": 70,
+   "auto_start": true,
+   "basetime": 21600,
+   "plustime": 86400,
+   "params": [
+    {
+     "item_no": 67,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 68,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 69,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 70,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 81,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 82,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 83,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 84,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 85,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 86,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 87,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 108,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "boom-book",
+   "group": "25",
+   "info": "読書週間です",
+   "startmsg": "読書週間が始まりました",
+   "endmsg": "読書週間が終わりました",
+   "startproba": 70,
+   "auto_start": true,
+   "basetime": 21600,
+   "plustime": 86400,
+   "params": [
+    {
+     "item_no": 15,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 16,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 17,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 20,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 21,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 22,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 23,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 66,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 78,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 112,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 113,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "boom-milk",
+   "group": "26",
+   "info": "乳製品が人気です",
+   "startmsg": "乳製品ブームがやってきました",
+   "endmsg": "乳製品ブームが落ち着きました",
+   "startproba": 100,
+   "auto_start": true,
+   "basetime": 21600,
+   "plustime": 86400,
+   "params": [
+    {
+     "item_no": 26,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 26,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 35,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 35,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 36,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 36,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 107,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 107,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 110,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 110,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    },
+    {
+     "item_no": 111,
+     "key": "popular",
+     "op": "/",
+     "value": 1.5
+    },
+    {
+     "item_no": 111,
+     "key": "point",
+     "op": "*",
+     "value": 2
+    }
+   ]
+  },
+  {
+   "code": "boom-wood",
+   "group": "27",
+   "info": "木材の需要が高まっています",
+   "startmsg": "建築ラッシュで木材が求められています",
+   "endmsg": "建築ラッシュが落ち着きました",
+   "startproba": 70,
+   "auto_start": true,
+   "basetime": 21600,
+   "plustime": 86400,
+   "params": [
+    {
+     "item_no": 3,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 4,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 99,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    },
+    {
+     "item_no": 100,
+     "key": "popular",
+     "op": "/",
+     "value": 2
+    }
+   ]
+  },
+  {
+   "code": "plusdown-seni",
+   "group": "28",
+   "info": "市場への繊維草供給が止まっています",
+   "startmsg": "繊維草が不作のようです",
+   "endmsg": "繊維草の出回りが戻りました",
+   "startproba": 70,
+   "auto_start": true,
+   "basetime": 86400,
+   "plustime": 86400,
+   "params": [
+    {
+     "item_no": 96,
+     "key": "plus",
+     "op": "=",
+     "value": -1800
+    }
+   ]
+  },
+  {
+   "code": "plusup-import",
+   "group": "29",
+   "info": "砂糖と香辛料の流通量が増えています",
+   "startmsg": "交易船が入港しました",
+   "endmsg": "交易船が出港しました",
+   "startproba": 50,
+   "auto_start": true,
+   "basetime": 43200,
+   "plustime": 43200,
+   "params": [
+    {
+     "item_no": 103,
+     "key": "plus",
+     "op": "=",
+     "value": 600
+    },
+    {
+     "item_no": 104,
+     "key": "plus",
+     "op": "=",
+     "value": 600
+    }
+   ]
+  },
+  {
+   "code": "kill-acce",
+   "group": "30",
+   "info": "反アクセサリ運動が起こっています",
+   "startmsg": null,
+   "endmsg": "反アクセサリ運動が収まりました",
+   "startproba": -1,
+   "auto_start": false,
+   "basetime": 0,
+   "plustime": 0,
+   "params": [
+    {
+     "item_no": 67,
+     "key": "point",
+     "op": "=",
+     "value": 0
+    },
+    {
+     "item_no": 68,
+     "key": "point",
+     "op": "=",
+     "value": -100
+    },
+    {
+     "item_no": 69,
+     "key": "point",
+     "op": "=",
+     "value": -200
+    },
+    {
+     "item_no": 70,
+     "key": "point",
+     "op": "=",
+     "value": -400
+    },
+    {
+     "item_no": 81,
+     "key": "point",
+     "op": "=",
+     "value": -100
+    },
+    {
+     "item_no": 82,
+     "key": "point",
+     "op": "=",
+     "value": -200
+    },
+    {
+     "item_no": 83,
+     "key": "point",
+     "op": "=",
+     "value": -200
+    },
+    {
+     "item_no": 84,
+     "key": "point",
+     "op": "=",
+     "value": -200
+    },
+    {
+     "item_no": 85,
+     "key": "point",
+     "op": "=",
+     "value": -300
+    },
+    {
+     "item_no": 86,
+     "key": "point",
+     "op": "=",
+     "value": -300
+    },
+    {
+     "item_no": 87,
+     "key": "point",
+     "op": "=",
+     "value": -200
+    }
+   ]
+  }
+ ]
 }

@@ -36,7 +36,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.3\.0 2026-11-14 行動の書き方をわかりやすく/);
+    assert.match(text,/^# v0\.3\.0 2026-11-14 香りと乳菓の新商品・行動の書き方をわかりやすく/);
     assert.match(text,/^# v0\.2\.1 2026-11-13 混み合ったときの返事を改善/m);
     assert.match(text,/Retry-After/);
     assert.deepEqual(update.jobs.map((j) => j.job),['山師','武器屋','薬屋','道具屋']);
@@ -84,7 +84,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
-    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.0: 金庫からの引き出しは withdraw でも通り、棚の数は shelves で直接指定できます。欲しい品の「買い取り募集」(order / deliver、一覧 /api/v1/orders) も始めました。毎週日曜0時に、週1回がっつり遊ぶ用の時間クーポン48時間が配られます (いつ使っても可、繰り越し無し)。コツ集 /api/v1/tips も置きました (読むかは自由)。詳細は /updates');
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.0: 新しい品11種 (香水・エリクシル・ミノ・ジェラート・ロイヤルチーズケーキなど) と行き先3つ、イベントを追加。金庫からの引き出しは withdraw でも通り、棚の数は shelves で直接指定できます。欲しい品の「買い取り募集」(order / deliver、一覧 /api/v1/orders) も始めました。毎週日曜0時に、週1回がっつり遊ぶ用の時間クーポン48時間が配られます (いつ使っても可、繰り越し無し)。コツ集 /api/v1/tips も置きました (読むかは自由)。詳細は /updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
     assert.equal(dt.user._seen_version,'0.3.0');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
