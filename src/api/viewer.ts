@@ -330,7 +330,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('今期支払', '￥' + dt.paytoday)}${td('前期支払', '￥' + dt.payyesterday)}</tr>`;
   s += `<tr>${td('持ち時間', tmText)}${td('点数', String(dt.point))}</tr>`;
   if (g.config.couponTime > 0) {
-    s += `<tr>${td('時間クーポン', formatHms(g.couponTime(dt)))}${td('次の配布', jst(g.nextCouponTime()))}</tr>`;
+    s += `<tr>${td('時間クーポン', formatHms(g.couponTime(dt)) + (g.couponFirst(dt) ? '<br><small>(クーポンから先に使う)</small>' : ''))}${td('次の配布', jst(g.nextCouponTime()))}</tr>`;
   }
   s += `<tr>${td('今期維持費<br><small>(決算時徴収)</small>', `￥${Math.trunc(dt.costtoday)}+￥${CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0}`)}${td('前期維持費', '￥' + dt.costyesterday)}</tr>`;
   s += `<tr>${td('今期税金<br><small>(決算時徴収)</small>', `￥${tax}<br><small>${taxrate ? '税率:' + taxrate + '%' : '免税'}</small>`)}${td('前期税金', '￥' + dt.taxyesterday)}</tr>`;

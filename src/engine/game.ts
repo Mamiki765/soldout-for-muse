@@ -12,6 +12,8 @@ import type { Rng } from './rng.js';
 /** 時間クーポンの保存先 (Shop.user)。配られた週の開始時刻と残り秒 */
 export const COUPON_WEEK = '_coupon_week';
 export const COUPON_LEFT = '_coupon_left';
+/** '1' ならクーポンから先に使う */
+export const COUPON_FIRST = '_coupon_first';
 
 /** リクエスト中の商品。原作の @ITEM の要素。イベントでパラメータが変わり、計算用の一時値も持つ。 */
 export interface RtItem extends ItemDef {
@@ -153,7 +155,9 @@ export class Game {
 
   /**
    * 原作 UseTime: 持ち時間を tm 秒使う。
-   * この移植では週1の時間クーポンから先に使い、足りない分を持ち時間から使う。
+   * この移植では週1の時間クーポンも使える。ふだんは持ち時間から先に使い、足りない分をクーポンから使う
+   * (持ち時間がマイナスの待ち中でも、クーポンが残っていれば動ける)。
+   * 店ごとの切り替え (couponFirst) を入れていれば、クーポンから先に使う (案: リカさん・ミュートより 0.3.1)。
    * 戻り値はクーポンから使った秒数。
    */
   useTime(tm: number, user = true): number {
@@ -163,7 +167,9 @@ export class Game {
     if (tmp > this.config.maxStockTime) dt.time = this.now - this.config.maxStockTime;
     const coupon = this.couponTime(dt);
     if (tmp < 0 && user && coupon <= 0) throw new GameError('時間待ちでしょ？ (持ち時間が足りません。時間は実際の時間と同じ速さで回復します)');
-    const fromCoupon = Math.max(0, Math.min(coupon, tm));
+    const stock = Math.max(0, this.now - dt.time);
+    const want = this.couponFirst(dt) ? tm : tm - stock;
+    const fromCoupon = Math.max(0, Math.min(coupon, want));
     if (this.config.couponTime > 0) {
       dt.user[COUPON_WEEK] = String(this.couponWeekStart());
       dt.user[COUPON_LEFT] = String(coupon - fromCoupon);
@@ -185,6 +191,16 @@ export class Game {
     }
   }
 
+  /** クーポンから先に使う設定か (店ごと。既定は持ち時間から先) */
+  couponFirst(dt: Shop): boolean {
+    return dt.user[COUPON_FIRST] === '1';
+  }
+
+  setCouponFirst(dt: Shop, on: boolean): void {
+    if (on) dt.user[COUPON_FIRST] = '1';
+    else delete dt.user[COUPON_FIRST];
+  }
+
   /** 原作 GetStockTime: 持ち時間 (秒)。クーポンは含まない */
   stockTime(dt: Shop): number {
     const tmp = this.now - dt.time;
@@ -201,7 +217,7 @@ export class Game {
 
   /**
    * 行動に使える時間 = クーポン残り + 持ち時間 (秒)。
-   * 持ち時間がマイナス (待ち中) のときは 0 として数える。useTime はクーポンから先に払うので、
+   * 持ち時間がマイナス (待ち中) のときは 0 として数える。useTime は待ち中ならクーポンから払うので、
    * 待ち中でもクーポンの分は使える (マイナス分がクーポンを食うことはない)。
    */
   usableTime(dt: Shop): number {

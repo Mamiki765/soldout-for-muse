@@ -85,7 +85,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
-    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.1: 説明とエラー文を直しました (納品は1セット8種類まで、use が0回で終わったら NG、など)。遊び方・数値は変わりません。詳細は GET /api/v1/updates');
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.1: 時間クーポンは持ち時間から先に使うようになりました (まとまった時間用に取っておけます)。クーポンから先に使うには {"type":"coupon","first":true}。説明とエラー文も直しました (納品は1セット8種類まで、use が0回で終わったら NG、など)。詳細は GET /api/v1/updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
     assert.equal(dt.user._seen_version,'0.3.1');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知

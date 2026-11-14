@@ -25,10 +25,12 @@ function game(world: World, now: number, config: GameConfig = DEFAULT_CONFIG): G
   return new Game(world, config, seededRng(1), now);
 }
 
-function setup(now = WED) {
+/** first=true でクーポン優先にした店を作る (下の多くのテストはクーポン優先の動きを見る) */
+function setup(now = WED, first = true) {
   const world = newWorld(now, MAX_ITEM);
   const g = game(world, now);
   const dt = openShop(g, { name: 'alice', shopname: 'アリス商店' });
+  g.setCouponFirst(dt, first);
   return { world, g, dt };
 }
 
@@ -37,6 +39,34 @@ function use(g: Game, id: number, sec: number) {
   g.dt = g.world.shops.find((s) => s.id === id)!;
   g.useTime(sec);
 }
+
+test('既定は持ち時間から先に使い、足りない分をクーポンから使う', () => {
+  const { g, dt } = setup(WED, false);
+  assert.equal(g.couponFirst(dt), false);
+  dt.time = g.now - 10 * H; // 持ち時間 10h
+  use(g, dt.id, 4 * H);
+  assert.equal(g.couponTime(dt), 48 * H, 'クーポンは減らない');
+  assert.equal(g.stockTime(dt), 6 * H);
+  use(g, dt.id, 8 * H);
+  assert.equal(g.stockTime(dt), 0, '持ち時間を使い切る');
+  assert.equal(g.couponTime(dt), 46 * H, '足りない2hだけクーポンから');
+});
+
+test('既定: 持ち時間が満タン (48h上限で止まっている) でも、まず持ち時間から使う', () => {
+  const { g, dt } = setup(WED, false);
+  dt.time = g.now - 60 * H; // 上限を超えてたまっていた扱い → 48h
+  use(g, dt.id, 6 * H);
+  assert.equal(g.stockTime(dt), 42 * H);
+  assert.equal(g.couponTime(dt), 48 * H);
+});
+
+test('既定: 持ち時間がマイナス (待ち中) でもクーポンで動ける', () => {
+  const { g, dt } = setup(WED, false);
+  dt.time = g.now + H;
+  use(g, dt.id, 3 * H);
+  assert.equal(g.couponTime(dt), 45 * H);
+  assert.equal(g.now - dt.time, -H, 'マイナス分は増えない');
+});
 
 test('配布時刻は日曜0時 (日本時間)、次は7日後', () => {
   const { g } = setup();
@@ -49,7 +79,7 @@ test('配布時刻は日曜0時 (日本時間)、次は7日後', () => {
   assert.equal(jst.getUTCHours(), 0);
 });
 
-test('新しい店は48時間のクーポンを持っていて、クーポンから先に使う', () => {
+test('新しい店は48時間のクーポンを持っていて、クーポン優先ならクーポンから先に使う', () => {
   const { g, dt } = setup();
   const time0 = dt.time;
   assert.equal(g.couponTime(dt), 48 * H);
@@ -58,7 +88,7 @@ test('新しい店は48時間のクーポンを持っていて、クーポンか
   assert.equal(dt.time, time0, '持ち時間は減らない');
 });
 
-test('クーポンが足りない分は持ち時間から使う', () => {
+test('クーポン優先: クーポンが足りない分は持ち時間から使う', () => {
   const { g, dt } = setup();
   const stock0 = g.stockTime(dt);
   use(g, dt.id, 50 * H);
@@ -122,10 +152,16 @@ test('digest と me にクーポンが出る', () => {
   const d = digestData(g, dt, { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 });
   assert.equal(d.coupon, 18 * H);
   assert.equal(d.coupon_reset, SUN);
-  assert.match(digestText(d), / 券18h00m /);
+  assert.match(digestText(d), / 券18h00m\(優先\) /);
   const me = meData(g, dt);
   assert.equal(me.coupon, 18 * H);
   assert.equal(me.coupon_max, 48 * H);
+  assert.equal(me.coupon_first, true);
+  g.setCouponFirst(dt, false);
+  const d2 = digestData(g, dt, { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 });
+  assert.equal(d2.coupon_first, false);
+  assert.match(digestText(d2), / 券18h00m /);
+  assert.equal(dt.user._coupon_first, undefined, '既定に戻すと印も消える');
 });
 
 test('買い取り募集が1個も届かずに締まったら、クーポンで払った分はクーポンへ戻る (週が変わっていれば戻らない)', () => {

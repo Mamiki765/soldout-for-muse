@@ -727,6 +727,14 @@ export class App {
         return [ord.cancelOrder(g, dt, n('order'))];
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
+      case 'coupon': {
+        // 時間クーポンを使う順番の切り替え (0.3.1)。時間はかからない
+        const x = a.first;
+        if (x === undefined || x === null || x === '') throw new GameError('first を true (クーポンから先に使う) か false (持ち時間から先に使う) で指定してください');
+        const on = isYes(x);
+        g.setCouponFirst(dt, on);
+        return [on ? 'クーポンから先に使います (足りない分は持ち時間から)' : '持ち時間から先に使います (足りない分はクーポンから)'];
+      }
       case 'rename':
         return [act.renameShop(g, dt, s('shopname'))];
       case 'close':
@@ -736,7 +744,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order coupon comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }
