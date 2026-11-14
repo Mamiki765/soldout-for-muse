@@ -1,0 +1,11 @@
+{
+  "version": "0.3.0",
+  "job_bonus_add": [
+    {"book": 16, "use": 0, "job": "tool", "note": "革の盾 (防具屋のボーナスは残す)"},
+    {"book": 16, "use": 1, "job": "tool", "note": "革の胸当て"},
+    {"book": 17, "use": 0, "job": "tool", "note": "木刀 (武器屋のボーナスは残す)"},
+    {"book": 17, "use": 1, "job": "tool", "note": "木の杖"},
+    {"book": 17, "use": 2, "job": "tool", "note": "木の盾 (防具屋のボーナスは残す)"},
+    {"book": 17, "use": 3, "job": "tool", "note": "木の胸当て"}
+  ]
+}

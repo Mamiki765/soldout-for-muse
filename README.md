@@ -61,7 +61,7 @@ docker compose up -d                             # この起動時刻から7日�
 
 ## 街の設定
 
-- 商品データは原作の `makeitem.cgi` の解析処理と Muse の追加定義 (`tools/fashion-v020.json`) で作った JSON (`src/data/items.json`) です。作り直すときは `npm run items` (Perl が必要)。原作配布物は変更せず、`perl tools/dump-items.pl normal --original` で原作79種との比較もできます。
+- 商品データは原作の `makeitem.cgi` の解析処理と Muse の追加定義 (`tools/fashion-v020.json`、`tools/v030.json`) で作った JSON (`src/data/items.json`) です。作り直すときは `npm run items` (Perl が必要)。原作配布物は変更せず、`perl tools/dump-items.pl normal --original` で原作79種との比較もできます。
 - 街のタイプは `package.json` の `items` スクリプトの引数で選びます (`normal` / `timehalf` など)。
 - 決算の間隔・店の上限 (100) などは `src/config.ts` にあります。
 

@@ -193,6 +193,35 @@ test('ランキングに職業と「○専門店」を出す (原作 inc-html-ra
   assert.equal(rankingData(g)[0].job, '山師(探鉱夫)');
   a.exp[itemNoByName('近くの山への地図')] = 500;
   assert.equal(rankingData(g)[0].job, '山師(木こり)');
+  // ほかの職業も転職先で呼び分ける。いちばん高いものが並んだら職業名だけ
+  a.job = 'tool';
+  assert.equal(rankingData(g)[0].job, '道具屋');
+  a.exp[itemNoByName('木工細工入門')] = 200;
+  assert.equal(rankingData(g)[0].job, '道具屋(木工)');
+  a.exp[itemNoByName('装飾細工入門')] = 200;
+  assert.equal(rankingData(g)[0].job, '道具屋', '並んだら括弧なし');
+  a.exp[itemNoByName('革細工入門')] = 600;
+  assert.equal(rankingData(g)[0].job, '道具屋(革細工)');
+  a.job = 'weapon';
+  a.exp[itemNoByName('杖の作り方')] = 100;
+  assert.equal(rankingData(g)[0].job, '武器屋(杖)');
+  a.job = 'armor';
+  a.exp[itemNoByName('盾の作り方')] = 100;
+  assert.equal(rankingData(g)[0].job, '防具屋(盾)');
+  a.job = 'drug';
+  assert.equal(rankingData(g)[0].job, '薬屋');
+});
+
+test('v0.3.0: 革細工入門・木工細工入門の原作レシピは道具屋にも職業ボーナス (元のボーナスも残す)', () => {
+  const want: [string, number, string][] = [
+    ['革細工入門', 0, 'armor'], ['革細工入門', 1, 'armor'],
+    ['木工細工入門', 0, 'weapon'], ['木工細工入門', 1, 'weapon'],
+    ['木工細工入門', 2, 'armor'], ['木工細工入門', 3, 'armor'],
+  ];
+  for (const [book, use, old] of want) {
+    const jobs = BASE_ITEMS[itemNoByName(book)].uses[use].jobs.map((j) => j.job).sort();
+    assert.deepEqual(jobs, [old, 'tool'].sort(), `${book} ${use}`);
+  }
 });
 
 test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リカさんより)', () => {

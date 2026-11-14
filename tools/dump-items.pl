@@ -199,6 +199,18 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		push @{ $book->{uses} }, $u;
 	}
 	$define{version} = $fashion->{version};
+
+	# Muse v0.3.0 の差分: 革細工入門・木工細工入門の原作レシピは防具屋・武器屋にだけ職業ボーナスが付き、
+	# 本の転職先 (革細工屋・木工細工屋 = 道具屋) には付かなかった。道具屋にも付ける (元のボーナスは残す)。
+	open(my $v030_fh, '<:raw', "$FindBin::Bin/v030.json") or die $!;
+	my $v030 = JSON::PP->new->utf8->decode(do { local $/; <$v030_fh> });
+	close $v030_fh;
+	for my $add (@{ $v030->{job_bonus_add} }) {
+		my $u = $by_no{$add->{book}}{uses}[$add->{use}] or die "v0.3.0: unknown use $add->{book}/$add->{use}";
+		die "v0.3.0: duplicate job bonus $add->{book}/$add->{use}" if grep { $_->{job} eq $add->{job} } @{ $u->{jobs} };
+		push @{ $u->{jobs} }, { job => $add->{job}, key => 'times', op => '/', value => 2 };
+	}
+	$define{version} = $v030->{version};
 }
 
 binmode STDOUT, ':raw';
