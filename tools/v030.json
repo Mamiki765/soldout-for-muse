@@ -436,6 +436,7 @@
   {
    "book": 14,
    "name": "港町で買い付け",
+   "lostbook": "150",
    "needexp": 200,
    "products": [
     [
@@ -454,6 +455,7 @@
   {
    "book": 14,
    "name": "隊商と取引する",
+   "lostbook": "150",
    "needexp": 400,
    "products": [
     [

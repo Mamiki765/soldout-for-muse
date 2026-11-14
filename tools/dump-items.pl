@@ -261,7 +261,7 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$u->{exptime} = 5400;
 		$u->{exp} = 10;
 		$u->{func} = 'lostbook';
-		$u->{params} = ['100', undef, undef, undef];
+		$u->{params} = [$spec->{lostbook} // '100', undef, undef, undef];
 		$u->{get} = $lines->($spec->{products}, 1000);
 	}
 
