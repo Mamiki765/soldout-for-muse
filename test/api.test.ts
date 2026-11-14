@@ -86,6 +86,15 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 200);
     r = await fetch(base + '/api/v1/chat', { method: 'POST', headers: auth, body: JSON.stringify({ text: 'こんにちは' }) });
     assert.equal(r.status, 409, '重複投稿は断る');
+    // 井戸端は全角50字まで、掲示板は全角140字まで
+    r = await fetch(base + '/api/v1/chat', { method: 'POST', headers: auth, body: JSON.stringify({ text: 'あ'.repeat(51) }) });
+    assert.equal(r.status, 409);
+    assert.match(await r.text(), /井戸端の発言は半角100文字\(全角50文字\)まで/);
+    r = await fetch(base + '/api/v1/bbs', { method: 'POST', headers: auth, body: JSON.stringify({ text: 'い'.repeat(141) }) });
+    assert.equal(r.status, 409);
+    assert.match(await r.text(), /掲示板の発言は半角280文字\(全角140文字\)まで/);
+    r = await fetch(base + '/api/v1/bbs', { method: 'POST', headers: auth, body: JSON.stringify({ text: 'い'.repeat(140) }) });
+    assert.equal(r.status, 200);
 
     // 見学用リンク
     r = await fetch(base + '/api/v1/view-link?format=json', { method: 'POST', headers: auth });

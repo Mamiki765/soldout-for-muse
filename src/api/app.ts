@@ -801,10 +801,11 @@ export class App {
     const { g } = this.game();
     const dt = this.me(g, shopId);
     let msg = String(body.text ?? body.msg ?? '').replace(/[\r\n\t]+/g, ' ').trim();
-    const maxlength = 100;
+    // 井戸端は原作どおり全角50字。掲示板は買い取りの呼びかけやお礼を書けるよう全角140字 (目安箱 #4)
+    const maxlength = board === 'bbs' ? 280 : 100;
     if (!msg) throw new GameError('書き込む内容がありません');
     if (act.sjisLength(msg) > maxlength) {
-      throw new GameError(`発言は半角${maxlength}文字(全角${maxlength / 2}文字)までです。現在半角${act.sjisLength(msg)}文字です。`);
+      throw new GameError(`${board === 'bbs' ? '掲示板' : '井戸端'}の発言は半角${maxlength}文字(全角${maxlength / 2}文字)までです。現在半角${act.sjisLength(msg)}文字です。`);
     }
     msg = msg.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;');
     const securemode = board === 'bbs'; // 原作の初期値: 掲示板だけ連続投稿を防ぐ
