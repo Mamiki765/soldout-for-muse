@@ -89,7 +89,8 @@ export function checkWholeStore(g: Game): void {
     if (!item?.code) continue;
     let limit = 0;
     for (const dt of g.shops) limit += dt.item[cnt - 1];
-    // 郵便で送付中の商品も数えるが、この移植では郵便は未実装
+    // 原作は郵便で送付中の商品も数える。この移植では郵便は未実装で、代わりに買い取り募集で預かり中の品を数える
+    for (const o of g.world.orders ?? []) if (o.item === cnt) limit += o.count - o.left;
     const limitcount = item.wslimit < 0 ? -item.wslimit : Math.trunc(item.wslimit * shopcount + 0.99);
     if (limit + g.world.wholestore[cnt - 1] > limitcount) {
       if (limitcount < limit) limit = limitcount;

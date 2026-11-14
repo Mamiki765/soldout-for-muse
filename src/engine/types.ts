@@ -93,6 +93,45 @@ export interface World {
   shops: Shop[];
   /** 前回の決算のときの出来事 (原作 period.cgi)。古い順 */
   periodLog: LogEntry[];
+  /** 買い取り募集 (原作にない追加。古い保存データには無い) */
+  orders?: BuyOrder[];
+  /** 最後に付けた募集の番号 */
+  orderSeq?: number;
+  /** 募集・納品の今日の回数 (決算で空になる) */
+  orderStats?: OrderStats;
+}
+
+/** 買い取り募集 1 件 (engine/orders.ts) */
+export interface BuyOrder {
+  id: number;
+  /** 募集した店 */
+  shop: number;
+  item: number;
+  /** 単価 */
+  price: number;
+  /** 募集した数 */
+  count: number;
+  /** まだ届いていない数 */
+  left: number;
+  /** 1回の納品の最低数 (0 なら指定なし) */
+  min: number;
+  /** 預り金の残り (円) */
+  escrow: number;
+  /** 募集のときに先に払った取引時間 (秒) */
+  time: number;
+  created: number;
+  expires: number;
+}
+
+export interface OrderStats {
+  /** 決算の区切りの番号 */
+  period: number;
+  /** 店id → 今日出した募集の数 */
+  posted: Record<string, number>;
+  /** 店id → 今日応じた募集の数 */
+  filled: Record<string, number>;
+  /** "売り手>買い手" → 今日納品したか */
+  pairs: Record<string, number>;
 }
 
 export function newShop(id: number, maxItem: number): Shop {
