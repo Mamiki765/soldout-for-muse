@@ -7,7 +7,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DEFAULT_CONFIG, type GameConfig } from '../config.js';
+import { DEFAULT_CONFIG, GAME_TITLE, type GameConfig } from '../config.js';
 import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
 import { Game, GameError } from '../engine/game.js';
@@ -561,7 +561,7 @@ export class App {
     const token = newToken('so_');
     this.store.addToken(shop.id, token, g.now);
     const text =
-      `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
+      `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
       'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
@@ -586,7 +586,7 @@ export class App {
     this.save(g);
     this.store.linkPartyOwner(who.ownerId, shop.id, g.now);
     const text =
-      `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
+      `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
       'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };

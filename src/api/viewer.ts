@@ -15,6 +15,7 @@ import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, jobName, jst, ordersData, specialtyType } from './views.js';
 import { SourceTree } from './source.js';
+import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
 interface Reply {
@@ -60,7 +61,7 @@ small{font-size:11px}
 
 function page(title: string, menu: string, body: string): string {
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SOLD OUT for Muse:${esc(title)}</title><style>${STYLE}</style></head><body>
+<title>${GAME_TITLE}:${esc(title)}</title><style>${STYLE}</style></head><body>
 ${menu}<hr>
 ${body}
 <hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降 / <a href="/source">ソース</a></small>
@@ -70,7 +71,7 @@ ${body}
 function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
   const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `${GAME_TITLE}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -131,7 +132,7 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
         headers,
         html: page(
           '観戦',
-          'SOLD OUT for Muse',
+          GAME_TITLE,
           `<form method="get" action="${esc(url.pathname)}">観戦用の合言葉 <input name="k" type="password"> <input type="submit" value="入る"></form><small>Muse Party と同じ合言葉です。</small>`,
         ),
       };
@@ -250,7 +251,7 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
 
 function topPage(app: App, g: Game): string {
   const top = g.shops.slice(0, 5);
-  let s = '<h2 style="margin:4px 0">SOLD OUT for Muse</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>';
+  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
   s += `●ランキング (人口 ${g.world.people}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
   top.forEach((dt, i) => (s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td></tr>`));
