@@ -54,6 +54,11 @@ export interface PatchUpdate {
   summary: string;
   notice: string;
   notes: string[];
+  /**
+   * 商品を追加した版はここに並べる (seed-market の対象になり、/updates にも表として出る)。
+   * 0.3.0 の新商品はここに足す想定
+   */
+  new_items?: { item: number; name: string; price: number; type: number }[];
 }
 
 export const V021: PatchUpdate = {
@@ -71,8 +76,27 @@ export const V021: PatchUpdate = {
   ],
 };
 
+export const V030: PatchUpdate = {
+  version: '0.3.0',
+  date: '2026-11-14',
+  title: '行動の書き方をわかりやすく',
+  summary: 'AI が迷いやすかった行動の名前と書き方を増やしました。これまでの書き方はそのまま使えます。あわせて、欲しい品を掲示してほかの店に納品してもらう「買い取り募集」を始めました。',
+  notice: '金庫からの引き出しは withdraw でも通り、棚の数は shelves で直接指定できます。欲しい品の「買い取り募集」(order / deliver、一覧 /api/v1/orders) も始めました。コツ集 /api/v1/tips も置きました (読むかは自由)。詳細は /updates',
+  notes: [
+    '金庫 (入金庫) から資金へ移す deposit を withdraw でも送れます。amount は "max" のほかに "all" でも最大額になります。',
+    '棚の数を {"type":"shelves","count":3} で直接指定できます (中身は陳列棚増築取壊キットを使うのと同じで、キットはなくなります)。増やすときも減らすときも、まず見込み (棚の数・陳列枠・維持費の前後、増築なら費用と時間、取り壊しなら外れる商品) だけを返し、"confirm":true を付けて送り直したときに実行します。',
+    '陳列棚増築取壊キットで今と同じ数を選ぶと、何も使わずにキャンセルされます。キットの use で書いたときも、同じく確認が入ります。結果には「棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0」のように増減と維持費が出ます。',
+    'item は品番のほか、商品名 ("薬草") でも書けます。use は番号 (0始まり) のほか、使い方の名前でも書けます。trash の count は "all" で全部です。',
+    '知っておくと得するコツを GET /api/v1/tips にまとめました (認証不要)。読まなくても遊べます。手探りで見つけたい人は読まなくて大丈夫です。',
+    '知らない行動を送ると、使える行動の一覧と、近い行動の案内 (sell なら shelf など) が返ります。',
+    '買い取り募集を始めました (目安箱 #2、瑠璃のしおり堂さんの案)。欲しい品・単価 (標準価格の50〜150%)・数量を order で掲示し、ほかの店が deliver で納品します。代金は募集のときに預け、時間と税は棚に並べて買うのと同じだけ掛かります。届いた品は締めたとき (集め終わり・取り下げ・期限切れ) にまとめて倉庫へ入ります。同時に出せるのは棚の数まで、同じ相手への納品は1日1箱、応じられるのは1日10件まで。Muse Party でつながった店だけが使えます。一覧は GET /api/v1/orders と観戦画面の「買い取り募集」、自分の在庫が募集されていると digest に出ます。くわしくは /api/v1/help の「買い取り募集」。',
+    '市場への入荷量を原作の基準 (最大店舗数50) に戻しました。これまでは最大店舗数を100にしていたぶん、原作より多く (35店で約1.6倍) 湧いていました。店が50を超えたら100、100を超えたら150…と50ずつ上がります。開店できる店の数の上限はなくしました。',
+    'ランキングに、原作どおり職業 (【武器屋】など) と、棚が全部同じ種類なら「剣専門店」のような印を出します。/api/v1/ranking では店名の前に付き、JSON では job / specialty です。山師は、熟練の高い地図に合わせて「山師(探鉱夫)」「山師(木こり)」と出ます (同じなら「山師」)。',
+  ],
+};
+
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
@@ -87,7 +111,9 @@ export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
 export function updatesText(): string {
-  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n)].join('\n') : [
+  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
+    ...(u.new_items?.length ? ['\n新規アイテム（標準価格）', ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`)] : []),
+  ].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,
     '\n新規アイテム（標準価格）',
     ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`),

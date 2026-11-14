@@ -8,16 +8,17 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_CONFIG, type GameConfig } from '../config.js';
-import { MAX_ITEM } from '../data/catalog.js';
+import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
-import { useItemAction, useResultMessages } from '../engine/use.js';
+import { loadUses, useItemAction, useResultMessages } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
+import { TIPS } from '../tips.js';
 import { renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
@@ -416,6 +417,7 @@ export class App {
     const p = path.slice('/api/v1'.length);
 
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
+    if (method === 'GET' && p === '/tips') return { status: 200, text: TIPS, json: { tips: TIPS } };
     if (method === 'GET' && p === '/updates') {
       return { status: 200, text: updatesText(), json: { version: APP_VERSION, updates: UPDATES } };
     }
@@ -562,7 +564,7 @@ export class App {
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
-      'まず GET /api/v1/help を読んでください。\n';
+      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
   }
 
@@ -586,7 +588,7 @@ export class App {
     const text =
       `OK ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
-      'まず GET /api/v1/help を読んでください。\n';
+      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
   }
 
@@ -597,7 +599,7 @@ export class App {
     const list = Array.isArray(body.actions) ? body.actions : [body];
     if (!list.length) throw new HttpError(400, 'actions が空です');
     if (list.length > 20) throw new HttpError(400, '1回に送れる行動は20件までです');
-    const results: { ok: boolean; type: string; msg: string[] }[] = [];
+    const results: { ok: boolean; type: string; msg: string[]; confirm_with?: Record<string, unknown> }[] = [];
     for (const raw of list) {
       const a = (raw ?? {}) as Record<string, unknown>;
       const type = String(a.type ?? '');
@@ -605,7 +607,11 @@ export class App {
         const msg = this.runAction(shopId, (g, dt) => this.doAction(g, dt, type, a));
         results.push({ ok: true, type, msg });
       } catch (e) {
-        if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
+        if (e instanceof GameError && e.message.startsWith('確認:')) {
+          // 確認待ち: そのまま送り直せる形を添える (confirm の書き方の揺れを防ぐ)
+          const retry = { ...a, confirm: true };
+          results.push({ ok: false, type, msg: [e.message, '送り直し: ' + JSON.stringify(retry)], confirm_with: retry });
+        } else if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
         else throw e;
         if (a.stop_on_error !== false && body.stop_on_error === true) break;
       }
@@ -630,7 +636,7 @@ export class App {
     if (this.party && !this.store.isPartyShop(dt.id)) throw new GameError('買い取り募集は Muse Party でつながったお店だけが使えます');
   }
 
-  private doAction(g: Game, dt: Shop, type: string, a: Record<string, unknown>): string[] {
+  private doAction(g: Game, dt: Shop, typeIn: string, a: Record<string, unknown>): string[] {
     const n = (k: string, d?: number): number => {
       const x = a[k];
       if (x === undefined || x === null || x === '') {
@@ -643,29 +649,60 @@ export class App {
     };
     const opt = (k: string): number | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : n(k));
     const s = (k: string): string => String(a[k] ?? '');
+    /** 品番。商品名 ("薬草") でも書ける (0.3.0) */
+    const item = (k: string, d?: number): number => {
+      const x = a[k];
+      if (typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x))) return itemByName(x.trim());
+      return n(k, d);
+    };
+    /** "max" / "all" を「いま持っている数」として読む (0.3.0) */
+    const isAll = (k: string): boolean => a[k] === 'max' || a[k] === 'all';
+    const type = ACTION_ALIASES[typeIn] ?? typeIn;
     switch (type) {
       case 'buy':
-        return [act.buy(g, dt, { from: n('from', 0), itemno: n('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price') })];
+        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price') })];
       case 'shelf':
       case 'showcase':
-        return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: n('item', 0), price: opt('price'), percent: opt('percent') })];
+        return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
       case 'use': {
-        const u = useItemAction(g, dt, n('item'), n('use', 0), {
+        const itemno = item('item');
+        // 使い方は番号 (0始まり) か、使い方の名前 ("陳列棚を3つにする") で書ける (0.3.0)
+        let useNo: number;
+        if (typeof a.use === 'string' && a.use.trim() !== '' && !Number.isFinite(Number(a.use))) {
+          const name = a.use.trim();
+          const found = loadUses(g, itemno).find((x) => x.name === name);
+          if (!found) throw new GameError(`使い方「${name}」はありません。GET /api/v1/items/${itemno} の「使い方」を見てください`);
+          useNo = found.no;
+        } else useNo = n('use', 0);
+        const u = useItemAction(g, dt, itemno, useNo, {
           count: n('count', 1),
           target: opt('target'),
           message: s('message'),
+          confirm: isYes(a.confirm),
         });
         return useResultMessages(g, dt, u);
       }
+      case 'shelves': {
+        // 棚の数を直接指定する (0.3.0)。中身は陳列棚増築取壊キットの use と同じ
+        const count = n('count');
+        const kit = itemNoByName('陳列棚増築取壊キット');
+        const found = loadUses(g, kit).find((x) => Number(x.params[0]) === count);
+        if (!found) throw new GameError(`棚は1〜${loadUses(g, kit).length}個の範囲で指定してください`);
+        if (!dt.item[kit - 1]) throw new GameError('陳列棚増築取壊キットを持っていません (使うとなくなります。市場で仕入れられます)');
+        const u = useItemAction(g, dt, kit, found.no, { count: 1, confirm: isYes(a.confirm) });
+        return useResultMessages(g, dt, u);
+      }
       case 'deposit': {
-        const amount = a.amount === 'max' ? act.maxDeposit(g, dt) : n('amount');
+        const amount = isAll('amount') ? act.maxDeposit(g, dt) : n('amount');
         return [act.deposit(g, dt, amount)];
       }
-      case 'trash':
-        return [act.trash(g, dt, n('item'), n('count'))];
+      case 'trash': {
+        const itemno = item('item');
+        return [act.trash(g, dt, itemno, isAll('count') ? (dt.item[itemno - 1] ?? 0) : n('count'))];
+      }
       case 'order': {
         this.requireParty(dt);
-        const o = ord.createOrder(g, dt, { itemno: n('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min') });
+        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min') });
         return [`募集#${o.id}を出しました`];
       }
       case 'deliver': {
@@ -695,8 +732,13 @@ export class App {
       case 'close':
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];
-      default:
-        throw new GameError('知らない行動です: ' + type);
+      default: {
+        const hint = ACTION_HINTS[typeIn];
+        throw new GameError(
+          '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order comment rename close。くわしくは GET /api/v1/help',
+        );
+      }
     }
   }
 
@@ -860,7 +902,7 @@ export class App {
       const top = g.shops.slice(0, 5).map((s, i) => `${i + 1}位 ${s.shopname} 点${s.point}`);
       const d = {
         shops: g.shops.length,
-        max_shops: this.config.maxUser,
+        max_shops: this.config.maxUser || null,
         people: this.world.people,
         events: g.eventMessages,
         next_period: g.nextPeriodTime(),
@@ -870,7 +912,7 @@ export class App {
         invite: !!this.store.getSetting('invite_hash'),
       };
       const text =
-        `店${d.shops}/${d.max_shops} 人口${d.people} 次の決算${v.jst(d.next_period)} 最後の計算${v.jst(d.last_turn)}\n` +
+        `店${d.shops}${d.max_shops ? '/' + d.max_shops : ''} 人口${d.people} 次の決算${v.jst(d.next_period)} 最後の計算${v.jst(d.last_turn)}\n` +
         `目安箱 ${Object.entries(counts).map(([k, n]) => `${k}${n}`).join(' ') || 'なし'} | Party連携${d.party ? 'あり' : 'なし'} 招待コード${d.invite ? 'あり' : 'なし'}\n` +
         (d.events.length ? 'イベント ' + d.events.join('/') + '\n' : '') +
         (top.length ? top.join(' / ') + '\n' : '');
@@ -903,6 +945,44 @@ export class App {
   async loadHelp(path: string): Promise<void> {
     (this as { helpText: string }).helpText = await readFile(path, 'utf8');
   }
+}
+
+/** AI が思いつきやすい別名 → 正式な type (0.3.0)。正式な名前はそのまま使える */
+const ACTION_ALIASES: Record<string, string> = {
+  withdraw: 'deposit',
+  discard: 'trash',
+  dispose: 'trash',
+  display: 'shelf',
+};
+
+/** 別名にはしないが、送られがちな名前への案内 */
+const ACTION_HINTS: Record<string, string> = {
+  sell: '売るには shelf で棚に並べます。お客が買っていきます',
+  price: '値段は shelf の price か percent で付けます',
+  craft: '作るのは use です。GET /api/v1/items/品番 で使い方を見られます',
+  make: '作るのは use です。GET /api/v1/items/品番 で使い方を見られます',
+  build: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
+  expand: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
+  request: '欲しい品の買い取り募集は order です (例 {"type":"order","item":2,"price":120,"count":300})',
+  want: '欲しい品の買い取り募集は order です (例 {"type":"order","item":2,"price":120,"count":300})',
+  fill: '募集への納品は deliver です (GET /api/v1/orders で募集を見られます)',
+  cancel: '募集の取り下げは cancel_order です',
+};
+
+/** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */
+function isYes(x: unknown): boolean {
+  if (x === true || x === 1) return true;
+  if (typeof x !== 'string') return false;
+  return ['true', '1', 'yes', 'y', 'ok', 'confirm', 'はい'].includes(x.trim().toLowerCase());
+}
+
+/** 商品名 (または商品コード) から品番 */
+function itemByName(name: string): number {
+  for (let no = 1; no <= MAX_ITEM; no++) {
+    const it = BASE_ITEMS[no];
+    if (it && (it.name === name || it.code === name)) return no;
+  }
+  throw new GameError(`「${name}」という商品はありません。品番か、GET /api/v1/items の名前で書いてください`);
 }
 
 function clampNum(s: string | null, min: number, max: number, d: number): number {

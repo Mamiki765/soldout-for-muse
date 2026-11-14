@@ -212,7 +212,7 @@ export function turnProc(g: Game): void {
         // 原作の $#DT は「店舗数-1」
         add =
           ((timespan / Math.abs(item.plus)) * w.people) /
-          (100000 / ((cfg.maxUser + (g.shops.length - 1) - 1) * 0.2 + 1));
+          (100000 / ((g.marketUsers() + (g.shops.length - 1) - 1) * 0.2 + 1));
         if (add > 0) add = add / 2 + g.rand(add / 2);
         else add = 0;
         if (add < 1 && add > 0) {
