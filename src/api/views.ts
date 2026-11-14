@@ -9,7 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import type { Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
-import { ORDER_RULES, orderStats, orderView, orders } from '../engine/orders.js';
+import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
 /** 秒を「18h05m」のような短い形にする */
@@ -454,6 +454,7 @@ export function ordersText(d: ReturnType<typeof ordersData>): string {
       (o.have ? ` 在庫${o.have}` : ''),
   );
   if (!lines.length) lines.push('募集はありません');
+  lines.unshift(ORDER_RULES_LINE);
   if (d.today) {
     const t = d.today;
     lines.push(

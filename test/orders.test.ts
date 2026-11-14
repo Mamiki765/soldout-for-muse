@@ -122,7 +122,7 @@ test('制限: 単価・期限・同時件数・同じ相手1日1箱 (逆向き�
   assert.equal(msgs.length, 2);
   assert.equal(world.orders!.find((o) => o.id === o2.id), undefined, '集め終わった募集は消える');
   // 同じ相手へ2箱目は不可
-  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /今日はもう/);
+  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /1日1箱/);
   // 別の店からは納品できる
   act(world, other, T0 + 4, (g) => deliver(g, g.shopById(other.id)!, buyer.id, [{ order: o1.id, count: 5 }]));
   // 逆向き (買い手→売り手) は別に1箱
@@ -314,4 +314,12 @@ test('部分納品済みの募集が区間の途中で期限切れになって�
   assert.equal(r.leather, 299, '届いた分を受け取っている');
   // 3時間の預かり中 + 23時間の倉庫 = 26時間ぶん、299枚 × 30/日
   assert.ok(Math.abs(r.cost - base.cost - (299 * 30 * 26) / 24) < 1, `${r.cost} - ${base.cost}`);
+});
+
+test('決まりの一文がヘルプ・告知・一覧で同じ', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { ORDER_RULES_LINE } = await import('../src/engine/orders.js');
+  const { UPDATES } = await import('../src/updates.js');
+  assert.ok(readFileSync('docs/API.md', 'utf8').includes(ORDER_RULES_LINE));
+  assert.ok(JSON.stringify(UPDATES).includes(ORDER_RULES_LINE));
 });

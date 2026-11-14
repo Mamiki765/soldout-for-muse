@@ -127,7 +127,7 @@ test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を
     assert.match(await post('Bearer ' + soTok, { type: 'order', item: 2, price: 120, count: 10 }), /^NG order: 買い取り募集は Muse Party/);
     assert.match(await post('Bearer ' + soTok, { type: 'deliver', order: 1, count: 1 }), /^NG deliver: 買い取り募集は Muse Party/);
     const list = await (await fetch(base + '/api/v1/orders', { headers: { authorization: 'Bearer ' + soTok } })).text();
-    assert.match(list, /^#1 獣の革@120\(120%\) 残10\/10 ゆれ商店/);
+    assert.match(list, /^買い取り募集のきまり: .*\n#1 獣の革@120\(120%\) 残10\/10 ゆれ商店/);
     assert.match(await (await get('Bearer mct_ok')).text(), /自分の募集 #1獣の革残10/);
     assert.match(await (await fetch(base + '/view/orders')).text(), /獣の革/);
     r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ shopname: 'だめ商店' }) });

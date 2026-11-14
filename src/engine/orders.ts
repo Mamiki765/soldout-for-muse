@@ -26,6 +26,12 @@ export const ORDER_RULES = {
   fillsPerDay: 10,
 };
 
+/** 決まりの一文。ヘルプ・告知・一覧の先頭に同じ文を置く (Museが迷わないように。リカさん 2026-11-14) */
+export const ORDER_RULES_LINE =
+  `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
+  `募集は同時に棚の数まで・1日に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
+  `納品は同じ相手へ1日1箱・応じるのは1日${ORDER_RULES.fillsPerDay}件まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る。`;
+
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
   return (g.world.orders ??= []);
@@ -81,21 +87,21 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   if (!item.price || g.itemFlag(itemno, 'nobuy') || g.itemFlag(itemno, 'nosend')) throw new GameError('この商品は募集できません');
   const price = Math.trunc(req.price);
   const [lo, hi] = priceRange(g, itemno);
-  if (!(price >= lo && price <= hi)) throw new GameError(`単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}% (${lo}〜${hi}円) で指定してください`);
+  if (!(price >= lo && price <= hi)) throw new GameError(`範囲外: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、${item.name}なら${lo}〜${hi}円です`);
   const hours = Math.trunc(req.hours);
-  if (!(hours >= ORDER_RULES.minHours && hours <= ORDER_RULES.maxHours)) throw new GameError(`期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間で指定してください`);
+  if (!(hours >= ORDER_RULES.minHours && hours <= ORDER_RULES.maxHours)) throw new GameError(`範囲外: 期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間です`);
   const count = Math.trunc(req.count);
   if (!(count >= 1)) throw new GameError('数量を指定してください');
   const room = item.limit - dt.item[itemno - 1] - pendingOf(g, dt.id, itemno);
-  if (count > room) throw new GameError(`所持上限を超えます (今の在庫と募集中の残りを足して、あと${Math.max(0, room)}${item.scale}まで)`);
+  if (count > room) throw new GameError(`上限: ${item.name}の所持上限。今の在庫と募集中の残りを足すと、あと${Math.max(0, room)}${item.scale}までしか募集できません`);
   const min = req.min === undefined ? 0 : Math.trunc(req.min);
   if (min < 0 || min > count) throw new GameError('最低納品数は 0〜数量 で指定してください');
 
   const mine = orders(g).filter((o) => o.shop === dt.id).length;
-  if (mine >= dt.showcasecount) throw new GameError(`同時に出せる募集は棚の数 (${dt.showcasecount}件) までです`);
+  if (mine >= dt.showcasecount) throw new GameError(`上限: 同時に出せる募集 ${mine}/${dt.showcasecount}件 (棚の数まで)。あと0件です。取り下げるか、締まると出せます`);
   const stats = orderStats(g);
   const maxPosts = dt.showcasecount * ORDER_RULES.postsPerShelf;
-  if ((stats.posted[dt.id] ?? 0) >= maxPosts) throw new GameError(`今日出せる募集は${maxPosts}回までです (取り下げても回数は戻りません。決算で戻ります)`);
+  if ((stats.posted[dt.id] ?? 0) >= maxPosts) throw new GameError(`上限: 今日出した募集 ${stats.posted[dt.id] ?? 0}/${maxPosts}回 (棚の数×${ORDER_RULES.postsPerShelf})。あと0回です。取り下げても戻らず、決算で戻ります`);
 
   const total = price * count;
   if (dt.money < total) throw new GameError('資金が足りません (代金は募集のときに全額預けます)');
@@ -197,16 +203,16 @@ export interface DeliverLine {
  */
 export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): string[] {
   if (!lines.length) throw new GameError('納品する募集を指定してください');
-  if (lines.length > 8) throw new GameError('1箱に入れられる募集は8件までです');
+  if (lines.length > 8) throw new GameError(`上限: 1箱に入れられる募集は8件までです (今${lines.length}件)`);
   const buyer = g.shopById(Math.trunc(toId));
   if (!buyer) throw new GameError('その店は見つかりません');
   if (buyer === dt) throw new GameError('自分の募集には納品できません');
   const stats = orderStats(g);
   const pair = `${dt.id}>${buyer.id}`;
-  if (stats.pairs[pair]) throw new GameError(`${buyer.shopname}への納品は今日はもう済んでいます (同じ相手へは1日1箱。決算で戻ります)`);
+  if (stats.pairs[pair]) throw new GameError(`上限: ${buyer.shopname}への納品は今日1/1箱 (同じ相手へは1日1箱)。あと0箱です。決算で戻ります。1箱にこの店の募集を最大8件まとめられます`);
   const done = stats.filled[dt.id] ?? 0;
   if (done + lines.length > ORDER_RULES.fillsPerDay) {
-    throw new GameError(`今日応じられる募集はあと${Math.max(0, ORDER_RULES.fillsPerDay - done)}件です (1日${ORDER_RULES.fillsPerDay}件まで)`);
+    throw new GameError(`上限: 今日応じた募集 ${done}/${ORDER_RULES.fillsPerDay}件。あと${Math.max(0, ORDER_RULES.fillsPerDay - done)}件なので、この箱の${lines.length}件は入りません。決算で戻ります`);
   }
   const seen = new Set<number>();
   const msgs: string[] = [];
@@ -228,7 +234,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
       .reduce((a, x) => a + x.count - x.left, 0);
     const room = item.limit - buyer.item[o.item - 1] - held;
     if (room < num) num = Math.max(0, room);
-    if (!num) throw new GameError(`募集#${id}: ${buyer.shopname}の${item.name}は所持上限です`);
+    if (!num) throw new GameError(`上限: 募集#${id}は${buyer.shopname}の${item.name}が所持上限のため、あと0${item.scale}です`);
     if (o.min && num < o.min && num < o.left) throw new GameError(`募集#${id}: 1回に${o.min}${item.scale}以上で納品してください`);
 
     // 売り手: 陳列1回ぶんの手間と、棚で売れたのと同じ売却税
