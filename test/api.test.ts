@@ -195,8 +195,9 @@ test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', as
 
     // shelves でも減らすときは確認が要る
     shop().item[63 - 1] = 1;
-    lines = await send([{ type: 'shelves', count: 1 }, { type: 'shelves', count: 1, confirm: true }]);
+    lines = await send([{ type: 'shelves', count: 1 }, { type: 'shelves', count: 1, confirm: 'yes' }]);
     assert.match(lines[0], /^NG shelves: 確認: 棚 2→1/);
+    assert.ok(lines[0].endsWith(' / 送り直し: {"type":"shelves","count":1,"confirm":true}'), 'そのまま送り直せる1行を添える');
     assert.match(lines[1], /^OK shelves: 棚 2→1: 陳列枠-1/);
     assert.equal(shop().showcasecount, 1);
     void store;

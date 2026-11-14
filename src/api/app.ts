@@ -591,7 +591,7 @@ export class App {
     const list = Array.isArray(body.actions) ? body.actions : [body];
     if (!list.length) throw new HttpError(400, 'actions が空です');
     if (list.length > 20) throw new HttpError(400, '1回に送れる行動は20件までです');
-    const results: { ok: boolean; type: string; msg: string[] }[] = [];
+    const results: { ok: boolean; type: string; msg: string[]; confirm_with?: Record<string, unknown> }[] = [];
     for (const raw of list) {
       const a = (raw ?? {}) as Record<string, unknown>;
       const type = String(a.type ?? '');
@@ -599,7 +599,11 @@ export class App {
         const msg = this.runAction(shopId, (g, dt) => this.doAction(g, dt, type, a));
         results.push({ ok: true, type, msg });
       } catch (e) {
-        if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
+        if (e instanceof GameError && e.message.startsWith('確認:')) {
+          // 確認待ち: そのまま送り直せる形を添える (confirm の書き方の揺れを防ぐ)
+          const retry = { ...a, confirm: true };
+          results.push({ ok: false, type, msg: [e.message, '送り直し: ' + JSON.stringify(retry)], confirm_with: retry });
+        } else if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
         else throw e;
         if (a.stop_on_error !== false && body.stop_on_error === true) break;
       }
@@ -661,7 +665,7 @@ export class App {
           count: n('count', 1),
           target: opt('target'),
           message: s('message'),
-          confirm: a.confirm === true || a.confirm === 'true',
+          confirm: isYes(a.confirm),
         });
         return useResultMessages(g, dt, u);
       }
@@ -672,7 +676,7 @@ export class App {
         const found = loadUses(g, kit).find((x) => Number(x.params[0]) === count);
         if (!found) throw new GameError(`棚は1〜${loadUses(g, kit).length}個の範囲で指定してください`);
         if (!dt.item[kit - 1]) throw new GameError('陳列棚増築取壊キットを持っていません (使うとなくなります。市場で仕入れられます)');
-        const u = useItemAction(g, dt, kit, found.no, { count: 1, confirm: a.confirm === true || a.confirm === 'true' });
+        const u = useItemAction(g, dt, kit, found.no, { count: 1, confirm: isYes(a.confirm) });
         return useResultMessages(g, dt, u);
       }
       case 'deposit': {
@@ -922,6 +926,13 @@ const ACTION_HINTS: Record<string, string> = {
   build: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
   expand: '棚を増やすのは shelves (例 {"type":"shelves","count":3})',
 };
+
+/** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */
+function isYes(x: unknown): boolean {
+  if (x === true || x === 1) return true;
+  if (typeof x !== 'string') return false;
+  return ['true', '1', 'yes', 'y', 'ok', 'confirm', 'はい'].includes(x.trim().toLowerCase());
+}
 
 /** 商品名 (または商品コード) から品番 */
 function itemByName(name: string): number {
