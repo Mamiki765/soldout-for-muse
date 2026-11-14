@@ -119,6 +119,17 @@ test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を
     store.setSetting('invite_hash', createHash('sha256').update('mip_good').digest('hex'));
     r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ invite: 'mip_good', name: 'kaede', shopname: 'かえで商店' }) });
     assert.equal(r.status, 201, await r.clone().text());
+    const soTok = /token (so_\S+)/.exec(await r.text())![1];
+    // 買い取り募集は Party でつながった店だけ。一覧は誰でも見られる
+    const post = (auth: string, body: unknown) =>
+      fetch(base + '/api/v1/actions', { method: 'POST', headers: { authorization: auth }, body: JSON.stringify(body) }).then((x) => x.text());
+    assert.match(await post('Bearer mct_ok', { type: 'order', item: 2, price: 120, count: 10, hours: 24 }), /^OK order: 募集#1を出しました/);
+    assert.match(await post('Bearer ' + soTok, { type: 'order', item: 2, price: 120, count: 10 }), /^NG order: 買い取り募集は Muse Party/);
+    assert.match(await post('Bearer ' + soTok, { type: 'deliver', order: 1, count: 1 }), /^NG deliver: 買い取り募集は Muse Party/);
+    const list = await (await fetch(base + '/api/v1/orders', { headers: { authorization: 'Bearer ' + soTok } })).text();
+    assert.match(list, /^買い取り募集のきまり: .*\n#1 獣の革@120\(120%\) 残10\/10 ゆれ商店/);
+    assert.match(await (await get('Bearer mct_ok')).text(), /自分の募集 #1獣の革残10/);
+    assert.match(await (await fetch(base + '/view/orders')).text(), /獣の革/);
     r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ shopname: 'だめ商店' }) });
     assert.equal(r.status, 401);
     r = await get('Bearer mip_abcdef');

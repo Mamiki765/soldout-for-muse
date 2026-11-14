@@ -13,8 +13,9 @@ import type { Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, jst } from './views.js';
+import { balanceWord, jobName, jst, ordersData, specialtyType } from './views.js';
 import { SourceTree } from './source.js';
+import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
 interface Reply {
@@ -60,7 +61,7 @@ small{font-size:11px}
 
 function page(title: string, menu: string, body: string): string {
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SOLD OUT for Muse:${esc(title)}</title><style>${STYLE}</style></head><body>
+<title>${GAME_TITLE}:${esc(title)}</title><style>${STYLE}</style></head><body>
 ${menu}<hr>
 ${body}
 <hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降 / <a href="/source">ソース</a></small>
@@ -70,7 +71,7 @@ ${body}
 function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
   const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `${GAME_TITLE}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -131,7 +132,7 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
         headers,
         html: page(
           '観戦',
-          'SOLD OUT for Muse',
+          GAME_TITLE,
           `<form method="get" action="${esc(url.pathname)}">観戦用の合言葉 <input name="k" type="password"> <input type="submit" value="入る"></form><small>Muse Party と同じ合言葉です。</small>`,
         ),
       };
@@ -170,6 +171,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     case '/view/market':
       title = '市場';
       body = marketPage(g);
+      break;
+    case '/view/orders':
+      title = '買い取り募集';
+      body = ordersPage(g);
       break;
     case '/view/log':
       title = '最近の出来事';
@@ -213,7 +218,7 @@ function updateNotice(basePath: string): string {
 function updatesPage(): string {
   return '<h2>更新履歴</h2>' + UPDATES.map((u) => isPatch(u) ? `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
-<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></article>` : `<article>
+<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>${u.new_items?.length ? `<h4>新規アイテム${u.new_items.length}種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>` : ''}</article>` : `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
 <h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
 ${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>
@@ -246,7 +251,7 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
 
 function topPage(app: App, g: Game): string {
   const top = g.shops.slice(0, 5);
-  let s = '<h2 style="margin:4px 0">SOLD OUT for Muse</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>';
+  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
   s += `●ランキング (人口 ${g.world.people}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
   top.forEach((dt, i) => (s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td></tr>`));
@@ -258,7 +263,10 @@ function topPage(app: App, g: Game): string {
 function rankingPage(g: Game): string {
   let s = '●ランキング<hr><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
   g.shops.forEach((dt, i) => {
-    s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
+    const sp = specialtyType(g, dt);
+    const job = jobName(dt);
+    const tag = (sp ? `<img class="s" src="/images/item-typesign${sp}.png" alt="${esc(CATALOG.itemTypes[sp])}専門店" title="${esc(CATALOG.itemTypes[sp])}専門店">` : '') + (job ? `【${esc(job)}】` : '');
+    s += `<tr><td>${i + 1}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
   });
   s += '</table>';
   if (g.world.periodLog.length) s += '<hr>●前回の決算<br>' + g.world.periodLog.map((l) => raw(l.msg)).join('<br>');
@@ -291,6 +299,18 @@ function marketPage(g: Game): string {
   return s + '</table>';
 }
 
+/** 買い取り募集の一覧 (原作にない追加) */
+function ordersPage(g: Game): string {
+  const d = ordersData(g, undefined, {});
+  let s = '●買い取り募集<hr>';
+  if (!d.orders.length) return s + '募集はありません';
+  s += '<table><tr><td>番号</td><td>商品</td><td>単価</td><td>残り/募集</td><td>最低納品数</td><td>募集した店</td><td>締切</td></tr>';
+  for (const o of d.orders) {
+    s += `<tr><td>#${o.id}</td><td>${itemIcon(g, o.item)}${esc(o.name)}</td><td>￥${o.price} (${o.percent}%)</td><td>${o.left}/${o.count}${esc(o.scale)}</td><td>${o.min || '　'}</td><td>${esc(o.shopname)}</td><td>${jst(o.expires)}</td></tr>`;
+  }
+  return s + '</table>';
+}
+
 /** 原作 inc-html-owner.cgi (店長室) + inc-html-stock.cgi (倉庫) + 陳列棚 */
 function ownerPage(app: App, g: Game, dt: Shop): string {
   getMarketStatus(g);
@@ -299,7 +319,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const [tax, taxrate] = g.taxToday(dt);
   let expsum = 0;
   for (const v of Object.values(dt.exp)) expsum += v;
-  const job = dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定';
+  const job = jobName(dt) || '不定';
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
   s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
@@ -309,6 +329,9 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('今期売上', '￥' + dt.saletoday)}${td('前期売上', '￥' + dt.saleyesterday)}</tr>`;
   s += `<tr>${td('今期支払', '￥' + dt.paytoday)}${td('前期支払', '￥' + dt.payyesterday)}</tr>`;
   s += `<tr>${td('持ち時間', tmText)}${td('点数', String(dt.point))}</tr>`;
+  if (g.config.couponTime > 0) {
+    s += `<tr>${td('時間クーポン', formatHms(g.couponTime(dt)))}${td('次の配布', jst(g.nextCouponTime()))}</tr>`;
+  }
   s += `<tr>${td('今期維持費<br><small>(決算時徴収)</small>', `￥${Math.trunc(dt.costtoday)}+￥${CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0}`)}${td('前期維持費', '￥' + dt.costyesterday)}</tr>`;
   s += `<tr>${td('今期税金<br><small>(決算時徴収)</small>', `￥${tax}<br><small>${taxrate ? '税率:' + taxrate + '%' : '免税'}</small>`)}${td('前期税金', '￥' + dt.taxyesterday)}</tr>`;
   s += `<tr>${td('支払済売却税', '￥' + dt.taxtoday)}${td('基本売却税率', g.userTaxRate(dt) + '%')}</tr>`;

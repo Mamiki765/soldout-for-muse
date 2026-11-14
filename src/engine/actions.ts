@@ -45,7 +45,7 @@ export function openShop(g: Game, req: OpenShopRequest): Shop {
   const w = g.world;
   const name = req.name ?? '';
   const sname = req.shopname ?? '';
-  if (g.shops.length >= g.config.maxUser) {
+  if (g.config.maxUser > 0 && g.shops.length >= g.config.maxUser) {
     throw new GameError('申し訳ありませんが、現在空き店舗がありません。空くのをお待ちください。');
   }
   if (
@@ -257,7 +257,7 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   if (dt.money + money > g.maxMoney) money = g.maxMoney - dt.money;
   if (money > dt.moneystock) money = dt.moneystock;
   const usetime = g.timeDeal(money);
-  if (g.stockTime(dt) < usetime) throw new GameError('時間が足りません');
+  if (g.usableTime(dt) < usetime) throw new GameError('時間が足りません');
   dt.money += money;
   dt.moneystock -= money;
   g.useTime(g.timeDeal(money));
@@ -270,7 +270,7 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
 export function maxDeposit(g: Game, dt: Shop): number {
   let maxmoney = dt.moneystock;
   const usetime = g.timeDeal(maxmoney) - CATALOG.timeSendMoney;
-  const stocktime = g.stockTime(dt) - CATALOG.timeSendMoney;
+  const stocktime = g.usableTime(dt) - CATALOG.timeSendMoney;
   if (stocktime < 0) maxmoney = 0;
   if (usetime > 0 && stocktime > 0 && stocktime < usetime) maxmoney = Math.trunc((maxmoney / usetime) * stocktime);
   return maxmoney;

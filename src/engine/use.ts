@@ -5,7 +5,7 @@
 import type { UseDef } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
-import { USE_BEFORE_FUNCS, USE_FUNCS } from './scripts.js';
+import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
 import type { Shop } from './types.js';
 
 export interface UseResultLine {
@@ -160,6 +160,8 @@ export interface UseRequest {
   target?: number;
   message?: string;
   select?: string;
+  /** 取り返しのつかない使い方 (棚を減らすなど) の確認 */
+  confirm?: boolean;
 }
 
 /** 原作 item-use.cgi の実行部分: 引数を検査して UseItem を呼ぶ */
@@ -187,6 +189,9 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
   if (u.argspec.includes('target') && (req.target === undefined || g.shopIndex(req.target) < 0)) {
     throw new GameError('標的が見つかりません');
   }
+  const cancel = u.result.function ? (USE_CANCEL_CHECKS[`${u.itemcode}:${u.result.function}`] ?? USE_CANCEL_CHECKS[u.result.function]) : undefined;
+  const why = cancel?.(g, dt, u, req);
+  if (why) throw new GameError(why);
   u.arg = {
     target: req.target,
     targetidx: req.target !== undefined ? g.shopIndex(req.target) : undefined,
@@ -204,7 +209,9 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   const usetime = itemUseTime(dt, u);
   if ((dt.exp[u.itemno] ?? 0) < u.needexp) count = 0;
   if (dt.money < u.money * count) count = Math.trunc(dt.money / u.money);
-  if (dt.time + usetime * count > g.now) count = Math.trunc((g.now - dt.time) / usetime);
+  // 時間クーポンの残りも使える
+  const avail = g.now - dt.time + g.couponTime(dt);
+  if (usetime * count > avail) count = Math.trunc(avail / usetime);
   for (const line of u.use) {
     const itemcount = line.count * (line.proba === 0 ? 1 : count);
     if (dt.item[line.no - 1] < itemcount) count = Math.trunc(dt.item[line.no - 1] / line.count);

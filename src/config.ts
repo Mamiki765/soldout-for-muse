@@ -4,8 +4,13 @@
 
 /** ゲームの設定値。原作 _config.cgi の同名変数に対応する。 */
 export interface GameConfig {
-  /** 新装開店許可最大店舗数 ($MAX_USER) */
+  /** 新装開店許可最大店舗数 ($MAX_USER)。0 なら上限なし */
   maxUser: number;
+  /**
+   * 市場の入荷量の式で原作の $MAX_USER の代わりに使う値の刻み。店数が収まるこの倍数 (50, 100, 150…) を使う。
+   * 原作既定の50から始めて、店が増えたら50ずつ上げる (案: リカさんより)
+   */
+  marketUserBase: number;
   /** 最短更新サイクル(秒) ($UPDATE_TIME) */
   updateTime: number;
   /** 未ログイン登録抹消期限(秒) ($EXPIRE_TIME) */
@@ -22,6 +27,17 @@ export interface GameConfig {
   tzOffset: number;
   /** 最大持ち時間(秒) ($MAX_STOCK_TIME) */
   maxStockTime: number;
+  /**
+   * 週1の時間クーポン(秒)。0 なら無し。この移植で追加 (案: リカさんより)。
+   * 行動の時間はクーポンから先に使い、足りない分を持ち時間から使う。
+   * 毎週 couponWeekday 曜 couponHour 時 (tzOffset の時刻) にこの量へ戻る (繰り越さない)。
+   * 持ち時間の上限 maxStockTime とは別枠で、クーポンを使っている間も持ち時間はたまる。
+   */
+  couponTime: number;
+  /** クーポンが戻る曜日 (0=日 … 6=土) */
+  couponWeekday: number;
+  /** クーポンが戻る時刻 (時) */
+  couponHour: number;
   /** 最近の出来事の保存期限(秒) ($LOG_EXPIRE_TIME)。実際はこの2倍保存される */
   logExpireTime: number;
   /** 点数計算の際考慮する過去の純利益(期) ($PROFIT_DAY_COUNT) */
@@ -42,8 +58,14 @@ export interface GameConfig {
   ngShopName: string[];
 }
 
+/** 街の名前 (原作 $HTML_TITLE)。原作は画面に「SOLD OUT 」+ この名前を出す (例: SOLD OUT MUTOYS中心街) */
+export const TOWN_NAME = 'ミューズ街';
+/** 画面やAPIで名乗るゲームの名前。ソフト自体の名前 (SOLD OUT for Muse) とは別 */
+export const GAME_TITLE = 'SOLD OUT ' + TOWN_NAME;
+
 export const DEFAULT_CONFIG: GameConfig = {
-  maxUser: 100,
+  maxUser: 0,
+  marketUserBase: 50,
   updateTime: 60 * 5,
   expireTime: 3600 * 24 * 7,
   expireExTime: 3600 * 4,
@@ -52,6 +74,9 @@ export const DEFAULT_CONFIG: GameConfig = {
   dateReviseTime: 0,
   tzOffset: 60 * 60 * 9,
   maxStockTime: 48 * 60 * 60,
+  couponTime: 48 * 60 * 60,
+  couponWeekday: 0,
+  couponHour: 0,
   logExpireTime: 3600 * 24,
   profitDayCount: 3,
   saleSpeed: 10,

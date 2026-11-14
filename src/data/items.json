@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "0.2.0"
+      "version" : "0.3.0"
    },
    "errors" : [],
    "events" : [
@@ -386,13 +386,25 @@
                "key" : "point",
                "op" : "*",
                "value" : 4
+            },
+            {
+               "item_no" : 109,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 109,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
          "startmsg" : "巷ではちょっとしたポーションブームです",
-         "startproba" : 70
+         "startproba" : 150
       },
       {
          "auto_start" : true,
@@ -615,7 +627,7 @@
          "startproba" : 100
       },
       {
-         "auto_start" : false,
+         "auto_start" : true,
          "basetime" : 43200,
          "code" : "priceup-yakusou",
          "endfunc" : null,
@@ -669,7 +681,7 @@
                "item_no" : 1,
                "key" : "popular",
                "op" : "*",
-               "value" : 2
+               "value" : 1.5
             },
             {
                "item_no" : 30,
@@ -706,16 +718,16 @@
          "startfunc" : "stock_le",
          "startfuncparam" : "1,70",
          "startmsg" : "薬草が不足しています",
-         "startproba" : -1
+         "startproba" : 200
       },
       {
-         "auto_start" : false,
+         "auto_start" : true,
          "basetime" : 43200,
          "code" : "priceup-tetu",
          "endfunc" : null,
          "endfuncparam" : null,
          "endmsg" : "鉄不足が解消されました",
-         "group" : "12",
+         "group" : "16",
          "info" : "鉄不足で関連商品の価格が高騰しています",
          "local_funcend" : null,
          "local_funcnow" : null,
@@ -781,7 +793,7 @@
                "item_no" : 5,
                "key" : "popular",
                "op" : "*",
-               "value" : 2
+               "value" : 1.5
             },
             {
                "item_no" : 41,
@@ -830,22 +842,94 @@
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
+            },
+            {
+               "item_no" : 88,
+               "key" : "price",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 88,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 92,
+               "key" : "price",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 92,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 97,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 97,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 67,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 67,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 73,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 73,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 74,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 74,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             }
          ],
          "plustime" : 0,
          "startfunc" : "stock_le",
          "startfuncparam" : "5,70",
          "startmsg" : "鉄が不足しています",
-         "startproba" : -1
+         "startproba" : 50
       },
       {
-         "auto_start" : false,
+         "auto_start" : true,
          "basetime" : 43200,
          "code" : "priceup-misuriru",
          "endfunc" : null,
          "endfuncparam" : null,
          "endmsg" : "ミスリル不足が解消されました",
-         "group" : "13",
+         "group" : "17",
          "info" : "ミスリル不足で関連商品の価格が高騰しています",
          "local_funcend" : null,
          "local_funcnow" : null,
@@ -887,7 +971,7 @@
                "item_no" : 6,
                "key" : "popular",
                "op" : "*",
-               "value" : 2
+               "value" : 1.5
             },
             {
                "item_no" : 43,
@@ -912,22 +996,70 @@
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
+            },
+            {
+               "item_no" : 89,
+               "key" : "price",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 89,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 98,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 98,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 68,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 68,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 75,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 75,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             }
          ],
          "plustime" : 0,
          "startfunc" : "stock_le",
          "startfuncparam" : "6,70",
          "startmsg" : "ミスリルが不足しています",
-         "startproba" : -1
+         "startproba" : 35
       },
       {
-         "auto_start" : false,
+         "auto_start" : true,
          "basetime" : 43200,
          "code" : "priceup-oriharukon",
          "endfunc" : null,
          "endfuncparam" : null,
          "endmsg" : "オリハルコン不足が解消されました",
-         "group" : "14",
+         "group" : "18",
          "info" : "オリハルコン不足で関連商品の価格が高騰しています",
          "local_funcend" : null,
          "local_funcnow" : null,
@@ -969,7 +1101,7 @@
                "item_no" : 7,
                "key" : "popular",
                "op" : "*",
-               "value" : 2
+               "value" : 1.5
             },
             {
                "item_no" : 44,
@@ -994,17 +1126,53 @@
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
+            },
+            {
+               "item_no" : 90,
+               "key" : "price",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 90,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 69,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 69,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 76,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 76,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             }
          ],
          "plustime" : 0,
          "startfunc" : "stock_le",
          "startfuncparam" : "7,70",
          "startmsg" : "オリハルコンが不足しています",
-         "startproba" : -1
+         "startproba" : 25
       },
       {
          "auto_start" : true,
-         "basetime" : 172800,
+         "basetime" : 86400,
          "code" : "plusdown-yakusou",
          "endfunc" : null,
          "endfuncparam" : null,
@@ -1050,6 +1218,18 @@
                "key" : "plus",
                "op" : "=",
                "value" : 720
+            },
+            {
+               "item_no" : 88,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 360
+            },
+            {
+               "item_no" : 92,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 360
             }
          ],
          "plustime" : 43200,
@@ -1078,6 +1258,12 @@
                "key" : "plus",
                "op" : "=",
                "value" : 960
+            },
+            {
+               "item_no" : 89,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 480
             }
          ],
          "plustime" : 57600,
@@ -1106,6 +1292,12 @@
                "key" : "plus",
                "op" : "=",
                "value" : 1200
+            },
+            {
+               "item_no" : 90,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 600
             }
          ],
          "plustime" : 64800,
@@ -1218,6 +1410,478 @@
          "startfuncparam" : null,
          "startmsg" : null,
          "startproba" : 500
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 21600,
+         "code" : "boom-fashion",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "ファッションブームが落ち着きました",
+         "group" : "24",
+         "info" : "ファッションが流行しています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 67,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 68,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 69,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 70,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 81,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 82,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 83,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 84,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 85,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 86,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 87,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 108,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "ファッションブームがやってきました",
+         "startproba" : 70
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 21600,
+         "code" : "boom-book",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "読書週間が終わりました",
+         "group" : "25",
+         "info" : "読書週間です",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 15,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 16,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 17,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 20,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 21,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 22,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 23,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 66,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 78,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 112,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 113,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "読書週間が始まりました",
+         "startproba" : 70
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 21600,
+         "code" : "boom-milk",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "乳製品ブームが落ち着きました",
+         "group" : "26",
+         "info" : "乳製品が人気です",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 26,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 26,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 35,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 35,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 36,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 36,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 107,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 107,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 110,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 110,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            },
+            {
+               "item_no" : 111,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 111,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "乳製品ブームがやってきました",
+         "startproba" : 100
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 21600,
+         "code" : "boom-wood",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "建築ラッシュが落ち着きました",
+         "group" : "27",
+         "info" : "木材の需要が高まっています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 3,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 4,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 99,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 100,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "建築ラッシュで木材が求められています",
+         "startproba" : 70
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 86400,
+         "code" : "plusdown-seni",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "繊維草の出回りが戻りました",
+         "group" : "28",
+         "info" : "市場への繊維草供給が止まっています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 96,
+               "key" : "plus",
+               "op" : "=",
+               "value" : -1800
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "繊維草が不作のようです",
+         "startproba" : 70
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 43200,
+         "code" : "plusup-import",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "交易船が出港しました",
+         "group" : "29",
+         "info" : "砂糖と香辛料の流通量が増えています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 103,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 600
+            },
+            {
+               "item_no" : 104,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 600
+            }
+         ],
+         "plustime" : 43200,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "交易船が入港しました",
+         "startproba" : 50
+      },
+      {
+         "auto_start" : false,
+         "basetime" : 0,
+         "code" : "kill-acce",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "反アクセサリ運動が収まりました",
+         "group" : "30",
+         "info" : "反アクセサリ運動が起こっています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 67,
+               "key" : "point",
+               "op" : "=",
+               "value" : 0
+            },
+            {
+               "item_no" : 68,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 69,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 70,
+               "key" : "point",
+               "op" : "=",
+               "value" : -400
+            },
+            {
+               "item_no" : 81,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 82,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 83,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 84,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 85,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
+            },
+            {
+               "item_no" : 86,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
+            },
+            {
+               "item_no" : 87,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            }
+         ],
+         "plustime" : 0,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : null,
+         "startproba" : -1
       }
    ],
    "functions" : {
@@ -2356,6 +3020,128 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "書く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 30,
+               "exptime" : 10800,
+               "func" : null,
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 112,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "『調香の手引き』を作ります",
+               "jobs" : [
+                  {
+                     "job" : "book",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "『調香の手引き』を執筆する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 8,
+               "okmsg" : "『調香の手引き』を作りました",
+               "params" : [
+                  null,
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "冊",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 2,
+                     "item_no" : 10,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 15,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 106,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "書く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 30,
+               "exptime" : 10800,
+               "func" : null,
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 113,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "『乳菓のレシピ』を作ります",
+               "jobs" : [
+                  {
+                     "job" : "book",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "『乳菓のレシピ』を執筆する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 9,
+               "okmsg" : "『乳菓のレシピ』を作りました",
+               "params" : [
+                  null,
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "冊",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 2,
+                     "item_no" : 10,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 2,
+                     "item_no" : 36,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 107,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 5
@@ -2759,6 +3545,56 @@
                "scale" : "往復",
                "time" : 10800,
                "use" : []
+            },
+            {
+               "action" : "探索しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 105,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 94,
+                     "proba" : 750
+                  }
+               ],
+               "info" : "霊草の谷を探す",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "霊草の谷を探す",
+               "needexp" : 600,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 6,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
             }
          ],
          "wslimit" : 1
@@ -2963,6 +3799,111 @@
                ],
                "scale" : "往復",
                "time" : 14400,
+               "use" : []
+            },
+            {
+               "action" : "仕入に行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 50,
+                     "item_no" : 103,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 15,
+                     "item_no" : 104,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "港町で買い付け",
+               "jobs" : [
+                  {
+                     "job" : "peddle",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "港町で買い付け",
+               "needexp" : 200,
+               "ngmsg" : "なにも仕入れられませんでした…",
+               "no" : 1,
+               "okmsg" : null,
+               "params" : [
+                  "150",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
+               "use" : []
+            },
+            {
+               "action" : "仕入に行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 25,
+                     "item_no" : 104,
+                     "proba" : 800
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 105,
+                     "proba" : 600
+                  },
+                  {
+                     "count" : 3,
+                     "item_no" : 8,
+                     "proba" : 500
+                  }
+               ],
+               "info" : "隊商と取引する",
+               "jobs" : [
+                  {
+                     "job" : "peddle",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "隊商と取引する",
+               "needexp" : 400,
+               "ngmsg" : "なにも仕入れられませんでした…",
+               "no" : 2,
+               "okmsg" : null,
+               "params" : [
+                  "150",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 10800,
                "use" : []
             }
          ],
@@ -3254,6 +4195,204 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 4800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 106,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "香油を作ります",
+               "jobs" : [
+                  {
+                     "job" : "drug",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "香油を作成する",
+               "needexp" : 200,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "香油を作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 94,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 105,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 32,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 9600,
+               "func" : "lostbooktool",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 108,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "香水を作ります",
+               "jobs" : [
+                  {
+                     "job" : "drug",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "香水を作成する",
+               "needexp" : 400,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "香水を作りました",
+               "params" : [
+                  "30",
+                  "112",
+                  "30",
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 112,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 106,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 104,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 32,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 10800,
+               "func" : "lostbooktool",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 109,
+                     "proba" : 400
+                  }
+               ],
+               "info" : "エリクシルを作ります",
+               "jobs" : [
+                  {
+                     "job" : "drug",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "エリクシルを作成する",
+               "needexp" : 800,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "エリクシルを作りました",
+               "params" : [
+                  "30",
+                  "112",
+                  "30",
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 18000,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 112,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 106,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 105,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 33,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 1
@@ -3309,6 +4448,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3357,6 +4502,12 @@
                "jobs" : [
                   {
                      "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
@@ -3827,6 +4978,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3875,6 +5032,12 @@
                "jobs" : [
                   {
                      "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
@@ -3929,6 +5092,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3977,6 +5146,12 @@
                "jobs" : [
                   {
                      "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
@@ -5738,6 +6913,204 @@
                   {
                      "count" : 20,
                      "item_no" : 26,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "飲む",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : 2400,
+               "func" : null,
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 107,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "ミノクリームを作ります",
+               "jobs" : [
+                  {
+                     "job" : "cow",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ミノクリームを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 3,
+               "okmsg" : "ミノクリームを作りました",
+               "params" : [
+                  null,
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "本",
+               "time" : 2400,
+               "use" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 25,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 26,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 103,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "飲む",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : 5400,
+               "func" : "lostbooktool",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 110,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "ミノ・ジェラートを作ります",
+               "jobs" : [
+                  {
+                     "job" : "cow",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ミノ・ジェラートを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "ミノ・ジェラートを作りました",
+               "params" : [
+                  "0",
+                  "113",
+                  "30",
+                  null
+               ],
+               "scale" : "本",
+               "time" : 5400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 113,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 30,
+                     "item_no" : 107,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 103,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 104,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "飲む",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : 9600,
+               "func" : "lostbooktool",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 111,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "ロイヤルチーズケーキを作ります",
+               "jobs" : [
+                  {
+                     "job" : "cow",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ロイヤルチーズケーキを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "ロイヤルチーズケーキを作りました",
+               "params" : [
+                  "0",
+                  "113",
+                  "30",
+                  null
+               ],
+               "scale" : "本",
+               "time" : 9600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 113,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 40,
+                     "item_no" : 107,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 36,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 103,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 104,
                      "proba" : 1000
                   }
                ]
@@ -11628,6 +13001,325 @@
          "type" : 1,
          "uses" : [],
          "wslimit" : 500
+      },
+      {
+         "code" : "sugar",
+         "cost" : 30,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "港町から運ばれる白い砂糖",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "砂糖",
+         "no" : 103,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 4800,
+         "price" : 300,
+         "pricebase" : 100,
+         "pricehalf" : 700,
+         "scale" : "袋",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "spice",
+         "cost" : 80,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "遠い国の香りの強い実と皮",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "香辛料",
+         "no" : 104,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 800,
+         "pricebase" : 100,
+         "pricehalf" : 500,
+         "scale" : "袋",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "spirit-herb",
+         "cost" : 90,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "霧の谷にだけ生える薬草",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "霊草",
+         "no" : 105,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 900,
+         "pricebase" : 100,
+         "pricehalf" : 500,
+         "scale" : "株",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "scented-oil",
+         "cost" : 150,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "香木と霊草を蒸して取った油",
+         "limit" : 700,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "香油",
+         "no" : 106,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 21600,
+         "price" : 2000,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "瓶",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "mino-cream",
+         "cost" : 60,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミノ牛乳から分けた濃い乳脂",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ミノクリーム",
+         "no" : 107,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 900,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "perfume",
+         "cost" : 750,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "香油を重ねた上品な香り",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "香水",
+         "no" : 108,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 15000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "瓶",
+         "sort" : 0,
+         "type" : 3,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "elixir",
+         "cost" : 1500,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "霊草を煮詰めた万能の霊薬",
+         "limit" : 30,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "エリクシル",
+         "no" : 109,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 30000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "瓶",
+         "sort" : 0,
+         "type" : 3,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "mino-gelato",
+         "cost" : 250,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "濃いミノクリームの氷菓",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ミノ・ジェラート",
+         "no" : 110,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 86400,
+         "price" : 5000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 3,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "royal-cheesecake",
+         "cost" : 1000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミノチーズとクリームの焼き菓子",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ロイヤルチーズケーキ",
+         "no" : 111,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 20000,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "切れ",
+         "sort" : 0,
+         "type" : 3,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "book-perfumery",
+         "cost" : 1000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "香水・霊薬の作り方。持っていると薬調合入門で香水とエリクシルを作れる",
+         "limit" : 5,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "『調香の手引き』",
+         "no" : 112,
+         "param" : null,
+         "plus" : 27648000,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 80000,
+         "pricebase" : 0,
+         "pricehalf" : 0,
+         "scale" : "冊",
+         "sort" : 0,
+         "type" : 2,
+         "uses" : [],
+         "wslimit" : 0.2
+      },
+      {
+         "code" : "book-confection",
+         "cost" : 1000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミノ乳を使った菓子の作り方。持っているとミノ牛乳から菓子を作れる",
+         "limit" : 5,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "『乳菓のレシピ』",
+         "no" : 113,
+         "param" : null,
+         "plus" : 27648000,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 80000,
+         "pricebase" : 0,
+         "pricehalf" : 0,
+         "scale" : "冊",
+         "sort" : 0,
+         "type" : 2,
+         "uses" : [],
+         "wslimit" : 0.2
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",

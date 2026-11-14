@@ -6,6 +6,7 @@
 import { EVENTS } from '../data/catalog.js';
 import type { Game } from './game.js';
 import { checkWholeStore, getMarketStatus } from './market.js';
+import { sweepOrders } from './orders.js';
 import { turnPeriod } from './period.js';
 import { EVENT_FUNCS, EVENT_NOW_FUNCS, TURN_FUNCS } from './scripts.js';
 
@@ -170,6 +171,10 @@ export function turnProc(g: Game): void {
         if (showcaseitemno.get(idx)) c /= 10;
         costsum += g.items[idx].cost * c;
       }
+      // 買い取り募集で預かり中の品も、受け取る店の倉庫にあるものとして維持費を掛ける (まとめて受け取りで維持費を逃れないように)
+      for (const o of w.orders ?? []) {
+        if (o.shop === dt.id && o.count > o.left) costsum += g.items[o.item].cost * (o.count - o.left);
+      }
       dt.costtoday += (costsum * timespan) / 86400;
     }
 
@@ -192,6 +197,9 @@ export function turnProc(g: Game): void {
 
     g.sortShops();
 
+    // 買い取り募集の期限切れ (この区間の終わりまでに期限が来たもの)。決算より先に返金・受け渡しをする
+    sweepOrders(g, temptimenow + timespan);
+
     // 決算処理
     if (dateupdate && g.shops.length) turnPeriod(g);
 
@@ -204,7 +212,7 @@ export function turnProc(g: Game): void {
         // 原作の $#DT は「店舗数-1」
         add =
           ((timespan / Math.abs(item.plus)) * w.people) /
-          (100000 / ((cfg.maxUser + (g.shops.length - 1) - 1) * 0.2 + 1));
+          (100000 / ((g.marketUsers() + (g.shops.length - 1) - 1) * 0.2 + 1));
         if (add > 0) add = add / 2 + g.rand(add / 2);
         else add = 0;
         if (add < 1 && add > 0) {

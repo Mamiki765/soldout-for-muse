@@ -2,13 +2,14 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { CATALOG } from '../data/catalog.js';
+import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import type { Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
+import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
 /** 秒を「18h05m」のような短い形にする */
@@ -67,6 +68,25 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     else if (s.stock === 0) warnings.push(`棚${s.slot + 1}の${s.name}が売切`);
   }
   if (full <= 0) warnings.push('持ち時間が満タン');
+  // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
+  const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
+  const myOrders: string[] = [];
+  for (const o of orders(g)) {
+    if (o.shop === dt.id) {
+      const it = g.items[o.item];
+      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
+      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
+      continue;
+    }
+    if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
+    const w = wanted.get(o.item);
+    if (!w) wanted.set(o.item, { item: o.item, name: g.items[o.item].name, price: o.price, orders: 1 });
+    else {
+      w.orders++;
+      if (o.price > w.price) w.price = o.price;
+    }
+  }
   return {
     shop: dt.shopname,
     rank: rankNo,
@@ -77,11 +97,16 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     moneystock: dt.moneystock,
     time: stock,
     time_full_in: full > 0 ? full : 0,
+    coupon: g.couponTime(dt),
+    coupon_reset: g.nextCouponTime(),
     next_period: g.nextPeriodTime(),
     shelves,
     new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
     events: g.eventMessages,
     warnings,
+    /** 自分が持っている品の買い取り募集 (GET /api/v1/orders で詳しく) */
+    wanted: [...wanted.values()],
+    my_orders: myOrders,
     version: APP_VERSION,
     update,
   };
@@ -99,7 +124,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     d.new.replies && `目安箱の返事${d.new.replies}`,
   ].filter(Boolean);
   const lines = [
-    `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'} 決算${jst(d.next_period)}`,
+    `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}` : ''} 決算${jst(d.next_period)}`,
     `棚 ${shelves}`,
   ];
   const tail: string[] = [];
@@ -108,6 +133,10 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.events.length) tail.push('イベント ' + d.events.join('/'));
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
+  const ords: string[] = [];
+  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' '));
+  if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
+  if (ords.length) lines.push(ords.join(' | '));
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
 }
@@ -133,7 +162,7 @@ export function meData(g: Game, dt: Shop) {
     id: dt.id,
     name: dt.name,
     shop: dt.shopname,
-    job: dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定',
+    job: jobName(dt) || '不定',
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -142,6 +171,9 @@ export function meData(g: Game, dt: Shop) {
     deposit_max_now: maxDeposit(g, dt),
     time: g.stockTime(dt),
     time_max: g.config.maxStockTime,
+    coupon: g.couponTime(dt),
+    coupon_max: g.config.couponTime,
+    coupon_reset: g.nextCouponTime(),
     sale: { today: dt.saletoday, yesterday: dt.saleyesterday },
     pay: { today: dt.paytoday, yesterday: dt.payyesterday },
     cost: { today: Math.trunc(dt.costtoday), yesterday: dt.costyesterday, showcase: CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0 },
@@ -156,7 +188,7 @@ export function meData(g: Game, dt: Shop) {
 export function meText(d: ReturnType<typeof meData>): string {
   const lines = [
     `店 id${d.id} ${d.shop} 職業${d.job} ${d.rank}位 人気${d.popularity}% 点${d.point}`,
-    `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}`,
+    `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン)` : ''}`,
     `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday}`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,
     '# 棚 番号 品番 名前 価格 在庫',
@@ -223,21 +255,74 @@ export function shopsText(d: ReturnType<typeof shopsData>): string {
 // ---------------------------------------------------------------------------
 // ranking
 
+/** 原作 inc-html-ranking.cgi: 棚が全部同じ種類の商品なら「剣専門店」のように出す。空の棚があれば出さない */
+export function specialtyType(g: Game, dt: Shop): number {
+  let type = -1;
+  for (const no of dt.showcase.slice(0, dt.showcasecount)) {
+    const t = no ? g.items[no]?.type ?? 0 : 0;
+    if (type !== -1 && t !== type) return 0;
+    type = t;
+  }
+  return type > 0 ? type : 0;
+}
+
+/**
+ * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
+ * 転職先は職業コードより細かい (革細工屋・木工細工屋・装飾細工屋はどれも道具屋) ので、
+ * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「山師(木こり)」のように出す。
+ * いちばん高いものが並んだとき (どれも 0 を含む) は職業名だけ (案: リカさんより)
+ */
+export function jobName(dt: Shop): string {
+  if (!dt.job) return '';
+  const name = CATALOG.jobTypes[dt.job] ?? dt.job;
+  const branches = JOB_BRANCHES[dt.job];
+  if (!branches) return name;
+  let best = '';
+  let bestExp = 0;
+  let tie = false;
+  for (const [itemno, label] of branches) {
+    const exp = dt.exp[itemno] ?? 0;
+    if (exp > bestExp) {
+      best = label;
+      bestExp = exp;
+      tie = false;
+    } else if (exp === bestExp) {
+      tie = true;
+    }
+  }
+  return best && !tie ? `${name}(${best})` : name;
+}
+/** 職業コードごとの転職先: [熟練を集める本・地図, 括弧に出す名前] (転職のススメの並び) */
+const JOB_BRANCHES: Record<string, [number, string][]> = {
+  material: [[itemNoByName('近くの鉱山への地図'), '探鉱夫'], [itemNoByName('近くの山への地図'), '木こり']],
+  tool: [[itemNoByName('革細工入門'), '革細工'], [itemNoByName('木工細工入門'), '木工'], [itemNoByName('装飾細工入門'), '装飾']],
+  weapon: [[itemNoByName('剣の鍛え方'), '剣'], [itemNoByName('杖の作り方'), '杖']],
+  armor: [[itemNoByName('盾の作り方'), '盾'], [itemNoByName('鎧の作り方'), '鎧']],
+};
+
 export function rankingData(g: Game) {
-  return g.shops.map((s, i) => ({
-    rank: i + 1,
-    id: s.id,
-    shop: s.shopname,
-    point: s.point,
-    popularity: pct(s.rank),
-    yesterday: s.rankingyesterday,
-    wins: s.rankingcount,
-  }));
+  return g.shops.map((s, i) => {
+    const sp = specialtyType(g, s);
+    return {
+      rank: i + 1,
+      id: s.id,
+      shop: s.shopname,
+      job: jobName(s),
+      specialty: sp ? CATALOG.itemTypes[sp] : '',
+      point: s.point,
+      popularity: pct(s.rank),
+      yesterday: s.rankingyesterday,
+      wins: s.rankingcount,
+    };
+  });
 }
 
 export function rankingText(d: ReturnType<typeof rankingData>, periodLog: { msg: string }[]): string {
-  const lines = ['# 順位 店id 店名 点 人気% 前期順位 優勝回数'];
-  for (const r of d) lines.push(`${r.rank} ${r.id} ${r.shop} ${r.point} ${r.popularity} ${r.yesterday || '-'} ${r.wins}`);
+  const lines = ['# 順位 店id 店名 点 人気% 前期順位 優勝回数 (店名の前は 専門店:【職業】)'];
+  for (const r of d) {
+    const tag = (r.specialty ? r.specialty + '専門店:' : '') + (r.job ? `【${r.job}】` : '');
+    lines.push(`${r.rank} ${r.id} ${tag}${r.shop} ${r.point} ${r.popularity} ${r.yesterday || '-'} ${r.wins}`);
+  }
   const result = periodLog.filter((l) => l.msg.startsWith('「')).map((l) => l.msg);
   if (result.length) lines.push('# 前回の決算', ...result);
   return lines.join('\n') + '\n';
@@ -354,4 +439,49 @@ export function suggestionsText(list: Suggestion[], admin = false): string {
       })
       .join('\n') + '\n'
   );
+}
+
+// ---------------------------------------------------------------------------
+// orders: 買い取り募集の一覧
+
+export function ordersData(g: Game, dt: Shop | undefined, opt: { item?: number; mine?: boolean }) {
+  let list = orders(g).filter((o) => g.shopById(o.shop));
+  if (opt.item) list = list.filter((o) => o.item === opt.item);
+  if (opt.mine && dt) list = list.filter((o) => o.shop === dt.id);
+  list = [...list].sort((a, b) => a.item - b.item || b.price - a.price || a.id - b.id);
+  const stats = orderStats(g);
+  return {
+    orders: list.map((o) => ({ ...orderView(g, o), have: dt ? dt.item[o.item - 1] : undefined })),
+    today: dt
+      ? {
+          posted: stats.posted[dt.id] ?? 0,
+          posts_max: dt.showcasecount * ORDER_RULES.postsPerShelf,
+          open: orders(g).filter((o) => o.shop === dt.id).length,
+          open_max: dt.showcasecount,
+          filled: stats.filled[dt.id] ?? 0,
+          fills_max: ORDER_RULES.fillsPerDay,
+          delivered_to: Object.keys(stats.pairs)
+            .filter((k) => k.startsWith(dt.id + '>'))
+            .map((k) => Number(k.split('>')[1])),
+        }
+      : undefined,
+  };
+}
+
+export function ordersText(d: ReturnType<typeof ordersData>): string {
+  const lines = d.orders.map(
+    (o) =>
+      `#${o.id} ${o.name}@${o.price}(${o.percent}%) 残${o.left}/${o.count}${o.min ? ` 最低${o.min}` : ''} ${o.shopname}(${o.shop_id}) 〆${jst(o.expires)}` +
+      (o.have ? ` 在庫${o.have}` : ''),
+  );
+  if (!lines.length) lines.push('募集はありません');
+  lines.unshift(ORDER_RULES_LINE);
+  if (d.today) {
+    const t = d.today;
+    lines.push(
+      `今期 募集${t.posted}/${t.posts_max}回 掲示中${t.open}/${t.open_max}件 応じた${t.filled}/${t.fills_max}種類` +
+        (t.delivered_to.length ? ` 納品済みの相手 ${t.delivered_to.join(',')}` : ''),
+    );
+  }
+  return lines.join('\n') + '\n';
 }

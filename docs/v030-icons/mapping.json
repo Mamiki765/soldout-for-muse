@@ -1,0 +1,362 @@
+{
+  "title": "SOLD OUT for Muse v0.3.0 新規アイコン11種",
+  "number_status": "103〜113の番号・名称は確定です（Muse が仮名をそのまま採用）。",
+  "authoring": "Python + Pillow; explicit integer pixel maps; no AI image assets",
+  "canvas": [
+    16,
+    16
+  ],
+  "lighting": "左上",
+  "background": "完全透過。床影・枠・台座なし。",
+  "reference": "PR #19 head 6608cf5cb816e5ba4d435f227edd27e03e368c40: public/images/item-no-1.png through item-no-102.png. Inspected at 1x and nearest-neighbor 8x.",
+  "preview": "番号順・横6列、各アイコンを最近傍8倍の128×128pxに拡大。背景チェックはプレビュー専用。",
+  "regenerate": "python generate_icons.py --out ./regenerated",
+  "icons": [
+    {
+      "number": 103,
+      "provisional_number": true,
+      "name": "砂糖",
+      "category": "素材・中間素材",
+      "motif": "白い結晶ののぞく小さな砂糖の山",
+      "file": "item-no-103.png",
+      "colors_hex": [
+        "#868E9E",
+        "#CEDEEA",
+        "#E6EEFF",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        1,
+        3,
+        14,
+        13
+      ],
+      "sha256": "7038ae661f135e5258709af78925a5a8475c01d8c073d19c00eecc744658fbbf"
+    },
+    {
+      "number": 104,
+      "provisional_number": true,
+      "name": "香辛料",
+      "category": "素材・中間素材",
+      "motif": "赤茶のさや2本と短い巻き樹皮片",
+      "file": "item-no-104.png",
+      "colors_hex": [
+        "#501900",
+        "#730000",
+        "#966200",
+        "#B93D00",
+        "#DC9200"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        3,
+        2,
+        13,
+        14
+      ],
+      "sha256": "73762dfa931551f091a10e88e9792223721e410d231d3e1ab17e6fdd2026d83f"
+    },
+    {
+      "number": 105,
+      "provisional_number": true,
+      "name": "霊草",
+      "category": "素材・中間素材",
+      "motif": "淡青緑の葉が株立ちする霊草・白い光2px",
+      "file": "item-no-105.png",
+      "colors_hex": [
+        "#005032",
+        "#00734A",
+        "#8EFFD4",
+        "#D4FFF0",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        2,
+        2,
+        14,
+        14
+      ],
+      "sha256": "953ebb01cb1e2ecb5d68c4900711757b6d4f880c22cb3a0a723a597d677d33d6"
+    },
+    {
+      "number": 106,
+      "provisional_number": true,
+      "name": "香油",
+      "category": "素材・中間素材",
+      "motif": "濃茶の栓の小さな角瓶・琥珀金の油",
+      "file": "item-no-106.png",
+      "colors_hex": [
+        "#503200",
+        "#966200",
+        "#DC9200",
+        "#FFD48E",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        4,
+        3,
+        12,
+        13
+      ],
+      "sha256": "d405b6a1a78f35dc211f814c28251e243b23db6c6f1ab19d9c4bd3f6fba61d6a"
+    },
+    {
+      "number": 107,
+      "provisional_number": true,
+      "name": "ミノクリーム",
+      "category": "素材・中間素材",
+      "motif": "器に盛った渦巻きクリーム・上へ細くなる盛り",
+      "file": "item-no-107.png",
+      "colors_hex": [
+        "#736242",
+        "#B99A62",
+        "#F2DCA0",
+        "#FFF7D4",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        2,
+        2,
+        13,
+        13
+      ],
+      "sha256": "dbc0f7261241ea5a06bbffcbd52e6a7cc6c8b2187322194e822f2a6afd1e6378"
+    },
+    {
+      "number": 108,
+      "provisional_number": true,
+      "name": "香水",
+      "category": "完成品（薬）",
+      "motif": "幅広で平たい淡紫ピンクの瓶・横に出る金の噴霧口",
+      "file": "item-no-108.png",
+      "colors_hex": [
+        "#503250",
+        "#966200",
+        "#B98EB9",
+        "#E6B1D4",
+        "#FFD48E",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        2,
+        3,
+        14,
+        12
+      ],
+      "sha256": "71792a7661e47d5d83b762cbe95dc3a5da37a6f0cb8913c328d8192a5eb34b87"
+    },
+    {
+      "number": 109,
+      "provisional_number": true,
+      "name": "エリクシル",
+      "category": "完成品（薬）",
+      "motif": "細長い緑の飾り瓶・金の口と肩飾り・白い光2px",
+      "file": "item-no-109.png",
+      "colors_hex": [
+        "#005032",
+        "#00734A",
+        "#00B97A",
+        "#B1FFE2",
+        "#DC9200",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        4,
+        1,
+        11,
+        14
+      ],
+      "sha256": "899e4b23e5f138447cbe4cd0dd25e0e4feb70b9943c38b0ec33a3bd4f251354a"
+    },
+    {
+      "number": 110,
+      "provisional_number": true,
+      "name": "ミノ・ジェラート",
+      "category": "完成品（薬）",
+      "motif": "低いカップ・白と淡ピンクの二段スクープ",
+      "file": "item-no-110.png",
+      "colors_hex": [
+        "#736242",
+        "#B99A62",
+        "#F2DCA0",
+        "#FFB1C7",
+        "#FFF7D4",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        2,
+        2,
+        13,
+        13
+      ],
+      "sha256": "b404c5a5d3cdf3cb8d9219f5723980e51e908bac82ae5cbbfdb9a0711a97fa3d"
+    },
+    {
+      "number": 111,
+      "provisional_number": true,
+      "name": "ロイヤルチーズケーキ",
+      "category": "完成品（薬）",
+      "motif": "焼き色・クリーム層・土台のケーキ一切れ、赤い実1粒と金の光1px",
+      "file": "item-no-111.png",
+      "colors_hex": [
+        "#734A00",
+        "#DC0049",
+        "#DC9200",
+        "#FFD48E",
+        "#FFF7D4",
+        "#FFFFFF"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        2,
+        3,
+        13,
+        12
+      ],
+      "sha256": "b93d2cff382014f09e5d545a50ae9ee4bb654b6407f27c4139f1974a5f7adfa0"
+    },
+    {
+      "number": 112,
+      "provisional_number": true,
+      "name": "調香の手引き",
+      "category": "本",
+      "motif": "深紫の表紙・金色の平たい香水瓶紋章・白い小口",
+      "file": "item-no-112.png",
+      "colors_hex": [
+        "#321950",
+        "#500073",
+        "#734A96",
+        "#DC9200",
+        "#F2F2F2",
+        "#FFD48E"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        1,
+        1,
+        14,
+        14
+      ],
+      "sha256": "ff12c2325c6f3bdfbb17e5f21612c7f3095a5299ed8772f0ef19b1d94ec7bdb9"
+    },
+    {
+      "number": 113,
+      "provisional_number": true,
+      "name": "乳菓のレシピ",
+      "category": "本",
+      "motif": "クリーム色の表紙・茶色と白のケーキ紋章・赤い実1粒",
+      "file": "item-no-113.png",
+      "colors_hex": [
+        "#736242",
+        "#B97A00",
+        "#DC0049",
+        "#F2DCA0",
+        "#F2F2F2",
+        "#FFF7D4"
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "mode": "RGBA",
+      "alpha_values": [
+        0,
+        255
+      ],
+      "occupied_bbox_xyxy": [
+        1,
+        1,
+        14,
+        14
+      ],
+      "sha256": "93311f60779fdd2cee165728746acec895666621497feda8a9d117d554fb0aa4"
+    }
+  ]
+}

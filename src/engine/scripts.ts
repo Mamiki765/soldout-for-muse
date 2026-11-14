@@ -7,7 +7,7 @@
 import { CATALOG, itemNoByName } from '../data/catalog.js';
 import type { Game, RtItem } from './game.js';
 import type { Shop } from './types.js';
-import type { RtUse } from './use.js';
+import { formatHms, type RtUse } from './use.js';
 
 // ---------------------------------------------------------------------------
 // package item の補助関数 (原作 inc/inc-item.cgi)
@@ -65,6 +65,22 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const itemno = u.itemno;
     if (g.rand(1000) < Number(u.params[0])) {
       itemUseItem(dt, u, itemno, 1, g.items[itemno].name + 'が読めない程ボロボロになりましたので破棄しました');
+    }
+    return '';
+  },
+
+  // v0.3.0: 置き場の本のすり切れ (lostbook と同じ) に加え、道具の本 params[1] が1セットごとに params[2]/1000 ですり切れる。
+  // 1回の実行で減るのは最大1冊 (まとめて作っても、持っている冊数で作れるセット数が縛られない)
+  lostbooktool(g, dt, u, { count }) {
+    USE_FUNCS.lostbook(g, dt, u, { dts: undefined, count });
+    const tool = Number(u.params[1]);
+    const proba = Number(u.params[2]);
+    if (!tool || !(dt.item[tool - 1] > 0)) return '';
+    for (let i = 0; i < count; i++) {
+      if (g.rand(1000) < proba) {
+        itemUseItem(dt, u, tool, 1, g.items[tool].name + 'が読めない程ボロボロになりましたので破棄しました');
+        break;
+      }
     }
     return '';
   },
@@ -129,6 +145,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   },
 
   // 陳列棚増築取壊キット
+  // 結果に棚の増減と決算ごとの棚の維持費を数字で出す (案: リカさんより)。原作は「陳列棚をN個にしました」だけ。
   'edit-showcase:_local_1'(g, dt, u) {
     const oldcnt = dt.showcasecount;
     const newcnt = Number(u.params[0]);
@@ -143,10 +160,9 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       dt.showcase.splice(newcnt);
       dt.price.splice(newcnt);
     }
-    const ret = `陳列棚を${dt.showcasecount}個にしました`;
-    log(g, 0, dt.id, ret);
+    log(g, 0, dt.id, `陳列棚を${dt.showcasecount}個にしました`);
     log(g, 3, 0, `${dt.shopname}の陳列棚が${dt.showcasecount}個になりました`);
-    return ret;
+    return showcaseChangeText(oldcnt, newcnt);
   },
 
   // 禁断の書 悪い噂を流す
@@ -218,7 +234,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // 禁断の書 業種の悪い噂を流す
   'badgossip:_local_3'(g, dt, u, { dts }) {
     if (!dts) return '';
-    const category: Record<number, string> = { 4: 'ken', 5: 'yoroi', 6: 'tate', 7: 'tue' };
+    const category: Record<number, string> = { 4: 'ken', 5: 'yoroi', 6: 'tate', 7: 'tue', 8: 'acce' }; // 8 は v0.3.0 で追加 (反アクセサリ運動)
     const itemno = dts.showcase[Math.trunc(g.rand(dts.showcasecount))] ?? 0;
     const itemtype = itemno ? g.items[itemno].type : 0;
     const cat = category[itemtype];
@@ -268,6 +284,50 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       ret += '職業が「不定」になりました';
     }
     return ret;
+  },
+};
+
+/** 決算ごとにかかる棚の維持費 */
+export function showcaseCost(count: number): number {
+  return CATALOG.showcaseCost[count - 1] ?? 0;
+}
+
+/** 「棚 5→3: 陳列枠-2、棚の維持費(決算ごと) ￥200000→￥5000」 */
+export function showcaseChangeText(oldcnt: number, newcnt: number): string {
+  const diff = newcnt - oldcnt;
+  return `棚 ${oldcnt}→${newcnt}: 陳列枠${diff > 0 ? '+' : ''}${diff}、棚の維持費(決算ごと) ￥${showcaseCost(oldcnt)}→￥${showcaseCost(newcnt)}`;
+}
+
+/**
+ * 使う前の取りやめ判定。文字列を返したら、何も消費せずに NG にする。
+ * キーは USE_FUNCS と同じ。
+ */
+export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req: { confirm?: boolean }) => string | undefined> = {
+  // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない。
+  // 増やすとき・減らすときとも、confirm が無ければ実行せずに見込みだけ返す (増やすと維持費が重くなるため。案: リカさんより)
+  'edit-showcase:_local_1'(g, dt, u, req) {
+    const newcnt = Number(u.params[0]);
+    const oldcnt = dt.showcasecount;
+    if (newcnt === oldcnt) return `棚は今も${newcnt}個です。変更なし (キャンセル。何も消費していません)`;
+    if (newcnt < oldcnt && !req.confirm) {
+      const off = [];
+      for (let i = newcnt; i < oldcnt; i++) {
+        const no = dt.showcase[i] ?? 0;
+        if (no) off.push(`棚${i + 1}:${g.items[no].name}`);
+      }
+      return (
+        `確認: ${showcaseChangeText(oldcnt, newcnt)}` +
+        (off.length ? ` (外れる: ${off.join(' ')}。在庫は倉庫に残ります)` : '') +
+        '。取り壊すなら同じ行動に "confirm":true を付けて送り直してください。キットはなくなり、戻すには費用と時間がかかります (まだ何も変えていません)'
+      );
+    }
+    if (newcnt > oldcnt && !req.confirm) {
+      return (
+        `確認: ${showcaseChangeText(oldcnt, newcnt)}、増築費用￥${u.money} 時間${formatHms(u.time)}` +
+        '。棚の維持費は決算ごとにかかり続けます。増築するなら同じ行動に "confirm":true を付けて送り直してください (まだ何も変えていません)'
+      );
+    }
+    return undefined;
   },
 };
 

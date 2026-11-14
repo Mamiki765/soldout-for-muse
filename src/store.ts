@@ -233,6 +233,11 @@ export class Store {
     this.db.prepare('INSERT INTO party_links(owner_id,shop_id,created_at) VALUES(?,?,?)').run(ownerId, shopId, now);
   }
 
+  /** Muse Party でつながった店か */
+  isPartyShop(shopId: number): boolean {
+    return !!this.db.prepare('SELECT 1 FROM party_links WHERE shop_id = ? LIMIT 1').get(shopId);
+  }
+
   unlinkPartyShop(shopId: number): void {
     this.db.prepare('DELETE FROM party_links WHERE shop_id = ?').run(shopId);
   }
