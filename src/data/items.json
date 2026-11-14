@@ -7023,11 +7023,6 @@
                "time" : 5400,
                "use" : [
                   {
-                     "count" : 10,
-                     "item_no" : 25,
-                     "proba" : 0
-                  },
-                  {
                      "count" : 1,
                      "item_no" : 113,
                      "proba" : 0
@@ -7093,11 +7088,6 @@
                "scale" : "本",
                "time" : 9600,
                "use" : [
-                  {
-                     "count" : 10,
-                     "item_no" : 25,
-                     "proba" : 0
-                  },
                   {
                      "count" : 1,
                      "item_no" : 113,
