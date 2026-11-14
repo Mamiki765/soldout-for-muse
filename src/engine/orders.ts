@@ -20,30 +20,30 @@ export const ORDER_RULES = {
   /** 期限 (時間) */
   minHours: 1,
   maxHours: 48,
-  /** 1日 (決算から次の決算まで) に出せる募集の数 = 棚の数 × これ。取り下げても戻らない */
+  /** 1期 (決算から次の決算まで) に出せる募集の数 = 棚の数 × これ。取り下げても戻らない */
   postsPerShelf: 3,
-  /** 1日に応じられる募集の数 (納品側)。納品は売った側の人気・点数に入るので、稼ぎの基本は陳列のまま */
+  /** 1期に応じられる募集の数 (納品側)。納品は売った側の人気・点数に入るので、稼ぎの基本は陳列のまま */
   fillsPerDay: 10,
 };
 
 /** 決まりの一文。ヘルプ・告知・一覧の先頭に同じ文を置く (Museが迷わないように。リカさん 2026-11-14) */
 export const ORDER_RULES_LINE =
   `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
-  `募集は同時に棚の数まで・1日に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
-  `納品は同じ店へ1日1セットまで (その店の募集なら何種類でも1セットにまとめて届けられる)・応じられるのは全部で1日${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る。`;
+  `募集は同時に棚の数まで・1期に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
+  `納品は同じ店へ1期1セットまで (その店の募集なら何種類でも1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る (1期=決算から次の決算まで)。`;
 
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
   return (g.world.orders ??= []);
 }
 
-/** 今の「1日」(決算の区切り) の番号 */
+/** 今の「期」(決算の区切り) の番号 */
 export function periodNo(g: Game): number {
   const cfg = g.config;
   return Math.floor((g.now + cfg.tzOffset - cfg.dateReviseTime) / cfg.oneDayTime);
 }
 
-/** 今日の回数表。決算をまたいだら空にする */
+/** 今期の回数表。決算をまたいだら空にする */
 export function orderStats(g: Game): OrderStats {
   const no = periodNo(g);
   const s = g.world.orderStats;
@@ -101,7 +101,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   if (mine >= dt.showcasecount) throw new GameError(`上限: 同時に出せる募集 ${mine}/${dt.showcasecount}件 (棚の数まで)。あと0件です。取り下げるか、締まると出せます`);
   const stats = orderStats(g);
   const maxPosts = dt.showcasecount * ORDER_RULES.postsPerShelf;
-  if ((stats.posted[dt.id] ?? 0) >= maxPosts) throw new GameError(`上限: 今日出した募集 ${stats.posted[dt.id] ?? 0}/${maxPosts}回 (棚の数×${ORDER_RULES.postsPerShelf})。あと0回です。取り下げても戻らず、決算で戻ります`);
+  if ((stats.posted[dt.id] ?? 0) >= maxPosts) throw new GameError(`上限: 今期出した募集 ${stats.posted[dt.id] ?? 0}/${maxPosts}回 (棚の数×${ORDER_RULES.postsPerShelf})。あと0回です。取り下げても戻らず、決算で戻ります`);
 
   const total = price * count;
   if (dt.money < total) throw new GameError('資金が足りません (代金は募集のときに全額預けます)');
@@ -199,7 +199,7 @@ export interface DeliverLine {
 
 /**
  * 納品 (1セット)。同じ募集主の募集なら、複数の品を1セットにまとめて渡せる。
- * 同じ相手へは1日1セットまで (逆向きは別に1セット)。応じた募集は1件ずつ「種類」と数えて1日10種類まで。
+ * 同じ相手へは1期1セットまで (逆向きは別に1セット)。応じた募集は1件ずつ「種類」と数えて1期10種類まで。
  */
 export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): string[] {
   if (!lines.length) throw new GameError('納品する募集を指定してください');
@@ -209,10 +209,10 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
   if (buyer === dt) throw new GameError('自分の募集には納品できません');
   const stats = orderStats(g);
   const pair = `${dt.id}>${buyer.id}`;
-  if (stats.pairs[pair]) throw new GameError(`上限: ${buyer.shopname}への納品は今日1/1セット (同じ店へは1日1セット)。決算で戻ります。次からは届けたい募集をまとめて1セットで送ってください`);
+  if (stats.pairs[pair]) throw new GameError(`上限: ${buyer.shopname}への納品は今期1/1セット (同じ店へは1期1セット)。決算で戻ります。次からは届けたい募集をまとめて1セットで送ってください`);
   const done = stats.filled[dt.id] ?? 0;
   if (done + lines.length > ORDER_RULES.fillsPerDay) {
-    throw new GameError(`上限: 今日応じた募集 ${done}/${ORDER_RULES.fillsPerDay}種類。あと${Math.max(0, ORDER_RULES.fillsPerDay - done)}種類なので、このセットの${lines.length}種類は入りません。決算で戻ります`);
+    throw new GameError(`上限: 今期応じた募集 ${done}/${ORDER_RULES.fillsPerDay}種類。あと${Math.max(0, ORDER_RULES.fillsPerDay - done)}種類なので、このセットの${lines.length}種類は入りません。決算で戻ります`);
   }
   const seen = new Set<number>();
   const msgs: string[] = [];
@@ -247,7 +247,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     dt.saletoday += amount;
     dt.taxtoday += tax;
     // 棚の「売り切れで人気が下がる」は掛けない (意図的)。納品は棚を使わないので売り切れ放置が起きない。
-    // 人気・点数への効き過ぎは、1日に応じられる件数 (fillsPerDay) で抑える (リカさん判断 2026-11-14)
+    // 人気・点数への効き過ぎは、1期に応じられる件数 (fillsPerDay) で抑える (リカさん判断 2026-11-14)
     // 買い手: 預り金から払う (時間は募集のときに払い済み)。品は締めるまで募集の中で預かる
     buyer.paytoday += amount;
     o.escrow -= amount;

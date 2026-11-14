@@ -91,7 +91,7 @@ test('1個も届かずに期限切れなら、代金も時間も全部戻る', (
   assert.equal(world.orders!.length, 0);
 });
 
-test('制限: 単価・期限・同時件数・同じ相手1日1セット (逆向きは別)・まとめ納品・最低納品数', () => {
+test('制限: 単価・期限・同時件数・同じ相手1期1セット (逆向きは別)・まとめ納品・最低納品数', () => {
   const { world, buyer, seller, other } = setup();
   const mk = (dt: Shop, req: Partial<{ price: number; count: number; hours: number; min: number; itemno: number }>) =>
     act(world, dt, T0, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24, ...req }));
@@ -122,7 +122,7 @@ test('制限: 単価・期限・同時件数・同じ相手1日1セット (逆�
   assert.equal(msgs.length, 2);
   assert.equal(world.orders!.find((o) => o.id === o2.id), undefined, '集め終わった募集は消える');
   // 同じ相手へ2セット目は不可
-  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /1日1セット/);
+  assert.throws(() => act(world, seller, T0 + 3, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o1.id, count: 5 }])), /1期1セット/);
   // 別の店からは納品できる
   act(world, other, T0 + 4, (g) => deliver(g, g.shopById(other.id)!, buyer.id, [{ order: o1.id, count: 5 }]));
   // 逆向き (買い手→売り手) は別に1セット
@@ -134,7 +134,7 @@ test('制限: 単価・期限・同時件数・同じ相手1日1セット (逆�
   assert.throws(() => act(world, other, T0 + 6, (g) => deliver(g, g.shopById(other.id)!, other.id, [{ order: o4.id, count: 1 }])), /自分/);
 });
 
-test('応じられる募集は1日10種類、出せる募集は棚×3回 (決算で戻る)', () => {
+test('応じられる募集は1期10種類、出せる募集は棚×3回 (決算で戻る)', () => {
   const { world, seller } = setup();
   const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
   const buyers: Shop[] = [];
@@ -173,7 +173,7 @@ test('digest に「あなたの在庫が募集中」が出て、一覧が読め�
   assert.match(digestText(digestData(g, g.shopById(buyer.id)!, n)), /自分の募集 #1獣の革残50/);
   const list = ordersText(ordersData(g, g.shopById(seller.id)!, {}));
   assert.match(list, /#1 獣の革@130\(130%\) 残50\/50 瑠璃のしおり堂/);
-  assert.match(list, /今日 募集0\/3回/);
+  assert.match(list, /今期 募集0\/3回/);
 });
 
 test('締めるまでに買い足して上限を超えた分は破棄される', () => {
@@ -188,7 +188,7 @@ test('締めるまでに買い足して上限を超えた分は破棄される',
   assert.match(msg, /40枚は破棄/);
 });
 
-test('納品で売り切れても人気は下がらない (意図的。1日10件で抑える)', () => {
+test('納品で売り切れても人気は下がらない (意図的。1期10種類で抑える)', () => {
   const { world, buyer, seller } = setup();
   const s = world.shops.find((x) => x.id === seller.id)!;
   s.rank = 5000;
@@ -244,7 +244,7 @@ test('セットの途中で失敗したら、先に入れた分も含めて全�
   assert.equal(JSON.stringify(world), before);
 });
 
-test('保存して読み直しても、募集・預り金・届いた数・今日の回数が残る', async () => {
+test('保存して読み直しても、募集・預り金・届いた数・今期の回数が残る', async () => {
   const { Store } = await import('../src/store.js');
   const { world, buyer, seller } = setup();
   const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 120, count: 50, hours: 24 }));
