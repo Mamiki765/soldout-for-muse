@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import { DEFAULT_CONFIG, type GameConfig } from '../src/config.js';
 import { MAX_ITEM } from '../src/data/catalog.js';
 import { editShowcase, openShop } from '../src/engine/actions.js';
+import { cancelOrder, createOrder, sweepOrders } from '../src/engine/orders.js';
+import { itemNoByName } from '../src/data/catalog.js';
 import { Game, GameError } from '../src/engine/game.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld, type World } from '../src/engine/types.js';
@@ -122,4 +124,32 @@ test('digest と me にクーポンが出る', () => {
   const me = meData(g, dt);
   assert.equal(me.coupon, 18 * H);
   assert.equal(me.coupon_max, 48 * H);
+});
+
+test('買い取り募集が1個も届かずに締まったら、クーポンで払った分はクーポンへ戻る (週が変わっていれば戻らない)', () => {
+  const LEATHER = itemNoByName('獣の革');
+  const { world, g, dt } = setup();
+  dt.money = 1_000_000;
+  g.dt = dt;
+  const time0 = dt.time;
+  const o = createOrder(g, dt, { itemno: LEATHER, price: 100, count: 10, hours: 1 });
+  assert.ok(o.time > 0);
+  assert.equal(o.coupon, o.time);
+  assert.equal(g.couponTime(dt), 48 * H - o.time);
+  const g2 = game(world, WED + 60);
+  g2.dt = dt;
+  cancelOrder(g2, dt, o.id);
+  assert.equal(g2.couponTime(dt), 48 * H, 'クーポンへ戻る');
+  assert.equal(dt.time, time0, '持ち時間は増えない');
+
+  // 週をまたいで期限切れ: 先週のクーポン分は捨てる
+  const g3 = game(world, SUN - 1800);
+  g3.dt = dt;
+  const o2 = createOrder(g3, dt, { itemno: LEATHER, price: 100, count: 10, hours: 1 });
+  assert.equal(o2.coupon, o2.time);
+  const g4 = game(world, SUN + 1800);
+  assert.equal(sweepOrders(g4), true);
+  assert.equal(g4.couponTime(dt), 48 * H);
+  // 募集のとき満タン (48h) で止められ、その後1時間たっただけ。先週のクーポン分は足されない
+  assert.equal(g4.now - dt.time, 48 * H + 3600, '持ち時間には入らない');
 });

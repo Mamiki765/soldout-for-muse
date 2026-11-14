@@ -154,10 +154,11 @@ export class Game {
   /**
    * 原作 UseTime: 持ち時間を tm 秒使う。
    * この移植では週1の時間クーポンから先に使い、足りない分を持ち時間から使う。
+   * 戻り値はクーポンから使った秒数。
    */
-  useTime(tm: number, user = true): void {
+  useTime(tm: number, user = true): number {
     const dt = this.dt;
-    if (!dt || !dt.status) return;
+    if (!dt || !dt.status) return 0;
     const tmp = this.now - dt.time;
     if (tmp > this.config.maxStockTime) dt.time = this.now - this.config.maxStockTime;
     const coupon = this.couponTime(dt);
@@ -168,6 +169,20 @@ export class Game {
       dt.user[COUPON_LEFT] = String(coupon - fromCoupon);
     }
     dt.time += tm - fromCoupon;
+    return fromCoupon;
+  }
+
+  /**
+   * 使った時間を戻す (買い取り募集の取り下げなど)。
+   * クーポンから払った分 coupon は、払った週 week が今週ならクーポンへ戻し、週が変わっていれば捨てる。残りは持ち時間へ。
+   */
+  refundTime(dt: Shop, tm: number, coupon = 0, week = 0): void {
+    const c = Math.max(0, Math.min(coupon, tm));
+    dt.time -= tm - c;
+    if (c > 0 && this.config.couponTime > 0 && week === this.couponWeekStart()) {
+      dt.user[COUPON_WEEK] = String(week);
+      dt.user[COUPON_LEFT] = String(Math.min(this.config.couponTime, this.couponTime(dt) + c));
+    }
   }
 
   /** 原作 GetStockTime: 持ち時間 (秒)。クーポンは含まない */
