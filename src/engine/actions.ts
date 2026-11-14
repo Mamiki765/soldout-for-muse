@@ -126,7 +126,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     stockOf = (no) => g.world.wholestore[no - 1] ?? 0;
   } else {
     dts = g.shopById(req.from);
-    if (!dts) throw new GameError('店終いしたかもしれません');
+    if (!dts) throw new GameError('その店は見つかりません (店終いしたかもしれません)');
     if (dts === dt) throw new GameError('自分の店から買う気ですか？');
     showcase = dts.showcase.slice(0, dts.showcasecount);
     prices = dts.price.slice(0, dts.showcasecount);
@@ -147,14 +147,18 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     throw new GameError('商品や価格が変化したようです');
   }
 
+  // 買える数が0になった理由を原作の文に添える (何を直せばよいか分かるように)
+  let why = num > 0 ? '' : '数量が0です。1以上を指定してください';
   if (stockOf(itemno) < num) num = stockOf(itemno);
   if (num + dt.item[itemno - 1] > g.items[itemno].limit) {
     num = g.items[itemno].limit - dt.item[itemno - 1];
     if (num < 0) num = 0;
+    if (!num && !why) why = `所持上限 (${g.items[itemno].limit}) に達しています`;
   }
   if (dt.money < num * price) num = Math.trunc(dt.money / price);
   if (num < 0) num = 0;
-  if (!num) throw new GameError('冷やかしですか？');
+  if (!num && !why) why = '資金が足りません';
+  if (!num) throw new GameError(`冷やかしですか？ (${why})`);
 
   if (isWhole) g.timeSendItem = Math.trunc(g.timeSendItem / 2);
   const usetime = g.timeDeal(baseprice * num, itemno, num);
@@ -221,7 +225,7 @@ export function editShowcase(g: Game, dt: Shop, req: ShowcaseRequest): string {
   }
   let price = 0;
   if (itemno > 0) {
-    if (!dt.item[itemno - 1]) throw new GameError('そのアイテムは在庫無しです');
+    if (!dt.item[itemno - 1]) throw new GameError('アイテムの在庫がありません。');
     price = yen !== 0 ? yen : Math.trunc((g.items[itemno].price / 100) * per);
   }
   if (price > g.maxMoney) price = g.maxMoney;

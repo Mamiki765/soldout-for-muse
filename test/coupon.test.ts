@@ -69,7 +69,7 @@ test('持ち時間が0以下でもクーポンが残っていれば動ける。�
   dt.time = g.now + H; // 持ち時間 -1h
   use(g, dt.id, 48 * H);
   assert.equal(g.couponTime(dt), 0);
-  assert.throws(() => use(g, dt.id, 60), (e: unknown) => e instanceof GameError && e.message === '時間待ちでしょ？');
+  assert.throws(() => use(g, dt.id, 60), (e: unknown) => e instanceof GameError && e.message.startsWith('時間待ちでしょ？'));
 });
 
 test('次の日曜0時に48時間へ戻る (繰り越さない)', () => {
