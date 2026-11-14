@@ -4264,7 +4264,7 @@
                "argselect" : null,
                "exp" : 10,
                "exptime" : 9600,
-               "func" : "lostbook",
+               "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
                "get" : [
@@ -4294,8 +4294,8 @@
                "okmsg" : "香水を作りました",
                "params" : [
                   "30",
-                  null,
-                  null,
+                  "112",
+                  "30",
                   null
                ],
                "scale" : "セット",
@@ -4330,7 +4330,7 @@
                "argselect" : null,
                "exp" : 10,
                "exptime" : 10800,
-               "func" : "lostbook",
+               "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
                "get" : [
@@ -4360,8 +4360,8 @@
                "okmsg" : "エリクシルを作りました",
                "params" : [
                   "30",
-                  null,
-                  null,
+                  "112",
+                  "30",
                   null
                ],
                "scale" : "セット",
@@ -6985,7 +6985,7 @@
                "argselect" : null,
                "exp" : 0,
                "exptime" : 5400,
-               "func" : null,
+               "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
                "get" : [
@@ -7014,9 +7014,9 @@
                "no" : 4,
                "okmsg" : "ミノ・ジェラートを作りました",
                "params" : [
-                  null,
-                  null,
-                  null,
+                  "0",
+                  "113",
+                  "30",
                   null
                ],
                "scale" : "本",
@@ -7056,7 +7056,7 @@
                "argselect" : null,
                "exp" : 0,
                "exptime" : 9600,
-               "func" : null,
+               "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
                "get" : [
@@ -7085,9 +7085,9 @@
                "no" : 5,
                "okmsg" : "ロイヤルチーズケーキを作りました",
                "params" : [
-                  null,
-                  null,
-                  null,
+                  "0",
+                  "113",
+                  "30",
                   null
                ],
                "scale" : "本",

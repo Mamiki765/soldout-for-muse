@@ -69,6 +69,22 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     return '';
   },
 
+  // v0.3.0: 置き場の本のすり切れ (lostbook と同じ) に加え、道具の本 params[1] が1セットごとに params[2]/1000 ですり切れる。
+  // 1回の実行で減るのは最大1冊 (まとめて作っても、持っている冊数で作れるセット数が縛られない)
+  lostbooktool(g, dt, u, { count }) {
+    USE_FUNCS.lostbook(g, dt, u, { dts: undefined, count });
+    const tool = Number(u.params[1]);
+    const proba = Number(u.params[2]);
+    if (!tool || !(dt.item[tool - 1] > 0)) return '';
+    for (let i = 0; i < count; i++) {
+      if (g.rand(1000) < proba) {
+        itemUseItem(dt, u, tool, 1, g.items[tool].name + 'が読めない程ボロボロになりましたので破棄しました');
+        break;
+      }
+    }
+    return '';
+  },
+
   // ★人気アップ(汎用) param1 アップポイント / param2 最近の出来事用コメント
   popup(g, dt, u) {
     const up = Math.trunc(Number(u.params[0]) * (2 - dt.rank / 5000));

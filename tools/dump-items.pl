@@ -251,6 +251,12 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
 		$u->{func} = defined $spec->{lostbook} ? 'lostbook' : undef;
 		$u->{params} = [defined $spec->{lostbook} ? "$spec->{lostbook}" : undef, undef, undef, undef];
+		if ($spec->{toolwear}) {
+			# 道具の本 (112・113) は1セットごとに toolwear/1000 ですり切れる (1回の実行で最大1冊)
+			my ($tool) = grep { !ref $_ && $by_no{$_}{type} == 2 } @{ $spec->{tools} };
+			$u->{func} = 'lostbooktool';
+			$u->{params} = [$u->{params}[0] // '0', "$tool", "$spec->{toolwear}", undef];
+		}
 		$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
 	}
 	for my $spec (@{ $v030->{gathering} }) {

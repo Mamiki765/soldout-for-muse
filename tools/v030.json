@@ -249,7 +249,8 @@
    "exptime": 9600,
    "exp": 10,
    "lostbook": 30,
-   "job": "drug"
+   "job": "drug",
+   "toolwear": 30
   },
   {
    "book": 15,
@@ -282,7 +283,8 @@
    "exptime": 10800,
    "exp": 10,
    "lostbook": 30,
-   "job": "drug"
+   "job": "drug",
+   "toolwear": 30
   },
   {
    "book": 26,
@@ -341,7 +343,8 @@
    "exptime": 5400,
    "exp": 0,
    "lostbook": null,
-   "job": "cow"
+   "job": "cow",
+   "toolwear": 30
   },
   {
    "book": 26,
@@ -377,7 +380,8 @@
    "exptime": 9600,
    "exp": 0,
    "lostbook": null,
-   "job": "cow"
+   "job": "cow",
+   "toolwear": 30
   },
   {
    "book": 10,

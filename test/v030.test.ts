@@ -60,6 +60,24 @@ test('v0.3.0: 調香の手引き・乳菓のレシピがないと香水・エリ
   }
 });
 
+test('v0.3.0: 調香の手引き・乳菓のレシピは1セットごとに3%ですり切れ、1回の実行で減るのは最大1冊', () => {
+  const uses = productionUses.filter(({ u }) => u.func === 'lostbooktool');
+  assert.equal(uses.length, 4);
+  for (const { book, u } of uses) {
+    const tool = Number(u.params[1]);
+    for (const [rand, lost] of [[0.029, true], [0.03, false]] as const) {
+      const { g, dt } = fixture(rand);
+      dt.job = u.jobs[0].job;
+      dt.item[book - 1] = 1;
+      dt.exp[book] = u.needexp ?? 0;
+      for (const l of u.use) dt.item[l.item_no - 1] = l.proba === 0 ? l.count + (l.item_no === tool ? 2 : 0) : l.count * 5;
+      const r = useItemAction(g, dt, book, u.no, { count: 5 });
+      assert.equal(r.result.count, 5, u.name!);
+      assert.equal(dt.item[tool - 1], lost ? 2 : 3, `${u.name} rand=${rand} 道具の本`);
+    }
+  }
+});
+
 test('v0.3.0: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ですり切れる', () => {
   for (const spec of v030.gathering) {
     const u = BASE_ITEMS[spec.book].uses.find((x) => x.name === spec.name)!;
