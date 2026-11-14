@@ -35,7 +35,10 @@ function assertSane(world: World): void {
 
 test('原作79種と追加34種 (v0.2.0 の23種・v0.3.0 の11種)、計113商品を読み込める', () => {
   assert.equal(MAX_ITEM, 113);
-  assert.equal(BASE_ITEMS[113].name, '『乳菓のレシピ』');
+  assert.equal(BASE_ITEMS[112].name, '調香の手引き');
+  assert.equal(BASE_ITEMS[113].name, '乳菓のレシピ');
+  assert.equal(itemNoByName('調香の手引き'), 112);
+  assert.equal(itemNoByName('乳菓のレシピ'), 113);
   assert.equal(BASE_ITEMS[1].name, '薬草');
   assert.equal(BASE_ITEMS[70].name, 'ナユタの首飾り');
 });
