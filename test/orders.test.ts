@@ -288,3 +288,30 @@ test('預かり中の品にも、受け取る店の維持費が掛かる', async
   // 獣の革 299枚 × 維持費30/日 × 1時間
   assert.ok(Math.abs(withHeld - without - (299 * 30) / 24) < 1, `${withHeld} - ${without}`);
 });
+
+test('部分納品済みの募集が区間の途中で期限切れになっても、区間全体の維持費が掛かる', async () => {
+  const { turnProc } = await import('../src/engine/turn.js');
+  const cfg = DEFAULT_CONFIG;
+  const off = cfg.tzOffset - cfg.dateReviseTime;
+  // 決算の直後から始めて、決算をまたがない26時間を1区間で計算する
+  const start = (Math.floor((T0 + off) / cfg.oneDayTime) + 1) * cfg.oneDayTime - off + 60;
+  const run = (held: boolean) => {
+    const { world, buyer, seller } = setup();
+    for (const s of world.shops) s.time = start - 48 * 3600;
+    if (held) {
+      const o = act(world, buyer, start, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 300, hours: 3 }));
+      act(world, seller, start, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 299 }]));
+    }
+    world.lasttime = start;
+    const g = new Game(world, DEFAULT_CONFIG, seededRng(7), start + 26 * 3600);
+    const b = g.shopById(buyer.id)!;
+    turnProc(g);
+    return { cost: b.costtoday, leather: b.item[LEATHER - 1], orders: world.orders?.length ?? 0 };
+  };
+  const base = run(false);
+  const r = run(true);
+  assert.equal(r.orders, 0, '期限切れで締まっている');
+  assert.equal(r.leather, 299, '届いた分を受け取っている');
+  // 3時間の預かり中 + 23時間の倉庫 = 26時間ぶん、299枚 × 30/日
+  assert.ok(Math.abs(r.cost - base.cost - (299 * 30 * 26) / 24) < 1, `${r.cost} - ${base.cost}`);
+});
