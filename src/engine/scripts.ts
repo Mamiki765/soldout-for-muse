@@ -218,7 +218,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // 禁断の書 業種の悪い噂を流す
   'badgossip:_local_3'(g, dt, u, { dts }) {
     if (!dts) return '';
-    const category: Record<number, string> = { 4: 'ken', 5: 'yoroi', 6: 'tate', 7: 'tue' };
+    const category: Record<number, string> = { 4: 'ken', 5: 'yoroi', 6: 'tate', 7: 'tue', 8: 'acce' }; // 8 は v0.3.0 で追加 (反アクセサリ運動)
     const itemno = dts.showcase[Math.trunc(g.rand(dts.showcasecount))] ?? 0;
     const itemtype = itemno ? g.items[itemno].type : 0;
     const cat = category[itemtype];
