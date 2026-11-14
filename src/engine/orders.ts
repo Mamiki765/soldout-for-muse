@@ -106,7 +106,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   const total = price * count;
   if (dt.money < total) throw new GameError('資金が足りません (代金は募集のときに全額預けます)');
   const usetime = g.timeDeal(total, itemno, count);
-  g.useTime(usetime);
+  const fromCoupon = g.useTime(usetime);
   dt.money -= total;
   bump(stats.posted, dt.id);
 
@@ -121,6 +121,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
     min,
     escrow: total,
     time: usetime,
+    ...(fromCoupon ? { coupon: fromCoupon, couponWeek: g.couponWeekStart() } : {}),
     created: g.now,
     expires: g.now + hours * 3600,
   };
@@ -150,7 +151,7 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
   buyer.moneystock += toStock;
   // 取引時間は個数によらず1回ぶん。1個も買えなかったときだけ返す (棚で1回も買わなかったのと同じ)
   const timeBack = o.left === o.count ? o.time : 0;
-  buyer.time -= timeBack;
+  if (timeBack) g.refundTime(buyer, timeBack, o.coupon ?? 0, o.couponWeek ?? 0);
   const msg =
     `募集#${o.id} ${item.name}を${reason} (届いた${got}/${o.count}${item.scale}を倉庫へ` +
     (put < got ? `、所持上限を超えた${got - put}${item.scale}は破棄` : '') +

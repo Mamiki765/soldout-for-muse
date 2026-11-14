@@ -27,6 +27,17 @@ export interface GameConfig {
   tzOffset: number;
   /** 最大持ち時間(秒) ($MAX_STOCK_TIME) */
   maxStockTime: number;
+  /**
+   * 週1の時間クーポン(秒)。0 なら無し。この移植で追加 (案: リカさんより)。
+   * 行動の時間はクーポンから先に使い、足りない分を持ち時間から使う。
+   * 毎週 couponWeekday 曜 couponHour 時 (tzOffset の時刻) にこの量へ戻る (繰り越さない)。
+   * 持ち時間の上限 maxStockTime とは別枠で、クーポンを使っている間も持ち時間はたまる。
+   */
+  couponTime: number;
+  /** クーポンが戻る曜日 (0=日 … 6=土) */
+  couponWeekday: number;
+  /** クーポンが戻る時刻 (時) */
+  couponHour: number;
   /** 最近の出来事の保存期限(秒) ($LOG_EXPIRE_TIME)。実際はこの2倍保存される */
   logExpireTime: number;
   /** 点数計算の際考慮する過去の純利益(期) ($PROFIT_DAY_COUNT) */
@@ -58,6 +69,9 @@ export const DEFAULT_CONFIG: GameConfig = {
   dateReviseTime: 0,
   tzOffset: 60 * 60 * 9,
   maxStockTime: 48 * 60 * 60,
+  couponTime: 48 * 60 * 60,
+  couponWeekday: 0,
+  couponHour: 0,
   logExpireTime: 3600 * 24,
   profitDayCount: 3,
   saleSpeed: 10,

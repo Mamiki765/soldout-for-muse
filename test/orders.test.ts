@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 import { CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
@@ -12,6 +12,8 @@ import { seededRng } from '../src/engine/rng.js';
 import { newWorld, type Shop, type World } from '../src/engine/types.js';
 import { digestData, digestText, ordersData, ordersText } from '../src/api/views.js';
 
+// 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく (クーポンとの組み合わせは coupon.test.ts)
+const DEFAULT_CONFIG = { ...BASE_CONFIG, couponTime: 0 };
 const T0 = 1_800_000_000;
 const LEATHER = itemNoByName('獣の革');
 

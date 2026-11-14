@@ -119,6 +119,10 @@ export interface BuyOrder {
   escrow: number;
   /** 募集のときに先に払った取引時間 (秒) */
   time: number;
+  /** time のうち時間クーポンから払った分 (秒)。戻すときはクーポンへ (配られた週が同じときだけ) */
+  coupon?: number;
+  /** coupon を払った週 (Game.couponWeekStart) */
+  couponWeek?: number;
   created: number;
   expires: number;
 }

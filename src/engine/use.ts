@@ -209,7 +209,9 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   const usetime = itemUseTime(dt, u);
   if ((dt.exp[u.itemno] ?? 0) < u.needexp) count = 0;
   if (dt.money < u.money * count) count = Math.trunc(dt.money / u.money);
-  if (dt.time + usetime * count > g.now) count = Math.trunc((g.now - dt.time) / usetime);
+  // 時間クーポンの残りも使える
+  const avail = g.now - dt.time + g.couponTime(dt);
+  if (usetime * count > avail) count = Math.trunc(avail / usetime);
   for (const line of u.use) {
     const itemcount = line.count * (line.proba === 0 ? 1 : count);
     if (dt.item[line.no - 1] < itemcount) count = Math.trunc(dt.item[line.no - 1] / line.count);

@@ -9,6 +9,10 @@ import type { GameConfig } from '../config.js';
 import type { LogEntry, Shop, World } from './types.js';
 import type { Rng } from './rng.js';
 
+/** 時間クーポンの保存先 (Shop.user)。配られた週の開始時刻と残り秒 */
+export const COUPON_WEEK = '_coupon_week';
+export const COUPON_LEFT = '_coupon_left';
+
 /** リクエスト中の商品。原作の @ITEM の要素。イベントでパラメータが変わり、計算用の一時値も持つ。 */
 export interface RtItem extends ItemDef {
   // 以下は売上計算や相場計算の一時値 (原作でも保存しない)
@@ -147,20 +151,71 @@ export class Game {
     dt.rank = 0;
   }
 
-  /** 原作 UseTime: 持ち時間を tm 秒使う */
-  useTime(tm: number, user = true): void {
+  /**
+   * 原作 UseTime: 持ち時間を tm 秒使う。
+   * この移植では週1の時間クーポンから先に使い、足りない分を持ち時間から使う。
+   * 戻り値はクーポンから使った秒数。
+   */
+  useTime(tm: number, user = true): number {
     const dt = this.dt;
-    if (!dt || !dt.status) return;
+    if (!dt || !dt.status) return 0;
     const tmp = this.now - dt.time;
     if (tmp > this.config.maxStockTime) dt.time = this.now - this.config.maxStockTime;
-    if (tmp < 0 && user) throw new GameError('時間待ちでしょ？');
-    dt.time += tm;
+    const coupon = this.couponTime(dt);
+    if (tmp < 0 && user && coupon <= 0) throw new GameError('時間待ちでしょ？');
+    const fromCoupon = Math.max(0, Math.min(coupon, tm));
+    if (this.config.couponTime > 0) {
+      dt.user[COUPON_WEEK] = String(this.couponWeekStart());
+      dt.user[COUPON_LEFT] = String(coupon - fromCoupon);
+    }
+    dt.time += tm - fromCoupon;
+    return fromCoupon;
   }
 
-  /** 原作 GetStockTime: 持ち時間 (秒) */
+  /**
+   * 使った時間を戻す (買い取り募集の取り下げなど)。
+   * クーポンから払った分 coupon は、払った週 week が今週ならクーポンへ戻し、週が変わっていれば捨てる。残りは持ち時間へ。
+   */
+  refundTime(dt: Shop, tm: number, coupon = 0, week = 0): void {
+    const c = Math.max(0, Math.min(coupon, tm));
+    dt.time -= tm - c;
+    if (c > 0 && this.config.couponTime > 0 && week === this.couponWeekStart()) {
+      dt.user[COUPON_WEEK] = String(week);
+      dt.user[COUPON_LEFT] = String(Math.min(this.config.couponTime, this.couponTime(dt) + c));
+    }
+  }
+
+  /** 原作 GetStockTime: 持ち時間 (秒)。クーポンは含まない */
   stockTime(dt: Shop): number {
     const tmp = this.now - dt.time;
     return tmp > this.config.maxStockTime ? this.config.maxStockTime : tmp;
+  }
+
+  /** 今週の時間クーポンの残り (秒)。週が変わっていれば満タン (新しい店も満タンから) */
+  couponTime(dt: Shop): number {
+    if (this.config.couponTime <= 0) return 0;
+    if (Number(dt.user[COUPON_WEEK] ?? 0) !== this.couponWeekStart()) return this.config.couponTime;
+    const left = Number(dt.user[COUPON_LEFT] ?? 0);
+    return Number.isFinite(left) && left > 0 ? Math.min(left, this.config.couponTime) : 0;
+  }
+
+  /** 行動に使える時間 = クーポン残り + 持ち時間 (秒) */
+  usableTime(dt: Shop): number {
+    return this.couponTime(dt) + this.stockTime(dt);
+  }
+
+  /** 今週のクーポンが配られた時刻 (直近の couponWeekday 曜 couponHour 時) */
+  couponWeekStart(now = this.now): number {
+    const shift = this.config.tzOffset - this.config.couponHour * 3600;
+    const days = Math.floor((now + shift) / 86400);
+    // 1970-01-01 は木曜 (4)
+    const back = (((days + 4 - this.config.couponWeekday) % 7) + 7) % 7;
+    return (days - back) * 86400 - shift;
+  }
+
+  /** 次にクーポンが戻る時刻 */
+  nextCouponTime(): number {
+    return this.couponWeekStart() + 7 * 86400;
   }
 
   /** 原作 CheckItemFlag */
