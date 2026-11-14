@@ -58,6 +58,11 @@ export interface GameConfig {
   ngShopName: string[];
 }
 
+/** 街の名前 (原作 $HTML_TITLE)。原作は画面に「SOLD OUT 」+ この名前を出す (例: SOLD OUT MUTOYS中心街) */
+export const TOWN_NAME = 'ミューズ街';
+/** 画面やAPIで名乗るゲームの名前。ソフト自体の名前 (SOLD OUT for Muse) とは別 */
+export const GAME_TITLE = 'SOLD OUT ' + TOWN_NAME;
+
 export const DEFAULT_CONFIG: GameConfig = {
   maxUser: 0,
   marketUserBase: 50,
