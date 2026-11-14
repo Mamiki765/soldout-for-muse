@@ -286,11 +286,25 @@ export function showcaseChangeText(oldcnt: number, newcnt: number): string {
  * 使う前の取りやめ判定。文字列を返したら、何も消費せずに NG にする。
  * キーは USE_FUNCS と同じ。
  */
-export const USE_CANCEL_CHECKS: Record<string, (dt: Shop, u: RtUse) => string | undefined> = {
-  // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない (案: リカさんより)
-  'edit-showcase:_local_1'(dt, u) {
+export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req: { confirm?: boolean }) => string | undefined> = {
+  // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない。
+  // 減らすときは、confirm が無ければ実行せずに見込みだけ返す (増やすときは確認なし。案: リカさんより)
+  'edit-showcase:_local_1'(g, dt, u, req) {
     const newcnt = Number(u.params[0]);
-    if (newcnt === dt.showcasecount) return `棚は今も${newcnt}個です。変更なし (キャンセル。何も消費していません)`;
+    const oldcnt = dt.showcasecount;
+    if (newcnt === oldcnt) return `棚は今も${newcnt}個です。変更なし (キャンセル。何も消費していません)`;
+    if (newcnt < oldcnt && !req.confirm) {
+      const off = [];
+      for (let i = newcnt; i < oldcnt; i++) {
+        const no = dt.showcase[i] ?? 0;
+        if (no) off.push(`棚${i + 1}:${g.items[no].name}`);
+      }
+      return (
+        `確認: ${showcaseChangeText(oldcnt, newcnt)}` +
+        (off.length ? ` (外れる: ${off.join(' ')}。在庫は倉庫に残ります)` : '') +
+        '。取り壊すなら同じ行動に "confirm":true を付けて送り直してください。キットはなくなり、戻すには費用と時間がかかります (まだ何も変えていません)'
+      );
+    }
     return undefined;
   },
 };

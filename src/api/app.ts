@@ -661,6 +661,7 @@ export class App {
           count: n('count', 1),
           target: opt('target'),
           message: s('message'),
+          confirm: a.confirm === true || a.confirm === 'true',
         });
         return useResultMessages(g, dt, u);
       }
@@ -671,7 +672,7 @@ export class App {
         const found = loadUses(g, kit).find((x) => Number(x.params[0]) === count);
         if (!found) throw new GameError(`棚は1〜${loadUses(g, kit).length}個の範囲で指定してください`);
         if (!dt.item[kit - 1]) throw new GameError('陳列棚増築取壊キットを持っていません (使うとなくなります。市場で仕入れられます)');
-        const u = useItemAction(g, dt, kit, found.no, { count: 1 });
+        const u = useItemAction(g, dt, kit, found.no, { count: 1, confirm: a.confirm === true || a.confirm === 'true' });
         return useResultMessages(g, dt, u);
       }
       case 'deposit': {

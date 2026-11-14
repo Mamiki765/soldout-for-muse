@@ -149,9 +149,16 @@ test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセ
   assert.equal(u.result.function_return, '棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000');
   assert.equal(a.item[kit - 1], 0);
 
-  // 取り壊し
+  // 取り壊し: confirm が無ければ見込みだけ返して何も変えない
   a.item[kit - 1] = 1;
-  const d = useItemAction(g, a, kit, 0, { count: 1 });
+  a.showcase[1] = itemNoByName('薬草');
+  const money = a.money;
+  assert.throws(
+    () => useItemAction(g, a, kit, 0, { count: 1 }),
+    (e: unknown) => e instanceof GameError && e.message.startsWith('確認: 棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0 (外れる: 棚2:薬草。在庫は倉庫に残ります)') && /confirm/.test(e.message),
+  );
+  assert.deepEqual([a.showcasecount, a.item[kit - 1], a.money], [3, 1, money]);
+  const d = useItemAction(g, a, kit, 0, { count: 1, confirm: true });
   assert.equal(a.showcasecount, 1);
   assert.equal(d.result.function_return, '棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0');
 });

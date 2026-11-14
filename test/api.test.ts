@@ -181,13 +181,22 @@ test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', as
     shop().item[63 - 1] = 1;
     lines = await send([
       { type: 'use', item: '陳列棚増築取壊キット', use: '陳列棚を2つにする' },
+      { type: 'use', item: '陳列棚増築取壊キット', use: '陳列棚を2つにする', confirm: true },
       { type: 'use', item: '陳列棚増築取壊キット', use: 'ない使い方' },
       { type: 'buy', item: 'ないもの', count: 1 },
     ]);
-    assert.match(lines[0], /^OK use: 棚 3→2: 陳列枠-1/);
-    assert.match(lines[1], /^NG use: 使い方「ない使い方」はありません/);
-    assert.match(lines[2], /^NG buy: 「ないもの」という商品はありません/);
+    assert.match(lines[0], /^NG use: 確認: 棚 3→2: 陳列枠-1.*confirm/, '減らすときは確認だけ');
+    assert.match(lines[1], /^OK use: 棚 3→2: 陳列枠-1/);
+    assert.match(lines[2], /^NG use: 使い方「ない使い方」はありません/);
+    assert.match(lines[3], /^NG buy: 「ないもの」という商品はありません/);
     assert.equal(shop().showcasecount, 2);
+
+    // shelves でも減らすときは確認が要る
+    shop().item[63 - 1] = 1;
+    lines = await send([{ type: 'shelves', count: 1 }, { type: 'shelves', count: 1, confirm: true }]);
+    assert.match(lines[0], /^NG shelves: 確認: 棚 2→1/);
+    assert.match(lines[1], /^OK shelves: 棚 2→1: 陳列枠-1/);
+    assert.equal(shop().showcasecount, 1);
     void store;
   } finally {
     server.close();
