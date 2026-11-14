@@ -390,6 +390,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
       usable: dt ? u.useok : undefined,
+      ...(dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
     })),
   };
 }
@@ -400,7 +401,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   for (const u of d.uses) {
     const needs = u.needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',');
     const gets = u.gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',');
-    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && '今は使えない'].filter(Boolean).join(',');
+    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && (u.why ? `今は使えない(${u.why})` : '今は使えない')].filter(Boolean).join(',');
     lines.push(
       `${u.use} ${u.name} ${dur(u.time)} ${u.money} | ${needs || '-'} → ${gets || '-'} | +${u.exp}%${u.needexp ? ` 要${u.needexp}%` : ''}${extra ? ' ' + extra : ''}`,
     );

@@ -144,7 +144,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   // ギルドはこの移植では未実装 (常に「片方または双方ギルド無所属」扱い)
   const price = baseprice;
   if (itemno !== showcase[slot] || (req.expectPrice !== undefined && req.expectPrice !== price)) {
-    throw new GameError('商品や価格が変化したようです');
+    throw new GameError(`商品や価格が変化したようです (今は ${showcase[slot] ? g.items[showcase[slot]].name : '空'} ￥${price}。確かめてから送り直してください)`);
   }
 
   // 買える数が0になった理由を原作の文に添える (何を直せばよいか分かるように)
@@ -220,9 +220,10 @@ export function editShowcase(g: Game, dt: Shop, req: ShowcaseRequest): string {
   const per = clampInt(req.percent ?? 100, 1, 200);
   const yen = clampInt(req.price ?? 0, 0, g.maxMoney);
   g.useTime(CATALOG.timeEditShowcase);
-  if (no < 0 || no >= dt.showcasecount || itemno < 0 || itemno > g.maxItem || (per <= 0 && yen <= 0) || g.itemFlag(itemno, 'noshowcase')) {
-    throw new GameError('不正な要求です');
-  }
+  if (no < 0 || no >= dt.showcasecount) throw new GameError(`不正な要求です (棚は1〜${dt.showcasecount}番です)`);
+  if (itemno < 0 || itemno > g.maxItem) throw new GameError(`不正な要求です (品番は1〜${g.maxItem}、棚を空にするときは0です)`);
+  if (per <= 0 && yen <= 0) throw new GameError('不正な要求です (price か percent を指定してください)');
+  if (g.itemFlag(itemno, 'noshowcase')) throw new GameError('不正な要求です (この品は棚に並べられません)');
   let price = 0;
   if (itemno > 0) {
     if (!dt.item[itemno - 1]) throw new GameError('アイテムの在庫がありません。');
@@ -287,7 +288,7 @@ export function trash(g: Game, dt: Shop, itemno: number, countIn: number): strin
   if (!dt.item[itemno - 1]) throw new GameError('アイテムの在庫がありません。');
   const item = g.items[itemno];
   const count = clampInt(countIn, 0, dt.item[itemno - 1]);
-  if (g.itemFlag(itemno, 'notrash')) throw new GameError('不正な要求です');
+  if (g.itemFlag(itemno, 'notrash')) throw new GameError('不正な要求です (この品は捨てられません)');
   if (!count) throw new GameError('破棄数量を指定してください');
   const ret = item.name + 'を' + count + item.scale + '処分しました';
   dt.item[itemno - 1] -= count;

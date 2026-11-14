@@ -203,3 +203,11 @@ test('持ち時間がマイナスのとき、入金に使える時間はクー�
   dt.moneystock = 100_000_000;
   assert.throws(() => deposit(g, dt, 100_000_000), (e: unknown) => e instanceof GameError && e.message === '時間が足りません');
 });
+
+test('使えない使い方は理由を返す (材料・熟練)', () => {
+  const { g, dt } = setup();
+  g.dt = dt;
+  dt.item[10 - 1] = 1; // 本執筆キットだけ (紙などが無い)
+  assert.throws(() => useItemAction(g, dt, 10, 0, { count: 1 }), (e: unknown) => e instanceof GameError && /^使えません \(足りない: /.test(e.message));
+  assert.throws(() => useItemAction(g, dt, 10, 99, { count: 1 }), (e: unknown) => e instanceof GameError && /使い方の番号 99 はありません/.test(e.message));
+});

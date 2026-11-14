@@ -70,7 +70,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
     assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.3.1 更新あり')).length,1);
-    assert.ok(digest.endsWith('v0.3.1 更新あり /updates\n'));
+    assert.ok(digest.endsWith('v0.3.1 更新あり /api/v1/updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
@@ -85,7 +85,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     app = new App({store,basePath,clock:()=>1_800_000_000});
     await fetch(base+'/api/v1/me',{headers:auth});
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
-    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.1: 説明とエラー文を直しました (納品は1セット8種類まで、など)。遊び方・数値は変わりません。詳細は /updates');
+    assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】v0.3.1: 説明とエラー文を直しました (納品は1セット8種類まで、use が0回で終わったら NG、など)。遊び方・数値は変わりません。詳細は GET /api/v1/updates');
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
     assert.equal(dt.user._seen_version,'0.3.1');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
@@ -108,7 +108,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
       app = new App({store,basePath,clock:()=>now,rng:seededRng(1)});
       assert.equal(app.updateSince,since);
       const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();
-      assert.equal(text.includes('v0.3.1 更新あり /updates'),shown,text);
+      assert.equal(text.includes('v0.3.1 更新あり /api/v1/updates'),shown,text);
     }
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));

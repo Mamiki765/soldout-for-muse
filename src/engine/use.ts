@@ -62,6 +62,8 @@ export interface RtUse {
   arg: UseArg;
   useok: boolean;
   dispok: boolean;
+  /** 使えないときの理由 (熟練・材料・道具など)。Muse が次に何をすればよいか分かるように */
+  ngReason?: string;
 }
 
 /** 商品 itemno の USE 一覧を作る (原作の require data/item/use/<code>.cgi) */
@@ -110,6 +112,7 @@ export function loadUses(g: Game, itemno: number): RtUse[] {
 export function checkUses(g: Game, dt: Shop, uses: RtUse[]): RtUse[] {
   for (const u of uses) {
     const ret = checkUseItem(g, dt, u);
+    if (ret !== 1) u.ngReason = useNgReason(g, dt, u);
     if (ret === 2) u.dispok = true;
     if (ret === 1) u.useok = true;
   }
@@ -150,6 +153,14 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
   return 1;
 }
 
+/** 使えない理由を短く (熟練 → 材料・道具の順。どちらでもなければ条件) */
+function useNgReason(g: Game, dt: Shop, u: RtUse): string {
+  if ((dt.exp[u.itemno] ?? 0) < u.needexp) return `熟練が足りません (要${Math.trunc(u.needexp / 10)}%、今${Math.trunc((dt.exp[u.itemno] ?? 0) / 10)}%)`;
+  const short = u.use.filter((l) => dt.item[l.no - 1] < l.count).map((l) => `${g.items[l.no].name}x${l.count}${l.proba === 0 ? '(道具)' : ''}`);
+  if (short.length) return '足りない: ' + short.join(',');
+  return '今は条件に合いません';
+}
+
 /** 原作 GetItemUseTime: 熟練度に応じた 1 回あたりの所要時間 */
 export function itemUseTime(dt: Shop, u: RtUse): number {
   const exp = u.result.expold !== undefined ? u.result.expold : dt.exp[u.itemno] ?? 0;
@@ -176,7 +187,8 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
   const uses = checkUses(g, dt, loadUses(g, itemno));
   if (!uses.length) throw new GameError('使えません');
   const u = uses.find((x) => x.no === useNo);
-  if (!u || !u.useok) throw new GameError('使えません');
+  if (!u) throw new GameError(`使えません (使い方の番号 ${useNo} はありません。GET /api/v1/items/${itemno} の「使い方」を見てください)`);
+  if (!u.useok) throw new GameError(`使えません (${u.ngReason ?? '今は条件に合いません'})`);
 
   let message = req.message ?? '';
   const mm = /message(\d*)/.exec(u.argspec);

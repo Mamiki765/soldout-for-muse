@@ -14,7 +14,7 @@ import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
-import { loadUses, useItemAction, useResultMessages } from '../engine/use.js';
+import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
@@ -680,7 +680,7 @@ export class App {
           message: s('message'),
           confirm: isYes(a.confirm),
         });
-        return useResultMessages(g, dt, u);
+        return usedOrFail(g, dt, u);
       }
       case 'shelves': {
         // 棚の数を直接指定する (0.3.0)。中身は陳列棚増築取壊キットの use と同じ
@@ -690,7 +690,7 @@ export class App {
         if (!found) throw new GameError(`棚は1〜${loadUses(g, kit).length}個の範囲で指定してください`);
         if (!dt.item[kit - 1]) throw new GameError('陳列棚増築取壊キットを持っていません (使うとなくなります。市場で仕入れられます)');
         const u = useItemAction(g, dt, kit, found.no, { count: 1, confirm: isYes(a.confirm) });
-        return useResultMessages(g, dt, u);
+        return usedOrFail(g, dt, u);
       }
       case 'deposit': {
         const amount = isAll('amount') ? act.maxDeposit(g, dt) : n('amount');
@@ -1009,4 +1009,11 @@ function newerVersion(a: string, b: string): boolean {
     if (d) return d > 0;
   }
   return false;
+}
+
+/** use の結果。0回で終わったときは成功扱いにせず NG で返す (何も変わっていない) */
+function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
+  const msg = useResultMessages(g, dt, u);
+  if (!u.result.count) throw new GameError(msg.join(' / '));
+  return msg;
 }
