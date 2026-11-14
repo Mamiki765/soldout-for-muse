@@ -171,6 +171,10 @@ export function turnProc(g: Game): void {
         if (showcaseitemno.get(idx)) c /= 10;
         costsum += g.items[idx].cost * c;
       }
+      // 買い取り募集で預かり中の品も、受け取る店の倉庫にあるものとして維持費を掛ける (まとめて受け取りで維持費を逃れないように)
+      for (const o of w.orders ?? []) {
+        if (o.shop === dt.id && o.count > o.left) costsum += g.items[o.item].cost * (o.count - o.left);
+      }
       dt.costtoday += (costsum * timespan) / 86400;
     }
 

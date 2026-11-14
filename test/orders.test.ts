@@ -269,3 +269,22 @@ test('預かり中の品を受け取ると上限を超えるときは digest の
   const n = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0, newReplies: 0 };
   assert.match(digestText(digestData(g, b, n)), /募集#1を締めると獣の革が所持上限を40枚超えて破棄/);
 });
+
+test('預かり中の品にも、受け取る店の維持費が掛かる', async () => {
+  const { turnProc } = await import('../src/engine/turn.js');
+  const run = (deliverIt: boolean) => {
+    const { world, buyer, seller } = setup();
+    const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 300, hours: 48 }));
+    if (deliverIt) act(world, seller, T0 + 1, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 300 - 1 }]));
+    world.lasttime = T0 + 1;
+    const g = new Game(world, DEFAULT_CONFIG, seededRng(7), T0 + 1 + 3600);
+    const b = g.shopById(buyer.id)!;
+    const before = b.costtoday;
+    turnProc(g);
+    return b.costtoday - before;
+  };
+  const without = run(false);
+  const withHeld = run(true);
+  // 獣の革 299枚 × 維持費30/日 × 1時間
+  assert.ok(Math.abs(withHeld - without - (299 * 30) / 24) < 1, `${withHeld} - ${without}`);
+});
