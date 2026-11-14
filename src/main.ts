@@ -23,6 +23,7 @@ import { BASE_ITEMS } from './data/catalog.js';
 import { DEFAULT_CONFIG } from './config.js';
 import { Game } from './engine/game.js';
 import { seedWholeStore } from './engine/market.js';
+import { shownPeople } from './engine/types.js';
 import { APP_VERSION, UPDATES } from './updates.js';
 
 const env = process.env;
@@ -97,7 +98,7 @@ if (cmd === 'set-invite') {
   store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2);
   store.setSetting(key, `${new Date(now * 1000).toISOString()} ${hours}時間ぶん`);
   store.close();
-  console.log(`市場に新素材を ${hours} 時間ぶん入れました (人口 ${world.people}、店 ${world.shops.length})`);
+  console.log(`市場に新素材を ${hours} 時間ぶん入れました (人口 ${shownPeople(world)}、店 ${world.shops.length})`);
   for (const r of rows) console.log(`${r.no} ${r.name}: ${r.before} → ${r.after} (+${r.add})`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);

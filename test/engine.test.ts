@@ -236,3 +236,8 @@ test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リ
   assert.equal(world.shops.length, 120, '100店を超えても開店できる');
   assert.equal(g.marketUsers(), 150);
 });
+
+test('人口は内部の1/10 (原作 int($DTpeople/10)) で表示する', async () => {
+  const { shownPeople } = await import('../src/engine/types.js');
+  assert.equal(shownPeople({ people: 100009 }), 10000);
+});

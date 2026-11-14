@@ -6,7 +6,7 @@ import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
-import type { Shop } from '../engine/types.js';
+import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
@@ -98,6 +98,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     time: stock,
     time_full_in: full > 0 ? full : 0,
     coupon: g.couponTime(dt),
+    coupon_first: g.couponFirst(dt),
     coupon_reset: g.nextCouponTime(),
     next_period: g.nextPeriodTime(),
     shelves,
@@ -124,7 +125,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     d.new.replies && `目安箱の返事${d.new.replies}`,
   ].filter(Boolean);
   const lines = [
-    `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}` : ''} 決算${jst(d.next_period)}`,
+    `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}${d.coupon_first ? '(優先)' : ''}` : ''} 決算${jst(d.next_period)}`,
     `棚 ${shelves}`,
   ];
   const tail: string[] = [];
@@ -173,6 +174,7 @@ export function meData(g: Game, dt: Shop) {
     time_max: g.config.maxStockTime,
     coupon: g.couponTime(dt),
     coupon_max: g.config.couponTime,
+    coupon_first: g.couponFirst(dt),
     coupon_reset: g.nextCouponTime(),
     sale: { today: dt.saletoday, yesterday: dt.saleyesterday },
     pay: { today: dt.paytoday, yesterday: dt.payyesterday },
@@ -188,7 +190,7 @@ export function meData(g: Game, dt: Shop) {
 export function meText(d: ReturnType<typeof meData>): string {
   const lines = [
     `店 id${d.id} ${d.shop} 職業${d.job} ${d.rank}位 人気${d.popularity}% 点${d.point}`,
-    `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン)` : ''}`,
+    `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン、${d.coupon_first ? 'クーポン' : '持ち時間'}から先に使う)` : ''}`,
     `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday}`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,
     '# 棚 番号 品番 名前 価格 在庫',
@@ -208,7 +210,7 @@ export function marketData(g: Game) {
     const it = g.items[c.itemno];
     return { item: c.itemno, name: it.name, stock: c.stock, price: c.price, std: it.price, market: it.marketprice, balance: it.uppoint };
   });
-  return { people: g.world.people, events: g.eventMessages, items: cases };
+  return { people: shownPeople(g.world), events: g.eventMessages, items: cases };
 }
 
 /** 原作 GetMarketStatusGraph の文字版: 均衡/飽和/不足 */
@@ -390,6 +392,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
       usable: dt ? u.useok : undefined,
+      ...(dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
     })),
   };
 }
@@ -400,7 +403,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   for (const u of d.uses) {
     const needs = u.needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',');
     const gets = u.gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',');
-    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && '今は使えない'].filter(Boolean).join(',');
+    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && (u.why ? `今は使えない(${u.why})` : '今は使えない')].filter(Boolean).join(',');
     lines.push(
       `${u.use} ${u.name} ${dur(u.time)} ${u.money} | ${needs || '-'} → ${gets || '-'} | +${u.exp}%${u.needexp ? ` 要${u.needexp}%` : ''}${extra ? ' ' + extra : ''}`,
     );

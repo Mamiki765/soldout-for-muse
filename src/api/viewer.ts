@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { CATALOG } from '../data/catalog.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
-import type { Shop } from '../engine/types.js';
+import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
@@ -253,7 +253,7 @@ function topPage(app: App, g: Game): string {
   const top = g.shops.slice(0, 5);
   let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
-  s += `●ランキング (人口 ${g.world.people}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
+  s += `●ランキング (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
   top.forEach((dt, i) => (s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td></tr>`));
   s += '</table><a href="/view/ranking">[もっと見る]</a><hr>●最近の出来事<br>';
   s += logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));
@@ -330,7 +330,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('今期支払', '￥' + dt.paytoday)}${td('前期支払', '￥' + dt.payyesterday)}</tr>`;
   s += `<tr>${td('持ち時間', tmText)}${td('点数', String(dt.point))}</tr>`;
   if (g.config.couponTime > 0) {
-    s += `<tr>${td('時間クーポン', formatHms(g.couponTime(dt)))}${td('次の配布', jst(g.nextCouponTime()))}</tr>`;
+    s += `<tr>${td('時間クーポン', formatHms(g.couponTime(dt)) + (g.couponFirst(dt) ? '<br><small>(クーポンから先に使う)</small>' : ''))}${td('次の配布', jst(g.nextCouponTime()))}</tr>`;
   }
   s += `<tr>${td('今期維持費<br><small>(決算時徴収)</small>', `￥${Math.trunc(dt.costtoday)}+￥${CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0}`)}${td('前期維持費', '￥' + dt.costyesterday)}</tr>`;
   s += `<tr>${td('今期税金<br><small>(決算時徴収)</small>', `￥${tax}<br><small>${taxrate ? '税率:' + taxrate + '%' : '免税'}</small>`)}${td('前期税金', '￥' + dt.taxyesterday)}</tr>`;

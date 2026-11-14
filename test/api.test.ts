@@ -147,6 +147,34 @@ test('API の通し確認', async () => {
   }
 });
 
+test('coupon 行動でクーポンを使う順番を切り替える (0.3.1)', async () => {
+  const now = 1_800_000_000;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'coupon', shopname: '券の店です' }) });
+    const reg = (await r.json()) as { token: string; shop_id: number };
+    const auth = { authorization: 'Bearer ' + reg.token };
+    const send = async (actions: unknown[]): Promise<string[]> => {
+      const res = await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ actions }) });
+      return (await res.text()).split('\n');
+    };
+    const shop = () => app.world.shops.find((s) => s.id === reg.shop_id)!;
+    let lines = await send([{ type: 'coupon' }, { type: 'coupon', first: true }]);
+    assert.match(lines[0], /^NG coupon: first を true/);
+    assert.match(lines[1], /^OK coupon: クーポンから先に使います/);
+    assert.equal(shop().user._coupon_first, '1');
+    assert.match(lines.find((l) => l.includes('券'))!, /券2d0h\(優先\)/);
+    lines = await send([{ type: 'coupon', first: 'false' }]);
+    assert.match(lines[0], /^OK coupon: 持ち時間から先に使います/);
+    assert.equal(shop().user._coupon_first, undefined);
+    const me = (await (await fetch(base + '/api/v1/me?format=json', { headers: auth })).json()) as { coupon_first: boolean };
+    assert.equal(me.coupon_first, false);
+  } finally {
+    server.close();
+    store.close();
+  }
+});
+
 test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', async () => {
   let now = 1_800_000_000;
   const { base, server, app, store } = await start(() => now);
