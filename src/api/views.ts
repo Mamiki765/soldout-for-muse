@@ -73,7 +73,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   const myOrders: string[] = [];
   for (const o of orders(g)) {
     if (o.shop === dt.id) {
-      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}`);
+      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
       continue;
     }
     if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;

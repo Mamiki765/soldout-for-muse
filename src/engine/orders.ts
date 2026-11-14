@@ -3,6 +3,8 @@
 // 時間と税は「売り手が棚に並べて、買い手がそれを買う」のと同じだけ掛かるようにしてある。
 //   買い手: 募集を出すときに、棚で買うときの取引時間 (timeDeal) 1回ぶんと代金全額を先に預ける
 //   売り手: 納品のときに、募集1件ごとに陳列1回ぶんの手間と売却税
+// 届いた品は募集の中で預かり、締めたとき (集め終わり・取り下げ・期限切れ) に一度にまとめて買い手の倉庫へ入れる
+// (棚から1回まとめて買ったのと同じ形。案: リカさんより)
 // 案: 店106「瑠璃のしおり堂」さんより (目安箱 #2, 2026-11)。取引条件はリカさん・ミュートさんより (2026-11)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
@@ -53,11 +55,11 @@ export function priceRange(g: Game, itemno: number): [number, number] {
   return [Math.max(1, Math.ceil((std * ORDER_RULES.minPercent) / 100)), Math.max(1, Math.floor((std * ORDER_RULES.maxPercent) / 100))];
 }
 
-/** その店がこれから受け取る予定の数 (募集の残り) */
+/** その店がこれから受け取る予定の数 (募集の残りと、預かり中の届いた品) */
 function pendingOf(g: Game, shopId: number, itemno: number): number {
   return orders(g)
     .filter((o) => o.shop === shopId && o.item === itemno)
-    .reduce((a, o) => a + o.left, 0);
+    .reduce((a, o) => a + o.count, 0);
 }
 
 export interface OrderRequest {
@@ -127,6 +129,11 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
   const i = list.indexOf(o);
   if (i >= 0) list.splice(i, 1);
   if (!buyer) return '';
+  // 預かっていた品をまとめて渡す。締めるまでに棚などで買い足して上限を超えた分は、原作の郵便と同じく破棄
+  const item = g.items[o.item];
+  const got = o.count - o.left;
+  const put = Math.max(0, Math.min(got, item.limit - buyer.item[o.item - 1]));
+  buyer.item[o.item - 1] += put;
   let back = o.escrow;
   let toStock = 0;
   if (buyer.money + back > g.maxMoney) {
@@ -138,9 +145,10 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
   // 取引時間は個数によらず1回ぶん。1個も買えなかったときだけ返す (棚で1回も買わなかったのと同じ)
   const timeBack = o.left === o.count ? o.time : 0;
   buyer.time -= timeBack;
-  const item = g.items[o.item];
   const msg =
-    `募集#${o.id} ${item.name}を${reason} (買えた数 ${o.count - o.left}/${o.count}${item.scale}、返金￥${o.escrow}` +
+    `募集#${o.id} ${item.name}を${reason} (届いた${got}/${o.count}${item.scale}を倉庫へ` +
+    (put < got ? `、所持上限を超えた${got - put}${item.scale}は破棄` : '') +
+    `、返金￥${o.escrow}` +
     (toStock ? ` うち￥${toStock}は資金の上限を超えたので入金庫へ` : '') +
     (timeBack ? '、時間も戻しました' : '') +
     ')';
@@ -210,8 +218,11 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     if (num > o.left) num = o.left;
     const have = dt.item[o.item - 1];
     if (have < num) throw new GameError(`募集#${id}: ${item.name}の在庫が足りません (在庫${have})`);
-    // 買い手の倉庫に入る分だけ (募集の後で在庫が増えていた場合)
-    const room = item.limit - buyer.item[o.item - 1];
+    // 買い手の倉庫に入る分だけ (募集の後で在庫が増えていた場合)。預かり中の品も数える
+    const held = orders(g)
+      .filter((x) => x.shop === buyer.id && x.item === o.item)
+      .reduce((a, x) => a + x.count - x.left, 0);
+    const room = item.limit - buyer.item[o.item - 1] - held;
     if (room < num) num = Math.max(0, room);
     if (!num) throw new GameError(`募集#${id}: ${buyer.shopname}の${item.name}は所持上限です`);
     if (o.min && num < o.min && num < o.left) throw new GameError(`募集#${id}: 1回に${o.min}${item.scale}以上で納品してください`);
@@ -225,8 +236,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     dt.moneystock += amount - tax;
     dt.saletoday += amount;
     dt.taxtoday += tax;
-    // 買い手: 預り金から払う (時間は募集のときに払い済み)
-    buyer.item[o.item - 1] += num;
+    // 買い手: 預り金から払う (時間は募集のときに払い済み)。品は締めるまで募集の中で預かる
     buyer.paytoday += amount;
     o.escrow -= amount;
     o.left -= num;
@@ -235,7 +245,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     const msg = `${buyer.shopname}の募集#${id}に${item.name}を${num}${item.scale}@￥${o.price}(計￥${amount}、税￥${tax})で納品しました`;
     msgs.push(msg);
     g.writeLog(0, dt.id, 0, msg);
-    g.writeLog(0, buyer.id, 0, `${dt.shopname}から募集#${id}の${item.name}が${num}${item.scale}届きました (￥${amount}、残り${o.left}${item.scale})`);
+    g.writeLog(0, buyer.id, 0, `${dt.shopname}から募集#${id}の${item.name}が${num}${item.scale}届きました (￥${amount}、残り${o.left}${item.scale}。締めたときにまとめて倉庫へ)`);
     if (!o.left) closeOrder(g, o, buyer, '集め終わりました');
   }
   stats.pairs[pair] = 1;
