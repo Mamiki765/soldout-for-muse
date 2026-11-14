@@ -4,8 +4,13 @@
 
 /** ゲームの設定値。原作 _config.cgi の同名変数に対応する。 */
 export interface GameConfig {
-  /** 新装開店許可最大店舗数 ($MAX_USER) */
+  /** 新装開店許可最大店舗数 ($MAX_USER)。0 なら上限なし */
   maxUser: number;
+  /**
+   * 市場の入荷量の式で原作の $MAX_USER の代わりに使う値の刻み。店数が収まるこの倍数 (50, 100, 150…) を使う。
+   * 原作既定の50から始めて、店が増えたら50ずつ上げる (案: リカさんより)
+   */
+  marketUserBase: number;
   /** 最短更新サイクル(秒) ($UPDATE_TIME) */
   updateTime: number;
   /** 未ログイン登録抹消期限(秒) ($EXPIRE_TIME) */
@@ -54,7 +59,8 @@ export interface GameConfig {
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
-  maxUser: 100,
+  maxUser: 0,
+  marketUserBase: 50,
   updateTime: 60 * 5,
   expireTime: 3600 * 24 * 7,
   expireExTime: 3600 * 4,

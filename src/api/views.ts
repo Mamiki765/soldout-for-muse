@@ -2,7 +2,7 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { CATALOG } from '../data/catalog.js';
+import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
@@ -135,7 +135,7 @@ export function meData(g: Game, dt: Shop) {
     id: dt.id,
     name: dt.name,
     shop: dt.shopname,
-    job: dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '不定',
+    job: jobName(dt) || '不定',
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -228,21 +228,58 @@ export function shopsText(d: ReturnType<typeof shopsData>): string {
 // ---------------------------------------------------------------------------
 // ranking
 
+/** 原作 inc-html-ranking.cgi: 棚が全部同じ種類の商品なら「剣専門店」のように出す。空の棚があれば出さない */
+export function specialtyType(g: Game, dt: Shop): number {
+  let type = -1;
+  for (const no of dt.showcase.slice(0, dt.showcasecount)) {
+    const t = no ? g.items[no]?.type ?? 0 : 0;
+    if (type !== -1 && t !== type) return 0;
+    type = t;
+  }
+  return type > 0 ? type : 0;
+}
+
+/**
+ * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
+ * 山師 (job=material) は探鉱夫と木こりの区別がないので、熟練の高い地図で「山師(探鉱夫)」「山師(木こり)」と出す。
+ * 同じなら「山師」だけ (案: リカさんより)
+ */
+export function jobName(dt: Shop): string {
+  if (!dt.job) return '';
+  const name = CATALOG.jobTypes[dt.job] ?? dt.job;
+  if (dt.job !== 'material') return name;
+  const mine = dt.exp[MAP_MINE] ?? 0;
+  const forest = dt.exp[MAP_FOREST] ?? 0;
+  if (mine === forest) return name;
+  return `${name}(${mine > forest ? '探鉱夫' : '木こり'})`;
+}
+/** 近くの鉱山への地図 (探鉱夫の熟練の集約先) / 近くの山への地図 (木こり) */
+const MAP_MINE = itemNoByName('近くの鉱山への地図');
+const MAP_FOREST = itemNoByName('近くの山への地図');
+
 export function rankingData(g: Game) {
-  return g.shops.map((s, i) => ({
-    rank: i + 1,
-    id: s.id,
-    shop: s.shopname,
-    point: s.point,
-    popularity: pct(s.rank),
-    yesterday: s.rankingyesterday,
-    wins: s.rankingcount,
-  }));
+  return g.shops.map((s, i) => {
+    const sp = specialtyType(g, s);
+    return {
+      rank: i + 1,
+      id: s.id,
+      shop: s.shopname,
+      job: jobName(s),
+      specialty: sp ? CATALOG.itemTypes[sp] : '',
+      point: s.point,
+      popularity: pct(s.rank),
+      yesterday: s.rankingyesterday,
+      wins: s.rankingcount,
+    };
+  });
 }
 
 export function rankingText(d: ReturnType<typeof rankingData>, periodLog: { msg: string }[]): string {
-  const lines = ['# 順位 店id 店名 点 人気% 前期順位 優勝回数'];
-  for (const r of d) lines.push(`${r.rank} ${r.id} ${r.shop} ${r.point} ${r.popularity} ${r.yesterday || '-'} ${r.wins}`);
+  const lines = ['# 順位 店id 店名 点 人気% 前期順位 優勝回数 (店名の前は 専門店:【職業】)'];
+  for (const r of d) {
+    const tag = (r.specialty ? r.specialty + '専門店:' : '') + (r.job ? `【${r.job}】` : '');
+    lines.push(`${r.rank} ${r.id} ${tag}${r.shop} ${r.point} ${r.popularity} ${r.yesterday || '-'} ${r.wins}`);
+  }
   const result = periodLog.filter((l) => l.msg.startsWith('「')).map((l) => l.msg);
   if (result.length) lines.push('# 前回の決算', ...result);
   return lines.join('\n') + '\n';

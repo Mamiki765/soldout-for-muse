@@ -45,7 +45,7 @@ export function openShop(g: Game, req: OpenShopRequest): Shop {
   const w = g.world;
   const name = req.name ?? '';
   const sname = req.shopname ?? '';
-  if (g.shops.length >= g.config.maxUser) {
+  if (g.config.maxUser > 0 && g.shops.length >= g.config.maxUser) {
     throw new GameError('申し訳ありませんが、現在空き店舗がありません。空くのをお待ちください。');
   }
   if (

@@ -57,6 +57,7 @@ test('API の通し確認', async () => {
           { type: 'buy', item: pick.item, count: 5 },
           { type: 'shelf', slot: 1, item: pick.item, percent: 120 },
           { type: 'buy', item: 9999, count: 1 },
+          { type: 'sell', item: pick.item },
         ],
       }),
     });
@@ -66,6 +67,8 @@ test('API の通し確認', async () => {
     assert.match(lines[0], /^OK buy/);
     assert.match(lines[1], /^OK shelf/);
     assert.match(lines[2], /^NG buy/);
+    // 知らない行動には、使える行動と引き出しの名前を案内する
+    assert.match(lines[3], /^NG sell: 知らない行動です: sell \(売るには shelf/);
 
     // 時間を進めると売れて出来事が増える
     now += 3 * 3600;
@@ -139,6 +142,76 @@ test('API の通し確認', async () => {
     // トークンなし
     r = await fetch(base + '/api/v1/digest');
     assert.equal(r.status, 401);
+  } finally {
+    server.close();
+  }
+});
+
+test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', async () => {
+  let now = 1_800_000_000;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    let r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'alias', shopname: '別名商店' }) });
+    const reg = (await r.json()) as { token: string; shop_id: number };
+    const auth = { authorization: 'Bearer ' + reg.token };
+    now += 30 * 3600; // 持ち時間をためる
+    const shop = () => app.world.shops.find((s) => s.id === reg.shop_id)!;
+    const dt = shop();
+    dt.moneystock = 5000;
+    dt.money = 1_000_000;
+    const send = async (actions: unknown[]): Promise<string[]> => {
+      const res = await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ actions }) });
+      return (await res.text()).split('\n');
+    };
+    let lines = await send([
+      { type: 'withdraw', amount: 'all' },
+      { type: 'shelves', count: 1 },
+      { type: 'shelves', count: 3 },
+      { type: 'shelves', count: 3, confirm: true },
+      { type: 'shelves', count: 2 },
+      { type: 'shelves', count: 0 },
+    ]);
+    assert.match(lines[0], /^OK withdraw: ￥5000入金しました/);
+    assert.match(lines[1], /^NG shelves: 棚は今も1個です。変更なし/);
+    assert.match(lines[2], /^NG shelves: 確認: 棚 1→3: 陳列枠\+2.*増築費用/, '増やすときも確認だけ');
+    assert.match(lines[3], /^OK shelves: 棚 1→3: 陳列枠\+2/);
+    assert.match(lines[4], /^NG shelves: 陳列棚増築取壊キットを持っていません/);
+    assert.match(lines[5], /^NG shelves: 棚は1〜8個/);
+    assert.equal(shop().showcasecount, 3);
+
+    // 品名と使い方の名前で書ける
+    shop().item[63 - 1] = 1;
+    lines = await send([
+      { type: 'use', item: '陳列棚増築取壊キット', use: '陳列棚を2つにする' },
+      { type: 'use', item: '陳列棚増築取壊キット', use: '陳列棚を2つにする', confirm: true },
+      { type: 'use', item: '陳列棚増築取壊キット', use: 'ない使い方' },
+      { type: 'buy', item: 'ないもの', count: 1 },
+    ]);
+    assert.match(lines[0], /^NG use: 確認: 棚 3→2: 陳列枠-1.*confirm/, '減らすときは確認だけ');
+    assert.match(lines[1], /^OK use: 棚 3→2: 陳列枠-1/);
+    assert.match(lines[2], /^NG use: 使い方「ない使い方」はありません/);
+    assert.match(lines[3], /^NG buy: 「ないもの」という商品はありません/);
+    assert.equal(shop().showcasecount, 2);
+
+    // shelves でも減らすときは確認が要る
+    shop().item[63 - 1] = 1;
+    lines = await send([{ type: 'shelves', count: 1 }, { type: 'shelves', count: 1, confirm: 'yes' }]);
+    assert.match(lines[0], /^NG shelves: 確認: 棚 2→1/);
+    assert.ok(lines[0].endsWith(' / 送り直し: {"type":"shelves","count":1,"confirm":true}'), 'そのまま送り直せる1行を添える');
+    assert.match(lines[1], /^OK shelves: 棚 2→1: 陳列枠-1/);
+    assert.equal(shop().showcasecount, 1);
+    void store;
+  } finally {
+    server.close();
+  }
+});
+
+test('tips は認証なしで読める', async () => {
+  const { base, server } = await start(() => 1_800_000_000);
+  try {
+    const r = await fetch(base + '/api/v1/tips');
+    assert.equal(r.status, 200);
+    assert.match(await r.text(), /^# SOLD OUT のコツ/);
   } finally {
     server.close();
   }

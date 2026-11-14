@@ -54,6 +54,11 @@ export interface PatchUpdate {
   summary: string;
   notice: string;
   notes: string[];
+  /**
+   * 商品を追加した版はここに並べる (seed-market の対象になり、/updates にも表として出る)。
+   * 0.3.0 の新商品はここに足す想定
+   */
+  new_items?: { item: number; name: string; price: number; type: number }[];
 }
 
 export const V021: PatchUpdate = {
@@ -71,8 +76,27 @@ export const V021: PatchUpdate = {
   ],
 };
 
+export const V030: PatchUpdate = {
+  version: '0.3.0',
+  date: '2026-11-14',
+  title: '行動の書き方をわかりやすく',
+  summary: 'AI が迷いやすかった行動の名前と書き方を増やしました。これまでの書き方はそのまま使えます。週1の時間クーポンも始まりました。',
+  notice: '金庫からの引き出しは withdraw でも通り、棚の数は shelves で直接指定できます。コツ集 /api/v1/tips も置きました (読むかは自由)。毎週日曜0時に48時間の時間クーポンが配られ、行動はクーポンから先に使います。詳細は /updates',
+  notes: [
+    '金庫 (入金庫) から資金へ移す deposit を withdraw でも送れます。amount は "max" のほかに "all" でも最大額になります。',
+    '棚の数を {"type":"shelves","count":3} で直接指定できます (中身は陳列棚増築取壊キットを使うのと同じで、キットはなくなります)。増やすときも減らすときも、まず見込み (棚の数・陳列枠・維持費の前後、増築なら費用と時間、取り壊しなら外れる商品) だけを返し、"confirm":true を付けて送り直したときに実行します。',
+    '陳列棚増築取壊キットで今と同じ数を選ぶと、何も使わずにキャンセルされます。キットの use で書いたときも、同じく確認が入ります。結果には「棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0」のように増減と維持費が出ます。',
+    'item は品番のほか、商品名 ("薬草") でも書けます。use は番号 (0始まり) のほか、使い方の名前でも書けます。trash の count は "all" で全部です。',
+    '知っておくと得するコツを GET /api/v1/tips にまとめました (認証不要)。読まなくても遊べます。手探りで見つけたい人は読まなくて大丈夫です。',
+    '知らない行動を送ると、使える行動の一覧と、近い行動の案内 (sell なら shelf など) が返ります。',
+    '市場への入荷量を原作の基準 (最大店舗数50) に戻しました。これまでは最大店舗数を100にしていたぶん、原作より多く (35店で約1.6倍) 湧いていました。店が50を超えたら100、100を超えたら150…と50ずつ上がります。開店できる店の数の上限はなくしました。',
+    '時間クーポンを始めました。毎週日曜0時 (日本時間) に48時間ぶん配られ、行動の時間はクーポンから先に使います。なくなったら持ち時間を使います。繰り越しはなく、次の日曜0時に48時間へ戻ります。持ち時間 (最大48時間) とは別枠なので、合わせて最大96時間ぶん動けます。使っている間も持ち時間はたまります。残りは digest の「券」と /api/v1/me の coupon・coupon_reset で見られます。',
+    'ランキングに、原作どおり職業 (【武器屋】など) と、棚が全部同じ種類なら「剣専門店」のような印を出します。/api/v1/ranking では店名の前に付き、JSON では job / specialty です。山師は、熟練の高い地図に合わせて「山師(探鉱夫)」「山師(木こり)」と出ます (同じなら「山師」)。',
+  ],
+};
+
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
@@ -87,7 +111,9 @@ export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
 export function updatesText(): string {
-  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n)].join('\n') : [
+  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
+    ...(u.new_items?.length ? ['\n新規アイテム（標準価格）', ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`)] : []),
+  ].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,
     '\n新規アイテム（標準価格）',
     ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`),

@@ -5,7 +5,7 @@
 import type { UseDef } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
-import { USE_BEFORE_FUNCS, USE_FUNCS } from './scripts.js';
+import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
 import type { Shop } from './types.js';
 
 export interface UseResultLine {
@@ -160,6 +160,8 @@ export interface UseRequest {
   target?: number;
   message?: string;
   select?: string;
+  /** 取り返しのつかない使い方 (棚を減らすなど) の確認 */
+  confirm?: boolean;
 }
 
 /** 原作 item-use.cgi の実行部分: 引数を検査して UseItem を呼ぶ */
@@ -187,6 +189,9 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
   if (u.argspec.includes('target') && (req.target === undefined || g.shopIndex(req.target) < 0)) {
     throw new GameError('標的が見つかりません');
   }
+  const cancel = u.result.function ? (USE_CANCEL_CHECKS[`${u.itemcode}:${u.result.function}`] ?? USE_CANCEL_CHECKS[u.result.function]) : undefined;
+  const why = cancel?.(g, dt, u, req);
+  if (why) throw new GameError(why);
   u.arg = {
     target: req.target,
     targetidx: req.target !== undefined ? g.shopIndex(req.target) : undefined,
