@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "0.2.0"
+      "version" : "0.3.0"
    },
    "errors" : [],
    "events" : [
@@ -3309,6 +3309,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3357,6 +3363,12 @@
                "jobs" : [
                   {
                      "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
@@ -3827,6 +3839,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3875,6 +3893,12 @@
                "jobs" : [
                   {
                      "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
@@ -3929,6 +3953,12 @@
                      "key" : "times",
                      "op" : "/",
                      "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
                   }
                ],
                "local_func" : null,
@@ -3977,6 +4007,12 @@
                "jobs" : [
                   {
                      "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
                      "key" : "times",
                      "op" : "/",
                      "value" : 2

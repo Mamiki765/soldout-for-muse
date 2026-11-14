@@ -268,21 +268,37 @@ export function specialtyType(g: Game, dt: Shop): number {
 
 /**
  * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
- * 山師 (job=material) は探鉱夫と木こりの区別がないので、熟練の高い地図で「山師(探鉱夫)」「山師(木こり)」と出す。
- * 同じなら「山師」だけ (案: リカさんより)
+ * 転職先は職業コードより細かい (革細工屋・木工細工屋・装飾細工屋はどれも道具屋) ので、
+ * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「山師(木こり)」のように出す。
+ * いちばん高いものが並んだとき (どれも 0 を含む) は職業名だけ (案: リカさんより)
  */
 export function jobName(dt: Shop): string {
   if (!dt.job) return '';
   const name = CATALOG.jobTypes[dt.job] ?? dt.job;
-  if (dt.job !== 'material') return name;
-  const mine = dt.exp[MAP_MINE] ?? 0;
-  const forest = dt.exp[MAP_FOREST] ?? 0;
-  if (mine === forest) return name;
-  return `${name}(${mine > forest ? '探鉱夫' : '木こり'})`;
+  const branches = JOB_BRANCHES[dt.job];
+  if (!branches) return name;
+  let best = '';
+  let bestExp = 0;
+  let tie = false;
+  for (const [itemno, label] of branches) {
+    const exp = dt.exp[itemno] ?? 0;
+    if (exp > bestExp) {
+      best = label;
+      bestExp = exp;
+      tie = false;
+    } else if (exp === bestExp) {
+      tie = true;
+    }
+  }
+  return best && !tie ? `${name}(${best})` : name;
 }
-/** 近くの鉱山への地図 (探鉱夫の熟練の集約先) / 近くの山への地図 (木こり) */
-const MAP_MINE = itemNoByName('近くの鉱山への地図');
-const MAP_FOREST = itemNoByName('近くの山への地図');
+/** 職業コードごとの転職先: [熟練を集める本・地図, 括弧に出す名前] (転職のススメの並び) */
+const JOB_BRANCHES: Record<string, [number, string][]> = {
+  material: [[itemNoByName('近くの鉱山への地図'), '探鉱夫'], [itemNoByName('近くの山への地図'), '木こり']],
+  tool: [[itemNoByName('革細工入門'), '革細工'], [itemNoByName('木工細工入門'), '木工'], [itemNoByName('装飾細工入門'), '装飾']],
+  weapon: [[itemNoByName('剣の鍛え方'), '剣'], [itemNoByName('杖の作り方'), '杖']],
+  armor: [[itemNoByName('盾の作り方'), '盾'], [itemNoByName('鎧の作り方'), '鎧']],
+};
 
 export function rankingData(g: Game) {
   return g.shops.map((s, i) => {

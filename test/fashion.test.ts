@@ -104,18 +104,23 @@ test('102種の番号・正式名・確定値と、全USEの参照が正しい',
   }
 });
 
-test('既存79種は4レシピと末尾へのUSE追加以外に差分がなく、イベントも不変', () => {
+test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス以外に差分がなく、イベントも不変', () => {
   for (const old of original.items) {
     const expected = structuredClone(old);
     if (old.no === 66) expected.uses.forEach((u, index) => {
       u.use = [...u.use.filter((l) => l.proba === 0), ...changedMaterials[index].map(([item_no,count]) => ({ item_no,count,proba:1000 }))];
+    });
+    // v0.3.0: 革細工入門 0-1・木工細工入門 0-3 に道具屋のボーナスを足す (tools/v030.json)
+    const toolBonus: Record<number, number> = { 16: 2, 17: 4 };
+    if (toolBonus[old.no]) expected.uses.slice(0, toolBonus[old.no]).forEach((u) => {
+      u.jobs = [...u.jobs, { job: 'tool', key: 'times', op: '/', value: 2 }];
     });
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
   }
   assert.deepEqual(current.events, original.events);
-  assert.deepEqual(current.define, { ...original.define, version: '0.2.0' });
+  assert.deepEqual(current.define, { ...original.define, version: '0.3.0' });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 
