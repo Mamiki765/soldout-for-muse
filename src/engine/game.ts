@@ -162,7 +162,7 @@ export class Game {
     const tmp = this.now - dt.time;
     if (tmp > this.config.maxStockTime) dt.time = this.now - this.config.maxStockTime;
     const coupon = this.couponTime(dt);
-    if (tmp < 0 && user && coupon <= 0) throw new GameError('時間待ちでしょ？');
+    if (tmp < 0 && user && coupon <= 0) throw new GameError('時間待ちでしょ？ (持ち時間が足りません。時間は実際の時間と同じ速さで回復します)');
     const fromCoupon = Math.max(0, Math.min(coupon, tm));
     if (this.config.couponTime > 0) {
       dt.user[COUPON_WEEK] = String(this.couponWeekStart());
@@ -199,9 +199,13 @@ export class Game {
     return Number.isFinite(left) && left > 0 ? Math.min(left, this.config.couponTime) : 0;
   }
 
-  /** 行動に使える時間 = クーポン残り + 持ち時間 (秒) */
+  /**
+   * 行動に使える時間 = クーポン残り + 持ち時間 (秒)。
+   * 持ち時間がマイナス (待ち中) のときは 0 として数える。useTime はクーポンから先に払うので、
+   * 待ち中でもクーポンの分は使える (マイナス分がクーポンを食うことはない)。
+   */
   usableTime(dt: Shop): number {
-    return this.couponTime(dt) + this.stockTime(dt);
+    return this.couponTime(dt) + Math.max(0, this.stockTime(dt));
   }
 
   /** 今週のクーポンが配られた時刻 (直近の couponWeekday 曜 couponHour 時) */
