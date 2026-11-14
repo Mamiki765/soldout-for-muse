@@ -187,3 +187,85 @@ test('締めるまでに買い足して上限を超えた分は破棄される',
   assert.equal(b.item[LEATHER - 1], lim);
   assert.match(msg, /40枚は破棄/);
 });
+
+test('納品で売り切れても人気は下がらない (意図的。1日10件で抑える)', () => {
+  const { world, buyer, seller } = setup();
+  const s = world.shops.find((x) => x.id === seller.id)!;
+  s.rank = 5000;
+  s.item[LEATHER - 1] = 10;
+  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24 }));
+  act(world, seller, T0 + 1, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 10 }]));
+  assert.equal(s.item[LEATHER - 1], 0);
+  assert.equal(s.rank, 5000);
+});
+
+test('期限切れは決算より先に処理される (長くアクセスが無くても)', async () => {
+  const { turn } = await import('../src/engine/turn.js');
+  const { world, buyer } = setup();
+  // 決算の直前に期限が来る募集を出す
+  const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
+  const cfg = DEFAULT_CONFIG;
+  const off = cfg.tzOffset - cfg.dateReviseTime;
+  const nextPeriod = (Math.floor((T0 + off) / cfg.oneDayTime) + 1) * cfg.oneDayTime - off;
+  const hours = Math.max(1, Math.floor((nextPeriod - T0) / 3600) - 1);
+  assert.ok(T0 + hours * 3600 < nextPeriod && hours <= 48);
+  void g0;
+  act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours }));
+  world.lasttime = T0;
+  // 決算を2つまたいだ時刻に初めてアクセスがある
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(5), nextPeriod + cfg.oneDayTime + 60);
+  assert.equal(turn(g), true);
+  const msgs = g.newLogs.map((l) => l.msg);
+  const expired = msgs.findIndex((m) => m.includes('期限切れで終了'));
+  const period = msgs.findIndex((m) => m.includes('優勝店'));
+  assert.ok(expired >= 0 && period >= 0, msgs.join('\n'));
+  assert.ok(expired < period, '返金が決算より先');
+  assert.equal(world.orders!.length, 0);
+});
+
+test('箱の途中で失敗したら、先に入れた分も含めて全部元に戻る', () => {
+  const { world, buyer, seller } = setup();
+  world.shops.find((s) => s.id === buyer.id)!.showcasecount = 2;
+  const o1 = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24 }));
+  const wood = itemNoByName('木の枝');
+  const o2 = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: wood, price: 200, count: 10, hours: 24 }));
+  const before = JSON.stringify(world);
+  // 木の枝は持っていないので2件目で失敗する
+  assert.throws(
+    () =>
+      act(world, seller, T0 + 1, (g) =>
+        deliver(g, g.shopById(seller.id)!, buyer.id, [
+          { order: o1.id, count: 5 },
+          { order: o2.id, count: 5 },
+        ]),
+      ),
+    /在庫が足りません/,
+  );
+  assert.equal(JSON.stringify(world), before);
+});
+
+test('保存して読み直しても、募集・預り金・届いた数・今日の回数が残る', async () => {
+  const { Store } = await import('../src/store.js');
+  const { world, buyer, seller } = setup();
+  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 120, count: 50, hours: 24 }));
+  act(world, seller, T0 + 1, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 20 }]));
+  const store = new Store(':memory:');
+  store.saveWorld(world, [], T0 + 2, 86400);
+  const w2 = store.loadWorld(T0 + 2);
+  assert.deepEqual(w2.orders, world.orders);
+  assert.equal(w2.orders![0].escrow, 30 * 120);
+  assert.equal(w2.orders![0].count - w2.orders![0].left, 20);
+  assert.deepEqual(w2.orderStats, world.orderStats);
+  assert.equal(w2.orderSeq, 1);
+});
+
+test('預かり中の品を受け取ると上限を超えるときは digest の注意に出る', () => {
+  const { world, buyer, seller } = setup();
+  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 100, hours: 24 }));
+  act(world, seller, T0 + 1, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 60 }]));
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(1), T0 + 2);
+  const b = g.shopById(buyer.id)!;
+  b.item[LEATHER - 1] = g.items[LEATHER].limit - 20;
+  const n = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0, newReplies: 0 };
+  assert.match(digestText(digestData(g, b, n)), /募集#1を締めると獣の革が所持上限を40枚超えて破棄/);
+});

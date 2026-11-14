@@ -163,8 +163,12 @@ export function cancelOrder(g: Game, dt: Shop, id: number): string {
   return closeOrder(g, o, dt, '取り下げました');
 }
 
-/** 期限切れの募集を返金して消し、閉店した店の募集を片付ける。何か変わったら true */
-export function sweepOrders(g: Game): boolean {
+/**
+ * 期限切れの募集を返金して消し、閉店した店の募集を片付ける。何か変わったら true。
+ * upTo: この時刻までに期限が来たものを締める。時間経過の計算 (turn.ts) が決算の前に呼ぶので、
+ * 長くアクセスが無くても「期限が来てから決算」の順になる。
+ */
+export function sweepOrders(g: Game, upTo: number = g.now): boolean {
   const list = g.world.orders;
   if (!list || !list.length) return false;
   let changed = false;
@@ -174,7 +178,7 @@ export function sweepOrders(g: Game): boolean {
       // 閉店した店の資金は 0 になる (原作 CloseShop) ので、預り金も街に消える
       list.splice(list.indexOf(o), 1);
       changed = true;
-    } else if (o.expires <= g.now) {
+    } else if (o.expires <= upTo) {
       closeOrder(g, o, buyer, '期限切れで終了');
       changed = true;
     }
@@ -236,6 +240,8 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     dt.moneystock += amount - tax;
     dt.saletoday += amount;
     dt.taxtoday += tax;
+    // 棚の「売り切れで人気が下がる」は掛けない (意図的)。納品は棚を使わないので売り切れ放置が起きない。
+    // 人気・点数への効き過ぎは、1日に応じられる件数 (fillsPerDay) で抑える (リカさん判断 2026-11-14)
     // 買い手: 預り金から払う (時間は募集のときに払い済み)。品は締めるまで募集の中で預かる
     buyer.paytoday += amount;
     o.escrow -= amount;
@@ -267,6 +273,8 @@ export function orderView(g: Game, o: BuyOrder) {
     percent: Math.round((o.price / item.price) * 100),
     left: o.left,
     count: o.count,
+    /** 届いて預かり中の数 (締めたときに倉庫へ) */
+    got: o.count - o.left,
     min: o.min,
     expires: o.expires,
   };

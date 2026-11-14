@@ -73,6 +73,9 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   const myOrders: string[] = [];
   for (const o of orders(g)) {
     if (o.shop === dt.id) {
+      const it = g.items[o.item];
+      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
       myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
       continue;
     }
