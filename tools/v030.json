@@ -436,6 +436,8 @@
   {
    "book": 14,
    "name": "港町で買い付け",
+   "money": 0,
+   "lostbook": 150,
    "needexp": 200,
    "products": [
     [
@@ -454,6 +456,8 @@
   {
    "book": 14,
    "name": "隊商と取引する",
+   "money": 0,
+   "lostbook": 150,
    "needexp": 400,
    "products": [
     [
@@ -477,6 +481,8 @@
   {
    "book": 12,
    "name": "霊草の谷を探す",
+   "money": 0,
+   "lostbook": 100,
    "needexp": 600,
    "products": [
     [
