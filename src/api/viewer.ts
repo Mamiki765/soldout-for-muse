@@ -13,7 +13,7 @@ import type { Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, jst } from './views.js';
+import { balanceWord, jst, ordersData } from './views.js';
 import { SourceTree } from './source.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -70,7 +70,7 @@ ${body}
 function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
   const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `SOLD OUT for Muse${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -170,6 +170,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     case '/view/market':
       title = '市場';
       body = marketPage(g);
+      break;
+    case '/view/orders':
+      title = '買い取り募集';
+      body = ordersPage(g);
       break;
     case '/view/log':
       title = '最近の出来事';
@@ -287,6 +291,18 @@ function marketPage(g: Game): string {
   for (const c of getWholeStore(g)) {
     const it = g.items[c.itemno];
     s += `<tr><td>${itemIcon(g, c.itemno)}${esc(it.name)}</td><td>${c.stock}</td><td>￥${c.price}</td><td>￥${it.price}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint)}</td></tr>`;
+  }
+  return s + '</table>';
+}
+
+/** 買い取り募集の一覧 (原作にない追加) */
+function ordersPage(g: Game): string {
+  const d = ordersData(g, undefined, {});
+  let s = '●買い取り募集<hr>';
+  if (!d.orders.length) return s + '募集はありません';
+  s += '<table><tr><td>番号</td><td>商品</td><td>単価</td><td>残り/募集</td><td>最低納品数</td><td>募集した店</td><td>締切</td></tr>';
+  for (const o of d.orders) {
+    s += `<tr><td>#${o.id}</td><td>${itemIcon(g, o.item)}${esc(o.name)}</td><td>￥${o.price} (${o.percent}%)</td><td>${o.left}/${o.count}${esc(o.scale)}</td><td>${o.min || '　'}</td><td>${esc(o.shopname)}</td><td>${jst(o.expires)}</td></tr>`;
   }
   return s + '</table>';
 }

@@ -15,6 +15,7 @@ import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import type { Shop, World } from '../engine/types.js';
 import { useItemAction, useResultMessages } from '../engine/use.js';
+import * as ord from '../engine/orders.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { renderViewer } from './viewer.js';
@@ -158,7 +159,9 @@ export class App {
   private game(): { g: Game; turned: boolean } {
     const now = this.clock();
     const g = new Game(this.world, this.config, this.rng, now);
-    const turned = turn(g);
+    // 期限切れの募集の返金は、時間の計算と同じくアクセスのたびに行う
+    const turnedTime = turn(g);
+    const turned = ord.sweepOrders(g) || turnedTime;
     if (turned) this.save(g);
     return { g: turned ? new Game(this.world, this.config, this.rng, now) : g, turned };
   }
@@ -463,6 +466,11 @@ export class App {
           const d = v.rankingData(g);
           return { status: 200, text: v.rankingText(d, this.world.periodLog), json: { ranking: d, period: this.world.periodLog } };
         }
+        case '/orders': {
+          const item = q.get('item') ? Number(q.get('item')) : undefined;
+          const d = v.ordersData(g, dt, { item, mine: q.get('mine') === '1' });
+          return { status: 200, text: v.ordersText(d), json: d };
+        }
         case '/log':
           return this.readLog(dt, q);
         case '/suggest': {
@@ -617,6 +625,11 @@ export class App {
     return { status: 200, text, json: { results, digest } };
   }
 
+  /** 募集は Muse Party でつながった店だけ (1人1店が確かめられる店)。Party 連携のない動かし方では誰でも使える */
+  private requireParty(dt: Shop): void {
+    if (this.party && !this.store.isPartyShop(dt.id)) throw new GameError('買い取り募集は Muse Party でつながったお店だけが使えます');
+  }
+
   private doAction(g: Game, dt: Shop, type: string, a: Record<string, unknown>): string[] {
     const n = (k: string, d?: number): number => {
       const x = a[k];
@@ -650,6 +663,31 @@ export class App {
       }
       case 'trash':
         return [act.trash(g, dt, n('item'), n('count'))];
+      case 'order': {
+        this.requireParty(dt);
+        const o = ord.createOrder(g, dt, { itemno: n('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min') });
+        return [`募集#${o.id}を出しました`];
+      }
+      case 'deliver': {
+        this.requireParty(dt);
+        const raw = Array.isArray(a.items) ? (a.items as Record<string, unknown>[]) : [{ order: a.order, count: a.count }];
+        const lines = raw.map((x, i) => {
+          const order = Number(x?.order);
+          const count = Number(x?.count);
+          if (!Number.isFinite(order) || !Number.isFinite(count)) throw new GameError(`items[${i}] は {order, count} で指定してください`);
+          return { order, count };
+        });
+        let to = opt('to');
+        if (to === undefined) {
+          const first = ord.orders(g).find((o) => o.id === Math.trunc(lines[0]?.order ?? 0));
+          if (!first) throw new GameError('その募集はありません (終わったかもしれません)');
+          to = first.shop;
+        }
+        if (!this.store.isPartyShop(to) && this.party) throw new GameError('その店は募集を使えません');
+        return ord.deliver(g, dt, to, lines);
+      }
+      case 'cancel_order':
+        return [ord.cancelOrder(g, dt, n('order'))];
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
       case 'rename':

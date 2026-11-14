@@ -9,6 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import type { Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
+import { ORDER_RULES, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
 /** 秒を「18h05m」のような短い形にする */
@@ -67,6 +68,22 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     else if (s.stock === 0) warnings.push(`棚${s.slot + 1}の${s.name}が売切`);
   }
   if (full <= 0) warnings.push('持ち時間が満タン');
+  // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
+  const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
+  const myOrders: string[] = [];
+  for (const o of orders(g)) {
+    if (o.shop === dt.id) {
+      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}`);
+      continue;
+    }
+    if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
+    const w = wanted.get(o.item);
+    if (!w) wanted.set(o.item, { item: o.item, name: g.items[o.item].name, price: o.price, orders: 1 });
+    else {
+      w.orders++;
+      if (o.price > w.price) w.price = o.price;
+    }
+  }
   return {
     shop: dt.shopname,
     rank: rankNo,
@@ -82,6 +99,9 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
     events: g.eventMessages,
     warnings,
+    /** 自分が持っている品の買い取り募集 (GET /api/v1/orders で詳しく) */
+    wanted: [...wanted.values()],
+    my_orders: myOrders,
     version: APP_VERSION,
     update,
   };
@@ -108,6 +128,10 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.events.length) tail.push('イベント ' + d.events.join('/'));
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
+  const ords: string[] = [];
+  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' '));
+  if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
+  if (ords.length) lines.push(ords.join(' | '));
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
 }
@@ -354,4 +378,48 @@ export function suggestionsText(list: Suggestion[], admin = false): string {
       })
       .join('\n') + '\n'
   );
+}
+
+// ---------------------------------------------------------------------------
+// orders: 買い取り募集の一覧
+
+export function ordersData(g: Game, dt: Shop | undefined, opt: { item?: number; mine?: boolean }) {
+  let list = orders(g).filter((o) => g.shopById(o.shop));
+  if (opt.item) list = list.filter((o) => o.item === opt.item);
+  if (opt.mine && dt) list = list.filter((o) => o.shop === dt.id);
+  list = [...list].sort((a, b) => a.item - b.item || b.price - a.price || a.id - b.id);
+  const stats = orderStats(g);
+  return {
+    orders: list.map((o) => ({ ...orderView(g, o), have: dt ? dt.item[o.item - 1] : undefined })),
+    today: dt
+      ? {
+          posted: stats.posted[dt.id] ?? 0,
+          posts_max: dt.showcasecount * ORDER_RULES.postsPerShelf,
+          open: orders(g).filter((o) => o.shop === dt.id).length,
+          open_max: dt.showcasecount,
+          filled: stats.filled[dt.id] ?? 0,
+          fills_max: ORDER_RULES.fillsPerDay,
+          delivered_to: Object.keys(stats.pairs)
+            .filter((k) => k.startsWith(dt.id + '>'))
+            .map((k) => Number(k.split('>')[1])),
+        }
+      : undefined,
+  };
+}
+
+export function ordersText(d: ReturnType<typeof ordersData>): string {
+  const lines = d.orders.map(
+    (o) =>
+      `#${o.id} ${o.name}@${o.price}(${o.percent}%) 残${o.left}/${o.count}${o.min ? ` 最低${o.min}` : ''} ${o.shopname}(${o.shop_id}) 〆${jst(o.expires)}` +
+      (o.have ? ` 在庫${o.have}` : ''),
+  );
+  if (!lines.length) lines.push('募集はありません');
+  if (d.today) {
+    const t = d.today;
+    lines.push(
+      `今日 募集${t.posted}/${t.posts_max}回 掲示中${t.open}/${t.open_max}件 応じた${t.filled}/${t.fills_max}件` +
+        (t.delivered_to.length ? ` 納品済みの相手 ${t.delivered_to.join(',')}` : ''),
+    );
+  }
+  return lines.join('\n') + '\n';
 }
