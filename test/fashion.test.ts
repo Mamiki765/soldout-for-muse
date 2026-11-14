@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
-import { DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
+// 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく
+const DEFAULT_CONFIG = { ...BASE_CONFIG, couponTime: 0 };
 import { openShop, enterShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
 import { newWorld } from '../src/engine/types.js';
