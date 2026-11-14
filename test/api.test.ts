@@ -167,14 +167,16 @@ test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', as
       { type: 'withdraw', amount: 'all' },
       { type: 'shelves', count: 1 },
       { type: 'shelves', count: 3 },
+      { type: 'shelves', count: 3, confirm: true },
       { type: 'shelves', count: 2 },
       { type: 'shelves', count: 0 },
     ]);
     assert.match(lines[0], /^OK withdraw: ￥5000入金しました/);
     assert.match(lines[1], /^NG shelves: 棚は今も1個です。変更なし/);
-    assert.match(lines[2], /^OK shelves: 棚 1→3: 陳列枠\+2/);
-    assert.match(lines[3], /^NG shelves: 陳列棚増築取壊キットを持っていません/);
-    assert.match(lines[4], /^NG shelves: 棚は1〜8個/);
+    assert.match(lines[2], /^NG shelves: 確認: 棚 1→3: 陳列枠\+2.*増築費用/, '増やすときも確認だけ');
+    assert.match(lines[3], /^OK shelves: 棚 1→3: 陳列枠\+2/);
+    assert.match(lines[4], /^NG shelves: 陳列棚増築取壊キットを持っていません/);
+    assert.match(lines[5], /^NG shelves: 棚は1〜8個/);
     assert.equal(shop().showcasecount, 3);
 
     // 品名と使い方の名前で書ける

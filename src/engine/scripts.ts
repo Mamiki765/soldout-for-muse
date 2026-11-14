@@ -7,7 +7,7 @@
 import { CATALOG, itemNoByName } from '../data/catalog.js';
 import type { Game, RtItem } from './game.js';
 import type { Shop } from './types.js';
-import type { RtUse } from './use.js';
+import { formatHms, type RtUse } from './use.js';
 
 // ---------------------------------------------------------------------------
 // package item の補助関数 (原作 inc/inc-item.cgi)
@@ -288,7 +288,7 @@ export function showcaseChangeText(oldcnt: number, newcnt: number): string {
  */
 export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req: { confirm?: boolean }) => string | undefined> = {
   // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない。
-  // 減らすときは、confirm が無ければ実行せずに見込みだけ返す (増やすときは確認なし。案: リカさんより)
+  // 増やすとき・減らすときとも、confirm が無ければ実行せずに見込みだけ返す (増やすと維持費が重くなるため。案: リカさんより)
   'edit-showcase:_local_1'(g, dt, u, req) {
     const newcnt = Number(u.params[0]);
     const oldcnt = dt.showcasecount;
@@ -303,6 +303,12 @@ export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req
         `確認: ${showcaseChangeText(oldcnt, newcnt)}` +
         (off.length ? ` (外れる: ${off.join(' ')}。在庫は倉庫に残ります)` : '') +
         '。取り壊すなら同じ行動に "confirm":true を付けて送り直してください。キットはなくなり、戻すには費用と時間がかかります (まだ何も変えていません)'
+      );
+    }
+    if (newcnt > oldcnt && !req.confirm) {
+      return (
+        `確認: ${showcaseChangeText(oldcnt, newcnt)}、増築費用￥${u.money} 時間${formatHms(u.time)}` +
+        '。棚の維持費は決算ごとにかかり続けます。増築するなら同じ行動に "confirm":true を付けて送り直してください (まだ何も変えていません)'
       );
     }
     return undefined;
