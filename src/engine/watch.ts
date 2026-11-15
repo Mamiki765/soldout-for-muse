@@ -270,7 +270,9 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   const timed: number[] = [];
   // 今まさに鳴っている時刻のものは、その次の回も入れる (決算前の2時間に読んだとき、次の決算の予告を飛ばさないように)
   if (on.has('period_soon')) timed.push(nextPeriod - WATCH_RULES.periodSoon, nextPeriod + g.config.oneDayTime - WATCH_RULES.periodSoon);
-  if (on.has('closing_soon')) timed.push(closeAt - WATCH_RULES.closingSoon);
+  // 重い知らせは段階ごとに鍵が変わるので、その切り替わりの時刻も入れる (next_timed まで寝る番犬が見逃さないように)
+  if (on.has('closing_soon')) timed.push(closeAt - WATCH_RULES.closingSoon, closeAt - 86400, closeAt - 6 * 3600);
+  if (on.has('bankrupt_risk') && est.short > 0) timed.push(nextPeriod - 6 * 3600, nextPeriod - 2 * 3600);
   if (on.has('coupon_expiring')) {
     if (coupon >= WATCH_RULES.couponLeft) timed.push(couponReset - WATCH_RULES.couponSoon);
     // 次の週はクーポンが満タンから始まる

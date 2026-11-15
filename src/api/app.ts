@@ -765,9 +765,9 @@ export class App {
       this.onShopClosed(shopId);
       throw new HttpError(401, '店が見つかりません (閉店した可能性があります)');
     }
+    // 募集の知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る (ほかの記録に押し出されないように)
     const logs = this.store
-      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 30 })
-      .filter((l) => l.msg.startsWith('募集#'))
+      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 30, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor })
       .map((l) => ({ id: l.id, time: l.time, msg: l.msg }));
     const d = watch.peekData(g, dt, logs);
     const marks = d.alerts.map((a) => watch.alertMark(a.key));

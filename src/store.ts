@@ -135,7 +135,7 @@ export class Store {
    * 最近の出来事。原作 ReadLog と同じく「その店の記録 (from=店id)」と「街全体 (from=0)」を返す。
    * scope='me' なら店の記録だけ、'town' なら街全体だけ。新しい順。
    */
-  readLogs(shopId: number, opts: { since?: number; limit: number; scope?: 'me' | 'town' | 'all'; mode?: number }): StoredLog[] {
+  readLogs(shopId: number, opts: { since?: number; limit: number; scope?: 'me' | 'town' | 'all'; mode?: number; prefix?: string; fromTime?: number }): StoredLog[] {
     const where: string[] = ['id > ?'];
     const args: (number | string)[] = [opts.since ?? 0];
     const scope = opts.scope ?? 'all';
@@ -143,6 +143,8 @@ export class Store {
     else if (scope === 'town') where.push('from_id = 0');
     else { where.push('(from_id = ? OR from_id = 0)'); args.push(shopId); }
     if (opts.mode !== undefined) { where.push('mode = ?'); args.push(opts.mode); }
+    if (opts.fromTime !== undefined) { where.push('time >= ?'); args.push(opts.fromTime); }
+    if (opts.prefix !== undefined) { where.push("substr(msg, 1, ?) = ?"); args.push(opts.prefix.length, opts.prefix); }
     args.push(opts.limit);
     const rows = this.db
       .prepare(`SELECT id,time,mode,from_id,to_id,msg FROM logs WHERE ${where.join(' AND ')} ORDER BY id DESC LIMIT ?`)

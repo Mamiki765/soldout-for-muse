@@ -101,6 +101,8 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     d = (await r.json()) as Peek;
     assert.ok(d.alerts.some((a) => a.type === 'closing_soon' && a.level === 'critical'), JSON.stringify(d.alerts));
     const closeAt = d.facts.closing_at;
+    // 段階の切り替わり (6時間前) は next_timed に入っている
+    assert.ok(d.next_timed !== null && d.next_timed <= closeAt - 6 * 3600, String(d.next_timed));
     // 重い知らせは段階ごとに鍵が変わる (1日前 → 6時間前で、もう一度新着になる)
     const cur = d.cursor;
     now = closeAt - 5 * 3600;
@@ -145,6 +147,26 @@ test('見張りの設定: mode と on/off、知らない種類は NG', async () 
     assert.match(await act({ type: 'alerts', mode: '節約' }), /見張りの設定: save/);
     assert.match(await act({ type: 'alerts', mode: 'Power向け', on: [], off: [] }), /見張りの設定: power → 有効: bankrupt_risk/);
     assert.match(await act({ type: 'alerts', mode: 'おまかせ' }), /見張りの設定: normal/);
+  } finally {
+    server.close();
+  }
+});
+
+test('募集の締まりは、ほかの記録が30件あとに続いても知らせる', async () => {
+  const now = 1_800_000_000;
+  const { base, server, store } = await start(() => now);
+  try {
+    const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) });
+    const { token } = (await r.json()) as { token: string };
+    const auth = { authorization: 'Bearer ' + token };
+    const id = store.loadWorld(now).shops[0].id;
+    const db = (store as unknown as { db: { prepare(sql: string): { run(...a: unknown[]): unknown } } }).db;
+    const ins = db.prepare('INSERT INTO logs(time,mode,from_id,to_id,msg) VALUES(?,?,?,?,?)');
+    ins.run(now - 600, 0, id, 0, '募集#1 香油を集め終わりました');
+    for (let i = 0; i < 40; i++) ins.run(now - 300, 0, id, 0, 'ほかの記録' + i);
+    await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ type: 'alerts', mode: 'normal' }) });
+    const d = (await (await fetch(base + '/api/v1/peek?format=json', { headers: auth })).json()) as Peek;
+    assert.ok(d.alerts.some((a) => a.type === 'order_closed'), JSON.stringify(d.alerts));
   } finally {
     server.close();
   }
