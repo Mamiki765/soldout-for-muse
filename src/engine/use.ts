@@ -47,6 +47,8 @@ export interface RtUse {
   /** この USE を持つ商品の番号 */
   itemno: number;
   itemcode: string;
+  /** 熟練を読み書きする商品の番号 (ふつうは itemno。熟練の共有があればその先) */
+  expno: number;
   name: string;
   scale: string;
   money: number;
@@ -76,6 +78,7 @@ export function loadUses(g: Game, itemno: number): RtUse[] {
       no: def.no,
       itemno,
       itemcode: item.code,
+      expno: item.expitem ?? itemno,
       name: def.name ?? '',
       scale: def.scale ?? item.scale,
       money: def.money,
@@ -138,7 +141,7 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
       }
     }
   }
-  if ((dt.exp[u.itemno] ?? 0) < u.needexp) return 0;
+  if ((dt.exp[u.expno] ?? 0) < u.needexp) return 0;
   const before = u.def.func_before;
   if (before) {
     const fn = USE_BEFORE_FUNCS[`${u.itemcode}:${before}`] ?? USE_BEFORE_FUNCS[before];
@@ -155,7 +158,7 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
 
 /** 使えない理由を短く (熟練 → 材料・道具の順。どちらでもなければ条件) */
 function useNgReason(g: Game, dt: Shop, u: RtUse): string {
-  if ((dt.exp[u.itemno] ?? 0) < u.needexp) return `熟練が足りません (要${Math.trunc(u.needexp / 10)}%、今${Math.trunc((dt.exp[u.itemno] ?? 0) / 10)}%)`;
+  if ((dt.exp[u.expno] ?? 0) < u.needexp) return `熟練が足りません (要${Math.trunc(u.needexp / 10)}%、今${Math.trunc((dt.exp[u.expno] ?? 0) / 10)}%)`;
   const short = u.use.filter((l) => dt.item[l.no - 1] < l.count).map((l) => `${g.items[l.no].name}x${l.count}${l.proba === 0 ? '(道具)' : ''}`);
   if (short.length) return '足りない: ' + short.join(',');
   return '今は条件に合いません';
@@ -163,7 +166,7 @@ function useNgReason(g: Game, dt: Shop, u: RtUse): string {
 
 /** 原作 GetItemUseTime: 熟練度に応じた 1 回あたりの所要時間 */
 export function itemUseTime(dt: Shop, u: RtUse): number {
-  const exp = u.result.expold !== undefined ? u.result.expold : dt.exp[u.itemno] ?? 0;
+  const exp = u.result.expold !== undefined ? u.result.expold : dt.exp[u.expno] ?? 0;
   return u.time - Math.trunc(((u.time - u.exptime) * exp) / 1000);
 }
 
@@ -228,7 +231,7 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
     if (!count && !why) why = reason;
   };
   const usetime = itemUseTime(dt, u);
-  if ((dt.exp[u.itemno] ?? 0) < u.needexp) cap(0, '熟練が足りません');
+  if ((dt.exp[u.expno] ?? 0) < u.needexp) cap(0, '熟練が足りません');
   if (u.money > 0 && dt.money < u.money * count) cap(dt.money / u.money, '資金が足りません');
   // 時間クーポンの残りも使える。持ち時間がマイナス (待ち中) でも、クーポンの分は使える (useTime と同じ扱い)
   const avail = g.usableTime(dt);
@@ -289,11 +292,11 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   }
 
   if (u.exp) {
-    const exp = dt.exp[u.itemno] ?? 0;
+    const exp = dt.exp[u.expno] ?? 0;
     u.result.expold = exp;
     let expplus = u.exp * u.result.count;
     if (exp + expplus > 1000) expplus = 1000 - exp;
-    dt.exp[u.itemno] = exp + expplus;
+    dt.exp[u.expno] = exp + expplus;
     let expsum = 0;
     for (const v of Object.values(dt.exp)) expsum += v;
     if (g.config.limitExp > 0 && expsum > g.config.limitExp) {

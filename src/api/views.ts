@@ -383,6 +383,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
     cost: it.cost,
     limit: it.limit,
     flags: flagWords(it.flag),
+    ...(it.expitem ? { skill_item: { item: it.expitem, name: g.items[it.expitem].name } } : {}),
     uses: uses.map((u) => ({
       use: u.no,
       name: u.name,
@@ -404,6 +405,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
 
 export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   const lines = [`${d.item} ${d.name} (${d.type}) 標準${d.price} 維持費${d.cost} 上限${d.limit}${d.flags.length ? ' ' + d.flags.join(',') : ''}`, d.info];
+  if (d.skill_item) lines.push(`熟練は${d.skill_item.name}と共通 (時間の縮み・増える熟練は${d.skill_item.name}の熟練)`);
   if (d.uses.length) lines.push('# 使い方 番号 名前 時間 費用 | 材料 → 成果 | 熟練');
   for (const u of d.uses) {
     const needs = u.needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',');
