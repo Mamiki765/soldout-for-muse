@@ -11,10 +11,14 @@ import { sweepOrders } from './orders.js';
 import { turnPeriod } from './period.js';
 import { EVENT_FUNCS, EVENT_NOW_FUNCS, TURN_FUNCS } from './scripts.js';
 
-/** 原作 Turn: 前回の計算から updateTime 秒以上たっていれば TurnProc を行う */
+/**
+ * 原作 Turn: 前回の計算から updateTime 秒以上たっていれば TurnProc を行う。
+ * この移植では、決算の時刻をまたいだときも (5分たっていなくても) 計算する。
+ * 決算のあとの行動 (入金庫からの引き出しなど) が、前の期の決算に混ざらないように (監査 A02)
+ */
 export function turn(g: Game): boolean {
   if (!g.world.lasttime) return false;
-  if (g.now - g.world.lasttime > g.config.updateTime) {
+  if (g.now - g.world.lasttime > g.config.updateTime || g.now >= g.nextPeriodTime()) {
     turnProc(g);
     return true;
   }

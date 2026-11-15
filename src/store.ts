@@ -135,7 +135,7 @@ export class Store {
    * 最近の出来事。原作 ReadLog と同じく「その店の記録 (from=店id)」と「街全体 (from=0)」を返す。
    * scope='me' なら店の記録だけ、'town' なら街全体だけ。新しい順。
    */
-  readLogs(shopId: number, opts: { since?: number; limit: number; scope?: 'me' | 'town' | 'all'; mode?: number; prefix?: string; fromTime?: number }): StoredLog[] {
+  readLogs(shopId: number, opts: { since?: number; limit: number; scope?: 'me' | 'town' | 'all'; mode?: number; prefix?: string; fromTime?: number; contains?: string[] }): StoredLog[] {
     const where: string[] = ['id > ?'];
     const args: (number | string)[] = [opts.since ?? 0];
     const scope = opts.scope ?? 'all';
@@ -145,10 +145,25 @@ export class Store {
     if (opts.mode !== undefined) { where.push('mode = ?'); args.push(opts.mode); }
     if (opts.fromTime !== undefined) { where.push('time >= ?'); args.push(opts.fromTime); }
     if (opts.prefix !== undefined) { where.push("substr(msg, 1, ?) = ?"); args.push(opts.prefix.length, opts.prefix); }
+    // どれかの文字列を含む (instr は LIKE と違って % _ を特別扱いしない)
+    if (opts.contains?.length) { where.push('(' + opts.contains.map(() => 'instr(msg, ?) > 0').join(' OR ') + ')'); args.push(...opts.contains); }
     args.push(opts.limit);
     const rows = this.db
       .prepare(`SELECT id,time,mode,from_id,to_id,msg FROM logs WHERE ${where.join(' AND ')} ORDER BY id DESC LIMIT ?`)
       .all(...args) as { id: number; time: number; mode: number; from_id: number; to_id: number; msg: string }[];
+    return rows.map((r) => ({ id: r.id, time: r.time, mode: r.mode, from: r.from_id, to: r.to_id, msg: r.msg }));
+  }
+
+  /**
+   * 未読の出来事を古い順に limit 件。自分の記録と街の記録で既読の位置が別 (sinceMe / sinceTown)。
+   * 古い順に取るので、返した最後の id までは (その scope の) 全部を返したことになり、既読の位置をそこまで進められる (監査 A07)
+   */
+  readUnreadLogs(shopId: number, sinceMe: number, sinceTown: number, scope: 'me' | 'town' | 'all', limit: number): StoredLog[] {
+    const where = scope === 'me' ? 'from_id = ? AND id > ?' : scope === 'town' ? 'from_id = 0 AND id > ?' : '((from_id = ? AND id > ?) OR (from_id = 0 AND id > ?))';
+    const args = scope === 'me' ? [shopId, sinceMe] : scope === 'town' ? [sinceTown] : [shopId, sinceMe, sinceTown];
+    const rows = this.db
+      .prepare(`SELECT id,time,mode,from_id,to_id,msg FROM logs WHERE ${where} ORDER BY id ASC LIMIT ?`)
+      .all(...args, limit) as { id: number; time: number; mode: number; from_id: number; to_id: number; msg: string }[];
     return rows.map((r) => ({ id: r.id, time: r.time, mode: r.mode, from: r.from_id, to: r.to_id, msg: r.msg }));
   }
 
@@ -284,6 +299,13 @@ export class Store {
   readPosts(board: 'bbs' | 'chat', since: number, limit: number): BoardPost[] {
     return this.db
       .prepare('SELECT id,board,time,shop_id,shopname,msg FROM posts WHERE board = ? AND id > ? ORDER BY id DESC LIMIT ?')
+      .all(board, since, limit) as unknown as BoardPost[];
+  }
+
+  /** since より後の書き込みを古い順に limit 件 (未読を取りこぼさずに既読を進めるため。監査 A07) */
+  readPostsAfter(board: 'bbs' | 'chat', since: number, limit: number): BoardPost[] {
+    return this.db
+      .prepare('SELECT id,board,time,shop_id,shopname,msg FROM posts WHERE board = ? AND id > ? ORDER BY id ASC LIMIT ?')
       .all(board, since, limit) as unknown as BoardPost[];
   }
 

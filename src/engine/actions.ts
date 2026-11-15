@@ -271,14 +271,25 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   return ret;
 }
 
-/** 原作 inc-html-moneystock.cgi の「最大額指定」: 今の持ち時間で入金できる最大額 */
+/**
+ * 原作 inc-html-moneystock.cgi の「最大額指定」: 今の持ち時間で入金できる最大額。
+ * 原作は比例の近似で、持ち時間がちょうど基本料金のときなどに払えない額を返していた (監査 A12)。
+ * deposit と同じ timeDeal (切り捨て込み) で、払える整数額の上限を二分探索で求める。
+ */
 export function maxDeposit(g: Game, dt: Shop): number {
-  let maxmoney = dt.moneystock;
-  const usetime = g.timeDeal(maxmoney) - CATALOG.timeSendMoney;
-  const stocktime = g.usableTime(dt) - CATALOG.timeSendMoney;
-  if (stocktime < 0) maxmoney = 0;
-  if (usetime > 0 && stocktime > 0 && stocktime < usetime) maxmoney = Math.trunc((maxmoney / usetime) * stocktime);
-  return maxmoney;
+  const cap = Math.max(0, Math.min(dt.moneystock, g.maxMoney - dt.money));
+  const stocktime = g.usableTime(dt);
+  if (cap <= 0 || stocktime < g.timeDeal(1)) return 0;
+  if (stocktime >= g.timeDeal(cap)) return cap;
+  // timeDeal は額について単調に増える。lo は払える、hi は払えない
+  let lo = 1;
+  let hi = cap;
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (g.timeDeal(mid) <= stocktime) lo = mid;
+    else hi = mid;
+  }
+  return lo;
 }
 
 /** 原作 item-send.cgi: 商品を処分する (市場へ戻る) */

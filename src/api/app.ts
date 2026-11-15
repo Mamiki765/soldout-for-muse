@@ -83,6 +83,9 @@ class HttpError extends Error {
 const PARTY_RETRY_SECONDS = 30;
 
 const SEEN_LOG = '_api_seen_log';
+/** 出来事の既読の位置を、自分の記録と街の記録で別に持つ (無ければ SEEN_LOG から始める。監査 A07) */
+const SEEN_LOG_ME = '_api_seen_log_me';
+const SEEN_LOG_TOWN = '_api_seen_log_town';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
 const SEEN_SUGGEST = '_api_seen_suggest';
@@ -187,10 +190,15 @@ export class App {
   private game(): { g: Game; turned: boolean } {
     const now = this.clock();
     const g = new Game(this.world, this.config, this.rng, now);
+    const before = this.world.shops.map((s) => s.id);
     // 期限切れの募集の返金は、時間の計算と同じくアクセスのたびに行う
     const turnedTime = turn(g);
     const turned = ord.sweepOrders(g) || turnedTime;
-    if (turned) this.save(g);
+    if (turned) {
+      this.save(g);
+      // 不在閉店・倒産した店のトークン・合鍵・Party のつながり・管理の許可を、保存と同じときに片付ける (監査 A04)
+      for (const id of before) if (!g.shopById(id)) this.onShopClosed(id);
+    }
     return { g: turned ? new Game(this.world, this.config, this.rng, now) : g, turned };
   }
 
@@ -224,6 +232,10 @@ export class App {
     this.store.deleteTokensOf(shopId);
     this.store.deleteViewKeysOf(shopId);
     this.store.unlinkPartyShop(shopId);
+    dropViewSessions(shopId);
+    // 閉じた店に付けていた管理の許可も外す (同じ店idがまた使われることはないが、残しておく理由もない)
+    const admins = this.adminShops();
+    if (admins.includes(shopId)) this.store.setSetting('admin_shops', admins.filter((x) => x !== shopId).join(',') || undefined);
   }
 
   // ---------------------------------------------------------------------------
@@ -810,9 +822,10 @@ export class App {
       this.onShopClosed(shopId);
       throw new HttpError(401, '店が見つかりません (閉店した可能性があります)');
     }
-    // 募集の知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る (ほかの記録に押し出されないように)
+    // 募集の「終わった」知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る
+    // (取り下げ・再掲など、知らせない記録に押し出されないように。監査 A10)
     const logs = this.store
-      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 30, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor })
+      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 200, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor, contains: watch.ORDER_CLOSED_WORDS })
       .map((l) => ({ id: l.id, time: l.time, msg: l.msg }));
     const d = watch.peekData(g, dt, logs);
     const marks = d.alerts.map((a) => watch.alertMark(a.key));
@@ -864,47 +877,82 @@ export class App {
   // ---------------------------------------------------------------------------
   // 出来事・掲示板 (既読の位置はサーバーが覚えておく)
 
+  /** 出来事の既読の位置 (自分 / 街) */
+  private seenLog(dt: Shop): { me: number; town: number } {
+    const base = Number(dt.user[SEEN_LOG] ?? 0);
+    return { me: Number(dt.user[SEEN_LOG_ME] ?? base), town: Number(dt.user[SEEN_LOG_TOWN] ?? base) };
+  }
+
   private unreadCounts(dt: Shop): v.DigestInput {
-    const seen = Number(dt.user[SEEN_LOG] ?? 0);
+    const seen = this.seenLog(dt);
     return {
-      newMine: this.store.countLogsSince(dt.id, seen, 'me'),
-      newTown: this.store.countLogsSince(dt.id, seen, 'town'),
+      newMine: this.store.countLogsSince(dt.id, seen.me, 'me'),
+      newTown: this.store.countLogsSince(dt.id, seen.town, 'town'),
       newChat: countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
       newReplies: this.store.countSuggestionUpdates(dt.id, Number(dt.user[SEEN_SUGGEST] ?? 0)),
       newBbs: countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
     };
   }
 
+  /**
+   * 出来事。since も all も無ければ未読ぶんを返して既読にする。
+   * 未読が limit より多いときは古いほうから limit 件を返し、返したところまでだけ既読にする
+   * (絞り込み・件数で返さなかった記録まで既読にしない。続きはもう一度 GET すれば読める。監査 A07)
+   */
   private readLog(dt: Shop, q: URLSearchParams): Reply {
-    const scope = (q.get('scope') ?? 'all') as 'me' | 'town' | 'all';
+    const scope = (['me', 'town', 'all'].includes(q.get('scope') ?? '') ? q.get('scope') : 'all') as 'me' | 'town' | 'all';
     const all = q.get('all') === '1';
-    const since = q.get('since') !== null ? Number(q.get('since')) : all ? 0 : Number(dt.user[SEEN_LOG] ?? 0);
     const limit = clampNum(q.get('limit'), 1, 200, all ? 30 : 50);
-    const logs = this.store.readLogs(dt.id, { since, limit, scope });
-    // 既読の位置を進める (since を明示したときは進めない)
-    if (q.get('since') === null && !all) {
-      const last = this.store.lastLogId(dt.id);
-      if (String(last) !== dt.user[SEEN_LOG]) {
-        dt.user[SEEN_LOG] = String(last);
-        this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
-      }
+    if (q.get('since') !== null || all) {
+      const since = q.get('since') !== null ? Number(q.get('since')) : 0;
+      const logs = this.store.readLogs(dt.id, { since, limit, scope });
+      return { status: 200, text: v.logText(logs), json: logs };
     }
-    return { status: 200, text: v.logText(logs), json: logs };
+    const seen = this.seenLog(dt);
+    const logs = this.store.readUnreadLogs(dt.id, seen.me, seen.town, scope, limit);
+    const last = logs.length ? logs[logs.length - 1].id : 0;
+    let changed = false;
+    if (last && scope !== 'town' && last > seen.me) {
+      dt.user[SEEN_LOG_ME] = String(last);
+      changed = true;
+    }
+    if (last && scope !== 'me' && last > seen.town) {
+      dt.user[SEEN_LOG_TOWN] = String(last);
+      changed = true;
+    }
+    if (changed) {
+      dt.user[SEEN_LOG] = String(Math.min(Number(dt.user[SEEN_LOG_ME] ?? seen.me), Number(dt.user[SEEN_LOG_TOWN] ?? seen.town)));
+      this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
+    }
+    // 表示はこれまでどおり新しい順
+    logs.reverse();
+    const after = this.seenLog(dt);
+    const left = (scope !== 'town' ? this.store.countLogsSince(dt.id, after.me, 'me') : 0) + (scope !== 'me' ? this.store.countLogsSince(dt.id, after.town, 'town') : 0);
+    const text = v.logText(logs) + (left ? `(まだ未読が${left}件あります。もう一度 GET すると続きを読めます)\n` : '');
+    return { status: 200, text, json: logs, headers: { 'x-unread-left': String(left) } };
   }
 
   private readBoard(dt: Shop, board: 'chat' | 'bbs', q: URLSearchParams): Reply {
     const key = board === 'chat' ? SEEN_CHAT : SEEN_BBS;
     const all = q.get('all') === '1';
-    const since = q.get('since') !== null ? Number(q.get('since')) : all ? 0 : Number(dt.user[key] ?? 0);
-    const posts = this.store.readPosts(board, since, clampNum(q.get('limit'), 1, 100, 30));
-    if (q.get('since') === null && !all) {
-      const last = this.store.lastPostId(board);
-      if (String(last) !== dt.user[key]) {
-        dt.user[key] = String(last);
-        this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
-      }
+    const limit = clampNum(q.get('limit'), 1, 100, 30);
+    if (q.get('since') !== null || all) {
+      const since = q.get('since') !== null ? Number(q.get('since')) : 0;
+      const posts = this.store.readPosts(board, since, limit);
+      return { status: 200, text: v.postsText(posts), json: posts };
     }
-    return { status: 200, text: v.postsText(posts), json: posts };
+    // 未読を古いほうから limit 件。返したところまでだけ既読にする (監査 A07)
+    const seen = Number(dt.user[key] ?? 0);
+    const posts = this.store.readPostsAfter(board, seen, limit);
+    const last = posts.length ? posts[posts.length - 1].id : 0;
+    if (last > seen) {
+      dt.user[key] = String(last);
+      this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
+    }
+    posts.reverse();
+    const left = this.store.lastPostId(board) > Math.max(seen, last) ? this.store.readPosts(board, Math.max(seen, last), 100).length : 0;
+    const text = v.postsText(posts) + (left ? `(まだ未読が${left}件あります。もう一度 GET すると続きを読めます)\n` : '');
+    return { status: 200, text, json: posts, headers: { 'x-unread-left': String(left) } };
   }
 
   /** 原作 WriteBBS: 掲示板・井戸端への書き込み */
@@ -979,8 +1027,15 @@ export class App {
     this.rateLimit('a:' + sha256(token ?? '').slice(0, 16));
     if (this.isAdminToken(token)) return;
     if (!token) throw new HttpError(403, '管理用のトークンが必要です');
-    const shopId = await this.auth(req).catch(() => undefined);
-    if (shopId === undefined || !this.adminShops().includes(shopId)) throw new HttpError(403, '管理者として許可されていません');
+    // Party の混雑・障害 (429 / 503) は「許可されていない」にせず、そのまま返す (待てば通る。監査 B02)
+    const shopId = await this.auth(req).catch((e: unknown) => {
+      if (e instanceof HttpError && (e.status === 429 || e.status === 503)) throw e;
+      return undefined;
+    });
+    // 許可した店でも、営業中であること (不在閉店・倒産のあとに残ったトークンで管理できないように。監査 A04)
+    if (shopId === undefined || !this.adminShops().includes(shopId) || !this.world.shops.some((x) => x.id === shopId && x.status)) {
+      throw new HttpError(403, '管理者として許可されていません');
+    }
   }
 
   private async admin(req: IncomingMessage, method: string, p: string, q: URLSearchParams): Promise<Reply> {

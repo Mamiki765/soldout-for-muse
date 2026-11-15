@@ -118,15 +118,37 @@ export function periodAfter(g: Game, t: number): number {
 }
 
 /**
+ * いまの倉庫・棚・募集の預かり分にかかる維持費 (1日あたり)。時間計算 (turn.ts) と同じ数え方:
+ * 棚に並べている品は 1/10、買い取り募集で預かり中の品は受け取る店の倉庫にあるものとして数える。
+ */
+export function costPerDay(g: Game, dt: Shop): number {
+  const shown = new Set<number>();
+  for (let i = 0; i < dt.showcasecount; i++) {
+    const no = dt.showcase[i] ?? 0;
+    if (no && dt.item[no - 1]) shown.add(no);
+  }
+  let sum = 0;
+  for (let no = 1; no <= g.maxItem; no++) {
+    const c = dt.item[no - 1];
+    if (!c) continue;
+    sum += g.items[no].cost * (shown.has(no) ? c / 10 : c);
+  }
+  for (const o of g.world.orders ?? []) {
+    if (o.shop === dt.id && o.count > o.left) sum += g.items[o.item].cost * (o.count - o.left);
+  }
+  return sum;
+}
+
+/**
  * 次の決算でいくら引かれるかの見込み (原作 period.cgi の順: 当期の維持費＋棚の維持費＋入金庫の税)。
- * 当期の維持費は「ここまでの額 ÷ 経過時間」の速さで決算まで続くとみなす。売上は入れない (悪いほうに見る)。
+ * 当期の維持費は「ここまでの額」に、いまの倉庫・棚・預かり分のまま決算まで置いたときの額を足す。
+ * (0.3.3 までは「ここまでの額 ÷ 経過時間」で伸ばしていたので、最近仕入れた品の分を見落としていた。監査 A06)
+ * 売上は入れない (悪いほうに見る)。
  */
 export function periodEstimate(g: Game, dt: Shop, asOf = g.world.lasttime) {
   const next = periodAfter(g, asOf);
-  const start = next - g.config.oneDayTime;
-  const elapsed = Math.max(1, asOf - start);
   const costSoFar = Math.trunc(dt.costtoday);
-  const costProjected = Math.trunc(dt.costtoday + (dt.costtoday / elapsed) * Math.max(0, next - asOf));
+  const costProjected = Math.trunc(dt.costtoday + (costPerDay(g, dt) * Math.max(0, next - asOf)) / 86400);
   const showcaseCost = CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
   const [tax, taxRate] = g.taxToday(dt);
   const total = costProjected + showcaseCost + tax;
@@ -144,6 +166,9 @@ export function periodEstimate(g: Game, dt: Shop, asOf = g.world.lasttime) {
     short: Math.max(0, total - available),
   };
 }
+
+/** peek の order_closed に出す募集の記録 (DB から先に絞るための言葉。下の正規表現と合わせる) */
+export const ORDER_CLOSED_WORDS = ['を集め終わりました', 'を期限切れで終了'];
 
 /** 最後の行動からの不在閉店の時刻 (原作 turn.cgi 末尾) */
 export function closingAt(g: Game, dt: Shop): number {
@@ -214,11 +239,20 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   // ---- アラート
   // 決算の時刻は as_of ではなく今から数える (as_of が古くて決算をまたいでいても、次の決算を指すように)
   const nextPeriod = periodAfter(g, now);
+  // as_of のあとの決算時刻をもう過ぎているのに、まだ計算していない (次のアクセスで決算する)。
+  // 見込み (est) は過ぎたほうの決算のもの。鍵も同じ決算に結びつける (監査 A08)
+  const periodPending = est.next_period <= now;
   if (est.short > 0) {
-    add({ type: 'bankrupt_risk', level: 'critical', key: `bankrupt:${nextPeriod}:${stage(nextPeriod - now, [6 * 3600, 2 * 3600])}`, msg: `このままだと決算で倒産の恐れ: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
+    const key = periodPending ? `bankrupt:${est.next_period}:pending` : `bankrupt:${nextPeriod}:${stage(nextPeriod - now, [6 * 3600, 2 * 3600])}`;
+    const head = periodPending ? '決算の時刻を過ぎていて、まだ反映されていません (次のアクセスで計算)。倒産の恐れ' : 'このままだと決算で倒産の恐れ';
+    add({ type: 'bankrupt_risk', level: 'critical', key, msg: `${head}: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
   }
   if (closeAt - now <= WATCH_RULES.closingSoon) {
-    add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}:${stage(closeAt - now, [86400, 6 * 3600])}`, msg: `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)` });
+    // 期限を過ぎていれば、次の街の計算で閉店する。行動がその計算より先に届けば間に合うが、確かではない (監査 A08)
+    const msg = closeAt <= now
+      ? '不在閉店の期限を過ぎています。次の街の計算で閉店します (すぐ行動すれば間に合うこともありますが、確かではありません)'
+      : `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)`;
+    add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}:${closeAt <= now ? 'past' : stage(closeAt - now, [86400, 6 * 3600])}`, msg });
   }
   const s1 = shelves[0];
   if (s1 && (!s1.item || s1.stock <= 1)) {
@@ -299,7 +333,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
       coupon,
       coupon_reset: couponReset,
       closing_at: closeAt,
-      period: est,
+      /** pending: 決算の時刻を過ぎたが、まだ計算していない (この見込みは過ぎたほうの決算のもの) */
+      period: { ...est, pending: periodPending },
       shelves,
       events,
     },
