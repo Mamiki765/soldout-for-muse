@@ -1018,6 +1018,18 @@ export class App {
     return { status: 200, text, json: { ok: true, url, expires_at: fixed ? null : now + ttl } };
   }
 
+  /**
+   * 街の時間を進める (サーバーのタイマーから呼ぶ)。前回から updateTime (5分) たっていれば計算して保存する。
+   * 番犬が peek (時間を進めない) だけを読むようになっても、街の時計が止まらないように (0.3.2)
+   */
+  tick(): void {
+    try {
+      this.game();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   /** viewer.ts から使う */
   viewerGame(): Game {
     return this.game().g;

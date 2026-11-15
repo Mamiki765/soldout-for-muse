@@ -215,10 +215,10 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   // 決算の時刻は as_of ではなく今から数える (as_of が古くて決算をまたいでいても、次の決算を指すように)
   const nextPeriod = periodAfter(g, now);
   if (est.short > 0) {
-    add({ type: 'bankrupt_risk', level: 'critical', key: `bankrupt:${nextPeriod}`, msg: `このままだと決算で倒産の恐れ: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
+    add({ type: 'bankrupt_risk', level: 'critical', key: `bankrupt:${nextPeriod}:${stage(nextPeriod - now, [6 * 3600, 2 * 3600])}`, msg: `このままだと決算で倒産の恐れ: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
   }
   if (closeAt - now <= WATCH_RULES.closingSoon) {
-    add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}`, msg: `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)` });
+    add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}:${stage(closeAt - now, [86400, 6 * 3600])}`, msg: `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)` });
   }
   const s1 = shelves[0];
   if (s1 && (!s1.item || s1.stock <= 1)) {
@@ -306,6 +306,14 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
 /** アラートの鍵の短い印 (cursor 用) */
 export function alertMark(key: string): string {
   return createHash('sha1').update(key).digest('base64url').slice(0, 6);
+}
+
+/**
+ * 重いアラートの段階。残り時間が区切り (降順) を下回るたびに段階が上がり、鍵が変わるので、番犬にはもう一度「新着」として届く
+ * (例: 不在閉店は 2日前 → 1日前 → 6時間前。案: GPT レビューより)
+ */
+function stage(left: number, marks: number[]): number {
+  return marks.filter((m) => left <= m).length;
 }
 
 function hours(sec: number): string {

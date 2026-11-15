@@ -101,6 +101,13 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     d = (await r.json()) as Peek;
     assert.ok(d.alerts.some((a) => a.type === 'closing_soon' && a.level === 'critical'), JSON.stringify(d.alerts));
     const closeAt = d.facts.closing_at;
+    // 重い知らせは段階ごとに鍵が変わる (1日前 → 6時間前で、もう一度新着になる)
+    const cur = d.cursor;
+    now = closeAt - 5 * 3600;
+    r = await fetch(base + '/api/v1/peek?format=json&seen=' + cur, { headers: auth });
+    assert.equal(r.status, 200);
+    assert.ok(((await r.json()) as Peek).new.some((a) => a.type === 'closing_soon'));
+    now = closeAt - 86400;
     r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.equal(d.facts.closing_at, closeAt);
@@ -167,4 +174,30 @@ test('倒産の見込み: 決算で払えなければ bankrupt_risk と digest �
   const est2 = periodEstimate(g, dt);
   assert.equal(est2.tax, 240_000);
   assert.equal(est2.short, 0);
+});
+
+test('サーバーのタイマー (tick) で、誰も読まなくても街の時間が進む', async () => {
+  let now = 1_800_000_000;
+  const store = new Store(':memory:');
+  store.setSetting('invite_hash', sha256('muse-invite'));
+  const app = new App({ store, rng: seededRng(7), clock: () => now, helpText: 'HELP' });
+  const server = createServer((req, res) => void app.handle(req, res));
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) });
+    const { token } = (await r.json()) as { token: string };
+    const auth = { authorization: 'Bearer ' + token };
+    now += 3 * 60;
+    app.tick(); // 5分たっていないので進まない
+    let d = (await (await fetch(base + '/api/v1/peek?format=json', { headers: auth })).json()) as Peek;
+    assert.equal(d.age, 3 * 60);
+    now += 3 * 60;
+    app.tick();
+    d = (await (await fetch(base + '/api/v1/peek?format=json', { headers: auth })).json()) as Peek;
+    assert.equal(d.as_of, now);
+    assert.equal(store.loadWorld(0).lasttime, now);
+  } finally {
+    server.close();
+  }
 });
