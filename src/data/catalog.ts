@@ -236,6 +236,14 @@ export function isPublicItem(no: number): boolean {
   return !VISIBILITY.has(no);
 }
 
+/** 道具 tool の使い方 useNo が、処理で隠した品を出すか (notes.from に書いた関係) */
+export function makesHiddenItem(tool: number, useNo: number): boolean {
+  for (const [no, v] of VISIBILITY) {
+    if (v && ref.notes[String(no)]?.from?.some(([t, u]) => t === tool && u === useNo)) return true;
+  }
+  return false;
+}
+
 /** 入手の補足。from は [道具の品番, 使い方の番号] */
 export function itemNote(no: number): { from: [number, number][]; note?: string } {
   const n = ref.notes[String(no)];

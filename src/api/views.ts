@@ -2,7 +2,7 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
@@ -364,7 +364,7 @@ function reverse() {
     const it = BASE_ITEMS[no];
     if (!it || !isPublicItem(no)) continue; // 隠した品の使い方は、どこにも逆引きで出さない
     for (const u of it.uses) {
-      if (!u.get.every((l) => isPublicItem(l.item_no))) continue; // 隠した品が出る使い方は無いものとして扱う
+      if (!u.get.every((l) => isPublicItem(l.item_no)) || makesHiddenItem(no, u.no)) continue; // 隠した品が出る使い方は無いものとして扱う
       for (const l of u.get) push(madeBy, l.item_no, { item: no, use: u.no });
       for (const l of u.use) if (l.item_no !== no) push(usedIn, l.item_no, { item: no, use: u.no });
     }

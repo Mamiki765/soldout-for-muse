@@ -11,7 +11,7 @@ import { BASE_ITEMS, MAX_ITEM, overrideItemVisibility } from '../src/data/catalo
 import { openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
-import { loadUses } from '../src/engine/use.js';
+import { checkUses, loadUses } from '../src/engine/use.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
 import { sha256, Store } from '../src/store.js';
@@ -158,5 +158,28 @@ test('観戦画面のアイテム一覧に作り方と材料になる先が出�
     assert.match(r.text, /\[アイテム一覧\]/);
   } finally {
     server.close();
+  }
+});
+
+test('処理で出す品 (乳搾り → ミノ牛乳) を隠すと、その使い方も消える。足りない理由の名前も伏せる', () => {
+  const world = newWorld(1_800_000_000, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, { next: () => 0.2 }, 1_800_000_000);
+  const dt = openShop(g, { name: 't', shopname: '試験' });
+  overrideItemVisibility(MILK, 'hidden');
+  try {
+    assert.equal(loadUses(g, 25).filter((u) => u.no === 0 || u.no === 1).length, 0);
+  } finally {
+    overrideItemVisibility(MILK);
+  }
+  const SUGAR = BASE_ITEMS.find((i) => i?.name === '砂糖')!.no;
+  dt.item[MILK - 1] = 10;
+  dt.item[25 - 1] = 5;
+  overrideItemVisibility(SUGAR, 'hidden');
+  try {
+    const u = checkUses(g, dt, loadUses(g, MILK)).find((x) => x.no === 6)!;
+    assert.match(u.ngReason!, /？？？x3/);
+    assert.doesNotMatch(u.ngReason!, /砂糖/);
+  } finally {
+    overrideItemVisibility(SUGAR);
   }
 });
