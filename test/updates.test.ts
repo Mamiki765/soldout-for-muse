@@ -7,7 +7,6 @@ import { setViewerKey } from '../src/api/viewer.js';
 import { BASE_ITEMS } from '../src/data/catalog.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, type FashionUpdate } from '../src/updates.js';
 import { sha256, Store } from '../src/store.js';
-import { seededRng } from '../src/engine/rng.js';
 
 for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest・通知 (${basePath || '/'})`, async () => {
   const store = new Store(':memory:');
@@ -68,11 +67,11 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     res = await fetch(base+'/api/v1/register?format=json',{method:'POST',body:JSON.stringify({invite:'inv',name:'test',shopname:'試験商店'})});
     const {token,shop_id} = await res.json() as {token:string;shop_id:number};
     const auth = {authorization:'Bearer '+token};
+    // 開店したての店は今の説明書から始めるので、digest に未読更新は出ない (既読の出し分けは updates-read.test.ts)
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
-    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.3.2 更新あり')).length,1);
-    assert.ok(digest.endsWith('v0.3.2 更新あり /api/v1/updates\n'));
-    assert.ok(digest.trimEnd().split('\n').length <= 4);
+    assert.ok(!digest.includes('未読更新'),digest);
+    assert.ok(digest.trimEnd().split('\n').length <= 3);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
 
@@ -101,16 +100,6 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.equal(notes.length,9);
     assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.3.0: ') && notes.includes('【更新】v0.3.1: ') && notes.includes('【更新】v0.3.2: '));
 
-    // digest の短い案内はデプロイ (この版の初回起動) から7日間だけ。再起動しても起点は変わらない。
-    const since = 1_800_000_000;
-    assert.equal(store.getSetting('update_since:0.3.2'),String(since));
-    for (const [now,shown] of [[since+7*86400-1,true],[since+7*86400,false]] as const) {
-      // 乱数を固定して毎回同じ結果にする
-      app = new App({store,basePath,clock:()=>now,rng:seededRng(1)});
-      assert.equal(app.updateSince,since);
-      const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();
-      assert.equal(text.includes('v0.3.2 更新あり /api/v1/updates'),shown,text);
-    }
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
     store.close();

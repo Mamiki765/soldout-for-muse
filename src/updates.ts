@@ -148,9 +148,6 @@ export const V032: PatchUpdate = {
 export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
-/** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
-export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /api/v1/updates`;
-export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
 export const UPDATE_NOTICE = `v${APP_VERSION}: ${UPDATES[0].notice}`;
 
@@ -159,8 +156,8 @@ export const isPatch = (u: PatchUpdate | FashionUpdate): u is PatchUpdate => 'no
 export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
-export function updatesText(): string {
-  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
+export function updatesText(list: (PatchUpdate | FashionUpdate)[] = UPDATES): string {
+  return list.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
     ...(u.new_items?.length ? ['\n新規アイテム（標準価格）', ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`)] : []),
   ].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,
