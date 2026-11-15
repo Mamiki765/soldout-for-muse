@@ -268,9 +268,14 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
 
   // 次に「時間で」鳴る予定 (番犬がそれまで見張りを間引けるように)
   const timed: number[] = [];
-  if (on.has('period_soon')) timed.push(nextPeriod - WATCH_RULES.periodSoon);
+  // 今まさに鳴っている時刻のものは、その次の回も入れる (決算前の2時間に読んだとき、次の決算の予告を飛ばさないように)
+  if (on.has('period_soon')) timed.push(nextPeriod - WATCH_RULES.periodSoon, nextPeriod + g.config.oneDayTime - WATCH_RULES.periodSoon);
   if (on.has('closing_soon')) timed.push(closeAt - WATCH_RULES.closingSoon);
-  if (on.has('coupon_expiring') && coupon >= WATCH_RULES.couponLeft) timed.push(couponReset - WATCH_RULES.couponSoon);
+  if (on.has('coupon_expiring')) {
+    if (coupon >= WATCH_RULES.couponLeft) timed.push(couponReset - WATCH_RULES.couponSoon);
+    // 次の週はクーポンが満タンから始まる
+    if (g.config.couponTime >= WATCH_RULES.couponLeft) timed.push(couponReset + 7 * 86400 - WATCH_RULES.couponSoon);
+  }
   const nextTimed = timed.filter((t) => t > now).sort((a, b) => a - b)[0] ?? null;
 
   return {

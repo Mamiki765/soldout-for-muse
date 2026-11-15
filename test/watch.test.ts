@@ -92,6 +92,8 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.ok(d.alerts.some((a) => a.type === 'period_soon'), JSON.stringify(d.alerts));
+    // 決算前の2時間に読んでも、next_timed は次の決算の予告より先にはならない
+    assert.ok(d.next_timed !== null && d.next_timed > now && d.next_timed <= d.facts.period.next_period + 27 * 3600 - 2 * 3600, String(d.next_timed));
 
     // 最後の行動から日数がたつと不在閉店の予告 (見るだけでは延びない)
     now = d.facts.closing_at - 86400;
