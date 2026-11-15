@@ -18,6 +18,7 @@ import { shownPeople, type LogEntry, type Shop, type World } from '../engine/typ
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
+import * as tut from '../engine/tutorial.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { TIPS } from '../tips.js';
@@ -181,6 +182,22 @@ export class App {
       this.save(g);
     }
     return shopId;
+  }
+
+  /** トークン付きで tips を読んだ店の手引きを進める。トークンが無い・違うときは何もしない */
+  private async markTipsRead(req: IncomingMessage): Promise<void> {
+    const token = this.bearer(req);
+    if (!token || this.isAdminToken(token)) return;
+    let shopId: number;
+    try {
+      shopId = await this.auth(req);
+    } catch (e) {
+      if (e instanceof HttpError) return;
+      throw e;
+    }
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    const dt = g.shopById(shopId);
+    if (dt && tut.onTutorialRead(dt, 'tips')) this.save(g);
   }
 
   // ---------------------------------------------------------------------------
@@ -489,7 +506,11 @@ export class App {
     const p = path.slice('/api/v1'.length);
 
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
-    if (method === 'GET' && p === '/tips') return { status: 200, text: TIPS, json: { tips: TIPS } };
+    if (method === 'GET' && p === '/tips') {
+      // トークン付きで読んだら、手引きの「コツ集を読もう」を済ませる (匿名でも今までどおり読める)
+      await this.markTipsRead(req);
+      return { status: 200, text: TIPS, json: { tips: TIPS } };
+    }
     if (method === 'GET' && p === '/updates') {
       // ?since=0.3.1 なら、その版より新しいぶんだけ (無ければ全部。今までどおり認証なしで読める)
       const since = q.get('since')?.trim().replace(/^v/i, '') ?? '';
@@ -529,16 +550,19 @@ export class App {
       }
       switch (p) {
         case '/digest': {
+          if (tut.syncTutorial(g, dt)) this.persist([], this.clock());
           const n = this.unreadCounts(dt);
           const d = v.digestData(g, dt, n, this.digestNotice(dt));
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
+          if (tut.onTutorialRead(dt, 'me')) this.persist([], this.clock());
           const d = v.meData(g, dt);
           return { status: 200, text: v.meText(d), json: d };
         }
         case '/costs': {
           // 維持費の内訳 (目安箱 #5)。ago=1 前期の決算 (既定)、2・3 はその前、0 は今期ここまで
+          if (tut.onTutorialRead(dt, 'costs')) this.persist([], this.clock());
           const d = costReportData(g, dt, clampNum(q.get('ago'), 0, COST_REPORT_KEEP, 1));
           return { status: 200, text: costReportText(d, v.jst), json: d };
         }
@@ -559,6 +583,12 @@ export class App {
           const item = q.get('item') ? Number(q.get('item')) : undefined;
           const d = v.ordersData(g, dt, { item, mine: q.get('mine') === '1' });
           return { status: 200, text: v.ordersText(d), json: d };
+        }
+        case '/tutorial': {
+          // 手引き (はじめかた)。OFF にしていても読める
+          if (tut.syncTutorial(g, dt)) this.persist([], this.clock());
+          const d = tut.tutorialData(g, dt);
+          return { status: 200, text: tut.tutorialText(d), json: d };
         }
         case '/log':
           return this.readLog(dt, q);
@@ -652,7 +682,7 @@ export class App {
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
-      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
+      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
   }
 
@@ -690,7 +720,7 @@ export class App {
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
-      'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
+      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n';
     return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
   }
 
@@ -722,7 +752,11 @@ export class App {
       const type = String(a.type ?? '');
       try {
         const msg = this.runAction(shopId, (g, dt) => {
+          const before = dt.item.slice();
+          const jobBefore = dt.job;
           const m = this.doAction(g, dt, type, a);
+          // 手引き: 成功した行動を記録して次の段へ (棚に並べた・使って何か得た・転職した)
+          tut.onTutorialAction(g, dt, ACTION_ALIASES[type] ?? type, before, jobBefore);
           results.push({ ok: true, type, msg: m });
           note(dt, i + 1);
           return m;
@@ -902,6 +936,14 @@ export class App {
       }
       case 'alerts':
         return [this.setAlerts(dt, a)];
+      case 'tutorial': {
+        // 手引き・ヒントを digest に出すか。時間はかからない
+        const flag = (k: string): boolean | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : isYes(a[k]));
+        const on = flag('on');
+        const hints = flag('hints');
+        if (on === undefined && hints === undefined) throw new GameError('on (手引き) か hints (ヒント) を true / false で指定してください。例: {"type":"tutorial","on":false}');
+        return [tut.setTutorial(dt, on, hints)];
+      }
       case 'rename':
         return [act.renameShop(g, dt, s('shopname'))];
       case 'close':
@@ -911,7 +953,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }

@@ -144,6 +144,22 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V034: PatchUpdate = {
+  version: '0.3.4',
+  date: '2026-11-16',
+  title: '手引き (はじめかた) とヒント',
+  summary: '何を売るかを決めるまでの手引き GET /api/v1/tutorial を足しました。digest に次の1段だけが1行で出て、済むと自動で次へ進みます。同じ品を売る店が多いときなどは、ヒントも1行出ます。どちらも OFF にできます。',
+  notice: '手引き GET /api/v1/tutorial (はじめかた6段) を足しました。digest に「手引き n/6 …」が1行出て、済むと自動で進みます (済んでいる段は飛ばします)。同じ品を売る店が多い・売れていないときは「ヒント」も1行出ます。出したくないときは {"type":"tutorial","on":false} (手引き)・{"type":"tutorial","hints":false} (ヒント)。詳細は GET /api/v1/updates',
+  notes: [
+    '手引き GET /api/v1/tutorial を足しました。1) 棚に並べてみよう 2) 自分で品を手に入れてみよう 3) 売るものを決めよう 4) 売れ行きを確かめよう 5) 決算をまたいでみよう 6) コツ集を読もう、の6段です。3段目には、いま誰も棚に出していない品と、混んでいる品がその場で並びます。',
+    '手引きは、棚に並べた・地図や本を使って何かを得た・転職した・何か売れたあとで me か costs を読んだ・売上のある状態で決算を越えた・トークン付きで tips を読んだ、の記録で進みます。今の状態で済んでいると分かる段 (棚に品がある・熟練や職業がある・前期に売上がある) は、はじめから済みになります。',
+    'digest の手引きの行は、次の段の見出しだけです。全部済むか、{"type":"tutorial","on":false} で消えます。OFF にしても GET /api/v1/tutorial は読めます (戻すときは true)。時間はかかりません。',
+    'digest にヒントが1行出ることがあります (1回に1つ)。自分の棚の品を、ほかの店の棚5か所以上が並べている (混んでいる)、前の決算から売上が無い、のようなときです。手引きを終えたあとも出ます。{"type":"tutorial","hints":false} で消せます。',
+    'コツ集 GET /api/v1/tips のいちばん上に手引きへの案内を置き、手引きと重なる項目 (お客の取り合い・棚1の値段・棚の数と維持費・熟練の上がり方・買い取り募集のあらまし) は手引きへ移しました。',
+    'JSON の digest に tutorial (step: 次の段、hint: ヒント) を足しました。',
+  ],
+};
+
 export const V033: PatchUpdate = {
   version: '0.3.3',
   date: '2026-11-15',
@@ -169,7 +185,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V034, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
