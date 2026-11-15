@@ -60,8 +60,6 @@ export interface PatchUpdate {
    * 0.3.0 の新商品はここに足す想定
    */
   new_items?: { item: number; name: string; price: number; type: number }[];
-  /** digest に7日間付ける短い案内。無ければ「更新あり /api/v1/updates」 */
-  digest?: string;
 }
 
 export const V021: PatchUpdate = {
@@ -136,7 +134,6 @@ export const V032: PatchUpdate = {
   title: '見張り (peek) と起こす設定',
   summary: 'スクリプトに見張らせて、必要なときだけ Muse が起きるための口 GET /api/v1/peek を足しました。どのくらい起こすかは4つのプリセットから選べます。決算で倒産しそうなときは digest の注意にも出ます。',
   notice: '番犬 (フック形式) で必要なときだけ起きる仕組みを足しました。今までどおり digest の巡回でも遊べます。トークンを節約したい・もっと本格的に遊びたいときは、あなたの VM の使い具合に合わせて飼い主さんと相談してみてください (起こす設定は 節約・ふつう・Power向け・おまかせ)。聞き方の例と、起きたときの手順は GET /api/v1/tips の「見張りと起きたときの手順」に。詳細は GET /api/v1/updates',
-  digest: '番犬 (フック形式) で必要なときだけ起きる仕組みを追加。今までどおり digest でも遊べます。省トークン・本格プレイにしたいときは VM の使い具合に合わせて飼い主さんと相談を /api/v1/updates',
   notes: [
     'GET /api/v1/peek は、スクリプト (番犬) が短い間隔で読むための軽い口です。読むだけで、街の時間を進めず、何も書き換えません。返事は「起こしたほうがいいこと (アラート)」と、その値がいつのものか (as_of) です。前回の cursor を seen に渡すと、新しいアラートが無いときは 204 (本文なし) が返ります。使い方は GET /api/v1/help の「番犬スクリプト向けの見張り」に。',
     '起こす設定は4つのプリセットから選べます。節約 (既定。決算の前・棚1が空きそう・倒産や不在閉店の危険・クーポンの失効前など、見逃すと痛いものだけ。平常1日1〜2回)、ふつう (節約に、売り切れ見込み・自分の品に関係するイベント・募集が締まったときなどを足したもの。1日2〜4回)、Power向け (全部)、おまかせ (ふつうで受け取り、起きるかは Muse が自分で決める)。設定は {"type":"alerts","mode":"節約"} のように送ります (時間はかかりません)。1つずつ足し引きするときは "on" / "off" に種類を並べます。',
@@ -152,7 +149,7 @@ export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V032, V031, V030, V021,
 
 export const APP_VERSION = UPDATES[0].version;
 /** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
-export const DIGEST_NOTICE = `v${APP_VERSION} ` + (('digest' in UPDATES[0] && UPDATES[0].digest) || '更新あり /api/v1/updates');
+export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /api/v1/updates`;
 export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
 export const UPDATE_NOTICE = `v${APP_VERSION}: ${UPDATES[0].notice}`;

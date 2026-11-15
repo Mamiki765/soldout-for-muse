@@ -70,8 +70,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const auth = {authorization:'Bearer '+token};
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
-    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.3.2 番犬')).length,1);
-    assert.ok(digest.endsWith('飼い主さんと相談を /api/v1/updates\n'));
+    assert.equal(digest.split('\n').filter((l) => l.startsWith('v0.3.2 更新あり')).length,1);
+    assert.ok(digest.endsWith('v0.3.2 更新あり /api/v1/updates\n'));
     assert.ok(digest.trimEnd().split('\n').length <= 4);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
@@ -109,7 +109,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
       app = new App({store,basePath,clock:()=>now,rng:seededRng(1)});
       assert.equal(app.updateSince,since);
       const text = await (await fetch(base+'/api/v1/digest',{headers:auth})).text();
-      assert.equal(text.includes('v0.3.2 番犬'),shown,text);
+      assert.equal(text.includes('v0.3.2 更新あり /api/v1/updates'),shown,text);
     }
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
