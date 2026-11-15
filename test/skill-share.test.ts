@@ -39,6 +39,7 @@ test('ミノ牛乳の作る使い方はすべて熟練0で今の時間、熟練�
     assert.equal(u.exptime, Math.trunc(u.time * 0.75), u.name!);
     assert.equal(u.exp, 10, u.name!);
   }
+  for (const u of makes.filter((u) => u.no >= 3)) assert.deepEqual([u.action, u.scale], ['作る', 'セット'], `${u.name}: 「飲む」「本」を引き継がない`);
   const drink = BASE_ITEMS[MILK].uses[0];
   assert.equal(drink.get.length, 0);
   assert.deepEqual([drink.exp, drink.time, drink.exptime], [0, 180, 180], '飲むは変えない');

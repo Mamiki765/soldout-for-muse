@@ -6919,7 +6919,7 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
@@ -6959,7 +6959,7 @@
                   null,
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 2400,
                "use" : [
                   {
@@ -6980,7 +6980,7 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
@@ -7020,7 +7020,7 @@
                   "30",
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 5400,
                "use" : [
                   {
@@ -7046,7 +7046,7 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
@@ -7086,7 +7086,7 @@
                   "30",
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 9600,
                "use" : [
                   {

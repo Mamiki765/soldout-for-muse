@@ -248,6 +248,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$u->{info} = $name . 'を作ります';
 		$u->{okmsg} = $name . 'を作りました';
 		$u->{ngmsg} = '作成に失敗しました…';
+		# ミノ牛乳のひな型は「飲む」(単位 本)。作る使い方には引き継がない
+		@$u{qw(action scale)} = ('作る', 'セット') if $spec->{book} == 26;
 		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
 		$u->{func} = defined $spec->{lostbook} ? 'lostbook' : undef;
 		$u->{params} = [defined $spec->{lostbook} ? "$spec->{lostbook}" : undef, undef, undef, undef];
