@@ -104,6 +104,21 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 403, '30分たったら開けない');
     now -= 31 * 60;
 
+    // ずっと使える合鍵は revoke で無効にでき、開いている画面 (cookie) からも締め出される
+    r = await fetch(base + '/api/v1/view-link?format=json', { method: 'POST', headers: auth, body: JSON.stringify({ fixed: true }) });
+    const fixedUrl = ((await r.json()) as { url: string; expires_at: number | null }).url.replace('https://so.example', base);
+    r = await fetch(fixedUrl, { redirect: 'manual' });
+    assert.equal(r.status, 200);
+    const fixedCookie = (r.headers.get('set-cookie') ?? '').split(';')[0];
+    now += 3 * 86400;
+    assert.equal((await fetch(fixedUrl, { redirect: 'manual' })).status, 200, '合鍵は日がたっても開ける');
+    r = await fetch(base + '/api/v1/view-link', { method: 'POST', headers: auth, body: JSON.stringify({ revoke: true }) });
+    assert.match(await r.text(), /^OK 見学用の合鍵とリンクをすべて無効にしました/);
+    assert.equal((await fetch(fixedUrl, { redirect: 'manual' })).status, 403);
+    r = await fetch(base + '/view/shop', { headers: { cookie: fixedCookie }, redirect: 'manual' });
+    assert.ok(!(await r.text()).includes('ミュート商店の店長室') || r.status !== 200, 'cookie でも入れない');
+    now -= 3 * 86400;
+
     // 画像
     r = await fetch(base + '/images/item-no-1.png');
     assert.equal(r.status, 200);

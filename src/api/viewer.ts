@@ -30,6 +30,11 @@ interface Reply {
 const sessions = new Map<string, { shopId: number; expires: number }>();
 const SESSION_TTL = 12 * 3600;
 
+/** その店の見学中のセッションを全部切る (合鍵を無効にしたとき、開いている画面からも締め出す) */
+export function dropViewSessions(shopId: number): void {
+  for (const [sid, s] of sessions) if (s.shopId === shopId) sessions.delete(sid);
+}
+
 function cookies(req: IncomingMessage): Record<string, string> {
   const out: Record<string, string> = {};
   for (const part of (req.headers.cookie ?? '').split(';')) {

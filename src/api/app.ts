@@ -20,7 +20,7 @@ import * as watch from '../engine/watch.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { TIPS } from '../tips.js';
-import { renderViewer } from './viewer.js';
+import { dropViewSessions, renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
@@ -999,7 +999,15 @@ export class App {
 
   private viewLink(shopId: number, body: Record<string, unknown>): Reply {
     const now = this.clock();
+    if (body.revoke === true) {
+      // 合鍵もリンクも全部無効にする (漏れたとき用。作り直すときは fixed:true をもう一度)
+      this.store.deleteViewKeysOf(shopId);
+      dropViewSessions(shopId);
+      return { status: 200, text: 'OK 見学用の合鍵とリンクをすべて無効にしました\n', json: { ok: true, revoked: true } };
+    }
     const fixed = body.fixed === true;
+    // 合鍵を作り直したら、前の合鍵で開いていた画面も締め出す (漏れたときの作り直しが効くように)
+    if (fixed) dropViewSessions(shopId);
     const key = newToken(fixed ? 'vk_' : 'vl_');
     const ttl = fixed ? 0 : 30 * 60;
     this.store.addViewKey(shopId, key, fixed ? 0 : now + ttl, fixed ? 'fixed' : 'link');
