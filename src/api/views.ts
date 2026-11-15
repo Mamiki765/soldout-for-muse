@@ -196,7 +196,7 @@ export function meText(d: ReturnType<typeof meData>): string {
   const lines = [
     `店 id${d.id} ${d.shop} 職業${d.job} ${d.rank}位 人気${d.popularity}% 点${d.point}`,
     `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン、${d.coupon_first ? 'クーポン' : '持ち時間'}から先に使う)` : ''}`,
-    `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday}`,
+    `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday} (内訳 /api/v1/costs)`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,
     '# 棚 番号 品番 名前 価格 在庫',
     ...d.shelves.map((s) => (s.item ? `${s.slot + 1} ${s.item} ${s.name} ${s.price} ${s.stock}` : `${s.slot + 1} - 空`)),
