@@ -1,0 +1,43 @@
+{
+ "note": "Party #4 固めプリン (案)。数値はすべて管理者の確認待ちの案。版番号はここでは決めない",
+ "items": [
+  {
+   "no": 114,
+   "code": "firm-pudding",
+   "name": "固めプリン",
+   "info": "ミノ牛乳をしっかり固めたプリン　カラメルは苦め",
+   "scale": "個",
+   "type": 3,
+   "price": 2200,
+   "cost": 70,
+   "popular": 7200,
+   "limit": 100,
+   "plus": 0,
+   "market_reference": 35
+  }
+ ],
+ "production": [
+  {
+   "book": 26,
+   "product": 114,
+   "tools": [[25, 5]],
+   "materials": [[26, 10], [103, 3]],
+   "get": 2,
+   "proba": 1000,
+   "time": 3600,
+   "exptime": 3600,
+   "exp": 0,
+   "lostbook": null,
+   "job": "cow"
+  }
+ ],
+ "event_add_params": [
+  {
+   "code": "boom-milk",
+   "params": [
+    { "item_no": 114, "key": "popular", "op": "/", "value": 1.5 },
+    { "item_no": 114, "key": "point", "op": "*", "value": 2 }
+   ]
+  }
+ ]
+}
