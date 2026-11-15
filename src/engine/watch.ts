@@ -248,11 +248,12 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     if (/^募集#\d+ .*を(集め終わりました|期限切れで終了)/.test(l.msg)) add({ type: 'order_closed', level: 'mid', key: `order:${l.id}`, msg: l.msg });
   }
   let wantedCount = 0;
+  const discards = discardPlan(g, dt);
   for (const o of orders(g)) {
     if (o.expires <= now) continue;
     const it = g.items[o.item];
     if (o.shop === dt.id) {
-      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      const over = discards.get(o.id) ?? 0;
       if (over > 0) add({ type: 'order_discard', level: 'mid', key: `discard:${o.id}`, msg: `募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄` });
       continue;
     }
@@ -314,6 +315,26 @@ export function alertMark(key: string): string {
  * 重いアラートの段階。残り時間が区切り (降順) を下回るたびに段階が上がり、鍵が変わるので、番犬にはもう一度「新着」として届く
  * (例: 不在閉店は 2日前 → 1日前 → 6時間前。案: GPT レビューより)
  */
+/**
+ * 自分の募集を締めたときに、所持上限を超えて捨てられる数 (募集ごと)。
+ * 同じ品の募集が複数あれば、締まる順 (並び順) に前の募集の預かり分を足して数える
+ */
+export function discardPlan(g: Game, dt: Shop): Map<number, number> {
+  const held = new Map<number, number>();
+  const out = new Map<number, number>();
+  for (const o of orders(g)) {
+    if (o.shop !== dt.id) continue;
+    const got = o.count - o.left;
+    if (got <= 0) continue;
+    const before = held.get(o.item) ?? 0;
+    held.set(o.item, before + got);
+    const room = g.items[o.item].limit - dt.item[o.item - 1] - before;
+    const over = Math.min(got, got - Math.max(0, room));
+    if (over > 0) out.set(o.id, over);
+  }
+  return out;
+}
+
 function stage(left: number, marks: number[]): number {
   return marks.filter((m) => left <= m).length;
 }

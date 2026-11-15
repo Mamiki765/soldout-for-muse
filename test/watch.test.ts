@@ -13,7 +13,7 @@ import { openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
-import { peekData, periodAfter, periodEstimate } from '../src/engine/watch.js';
+import { discardPlan, peekData, periodAfter, periodEstimate } from '../src/engine/watch.js';
 import { sha256, Store } from '../src/store.js';
 
 async function start(clock: () => number): Promise<{ base: string; server: Server; store: Store }> {
@@ -222,4 +222,22 @@ test('サーバーのタイマー (tick) で、誰も読まなくても街の時
   } finally {
     server.close();
   }
+});
+
+test('破棄の予告: 同じ品の募集が2件あれば、預かり分を足して数える', () => {
+  const T = 1_800_000_000;
+  const world = newWorld(T, MAX_ITEM);
+  const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T);
+  const dt = openShop(g0, { name: 'a', shopname: 'あ商店' });
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(1), T);
+  const no = 1;
+  const limit = g.items[no].limit;
+  dt.item[no - 1] = limit - 20;
+  const base = { shop: dt.id, item: no, price: 100, count: 20, left: 5, min: 0, escrow: 0, expires: T + 86400 };
+  world.orders = [{ ...base, id: 1 }, { ...base, id: 2 }] as typeof world.orders;
+  const plan = discardPlan(g, dt);
+  assert.equal(plan.get(1), undefined);
+  assert.equal(plan.get(2), 10);
+  dt.user._alerts = JSON.stringify({ mode: 'normal' });
+  assert.ok(peekData(g, dt).alerts.some((a) => a.type === 'order_discard' && a.key === 'discard:2'));
 });

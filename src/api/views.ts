@@ -9,7 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
-import { periodEstimate, type Alert, type peekData } from '../engine/watch.js';
+import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
@@ -75,10 +75,11 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
   const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
   const myOrders: string[] = [];
+  const discards = discardPlan(g, dt);
   for (const o of orders(g)) {
     if (o.shop === dt.id) {
       const it = g.items[o.item];
-      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      const over = discards.get(o.id) ?? 0;
       if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
       myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
       continue;
