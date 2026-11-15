@@ -46,7 +46,7 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     const auth = { authorization: 'Bearer ' + token };
 
     // 開店直後の棚は空 → 省トークン既定でも1番棚のアラート
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     assert.equal(r.status, 200);
     let d = (await r.json()) as Peek;
     assert.equal(d.setting.mode, 'save');
@@ -57,7 +57,7 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
 
     // 2時間たっても peek だけなら時間計算は進まない (as_of・保存した世界の lasttime が変わらない)
     now += 2 * 3600;
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.equal(d.as_of, asOf);
     assert.equal(d.age, 2 * 3600);
@@ -69,6 +69,10 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     assert.equal(r.headers.get('x-as-of'), String(asOf));
     assert.equal(r.headers.get('x-cursor'), d.cursor);
 
+    // facts は facts=1 のときだけ。イベントの終わる時刻は出さない
+    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    assert.equal('facts' in ((await r.json()) as object), false);
+
     // テキストは1行目に as_of、アラートは NEW/OLD で
     r = await fetch(base + '/api/v1/peek?full=1&seen=' + d.cursor, { headers: auth });
     const text = await r.text();
@@ -77,7 +81,7 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
 
     // digest を読めば時間が進み、as_of が新しくなる
     await fetch(base + '/api/v1/digest', { headers: auth });
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.equal(d.as_of, now);
     assert.equal(d.age, 0);
@@ -85,17 +89,17 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     // 決算の2時間前に入ると period_soon (時刻で鳴るものは next_timed で前もって分かる)
     assert.ok(d.next_timed && d.next_timed > now);
     now = d.facts.period.next_period - 3600;
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.ok(d.alerts.some((a) => a.type === 'period_soon'), JSON.stringify(d.alerts));
 
     // 最後の行動から日数がたつと不在閉店の予告 (見るだけでは延びない)
     now = d.facts.closing_at - 86400;
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.ok(d.alerts.some((a) => a.type === 'closing_soon' && a.level === 'critical'), JSON.stringify(d.alerts));
     const closeAt = d.facts.closing_at;
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.equal(d.facts.closing_at, closeAt);
   } finally {
@@ -113,13 +117,13 @@ test('見張りの設定: mode と on/off、知らない種類は NG', async () 
     const act = async (a: unknown) => (await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify(a) })).text();
 
     assert.match(await act({ type: 'alerts', mode: 'off' }), /^OK alerts: 見張りの設定: off .*有効: なし/);
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     let d = (await r.json()) as Peek;
     assert.equal(d.alerts.length, 0);
     assert.equal(d.next_timed, null);
 
     assert.match(await act({ type: 'alerts', mode: 'normal', off: ['time_full'] }), /^OK alerts: 見張りの設定: normal -time_full/);
-    r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
+    r = await fetch(base + '/api/v1/peek?format=json&facts=1', { headers: auth });
     d = (await r.json()) as Peek;
     assert.ok(d.setting.enabled.includes('soldout_soon'));
     assert.ok(!d.setting.enabled.includes('time_full'));

@@ -783,7 +783,9 @@ export class App {
     };
     // seen を渡されて、新しいアラートが無ければ 204 (起こす理由なし)
     if (seenParam !== null && !fresh.length && q.get('full') !== '1') return { status: 204, headers };
-    const json = { ...d, cursor, new: fresh, alerts: d.alerts };
+    // 明細 (facts) は facts=1 のときだけ。番犬の定期の見張りはアラートと要約だけで軽く
+    const { facts, ...head } = d;
+    const json = { ...head, cursor, new: fresh, alerts: d.alerts, ...(q.get('facts') === '1' ? { facts } : {}) };
     return { status: 200, headers, text: v.peekText(d, fresh, cursor), json };
   }
 

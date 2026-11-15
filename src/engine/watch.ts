@@ -188,11 +188,12 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   const myItems = new Set<number>();
   for (let i = 0; i < g.maxItem; i++) if (dt.item[i]) myItems.add(i + 1);
   for (const s of shelves) if (s.item) myItems.add(s.item);
-  const events: { code: string; info: string; ends?: number; mine: boolean }[] = [];
-  for (const [code, ends] of Object.entries(w.events)) {
+  // イベントの終わる時刻は出さない (原作でも見えない先の情報。抜き取られると有利になる)。説明と、自分の品に関係するかだけ
+  const events: { code: string; info: string; mine: boolean }[] = [];
+  for (const code of Object.keys(w.events)) {
     const ev = EVENTS.get(code);
     const mine = !!ev?.params.some((p) => myItems.has(p.item_no));
-    events.push({ code, info: ev?.info ?? code, mine, ...(ends ? { ends } : {}) });
+    events.push({ code, info: ev?.info ?? code, mine });
   }
 
   // ---- アラート
@@ -225,7 +226,7 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     add({ type: 'soldout_soon', level: 'mid', key: `soon:${list.map((s) => `${s.slot}-${s.item}`).join(',')}`, msg: '売り切れ見込み ' + list.map((s) => `棚${s.slot}${s.name}あと約${hours(s.empty_in ?? 0)}`).join(' ') });
   }
   for (const e of events) {
-    if (e.mine) add({ type: 'event', level: 'mid', key: `event:${e.code}:${e.ends ?? 0}`, msg: `あなたの品に関係するイベント: ${e.info}` });
+    if (e.mine) add({ type: 'event', level: 'mid', key: `event:${e.code}`, msg: `あなたの品に関係するイベント: ${e.info}` });
   }
   for (const l of myLogs) {
     if (now - l.time > WATCH_RULES.orderClosedFor) continue;
