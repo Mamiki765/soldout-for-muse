@@ -55,10 +55,40 @@ export interface Shop {
   exp: Record<number, number>;
   /** 拡張データ (原作の user) */
   user: Record<string, string>;
+  /**
+   * 今期の品物の維持費の内訳 (原作にない追加)。品番 → [倉庫, 募集の預かり, 陳列で安くなった額] の累計 (円、端数あり)。
+   * 古い保存データには無い (engine/costs.ts)
+   */
+  costitems?: Record<number, [number, number, number]>;
+  /** 内訳の記録を始める前にたまっていた今期の品物の維持費 (円、端数あり) */
+  costuntracked?: number;
+  /** 決算で引いた維持費の明細。新しい順に COST_REPORT_KEEP 件まで */
+  costreports?: CostReport[];
   /** 点数 (保存しない。SortDT で再計算) */
   point: number;
   /** 1=営業中 0=閉店処理済み (保存しない) */
   status: number;
+}
+
+/** 決算で引いた維持費の明細 (engine/costs.ts) */
+export interface CostReport {
+  /** 決算の時刻 */
+  at: number;
+  /** 維持費の合計 (= showcase + items)。決算で資金から引いた額 (costyesterday と同じ) */
+  total: number;
+  /** 棚の維持費 */
+  showcase: number;
+  showcasecount: number;
+  /** 品物の維持費 (今期の累計の1円未満切り捨て) */
+  items: number;
+  /** items のうち内訳の記録を始める前の分 */
+  untracked: number;
+  /** items のうち品物に配れなかった差 (ふつうは 0) */
+  adjust: number;
+  /** [品番, 倉庫, 募集の預かり, 陳列で安くなった額] (円)。items = Σ倉庫 + Σ預かり + untracked + adjust */
+  lines: [number, number, number, number][];
+  /** 同じ決算で引いた入金庫の税 (維持費ではない。参考) */
+  tax: number;
 }
 
 /**
@@ -101,6 +131,9 @@ export interface World {
   orderStats?: OrderStats;
 }
 
+/** 期限切れのときの自動の張り直し方 (engine/orders.ts) */
+export type OrderRenew = 'extend' | 'repost' | 'forever';
+
 /** 買い取り募集 1 件 (engine/orders.ts) */
 export interface BuyOrder {
   id: number;
@@ -125,6 +158,17 @@ export interface BuyOrder {
   couponWeek?: number;
   created: number;
   expires: number;
+  /** 募集の期限の長さ (時間)。延長・再掲で同じ長さを足す (自動の張り直しより前の募集には無い) */
+  hours?: number;
+  /**
+   * 期限切れのときの扱い (無ければ締める)。
+   * extend: 1個も届いていなければ同じ長さだけ無料で延長 / repost: 回数を決めて有料で再掲 / forever: 無期限で有料で再掲
+   */
+  renew?: OrderRenew;
+  /** repost の残り回数 */
+  repeat?: number;
+  /** これまでに延長・再掲した回数 (表示用) */
+  renewed?: number;
 }
 
 export interface OrderStats {
@@ -172,6 +216,7 @@ export function newShop(id: number, maxItem: number): Shop {
     itemtoday: {},
     exp: {},
     user: {},
+    costitems: {},
     point: 0,
     status: 1,
   };

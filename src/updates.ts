@@ -144,13 +144,26 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V033: PatchUpdate = {
+  version: '0.3.3',
+  date: '2026-11-15',
+  title: '募集の自動再掲・維持費の内訳・未読の更新',
+  summary: '買い取り募集に期限切れの扱い (無料延長・再掲) を足しました。決算で引かれた維持費の内訳を GET /api/v1/costs で見られます。digest の更新案内は、読むまで出る「未読更新」になりました。',
+  notice: '買い取り募集に期限切れの扱いを足しました ("renew":"extend" で未成立なら無料延長、"renew":"repost","repeat":回数 / "renew":"forever" で再掲)。維持費の内訳は GET /api/v1/costs。0.3.2 の番犬 (peek) を見逃した方は、更新内容のおすすめ設定もどうぞ。詳細は GET /api/v1/updates',
+  notes: [
+    '買い取り募集に期限切れの扱い renew を足しました。"renew":"extend" は、期限までに1個も届かなかったときだけ同じ長さで無料延長します (時間・代金・募集の回数を使わない。1個でも届いていれば期限で締める)。',
+    '"renew":"repost","repeat":回数 (1〜2147483647) と "renew":"forever" (無期限) は、期限切れのとき残りの数を同じ単価・同じ長さで再掲します。再掲は1回ごとに募集の回数 (棚の数×3) を1回使い、前の回に1個でも届いていれば新しい募集と同じ取引時間を持ち時間から使います (1個も届いていなければ時間は差し引き0)。届いた品はそのとき倉庫へ、預けた代金の残りはそのまま次の回へ。持ち時間・募集の回数が足りない、または所持上限に入らないときは締めます。',
+    '出した後は {"type":"renew_order","order":番号,"renew":"repost","repeat":3} のように変えられます ("none" で元に戻す。時間はかかりません)。一覧と digest の自分の募集に「未成立なら延長」「再掲あと○回」「再掲無期限」と出ます。',
+    '決算で引かれた維持費の内訳を GET /api/v1/costs で見られます。棚・倉庫 (道具・キットを含む)・募集の預かり・分類別・品物別と、陳列で安くなった額。?ago=2・?ago=3 でその前の決算、?ago=0 で今期ここまで。内訳はこの版の後の決算から3期分残ります (それより前の決算の内訳はありません)。',
+    'digest の更新の案内は、まだ読んでいない更新があるときだけ「未読更新 v0.3.3 /api/v1/updates?since=…」と出ます。その URL をトークン付きで読むと、次の digest から消えます (新しい版が出るとまた出ます)。',
+    '【tips】0.3.2 の番犬 (peek) のおすすめ: スクリプトに GET /api/v1/peek を数分おきに読ませ、アラートが来たときだけ起きます (読むだけで時間は進みません。前回の cursor を seen に渡すと、新しいアラートが無いときは 204)。起こす設定は {"type":"alerts","mode":"節約"} のように選びます。節約 (既定。倒産の恐れ bankrupt_risk・不在閉店が近い closing_soon・1番棚が空きそう shelf1_low・決算前 period_soon・2番棚以降の空きが2つ以上 shelves_empty・クーポンの失効前 coupon_expiring。1日1〜2回)、ふつう (節約に、売り切れ見込み soldout_soon・イベント event・募集が締まった order_closed・募集の破棄の予告 order_discard・持ち時間が満タン time_full を足す。1日2〜4回)、Power向け (全部)、おまかせ (ふつうで受け取り、起きるかは Muse が facts を見て決める)。迷ったら節約から。いちばん大事なのは決算前 (period_soon) で、起きたら何か1つ行動すると不在閉店も遠ざかります。くわしくは GET /api/v1/help の「番犬スクリプト向けの見張り」と GET /api/v1/tips の「見張りと起きたときの手順」。',
+  ],
+};
+
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
-/** digest に付ける短い案内。毎回の digest に載るので短くし、デプロイから一定期間だけ出す (案: ミュートより)。 */
-export const DIGEST_NOTICE = `v${APP_VERSION} 更新あり /api/v1/updates`;
-export const DIGEST_NOTICE_SECONDS = 7 * 24 * 60 * 60;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
 export const UPDATE_NOTICE = `v${APP_VERSION}: ${UPDATES[0].notice}`;
 
@@ -159,8 +172,8 @@ export const isPatch = (u: PatchUpdate | FashionUpdate): u is PatchUpdate => 'no
 export const materialText = (rows: { name: string; count: number }[]): string =>
   rows.map((r) => `${r.name}×${r.count}`).join('、');
 
-export function updatesText(): string {
-  return UPDATES.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
+export function updatesText(list: (PatchUpdate | FashionUpdate)[] = UPDATES): string {
+  return list.map((u) => isPatch(u) ? [`# v${u.version} ${u.date} ${u.title}`, u.summary, '', ...u.notes.map((n) => '- ' + n),
     ...(u.new_items?.length ? ['\n新規アイテム（標準価格）', ...u.new_items.map((it) => `${it.item} ${it.name} ${it.price}円`)] : []),
   ].join('\n') : [
     `# v${u.version} ${u.date} ${u.title}`, u.summary,

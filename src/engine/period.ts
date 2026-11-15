@@ -3,11 +3,12 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { CATALOG, itemNoByName } from '../data/catalog.js';
+import { recordCostReport, resetTracking } from './costs.js';
 import type { Game } from './game.js';
 import type { Shop } from './types.js';
 
 /** 原作 TurnPeriod */
-export function turnPeriod(g: Game): void {
+export function turnPeriod(g: Game, at: number = g.now): void {
   g.periodMode = true;
   g.world.periodLog = [];
   const shops = g.shops;
@@ -52,7 +53,10 @@ export function turnPeriod(g: Game): void {
 
     // 維持費
     let cost = Math.trunc(dt.costtoday);
-    cost += CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
+    const showcaseCost = CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
+    cost += showcaseCost;
+    // 引く額の明細を残す (原作にない追加。合計は cost と同じ)
+    recordCostReport(dt, at, showcaseCost, taxtoday);
     dt.money -= cost;
     dt.paytoday += cost;
     // 入金庫の残高にかかる税
@@ -80,6 +84,7 @@ export function turnPeriod(g: Game): void {
 
     dt.costyesterday = cost;
     dt.costtoday = 0;
+    resetTracking(dt);
 
     // 熟練度の自然減少
     for (const key of Object.keys(dt.exp)) {

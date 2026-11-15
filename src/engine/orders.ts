@@ -10,7 +10,7 @@
 
 import { CATALOG } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
-import type { BuyOrder, OrderStats, Shop } from './types.js';
+import type { BuyOrder, OrderRenew, OrderStats, Shop } from './types.js';
 
 /** 募集まわりの決まり。数値はリカさん決定 (2026-11-14) */
 export const ORDER_RULES = {
@@ -26,6 +26,8 @@ export const ORDER_RULES = {
   fillsPerDay: 10,
   /** 1セット (1回の deliver) に入れられる募集の数 */
   linesPerSet: 8,
+  /** 回数を決めた自動再掲 (repost) の回数の上限 (int32 の最大) */
+  maxRepeat: 2_147_483_647,
 };
 
 /** 決まりの一文。ヘルプ・告知・一覧の先頭に同じ文を置く (Museが迷わないように。リカさん 2026-11-14) */
@@ -33,6 +35,12 @@ export const ORDER_RULES_LINE =
   `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
   `募集は同時に棚の数まで・1期に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
   `納品は同じ店へ1期1セットまで (その店の募集なら${ORDER_RULES.linesPerSet}種類まで1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る (1期=決算から次の決算まで)。`;
+
+/** 期限切れのときの自動の張り直しの一文。一覧ではきまりの後ろに続ける */
+export const ORDER_RENEW_LINE =
+  `期限切れの扱い (renew): extend=1個も届いていなければ同じ長さだけ無料で延長 (時間・回数を使わない、1個でも届いていれば締める)、` +
+  `repost=回数 (repeat) を決めて残りを同じ単価・同じ長さで再掲、forever=取り下げるまで再掲。` +
+  `再掲は1回ごとに募集の回数を1回使い、前の回に届いていれば新しい募集と同じ取引時間 (持ち時間から) も使う (1個も届いていなければ時間は差し引き0)。届いた分はそのとき倉庫へ。時間か回数が足りない・所持上限なら締める。`;
 
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
@@ -47,10 +55,22 @@ export function periodNo(g: Game): number {
 
 /** 今期の回数表。決算をまたいだら空にする */
 export function orderStats(g: Game): OrderStats {
-  const no = periodNo(g);
+  return statsAt(g, periodNo(g));
+}
+
+/**
+ * 期 no の回数表。期限切れの処理は「期限が来た時刻」の期で数える (長くアクセスが無かったときも、その期の回数を使う)。
+ * 保存してあるのより前の期を聞かれたとき (区切りちょうどの端) は、保存してある表で数える (きびしいほうに倒す)
+ */
+function statsAt(g: Game, no: number): OrderStats {
   const s = g.world.orderStats;
-  if (s && s.period === no) return s;
+  if (s && s.period >= no) return s;
   return (g.world.orderStats = { period: no, posted: {}, filled: {}, pairs: {} });
+}
+
+function periodAt(g: Game, t: number): number {
+  const cfg = g.config;
+  return Math.floor((t + cfg.tzOffset - cfg.dateReviseTime) / cfg.oneDayTime);
 }
 
 function bump(map: Record<string, number>, key: string | number, n = 1): void {
@@ -79,6 +99,35 @@ export interface OrderRequest {
   hours: number;
   /** 1回の納品で受け付ける最低数 (任意) */
   min?: number;
+  /** 期限切れのときの扱い (任意。無ければ締める) */
+  renew?: string;
+  /** renew が repost のときの回数 (1〜maxRepeat) */
+  repeat?: number;
+}
+
+/** renew と repeat を確かめて、募集に入れる形にする */
+export function checkRenew(renew: string | undefined, repeat: number | undefined): { renew?: OrderRenew; repeat?: number } {
+  const r = renew === undefined || renew === '' ? (repeat !== undefined ? 'repost' : 'none') : renew;
+  if (r === 'none') {
+    if (repeat !== undefined && Math.trunc(repeat) !== 0) throw new GameError('repeat は renew が repost のときだけ指定できます');
+    return {};
+  }
+  if (r === 'extend' || r === 'forever') {
+    if (repeat !== undefined) throw new GameError(`repeat は renew が repost のときだけ指定できます (${r} は回数を決めません)`);
+    return { renew: r };
+  }
+  if (r !== 'repost') throw new GameError('renew は none (締める)・extend (未成立なら無料延長)・repost (回数を決めて再掲)・forever (無期限で再掲) のどれかです');
+  const n = repeat === undefined ? NaN : Math.trunc(repeat);
+  if (!(n >= 1 && n <= ORDER_RULES.maxRepeat)) throw new GameError(`範囲外: repost の回数 (repeat) は1〜${ORDER_RULES.maxRepeat}回です`);
+  return { renew: 'repost', repeat: n };
+}
+
+/** 期限切れの扱いの短い説明 (一覧・ログ用) */
+export function renewLabel(o: { renew?: string; repeat?: number | null }): string {
+  if (o.renew === 'extend') return '未成立なら延長';
+  if (o.renew === 'repost') return `再掲あと${o.repeat ?? 0}回`;
+  if (o.renew === 'forever') return '再掲無期限';
+  return '';
 }
 
 /** 募集を出す */
@@ -98,6 +147,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   if (count > room) throw new GameError(`上限: ${item.name}の所持上限。今の在庫と募集中の残りを足すと、あと${Math.max(0, room)}${item.scale}までしか募集できません`);
   const min = req.min === undefined ? 0 : Math.trunc(req.min);
   if (min < 0 || min > count) throw new GameError('最低納品数は 0〜数量 で指定してください');
+  const renew = checkRenew(req.renew, req.repeat);
 
   const mine = orders(g).filter((o) => o.shop === dt.id).length;
   if (mine >= dt.showcasecount) throw new GameError(`上限: 同時に出せる募集 ${mine}/${dt.showcasecount}件 (棚の数まで)。あと0件です。取り下げるか、締まると出せます`);
@@ -126,10 +176,118 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
     ...(fromCoupon ? { coupon: fromCoupon, couponWeek: g.couponWeekStart() } : {}),
     created: g.now,
     expires: g.now + hours * 3600,
+    hours,
+    ...renew,
   };
   orders(g).push(o);
-  g.writeLog(0, dt.id, 0, `${item.name}を${count}${item.scale}@￥${price}で募集しました (預り￥${total}、${hours}時間)`);
+  g.writeLog(0, dt.id, 0, `${item.name}を${count}${item.scale}@￥${price}で募集しました (預り￥${total}、${hours}時間${o.renew ? `、${renewLabel(o)}` : ''})`);
   return o;
+}
+
+/** 預かっていた品をまとめて渡す。締めるまでに棚などで買い足して上限を超えた分は、原作の郵便と同じく破棄 */
+function handOver(g: Game, o: BuyOrder, buyer: Shop): { got: number; put: number } {
+  const got = o.count - o.left;
+  const put = Math.max(0, Math.min(got, g.items[o.item].limit - buyer.item[o.item - 1]));
+  buyer.item[o.item - 1] += put;
+  return { got, put };
+}
+
+/** 募集の期限の長さ (秒)。古い募集は出したときの長さから求める */
+function spanOf(o: BuyOrder): number {
+  const h = o.hours ?? Math.round((o.expires - o.created) / 3600);
+  return Math.max(ORDER_RULES.minHours, Math.min(ORDER_RULES.maxHours, h)) * 3600;
+}
+
+/**
+ * A. 未成立なら無料延長。期限 t までに1個も届いていなければ、t を越えるまで同じ長さを足す (何回分でも一度に)。
+ * 時間・代金・募集の回数は使わない。最初に払った取引時間はそのまま (延長では返さない)。延長できたら true
+ */
+function extendOrder(g: Game, o: BuyOrder, upTo: number): boolean {
+  if (o.left !== o.count) return false;
+  const span = spanOf(o);
+  const k = Math.floor((upTo - o.expires) / span) + 1;
+  o.expires += k * span;
+  o.renewed = (o.renewed ?? 0) + k;
+  const item = g.items[o.item];
+  g.writeLog(0, o.shop, 0, `募集#${o.id} ${item.name}は1個も届かなかったので期限を延ばしました (${k > 1 ? `${k}回分、` : ''}〆${fmt(g, o.expires)})`);
+  return true;
+}
+
+/**
+ * B・C. 有料で再掲。期限 t (= o.expires) の時点で、新しい募集を出したのと同じだけ払って、残りの数を同じ単価・同じ長さで張り直す。
+ * - 届いていた分は t の時点で倉庫へ (所持上限を超えた分は破棄。締めるときと同じ)。預り金は残りの代金そのまま引き継ぐ
+ * - 取引時間: 前の回に1個でも届いていれば、残りの代金で棚で1回買うのと同じ時間を、t の時点の持ち時間から払う (クーポンは使わない)。前の回の時間は戻さない。
+ *   1個も届いていなければ「買わなかった」のと同じなので、前の回の時間を返す代わりに新しい時間も取らない (差し引き0。リカさん判断 2026-11-15)
+ * - 募集の回数: t の期の「棚の数×3」を1回使う
+ * - 時間・回数が足りない、または残りの数が所持上限に入らないときは張り直さない (false。呼び手が締める)
+ * 張り直せたら true。失敗したときは何も変えない
+ */
+function repostOrder(g: Game, o: BuyOrder, buyer: Shop): string | true {
+  const t = o.expires;
+  const item = g.items[o.item];
+  const stats = statsAt(g, periodAt(g, t));
+  const maxPosts = buyer.showcasecount * ORDER_RULES.postsPerShelf;
+  if ((stats.posted[buyer.id] ?? 0) >= maxPosts) return '今期の募集回数を使い切ったため再掲せず';
+  // 届いていた分を倉庫へ入れたあとに、残りが所持上限に入るか (ほかの募集の残りと預かり分も数える)
+  const got = o.count - o.left;
+  const after = Math.min(item.limit, buyer.item[o.item - 1] + got);
+  const others = orders(g)
+    .filter((x) => x !== o && x.shop === buyer.id && x.item === o.item)
+    .reduce((a, x) => a + x.count, 0);
+  if (after + others + o.left > item.limit) return '所持上限のため再掲せず';
+  const paid = got > 0;
+  const cost = paid ? g.timeDeal(o.left * o.price, o.item, o.left) : 0;
+  if (paid) {
+    const max = g.config.maxStockTime;
+    const base = t - buyer.time > max ? t - max : buyer.time;
+    if (t - base < cost) return '持ち時間が足りないため再掲せず';
+    buyer.time = base + cost;
+  }
+  bump(stats.posted, buyer.id);
+  const { put } = handOver(g, o, buyer);
+  if (o.renew === 'repost') o.repeat = (o.repeat ?? 1) - 1;
+  o.renewed = (o.renewed ?? 0) + 1;
+  o.count = o.left;
+  if (o.min > o.left) o.min = o.left;
+  if (paid) {
+    o.time = cost;
+    delete o.coupon;
+    delete o.couponWeek;
+  }
+  o.created = t;
+  o.expires = t + spanOf(o);
+  if (o.renew === 'repost' && !o.repeat) {
+    delete o.renew;
+    delete o.repeat;
+  }
+  g.writeLog(
+    0,
+    buyer.id,
+    0,
+    `募集#${o.id} ${item.name}を再掲しました (残り${o.left}${item.scale}@￥${o.price}、〆${fmt(g, o.expires)}` +
+      (o.renew ? `、${renewLabel(o)}` : '、再掲はこれで最後') +
+      (got ? `。届いた${got}${item.scale}を倉庫へ` + (put < got ? `、所持上限を超えた${got - put}${item.scale}は破棄` : '') : '') +
+      ')',
+  );
+  return true;
+}
+
+function fmt(g: Game, t: number): string {
+  const d = new Date((t + g.config.tzOffset) * 1000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+
+/** 自分の募集の期限切れの扱いを変える (時間はかからない) */
+export function setOrderRenew(g: Game, dt: Shop, id: number, renew: string | undefined, repeat: number | undefined): string {
+  const o = orders(g).find((x) => x.id === Math.trunc(id));
+  if (!o || o.shop !== dt.id) throw new GameError('その募集はありません');
+  const r = checkRenew(renew ?? 'none', repeat);
+  delete o.renew;
+  delete o.repeat;
+  Object.assign(o, r);
+  o.hours ??= spanOf(o) / 3600;
+  return `募集#${o.id}の期限切れの扱いを${o.renew ? renewLabel(o) : 'なし (締める)'}にしました`;
 }
 
 /** 預けた資金と時間のうち、使わなかった分を返して募集を消す */
@@ -138,11 +296,8 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
   const i = list.indexOf(o);
   if (i >= 0) list.splice(i, 1);
   if (!buyer) return '';
-  // 預かっていた品をまとめて渡す。締めるまでに棚などで買い足して上限を超えた分は、原作の郵便と同じく破棄
   const item = g.items[o.item];
-  const got = o.count - o.left;
-  const put = Math.max(0, Math.min(got, item.limit - buyer.item[o.item - 1]));
-  buyer.item[o.item - 1] += put;
+  const { got, put } = handOver(g, o, buyer);
   let back = o.escrow;
   let toStock = 0;
   if (buyer.money + back > g.maxMoney) {
@@ -187,13 +342,27 @@ export function sweepOrders(g: Game, upTo: number = g.now): boolean {
       // 閉店した店の資金は 0 になる (原作 CloseShop) ので、預り金も街に消える
       list.splice(list.indexOf(o), 1);
       changed = true;
-    } else if (o.expires <= upTo) {
-      closeOrder(g, o, buyer, '期限切れで終了');
-      changed = true;
+    } else {
+      // 期限が来たら、その時刻の順に 延長 / 再掲 / 締め。再掲は1回ごとに時間と募集の回数を使うので、回数は有限で止まる
+      let why = '';
+      // 1回のアクセスで張り直すのは最大 RENEW_LOOP 回まで (残りは次のアクセスで続ける。期限切れの募集には納品できない)
+      for (let loop = 0; o.expires <= upTo && loop < RENEW_LOOP; loop++) {
+        changed = true;
+        if (o.renew === 'extend' && extendOrder(g, o, upTo)) continue;
+        if (o.renew === 'repost' || o.renew === 'forever') {
+          const r = repostOrder(g, o, buyer);
+          if (r === true) continue;
+          why = r;
+        }
+        closeOrder(g, o, buyer, why ? `期限切れで終了 (${why})` : '期限切れで終了');
+        break;
+      }
     }
   }
   return changed;
 }
+
+const RENEW_LOOP = 1000;
 
 export interface DeliverLine {
   order: number;
@@ -286,5 +455,11 @@ export function orderView(g: Game, o: BuyOrder) {
     got: o.count - o.left,
     min: o.min,
     expires: o.expires,
+    /** 期限切れのときの扱い (none / extend / repost / forever) */
+    renew: o.renew ?? 'none',
+    /** repost の残り回数 (repost 以外は null) */
+    repeat: o.renew === 'repost' ? (o.repeat ?? 0) : null,
+    /** 期限の長さ (時間) */
+    hours: spanOf(o) / 3600,
   };
 }
