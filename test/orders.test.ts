@@ -426,10 +426,11 @@ test('B 再掲: 全部届いたら締めて、新しい募集を始めない', (
 });
 
 test('B/C 再掲: 持ち時間・募集の回数が足りない、所持上限に入らないときは再掲せずに締め、代金と (届いていなければ) 時間を返す', () => {
-  // 持ち時間が足りない (待ち中)
+  // 持ち時間が足りない (待ち中)。前の回に届いているときだけ時間が要る
   {
-    const { world, buyer } = setup();
+    const { world, buyer, seller } = setup();
     const o = post(world, buyer, T0, { renew: 'forever' });
+    give(world, seller, buyer, T0 + H, o.id, 100);
     const b = shopOf(world, buyer.id);
     b.time = T0 + 30 * H; // 期限の時点では待ち中
     const t1 = b.time;
@@ -437,8 +438,28 @@ test('B/C 再掲: 持ち時間・募集の回数が足りない、所持上限�
     sweepOrders(g);
     assert.equal(orders(g).length, 0);
     assert.ok(logsOf(world, g, buyer.id).some((m) => m.includes(`募集#${o.id}`) && m.includes('期限切れで終了 (持ち時間が足りないため再掲せず)')));
-    assert.equal(b.money, 1_000_000, '代金は全部戻る');
-    assert.equal(b.time, t1 - o.time, '1個も届いていないので最初の時間は戻る (今までの締めと同じ)');
+    assert.equal(b.money, 1_000_000 - 10000, '届かなかった200個分の代金は戻る');
+    assert.equal(b.time, t1, '届いているので時間は戻らない');
+  }
+  // 1個も届いていなければ、待ち中でも時間を取らずに再掲する (差し引き0)
+  {
+    const { world, buyer } = setup();
+    const o = post(world, buyer, T0, { renew: 'repost', repeat: 2 });
+    const b = shopOf(world, buyer.id);
+    b.time = T0 + 30 * H;
+    const t1 = b.time;
+    const g = at(world, T0 + 10 * H);
+    sweepOrders(g);
+    const o1 = orders(g).find((x) => x.id === o.id)!;
+    assert.ok(o1, '再掲される');
+    assert.equal(b.time, t1, '前の回の時間は返さず、新しい時間も取らない');
+    assert.equal(o1.time, o.time, '最初に払った時間をそのまま持ち越す');
+    // 最後まで1個も届かずに終われば、最初に払った時間が1回分だけ戻る (買わなかったのと同じ)
+    const g2 = at(world, T0 + 40 * H);
+    sweepOrders(g2);
+    assert.equal(orders(g2).length, 0);
+    assert.equal(b.time, t1 - o.time);
+    assert.equal(b.money, 1_000_000);
   }
   // 募集の回数を使い切っている
   {

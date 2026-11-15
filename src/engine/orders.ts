@@ -40,7 +40,7 @@ export const ORDER_RULES_LINE =
 export const ORDER_RENEW_LINE =
   `期限切れの扱い (renew): extend=1個も届いていなければ同じ長さだけ無料で延長 (時間・回数を使わない、1個でも届いていれば締める)、` +
   `repost=回数 (repeat) を決めて残りを同じ単価・同じ長さで再掲、forever=取り下げるまで再掲。` +
-  `再掲は1回ごとに新しい募集と同じく取引時間 (持ち時間から) と募集の回数を1回使い、届いた分はそのとき倉庫へ。時間か回数が足りない・所持上限なら締める。`;
+  `再掲は1回ごとに募集の回数を1回使い、前の回に届いていれば新しい募集と同じ取引時間 (持ち時間から) も使う (1個も届いていなければ時間は差し引き0)。届いた分はそのとき倉庫へ。時間か回数が足りない・所持上限なら締める。`;
 
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
@@ -216,7 +216,8 @@ function extendOrder(g: Game, o: BuyOrder, upTo: number): boolean {
 /**
  * B・C. 有料で再掲。期限 t (= o.expires) の時点で、新しい募集を出したのと同じだけ払って、残りの数を同じ単価・同じ長さで張り直す。
  * - 届いていた分は t の時点で倉庫へ (所持上限を超えた分は破棄。締めるときと同じ)。預り金は残りの代金そのまま引き継ぐ
- * - 取引時間: 残りの代金で棚で1回買うのと同じ時間を、t の時点の持ち時間から払う (クーポンは使わない)。前の回の時間は戻さない
+ * - 取引時間: 前の回に1個でも届いていれば、残りの代金で棚で1回買うのと同じ時間を、t の時点の持ち時間から払う (クーポンは使わない)。前の回の時間は戻さない。
+ *   1個も届いていなければ「買わなかった」のと同じなので、前の回の時間を返す代わりに新しい時間も取らない (差し引き0。リカさん判断 2026-11-15)
  * - 募集の回数: t の期の「棚の数×3」を1回使う
  * - 時間・回数が足りない、または残りの数が所持上限に入らないときは張り直さない (false。呼び手が締める)
  * 張り直せたら true。失敗したときは何も変えない
@@ -234,21 +235,25 @@ function repostOrder(g: Game, o: BuyOrder, buyer: Shop): string | true {
     .filter((x) => x !== o && x.shop === buyer.id && x.item === o.item)
     .reduce((a, x) => a + x.count, 0);
   if (after + others + o.left > item.limit) return '所持上限のため再掲せず';
-  const cost = g.timeDeal(o.left * o.price, o.item, o.left);
-  const max = g.config.maxStockTime;
-  const base = t - buyer.time > max ? t - max : buyer.time;
-  if (t - base < cost) return '持ち時間が足りないため再掲せず';
-
-  buyer.time = base + cost;
+  const paid = got > 0;
+  const cost = paid ? g.timeDeal(o.left * o.price, o.item, o.left) : 0;
+  if (paid) {
+    const max = g.config.maxStockTime;
+    const base = t - buyer.time > max ? t - max : buyer.time;
+    if (t - base < cost) return '持ち時間が足りないため再掲せず';
+    buyer.time = base + cost;
+  }
   bump(stats.posted, buyer.id);
   const { put } = handOver(g, o, buyer);
   if (o.renew === 'repost') o.repeat = (o.repeat ?? 1) - 1;
   o.renewed = (o.renewed ?? 0) + 1;
   o.count = o.left;
   if (o.min > o.left) o.min = o.left;
-  o.time = cost;
-  delete o.coupon;
-  delete o.couponWeek;
+  if (paid) {
+    o.time = cost;
+    delete o.coupon;
+    delete o.couponWeek;
+  }
   o.created = t;
   o.expires = t + spanOf(o);
   if (o.renew === 'repost' && !o.repeat) {
