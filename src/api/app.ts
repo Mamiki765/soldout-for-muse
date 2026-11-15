@@ -23,7 +23,7 @@ import { TIPS } from '../tips.js';
 import { dropViewSessions, renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
-import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
+import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 
 export interface AppOptions {
   store: Store;
@@ -85,7 +85,10 @@ const SEEN_LOG = '_api_seen_log';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
 const SEEN_SUGGEST = '_api_seen_suggest';
+/** 店に【更新】の通知を出した版 (届けたかどうか。読んだかどうかとは別) */
 const SEEN_VERSION = '_seen_version';
+/** 認証して GET /api/v1/updates で最新版まで読んだ版 (digest の「未読更新」を消す) */
+const READ_VERSION = '_updates_read';
 /** 目安箱: 1店あたり 24 時間に出せる案の数と、1件の長さ (文字) */
 const SUGGEST_PER_DAY = 5;
 const SUGGEST_MAX_CHARS = 800;
@@ -139,19 +142,41 @@ export class App {
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
-    // この版で初めて起動した時刻をデプロイ時刻として記録する (再起動しても変わらない)
-    const sinceKey = 'update_since:' + APP_VERSION;
-    const since = Number(this.store.getSetting(sinceKey));
-    this.updateSince = Number.isFinite(since) && since > 0 ? since : this.clock();
-    if (!(since > 0)) this.store.setSetting(sinceKey, String(this.updateSince));
   }
 
-  /** この版のデプロイ時刻 (秒) */
-  readonly updateSince: number;
+  /**
+   * digest に付ける未読の案内。最新版を /api/v1/updates で読むまで毎回1行だけ出し、読んだら消える。
+   * 前に読んだ版があれば、その版より新しいぶんだけ取れる URL にする (読むトークンを減らす)。
+   */
+  digestNotice(dt: Shop): string | null {
+    const read = dt.user[READ_VERSION];
+    if (read && !newerVersion(APP_VERSION, read)) return null;
+    return `未読更新 v${APP_VERSION} /api/v1/updates${read ? '?since=' + read : ''}`;
+  }
 
-  /** デプロイから一定期間だけ digest に付ける短い案内 */
-  digestNotice(): string | null {
-    return this.clock() < this.updateSince + DIGEST_NOTICE_SECONDS ? DIGEST_NOTICE : null;
+  /**
+   * 認証つきの GET /api/v1/updates で最新版まで返したとき、その店を既読にする。
+   * 認証なし・トークン違い・Party に確かめられない ときは何も書かずに null (履歴はいつもどおり誰でも読める)。
+   */
+  private async markUpdatesRead(req: IncomingMessage): Promise<number | null> {
+    const token = this.bearer(req);
+    if (!token || this.isAdminToken(token)) return null;
+    let shopId: number;
+    try {
+      shopId = await this.auth(req);
+    } catch (e) {
+      if (e instanceof HttpError) return null;
+      throw e;
+    }
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    const dt = g.shopById(shopId);
+    if (!dt) return null;
+    const read = dt.user[READ_VERSION];
+    if (!read || newerVersion(APP_VERSION, read)) {
+      dt.user[READ_VERSION] = APP_VERSION;
+      this.save(g);
+    }
+    return shopId;
   }
 
   // ---------------------------------------------------------------------------
@@ -420,7 +445,15 @@ export class App {
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
     if (method === 'GET' && p === '/tips') return { status: 200, text: TIPS, json: { tips: TIPS } };
     if (method === 'GET' && p === '/updates') {
-      return { status: 200, text: updatesText(), json: { version: APP_VERSION, updates: UPDATES } };
+      // ?since=0.3.1 なら、その版より新しいぶんだけ (無ければ全部。今までどおり認証なしで読める)
+      const since = q.get('since')?.trim().replace(/^v/i, '') ?? '';
+      if (since && !/^\d+(\.\d+)*$/.test(since)) throw new HttpError(400, 'since は 0.3.1 のような版で指定してください');
+      const list = since ? UPDATES.filter((u) => newerVersion(u.version, since)) : UPDATES;
+      // 最新版まで返したときだけ、認証した店を既読にする (匿名の取得では誰の既読も変えない)
+      const marked = list.some((u) => u.version === APP_VERSION) ? await this.markUpdatesRead(req) : null;
+      const text = (list.length ? updatesText(list) : `v${since} より新しい更新はありません (最新は v${APP_VERSION})\n`) +
+        (marked !== null ? `\n(このお店は v${APP_VERSION} まで既読になりました。digest の「未読更新」は次から出ません)\n` : '');
+      return { status: 200, text, json: { version: APP_VERSION, updates: list, ...(marked !== null ? { read: APP_VERSION } : {}) } };
     }
     if (method === 'GET' && p === '/items') {
       const { g } = this.game();
@@ -451,7 +484,7 @@ export class App {
       switch (p) {
         case '/digest': {
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n, this.digestNotice());
+          const d = v.digestData(g, dt, n, this.digestNotice(dt));
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
@@ -560,6 +593,8 @@ export class App {
     }
     const { g } = this.game();
     const shop = act.openShop(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') });
+    // 開店したての店は今の説明書 (help) から始めるので、今までの更新は読んだものとして数える
+    shop.user[READ_VERSION] = APP_VERSION;
     this.save(g);
     const token = newToken('so_');
     this.store.addToken(shop.id, token, g.now);
@@ -586,6 +621,7 @@ export class App {
     const { g } = this.game();
     const name = String(body.name ?? '') || who.ownerId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 12);
     const shop = act.openShop(g, { name, shopname: String(body.shopname ?? '') });
+    shop.user[READ_VERSION] = APP_VERSION;
     this.save(g);
     this.store.linkPartyOwner(who.ownerId, shop.id, g.now);
     const text =
@@ -625,7 +661,7 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice());
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt));
       digest = d;
       tail = v.digestText(d);
     }
