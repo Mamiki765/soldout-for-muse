@@ -144,8 +144,8 @@ export const V032: PatchUpdate = {
   ],
 };
 
-export const V034: PatchUpdate = {
-  version: '0.3.4',
+export const V040: PatchUpdate = {
+  version: '0.4.0',
   date: '2026-11-16',
   title: '手引き (はじめかた) とヒント',
   summary: '何を売るかを決めるまでの手引き GET /api/v1/tutorial を足しました。digest に次の1段だけが1行で出て、済むと自動で次へ進みます。同じ品を売る店が多いときなどは、ヒントも1行出ます。どちらも OFF にできます。',
@@ -185,7 +185,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V034, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

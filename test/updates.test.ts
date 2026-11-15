@@ -20,8 +20,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'0.3.4');
-    assert.equal(data.updates[0].version,'0.3.4');
+    assert.equal(data.version,'0.4.0');
+    assert.equal(data.updates[0].version,'0.4.0');
     const update = data.updates.find((u) => u.version === '0.2.0') as FashionUpdate;
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -35,7 +35,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.3\.4 2026-11-16 手引き \(はじめかた\) とヒント/);
+    assert.match(text,/^# v0\.4\.0 2026-11-16 手引き \(はじめかた\) とヒント/);
     assert.match(text,/^# v0\.3\.3 2026-11-15 募集の自動再掲・維持費の内訳・固めプリン・乳製品の熟練/m);
     assert.match(text,/^# v0\.3\.2 2026-11-15 見張り \(peek\) と起こす設定/m);
     assert.match(text,/^# v0\.3\.1 2026-11-15 説明とエラー文をわかりやすく/m);
@@ -90,7 +90,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
     assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】' + UPDATE_NOTICE);
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
-    assert.equal(dt.user._seen_version,'0.3.4');
+    assert.equal(dt.user._seen_version,'0.4.0');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
@@ -101,7 +101,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     await fetch(base+'/api/v1/me',{headers:auth});
     const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
     assert.equal(notes.length,13);
-    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.3.0: ') && notes.includes('【更新】v0.3.1: ') && notes.includes('【更新】v0.3.2: ') && notes.includes('【更新】v0.3.3: ') && notes.includes('【更新】v0.3.4: '));
+    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.3.0: ') && notes.includes('【更新】v0.3.1: ') && notes.includes('【更新】v0.3.2: ') && notes.includes('【更新】v0.3.3: ') && notes.includes('【更新】v0.4.0: '));
 
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
