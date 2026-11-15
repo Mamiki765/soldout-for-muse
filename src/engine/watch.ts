@@ -176,7 +176,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     if (no && stock > 0) {
       // 今期の売れ行き。始まって1時間たっていなければ前期の売れ行きで見る
       const rate = elapsed >= 3600 ? (dt.itemtoday[no] ?? 0) / elapsed : (dt.itemyesterday[no] ?? 0) / g.config.oneDayTime;
-      if (rate > 0) emptyIn = Math.max(0, Math.round(stock / rate - (now - asOf)));
+      // 見込みなので分単位に丸める
+      if (rate > 0) emptyIn = Math.max(0, Math.round((stock / rate - (now - asOf)) / 60) * 60);
     } else if (no) emptyIn = 0;
     shelves.push({ slot: i + 1, item: no, name: no ? g.items[no].name : '', price: no ? dt.price[i] : 0, stock, empty_in: emptyIn });
   }
@@ -267,7 +268,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     next_timed: nextTimed,
     setting: { mode: setting.mode, on: setting.on, off: setting.off, enabled: [...on] },
     facts: {
-      popularity: Math.round(dt.rank) / 100,
+      // digest・me と同じ整数の% (内部の細かい値は出さない)
+      popularity: Math.trunc(dt.rank / 100),
       money: dt.money,
       moneystock: dt.moneystock,
       time: stockTime,
