@@ -62,6 +62,12 @@ img.bar{height:12px;vertical-align:middle}
 hr{border:none;border-top:1px solid #99a}
 small{font-size:11px}
 .wrap{overflow-x:auto}
+.ic{background:#eef4ff;border:1px solid #ccddff;margin:4px 0;padding:4px 6px;overflow-wrap:anywhere}
+.ic ul{margin:2px 0;padding-left:1.2em}
+.ib{font-size:13px;margin-top:2px}
+.lb{color:#666699;font-size:12px}
+.no{color:#666699;display:inline-block;min-width:2em}
+.nw{white-space:nowrap}
 `;
 
 function page(title: string, menu: string, body: string): string {
@@ -378,15 +384,15 @@ function itemsPage(g: Game): string {
     l.map((n) => `${esc(n.name)}×${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join('、') || '－';
   const gets = (l: { name: string; count: number; chance: number }[]) =>
     l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join('、') || '－';
+  // スマホ幅でも読めるように、表ではなく1品ずつの箱にする (横に並べると作り方の列が細くなり、行が縦に伸びる)
   let s = '●アイテム一覧<hr><small>標準価格はイベントの影響を含まない値です。今の値は市場で見られます。作り方の時間は「熟練0%→100%」。</small>';
-  s += '<table><tr><td>品番</td><td>商品</td><td>分類</td><td>標準価格</td><td>維持費<br>1個24時間分</td><td>上限</td><td>作り方・入手</td><td>材料になる先</td></tr>';
   for (const row of itemsData(g)) {
     if ('hidden' in row) {
-      s += `<tr><td>${row.item}</td><td>${esc(row.name)}</td><td colspan="6">　</td></tr>`;
+      s += `<div class="ic"><span class="no">${row.item}</span> ${esc(row.name)}</div>`;
       continue;
     }
     if ('teaser' in row) {
-      s += `<tr><td>${row.item}</td><td>${esc(row.name)}</td><td colspan="6">準備中</td></tr>`;
+      s += `<div class="ic"><span class="no">${row.item}</span> ${esc(row.name)} <small>準備中</small></div>`;
       continue;
     }
     const d = itemDetailData(g, row.item);
@@ -396,8 +402,14 @@ function itemsPage(g: Game): string {
     );
     if (d.market) how.push('市場に入ってくる');
     if (d.note) how.push(esc(d.note));
-    const used = d.used_in.map((u) => `${esc(u.tool)}「${esc(u.name)}」`).join('、');
-    s += `<tr><td>${row.item}</td><td style="white-space:nowrap">${itemIcon(g, row.item)}${esc(d.name)}</td><td style="white-space:nowrap">${esc(d.type)}</td><td style="white-space:nowrap">￥${d.price}</td><td style="white-space:nowrap">￥${d.cost}</td><td>${d.limit}</td><td>${how.join('<br>') || '－'}</td><td>${used || '－'}</td></tr>`;
+    // 材料になる先は道具ごとにまとめる (同じ道具名を何度も並べない)
+    const byTool = new Map<string, string[]>();
+    for (const u of d.used_in) byTool.set(u.tool, [...(byTool.get(u.tool) ?? []), u.name]);
+    const used = [...byTool].map(([tool, names]) => `${esc(tool)}: ${names.map(esc).join('・')}`).join(' ／ ');
+    s += `<div class="ic"><div><span class="no">${row.item}</span> ${itemIcon(g, row.item)}<b>${esc(d.name)}</b> <small><span class="nw">${esc(d.type)}</span> ／ <span class="nw">標準￥${d.price}</span> ／ <span class="nw">維持費￥${d.cost}</span> ／ <span class="nw">上限${d.limit}</span></small></div>`;
+    s += `<div class="ib"><span class="lb">作り方・入手</span>${how.length ? '<ul>' + how.map((h) => `<li>${h}</li>`).join('') + '</ul>' : ' －'}</div>`;
+    if (used) s += `<div class="ib"><span class="lb">材料になる先</span> ${used}</div>`;
+    s += '</div>';
   }
-  return s + '</table>';
+  return s;
 }
