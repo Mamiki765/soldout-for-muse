@@ -6,6 +6,7 @@ import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { recordCostReport, resetTracking } from './costs.js';
 import type { Game } from './game.js';
 import type { Shop } from './types.js';
+import { onTutorialPeriod } from './tutorial.js';
 
 /** 原作 TurnPeriod */
 export function turnPeriod(g: Game, at: number = g.now): void {
@@ -37,6 +38,8 @@ export function turnPeriod(g: Game, at: number = g.now): void {
     dt.profitstock = Math.trunc(
       (dt.profitstock * cfg.profitDayCount + dt.saletoday - dt.paytoday) / (cfg.profitDayCount + 1),
     );
+    // 手引き5「決算をまたいでみよう」: 売上のある状態で決算を越えたら、その場で記録する (前期の売上は次の決算で上書きされるため)
+    onTutorialPeriod(dt);
     dt.saleyesterday = dt.saletoday;
     dt.saletoday = 0;
     dt.payyesterday = dt.paytoday;

@@ -189,3 +189,24 @@ test('ヒント: 混んでいる品 (ほかの店の棚5か所以上)・売れ�
     await t.close();
   }
 });
+
+test('手引き5: 売上のある状態で決算を越えたら、その場で記録する (digest を読まずに次の決算を迎えても消えない)', async () => {
+  const { Game } = await import('../src/engine/game.js');
+  const { turnPeriod } = await import('../src/engine/period.js');
+  const { DEFAULT_CONFIG } = await import('../src/config.js');
+  const t = await setup();
+  try {
+    const a = await t.open('alice', '試験商店');
+    const s = t.shop(a.id);
+    s.saletoday = 1000;
+    const g = new Game(t.app.world, DEFAULT_CONFIG, seededRng(1), t.clock.now);
+    turnPeriod(g);
+    assert.ok(done(t, a.id).includes(5));
+    s.saletoday = 0;
+    turnPeriod(g);
+    assert.equal(t.shop(a.id).saleyesterday, 0);
+    assert.ok(done(t, a.id).includes(5), '次の決算で前期の売上が0になっても済みのまま');
+  } finally {
+    await t.close();
+  }
+});

@@ -100,6 +100,11 @@ export function onTutorialAction(g: Game, dt: Shop, type: string, before: number
   if (steps.length) done(dt, ...steps);
 }
 
+/** 決算のとき (前期の売上を上書きする前) に呼ぶ。今期に売上があれば5段目を済ませる */
+export function onTutorialPeriod(dt: Shop): void {
+  if (dt.saletoday > 0) done(dt, 5);
+}
+
 /** 読んだときの記録。変わったら true */
 export function onTutorialRead(dt: Shop, what: 'me' | 'costs' | 'tips'): boolean {
   if (what === 'tips') return done(dt, 6);
