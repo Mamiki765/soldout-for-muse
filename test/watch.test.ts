@@ -78,6 +78,13 @@ test('peek は読むだけ: 時間を進めず、as_of と古さを返し、seen
     const text = await r.text();
     assert.match(text.split('\n')[0], /^as_of \d+ age \d+s cursor /);
     assert.match(text, /^OLD high shelf1_low /m);
+    assert.doesNotMatch(text, /--- facts/);
+    // テキストでも facts=1 なら判断の材料が付く
+    r = await fetch(base + '/api/v1/peek?facts=1', { headers: auth });
+    const textFacts = await r.text();
+    assert.match(textFacts, /^--- facts$/m);
+    assert.match(textFacts, /^次の決算 \d+ 見込み支払い \d+/m);
+    assert.match(textFacts, /^棚1 /m);
 
     // digest を読めば時間が進み、as_of が新しくなる
     await fetch(base + '/api/v1/digest', { headers: auth });

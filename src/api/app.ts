@@ -785,8 +785,9 @@ export class App {
     if (seenParam !== null && !fresh.length && q.get('full') !== '1') return { status: 204, headers };
     // 明細 (facts) は facts=1 のときだけ。番犬の定期の見張りはアラートと要約だけで軽く
     const { facts, ...head } = d;
-    const json = { ...head, cursor, new: fresh, alerts: d.alerts, ...(q.get('facts') === '1' ? { facts } : {}) };
-    return { status: 200, headers, text: v.peekText(d, fresh, cursor), json };
+    const withFacts = q.get('facts') === '1';
+    const json = { ...head, cursor, new: fresh, alerts: d.alerts, ...(withFacts ? { facts } : {}) };
+    return { status: 200, headers, text: v.peekText(d, fresh, cursor, withFacts), json };
   }
 
   /** 見張りの設定。{"type":"alerts","mode":"save"|"normal"|"power"|"off","on":[...],"off":[...]} */

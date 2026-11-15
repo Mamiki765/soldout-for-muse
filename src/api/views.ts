@@ -497,10 +497,23 @@ export function ordersText(d: ReturnType<typeof ordersData>): string {
 // ---------------------------------------------------------------------------
 // peek: 番犬スクリプト向けの見張り (読むだけ)
 
-export function peekText(d: ReturnType<typeof peekData>, fresh: Alert[], cursor: string): string {
+export function peekText(d: ReturnType<typeof peekData>, fresh: Alert[], cursor: string, withFacts = false): string {
   const lines = [`as_of ${d.as_of} age ${d.age}s cursor ${cursor || '-'}` + (d.next_timed ? ` next_timed ${d.next_timed}` : '')];
   const freshKeys = new Set(fresh.map((a) => a.key));
   for (const a of d.alerts) lines.push(`${freshKeys.has(a.key) ? 'NEW' : 'OLD'} ${a.level} ${a.type} ${a.msg}`);
   if (!d.alerts.length) lines.push('アラートなし');
+  if (withFacts) {
+    // facts=1 のときは判断の材料も (時刻は UNIX 秒、長さは秒)
+    const f = d.facts;
+    const p = f.period;
+    lines.push('--- facts');
+    lines.push(`人気 ${f.popularity}% 資金 ${f.money} 入金庫 ${f.moneystock} 持ち時間 ${f.time}s (満タンまで ${f.time_full_in}s) クーポン ${f.coupon}s (戻る ${f.coupon_reset})`);
+    lines.push(`次の決算 ${p.next_period} 見込み支払い ${p.total} (維持費${p.cost_projected}+棚${p.showcase_cost}+税${p.tax}) 払える額 ${p.available} 不足 ${p.short}`);
+    lines.push(`不在閉店 ${f.closing_at}`);
+    for (const sh of f.shelves) {
+      lines.push(`棚${sh.slot} ` + (sh.item ? `${sh.name} ￥${sh.price} 残${sh.stock}` + (sh.empty_in !== null ? ` 空くまで${sh.empty_in}s` : '') : '空'));
+    }
+    for (const e of f.events) lines.push(`イベント ${e.mine ? '[自分の品] ' : ''}${e.info}`);
+  }
   return lines.join('\n') + '\n';
 }
