@@ -33,14 +33,15 @@ export function jst(t: number): string {
 
 const pct = (rank: number) => Math.trunc(rank / 100);
 
+/** 棚の一覧。slot は 1 始まり (行動の shelf / buy の slot・peek と同じ番号。0.3.3 までの JSON は 0 始まりだった) */
 function shelfData(g: Game, dt: Shop) {
   const out = [];
   for (let i = 0; i < dt.showcasecount; i++) {
     const no = dt.showcase[i] ?? 0;
     out.push(
       no
-        ? { slot: i, item: no, name: g.items[no].name, price: dt.price[i], stock: dt.item[no - 1] }
-        : { slot: i, item: 0, name: '', price: 0, stock: 0 },
+        ? { slot: i + 1, item: no, name: g.items[no].name, price: dt.price[i], stock: dt.item[no - 1] }
+        : { slot: i + 1, item: 0, name: '', price: 0, stock: 0 },
     );
   }
   return out;
@@ -65,8 +66,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   const shelves = shelfData(g, dt);
   const warnings: string[] = [];
   for (const s of shelves) {
-    if (!s.item) warnings.push(`棚${s.slot + 1}が空`);
-    else if (s.stock === 0) warnings.push(`棚${s.slot + 1}の${s.name}が売切`);
+    if (!s.item) warnings.push(`棚${s.slot}が空`);
+    else if (s.stock === 0) warnings.push(`棚${s.slot}の${s.name}が売切`);
   }
   if (full <= 0) warnings.push('持ち時間が満タン');
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
@@ -120,7 +121,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
 
 export function digestText(d: ReturnType<typeof digestData>): string {
   const shelves = d.shelves
-    .map((s) => (s.item ? `${s.slot + 1}:${s.name}@${s.price}残${s.stock}` : `${s.slot + 1}:空`))
+    .map((s) => (s.item ? `${s.slot}:${s.name}@${s.price}残${s.stock}` : `${s.slot}:空`))
     .join(' ');
   const news = [
     d.new.mine && `自分${d.new.mine}`,
@@ -199,7 +200,7 @@ export function meText(d: ReturnType<typeof meData>): string {
     `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday} (内訳 /api/v1/costs)`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,
     '# 棚 番号 品番 名前 価格 在庫',
-    ...d.shelves.map((s) => (s.item ? `${s.slot + 1} ${s.item} ${s.name} ${s.price} ${s.stock}` : `${s.slot + 1} - 空`)),
+    ...d.shelves.map((s) => (s.item ? `${s.slot} ${s.item} ${s.name} ${s.price} ${s.stock}` : `${s.slot} - 空`)),
     '# 倉庫 品番 名前 数/上限 今期売/前期売 熟練% 相場',
     ...d.stock.map((s) => `${s.item} ${s.name} ${s.count}/${s.limit} ${s.today}/${s.yesterday} ${s.exp} ${s.market || '-'}`),
   ];
@@ -253,7 +254,7 @@ export function shopsData(g: Game, opts: { item?: number; limit: number }) {
 export function shopsText(d: ReturnType<typeof shopsData>): string {
   const lines = ['# 店 id 順位 店名 人気% 点 | 棚番号:品番:名前@価格x在庫'];
   for (const s of d) {
-    const sh = s.shelves.map((x) => `${x.slot + 1}:${x.item}:${x.name}@${x.price}x${x.stock}`).join(' ');
+    const sh = s.shelves.map((x) => `${x.slot}:${x.item}:${x.name}@${x.price}x${x.stock}`).join(' ');
     lines.push(`${s.id} ${s.rank} ${s.shop} ${s.popularity} ${s.point} | ${sh || '-'}`);
   }
   return lines.join('\n') + '\n';
@@ -374,6 +375,7 @@ export function itemsText(d: ReturnType<typeof itemsData>): string {
 export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
   const it = g.items[itemno];
   const uses = dt ? checkUses(g, dt, loadUses(g, itemno)) : loadUses(g, itemno);
+  const owned = !!dt && (dt.item[itemno - 1] ?? 0) > 0;
   return {
     item: itemno,
     name: it.name,
@@ -397,8 +399,9 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
       target: u.argspec.includes('target'),
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
-      usable: dt ? u.useok : undefined,
-      ...(dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
+      // 使う品そのものを持っていなければ使えない (本・地図など、材料の行に自分が入っていない品も) (監査 A13)
+      usable: dt ? owned && !!u.useok : undefined,
+      ...(dt && !owned ? { why: `${it.name}を持っていません` } : dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
     })),
   };
 }
@@ -510,7 +513,7 @@ export function peekText(d: ReturnType<typeof peekData>, fresh: Alert[], cursor:
     const p = f.period;
     lines.push('--- facts');
     lines.push(`人気 ${f.popularity}% 資金 ${f.money} 入金庫 ${f.moneystock} 持ち時間 ${f.time}s (満タンまで ${f.time_full_in}s) クーポン ${f.coupon}s (戻る ${f.coupon_reset})`);
-    lines.push(`次の決算 ${p.next_period} 見込み支払い ${p.total} (維持費${p.cost_projected}+棚${p.showcase_cost}+税${p.tax}) 払える額 ${p.available} 不足 ${p.short}`);
+    lines.push(`${p.pending ? '決算(時刻を過ぎて未反映)' : '次の決算'} ${p.next_period} 見込み支払い ${p.total} (維持費${p.cost_projected}+棚${p.showcase_cost}+税${p.tax}) 払える額 ${p.available} 不足 ${p.short}`);
     lines.push(`不在閉店 ${f.closing_at}`);
     for (const sh of f.shelves) {
       lines.push(`棚${sh.slot} ` + (sh.item ? `${sh.name} ￥${sh.price} 残${sh.stock}` + (sh.empty_in !== null ? ` 空くまで${sh.empty_in}s` : '') : '空'));

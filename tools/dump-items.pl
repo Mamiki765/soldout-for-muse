@@ -319,6 +319,44 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		}
 	}
 	$define{version} = $v030->{version};
+
+	# Party #4 の追加品 (固めプリン)。版番号は変えない (次版の番号は管理者が決める)。
+	open(my $pudding_fh, '<:raw', "$FindBin::Bin/pudding.json") or die $!;
+	my $pudding = JSON::PP->new->utf8->decode(do { local $/; <$pudding_fh> });
+	close $pudding_fh;
+	$pudding = $as_bytes->($pudding);
+	for my $spec (@{ $pudding->{items} }) {
+		die "pudding: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		die "pudding: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+		my $ref = $by_no{$spec->{market_reference}} or die 'unknown market reference';
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		delete $it->{market_reference};
+		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+	for my $spec (@{ $pudding->{production} }) {
+		my $u = $new_use->($spec);
+		my $name = $by_no{$spec->{product}}{name};
+		$u->{name} = $name . 'を作成する';
+		$u->{info} = $name . 'を作ります';
+		$u->{okmsg} = $name . 'を作りました';
+		$u->{ngmsg} = '作成に失敗しました…';
+		# 置き場 (ミノ牛乳) の「飲む」の表示文言を引き継がない
+		@$u{qw(action scale)} = @$spec{qw(action scale)};
+		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
+		$u->{func} = undef;
+		$u->{params} = [undef, undef, undef, undef];
+		$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
+	}
+	my %ev_now = map { $_->{code} => $_ } @events;
+	for my $ch (@{ $pudding->{event_add_params} }) {
+		my $e = $ev_now{$ch->{code}} or die "pudding: unknown event $ch->{code}";
+		push @{ $e->{params} }, @{ $params->($ch->{params}) };
+	}
 }
 
 binmode STDOUT, ':raw';

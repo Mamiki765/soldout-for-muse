@@ -14,7 +14,7 @@ import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/cost
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
-import { shownPeople, type Shop, type World } from '../engine/types.js';
+import { shownPeople, type LogEntry, type Shop, type World } from '../engine/types.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
@@ -83,6 +83,9 @@ class HttpError extends Error {
 const PARTY_RETRY_SECONDS = 30;
 
 const SEEN_LOG = '_api_seen_log';
+/** 出来事の既読の位置を、自分の記録と街の記録で別に持つ (無ければ SEEN_LOG から始める。監査 A07) */
+const SEEN_LOG_ME = '_api_seen_log_me';
+const SEEN_LOG_TOWN = '_api_seen_log_town';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
 const SEEN_SUGGEST = '_api_seen_suggest';
@@ -187,16 +190,53 @@ export class App {
   private game(): { g: Game; turned: boolean } {
     const now = this.clock();
     const g = new Game(this.world, this.config, this.rng, now);
+    const before = this.world.shops.map((s) => s.id);
     // 期限切れの募集の返金は、時間の計算と同じくアクセスのたびに行う
-    const turnedTime = turn(g);
-    const turned = ord.sweepOrders(g) || turnedTime;
-    if (turned) this.save(g);
+    let turned: boolean;
+    try {
+      const turnedTime = turn(g);
+      turned = ord.sweepOrders(g) || turnedTime;
+    } catch (e) {
+      // 計算の途中で落ちたら、メモリの街は中途半端。保存してある街に戻す (監査 A01)
+      this.reloadWorld();
+      throw e;
+    }
+    if (turned) {
+      this.save(g);
+      // 不在閉店・倒産した店のトークン・合鍵・Party のつながり・管理の許可を、保存と同じときに片付ける (監査 A04)
+      for (const id of before) if (!g.shopById(id)) this.onShopClosed(id);
+    }
     return { g: turned ? new Game(this.world, this.config, this.rng, now) : g, turned };
   }
 
   private save(g: Game): void {
-    this.store.saveWorld(this.world, g.newLogs, g.now, this.config.logExpireTime * 2);
+    this.persist(g.newLogs, g.now);
     g.newLogs.length = 0;
+  }
+
+  /**
+   * メモリの街を保存する。保存に失敗したら、メモリの街を保存してある街 (最後に確定したもの) に戻してから投げる。
+   * 失敗した計算・行動の結果が、あとの別の保存で確定してしまわないように (監査 A01)。
+   * extra は同じトランザクションで一緒に書くもの (開店のトークンなど。監査 A03)
+   */
+  private persist(newLogs: LogEntry[], now: number, extra?: () => void): void {
+    try {
+      this.store.saveWorld(this.world, newLogs, now, this.config.logExpireTime * 2, extra);
+    } catch (e) {
+      this.reloadWorld();
+      throw e;
+    }
+  }
+
+  /** 保存してある街を読み直す (メモリの街を捨てる) */
+  private reloadWorld(): void {
+    try {
+      this.world = this.store.loadWorld(this.clock());
+      new Game(this.world, this.config, this.rng, this.clock()).sortShops();
+    } catch (e) {
+      // 読み直しも失敗したら、次の保存でもう一度試す
+      console.error(e);
+    }
   }
 
   /**
@@ -224,6 +264,10 @@ export class App {
     this.store.deleteTokensOf(shopId);
     this.store.deleteViewKeysOf(shopId);
     this.store.unlinkPartyShop(shopId);
+    dropViewSessions(shopId);
+    // 閉じた店に付けていた管理の許可も外す (同じ店idがまた使われることはないが、残しておく理由もない)
+    const admins = this.adminShops();
+    if (admins.includes(shopId)) this.store.setSetting('admin_shops', admins.filter((x) => x !== shopId).join(',') || undefined);
   }
 
   // ---------------------------------------------------------------------------
@@ -326,10 +370,10 @@ export class App {
   }
 
   /** Party のトークンなら持ち主を確かめる。Party と組んでいない・SOLD OUT のトークンなら undefined */
-  private async partyWho(token: string): Promise<PartyWho | undefined> {
+  private async partyWho(token: string, strict = false): Promise<PartyWho | undefined> {
     if (!this.party || token.startsWith('so_')) return undefined;
     try {
-      return await this.party.who(token);
+      return await this.party.who(token, strict);
     } catch (e) {
       if (e instanceof HttpError) throw e;
       if (e instanceof PartyBlocked) {
@@ -341,14 +385,15 @@ export class App {
     }
   }
 
-  private async auth(req: IncomingMessage): Promise<number> {
+  /** strict: 管理 API 用。Party のトークンは、期限の切れた確認結果では通さない (監査 B01) */
+  private async auth(req: IncomingMessage, strict = false): Promise<number> {
     const token = this.bearer(req);
     if (!token) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です (ヘッダーが届いていないか、形が違います。金庫のコネクタのホストが museimg.party で、置き場所が Authorization ヘッダーか確かめてください)');
     // 確かめに行く前に数える (Party に問い合わせが殺到しないように)
     this.rateLimit('t:' + sha256(token).slice(0, 16));
     let shopId = this.store.shopIdByToken(token);
     if (shopId === undefined) {
-      const who = await this.partyWho(token);
+      const who = await this.partyWho(token, strict);
       if (!who) throw this.badToken(token, false);
       shopId = this.store.shopIdByPartyOwner(who.ownerId);
       if (shopId === undefined) {
@@ -522,7 +567,7 @@ export class App {
           const latest = Math.max(0, ...list.map((s) => s.updated_at));
           if (latest > Number(dt.user[SEEN_SUGGEST] ?? 0)) {
             dt.user[SEEN_SUGGEST] = String(latest);
-            this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
+            this.persist([], this.clock());
           }
           return { status: 200, text: v.suggestionsText(list), json: list };
         }
@@ -545,8 +590,10 @@ export class App {
       // 行動の前に経過時間ぶんを計算しておく
       this.game();
       switch (p) {
-        case '/actions':
-          return this.actions(shopId, body, wantJson);
+        case '/actions': {
+          const h = req.headers['idempotency-key'];
+          return this.actions(shopId, body, wantJson, typeof h === 'string' ? h : undefined);
+        }
         case '/chat':
         case '/bbs':
           return this.post(shopId, p.slice(1) as 'chat' | 'bbs', body);
@@ -598,18 +645,28 @@ export class App {
       throw new HttpError(403, '招待コードが正しくありません');
     }
     const { g } = this.game();
-    const shop = act.openShop(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') });
-    // 開店したての店は今の説明書 (help) から始めるので、今までの更新は読んだものとして数える
-    shop.user[READ_VERSION] = APP_VERSION;
-    this.save(g);
     const token = newToken('so_');
-    this.store.addToken(shop.id, token, g.now);
+    // 店とトークンは1回の保存で一緒に確定させる (片方だけ残らないように。監査 A03)
+    const shop = this.openAndSave(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') }, (id) => this.store.addToken(id, token, g.now));
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
       'まず GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もありますが、読むかは自由です。\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
+  }
+
+  /**
+   * 開店して、店・ログ・認証 (link) を同じトランザクションで保存する。
+   * 保存に失敗したら、メモリの街も開店前に戻る (persist が保存してある街を読み直す)
+   */
+  private openAndSave(g: Game, req: { name: string; shopname: string }, link: (shopId: number) => void): Shop {
+    const shop = act.openShop(g, req);
+    // 開店したての店は今の説明書 (help) から始めるので、今までの更新は読んだものとして数える
+    shop.user[READ_VERSION] = APP_VERSION;
+    this.persist(g.newLogs, g.now, () => link(shop.id));
+    g.newLogs.length = 0;
+    return shop;
   }
 
   /** Muse Party の人の開店。招待コードは要らず、トークンも Party のものをそのまま使う */
@@ -623,13 +680,13 @@ export class App {
         '1人1店です (別人格でも同じお店)。このまま Muse Party のトークンで GET /api/v1/digest から遊べます。\n';
       return { status: 200, text, json: { ok: true, already: true, shop_id: open.id, name: open.name, shopname: open.shopname, token: 'party' } };
     }
-    if (had !== undefined) this.store.unlinkPartyShop(had);
     const { g } = this.game();
     const name = String(body.name ?? '') || who.ownerId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 12);
-    const shop = act.openShop(g, { name, shopname: String(body.shopname ?? '') });
-    shop.user[READ_VERSION] = APP_VERSION;
-    this.save(g);
-    this.store.linkPartyOwner(who.ownerId, shop.id, g.now);
+    // 店と Party のつながりは1回の保存で一緒に確定させる (監査 A03)
+    const shop = this.openAndSave(g, { name, shopname: String(body.shopname ?? '') }, (id) => {
+      if (had !== undefined) this.store.unlinkPartyShop(had);
+      this.store.linkPartyOwner(who.ownerId, id, g.now);
+    });
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
@@ -640,27 +697,53 @@ export class App {
   // ---------------------------------------------------------------------------
   // 行動
 
-  private actions(shopId: number, body: Record<string, unknown>, wantJson: boolean): Reply {
+  private actions(shopId: number, body: Record<string, unknown>, wantJson: boolean, headerId?: string): Reply {
     const list = Array.isArray(body.actions) ? body.actions : [body];
     if (!list.length) throw new HttpError(400, 'actions が空です');
     if (list.length > 20) throw new HttpError(400, '1回に送れる行動は20件までです');
-    const results: { ok: boolean; type: string; msg: string[]; confirm_with?: Record<string, unknown> }[] = [];
-    for (const raw of list) {
-      const a = (raw ?? {}) as Record<string, unknown>;
+    type Result = { ok: boolean; type: string; msg: string[]; confirm_with?: Record<string, unknown> };
+    const results: Result[] = [];
+    // request_id (任意): 同じ id の送り直しは、済んだ行動をもう一度しない (監査 A05)
+    const req = this.requestRecord(shopId, body, headerId);
+    let start = 0;
+    if (req?.rec) {
+      results.push(...(req.rec.r as Result[]));
+      start = req.rec.n;
+      // 前の回が失敗で止まっていたら (stop_on_error)、続きもしない (前の回と同じ答えにする)
+      if (req.rec.stopped) start = list.length;
+    }
+    const replayed = req?.rec ? Math.min(start, list.length) : 0;
+    /** 済んだところまでを、その店の記録に書く (行動の保存と同じ保存に入る) */
+    const note = (dt: Shop, n: number) => {
+      if (req) this.writeRequestRecord(dt, req.id, req.hash, n, results, false);
+    };
+    for (let i = start; i < list.length; i++) {
+      const a = (list[i] ?? {}) as Record<string, unknown>;
       const type = String(a.type ?? '');
       try {
-        const msg = this.runAction(shopId, (g, dt) => this.doAction(g, dt, type, a));
-        results.push({ ok: true, type, msg });
+        const msg = this.runAction(shopId, (g, dt) => {
+          const m = this.doAction(g, dt, type, a);
+          results.push({ ok: true, type, msg: m });
+          note(dt, i + 1);
+          return m;
+        });
+        void msg;
       } catch (e) {
+        // runAction の中で入れた分は、巻き戻ったので取り消す
+        if (results.length > i) results.length = i;
         if (e instanceof GameError && e.message.startsWith('確認:')) {
           // 確認待ち: そのまま送り直せる形を添える (confirm の書き方の揺れを防ぐ)
           const retry = { ...a, confirm: true };
           results.push({ ok: false, type, msg: [e.message, '送り直し: ' + JSON.stringify(retry)], confirm_with: retry });
         } else if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
         else throw e;
-        if (a.stop_on_error !== false && body.stop_on_error === true) break;
+        // 失敗した行動も「済んだ」に数える (送り直しで同じ答えを返す。何も変わっていないので書くのは記録だけ)
+        const stop = a.stop_on_error !== false && body.stop_on_error === true;
+        if (req) this.saveRequestOnly(shopId, req.id, req.hash, i + 1, results, stop);
+        if (stop) break;
       }
     }
+    void wantJson;
     const { g } = this.game();
     const dt = g.shopById(shopId);
     let tail = '';
@@ -671,9 +754,43 @@ export class App {
       digest = d;
       tail = v.digestText(d);
     }
-    const text = results.map((r) => `${r.ok ? 'OK' : 'NG'} ${r.type}: ${r.msg.join(' / ')}`).join('\n') + '\n' + tail;
-    void wantJson;
-    return { status: 200, text, json: { results, digest } };
+    const head = replayed ? `(request_id ${req?.id}: 前に済んだ${replayed}件はもう一度せず、前の結果を返します)\n` : '';
+    const text = head + results.map((r) => `${r.ok ? 'OK' : 'NG'} ${r.type}: ${r.msg.join(' / ')}`).join('\n') + '\n' + tail;
+    return { status: 200, text, json: { results, digest, ...(req ? { request_id: req.id, replayed } : {}) } };
+  }
+
+  /**
+   * request_id の記録を探す。id が無ければ undefined (今までどおり毎回実行)。
+   * 同じ id で中身の違う送り直しは 409 (取り違えて別の行動を「済んだ」にしないように)
+   */
+  private requestRecord(shopId: number, body: Record<string, unknown>, headerId?: string): { id: string; hash: string; rec?: RequestRec } | undefined {
+    const raw = body.request_id ?? headerId;
+    if (raw === undefined || raw === null || raw === '') return undefined;
+    const id = String(raw);
+    if (id.length > 100) throw new HttpError(400, 'request_id は100文字までです');
+    const { request_id: _drop, ...rest } = body;
+    void _drop;
+    const hash = sha256(JSON.stringify(rest)).slice(0, 16);
+    const dt = this.world.shops.find((x) => x.id === shopId && x.status);
+    const rec = dt ? readRequests(dt, this.clock()).find((x) => x.id === id) : undefined;
+    if (rec && rec.h !== hash) throw new HttpError(409, `request_id「${id}」は別の内容で使われています。新しい行動には新しい request_id を付けてください`);
+    return { id, hash, rec };
+  }
+
+  private writeRequestRecord(dt: Shop, id: string, hash: string, n: number, results: unknown[], stopped: boolean): void {
+    const now = this.clock();
+    const list = readRequests(dt, now).filter((x) => x.id !== id);
+    list.push({ id, h: hash, at: now, n, r: results.slice(), ...(stopped ? { stopped: true } : {}) });
+    // 新しいほうから REQUEST_KEEP 件、24時間まで
+    dt.user[REQUESTS] = JSON.stringify(list.slice(-REQUEST_KEEP));
+  }
+
+  /** 失敗した行動のあと、記録だけを保存する */
+  private saveRequestOnly(shopId: number, id: string, hash: string, n: number, results: unknown[], stopped: boolean): void {
+    const dt = this.world.shops.find((x) => x.id === shopId && x.status);
+    if (!dt) return;
+    this.writeRequestRecord(dt, id, hash, n, results, stopped);
+    this.persist([], this.clock());
   }
 
   /** 募集は Muse Party でつながった店だけ (1人1店が確かめられる店)。Party 連携のない動かし方では誰でも使える */
@@ -810,11 +927,14 @@ export class App {
       this.onShopClosed(shopId);
       throw new HttpError(401, '店が見つかりません (閉店した可能性があります)');
     }
-    // 募集の知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る (ほかの記録に押し出されないように)
+    // 募集の「終わった」知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る
+    // (取り下げ・再掲など、知らせない記録に押し出されないように。監査 A10)
     const logs = this.store
-      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 30, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor })
+      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 200, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor, contains: watch.ORDER_CLOSED_WORDS })
       .map((l) => ({ id: l.id, time: l.time, msg: l.msg }));
     const d = watch.peekData(g, dt, logs);
+    // 管理者として許可した店 (ミュート・トパーズ) にだけ、管理の知らせを足す。ほかの店には出さない
+    if (this.adminShops().includes(dt.id) && watch.alertSetting(dt).mode !== 'off') d.alerts.push(...this.adminAlerts(g.now));
     const marks = d.alerts.map((a) => watch.alertMark(a.key));
     const cursor = marks.join('.');
     const seenParam = q.get('seen');
@@ -833,6 +953,27 @@ export class App {
     const withFacts = q.get('facts') === '1';
     const json = { ...head, cursor, new: fresh, alerts: d.alerts, ...(withFacts ? { facts } : {}) };
     return { status: 200, headers, text: v.peekText(d, fresh, cursor, withFacts), json };
+  }
+
+  /**
+   * 管理者向けの知らせ (type "admin")。目安箱の未対応の案と、24時間以内の開店・閉店・倒産。
+   * 鍵は案・記録ごとに変わるので、新しいものだけが番犬に「新着」として届く
+   */
+  private adminAlerts(now: number): watch.Alert[] {
+    const out: watch.Alert[] = [];
+    const { open, bugs, latest } = this.store.openSuggestionSummary();
+    if (latest) {
+      const head = [...latest.text.replace(/\s+/g, ' ')].slice(0, 40).join('');
+      out.push({
+        type: 'admin',
+        level: bugs ? 'high' : 'mid',
+        key: `admin:suggest:${latest.id}`,
+        msg: `目安箱に未対応の案${open}件${bugs ? ` (うち不具合${bugs})` : ''}。新しいもの #${latest.id} ${latest.shopname} [${v.CATEGORY_JA[latest.category] ?? latest.category}] ${head} … GET /api/v1/admin/suggestions`,
+      });
+    }
+    const logs = this.store.readLogs(0, { scope: 'town', mode: 1, limit: 10, fromTime: now - 86400, contains: ADMIN_SHOP_WORDS });
+    for (const l of logs.reverse()) out.push({ type: 'admin', level: 'low', key: `admin:log:${l.id}`, msg: l.msg });
+    return out;
   }
 
   /** 見張りの設定。{"type":"alerts","mode":"save"|"normal"|"power"|"off","on":[...],"off":[...]} */
@@ -864,47 +1005,82 @@ export class App {
   // ---------------------------------------------------------------------------
   // 出来事・掲示板 (既読の位置はサーバーが覚えておく)
 
+  /** 出来事の既読の位置 (自分 / 街) */
+  private seenLog(dt: Shop): { me: number; town: number } {
+    const base = Number(dt.user[SEEN_LOG] ?? 0);
+    return { me: Number(dt.user[SEEN_LOG_ME] ?? base), town: Number(dt.user[SEEN_LOG_TOWN] ?? base) };
+  }
+
   private unreadCounts(dt: Shop): v.DigestInput {
-    const seen = Number(dt.user[SEEN_LOG] ?? 0);
+    const seen = this.seenLog(dt);
     return {
-      newMine: this.store.countLogsSince(dt.id, seen, 'me'),
-      newTown: this.store.countLogsSince(dt.id, seen, 'town'),
+      newMine: this.store.countLogsSince(dt.id, seen.me, 'me'),
+      newTown: this.store.countLogsSince(dt.id, seen.town, 'town'),
       newChat: countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
       newReplies: this.store.countSuggestionUpdates(dt.id, Number(dt.user[SEEN_SUGGEST] ?? 0)),
       newBbs: countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
     };
   }
 
+  /**
+   * 出来事。since も all も無ければ未読ぶんを返して既読にする。
+   * 未読が limit より多いときは古いほうから limit 件を返し、返したところまでだけ既読にする
+   * (絞り込み・件数で返さなかった記録まで既読にしない。続きはもう一度 GET すれば読める。監査 A07)
+   */
   private readLog(dt: Shop, q: URLSearchParams): Reply {
-    const scope = (q.get('scope') ?? 'all') as 'me' | 'town' | 'all';
+    const scope = (['me', 'town', 'all'].includes(q.get('scope') ?? '') ? q.get('scope') : 'all') as 'me' | 'town' | 'all';
     const all = q.get('all') === '1';
-    const since = q.get('since') !== null ? Number(q.get('since')) : all ? 0 : Number(dt.user[SEEN_LOG] ?? 0);
     const limit = clampNum(q.get('limit'), 1, 200, all ? 30 : 50);
-    const logs = this.store.readLogs(dt.id, { since, limit, scope });
-    // 既読の位置を進める (since を明示したときは進めない)
-    if (q.get('since') === null && !all) {
-      const last = this.store.lastLogId(dt.id);
-      if (String(last) !== dt.user[SEEN_LOG]) {
-        dt.user[SEEN_LOG] = String(last);
-        this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
-      }
+    if (q.get('since') !== null || all) {
+      const since = q.get('since') !== null ? Number(q.get('since')) : 0;
+      const logs = this.store.readLogs(dt.id, { since, limit, scope });
+      return { status: 200, text: v.logText(logs), json: logs };
     }
-    return { status: 200, text: v.logText(logs), json: logs };
+    const seen = this.seenLog(dt);
+    const logs = this.store.readUnreadLogs(dt.id, seen.me, seen.town, scope, limit);
+    const last = logs.length ? logs[logs.length - 1].id : 0;
+    let changed = false;
+    if (last && scope !== 'town' && last > seen.me) {
+      dt.user[SEEN_LOG_ME] = String(last);
+      changed = true;
+    }
+    if (last && scope !== 'me' && last > seen.town) {
+      dt.user[SEEN_LOG_TOWN] = String(last);
+      changed = true;
+    }
+    if (changed) {
+      dt.user[SEEN_LOG] = String(Math.min(Number(dt.user[SEEN_LOG_ME] ?? seen.me), Number(dt.user[SEEN_LOG_TOWN] ?? seen.town)));
+      this.persist([], this.clock());
+    }
+    // 表示はこれまでどおり新しい順
+    logs.reverse();
+    const after = this.seenLog(dt);
+    const left = (scope !== 'town' ? this.store.countLogsSince(dt.id, after.me, 'me') : 0) + (scope !== 'me' ? this.store.countLogsSince(dt.id, after.town, 'town') : 0);
+    const text = v.logText(logs) + (left ? `(まだ未読が${left}件あります。もう一度 GET すると続きを読めます)\n` : '');
+    return { status: 200, text, json: logs, headers: { 'x-unread-left': String(left) } };
   }
 
   private readBoard(dt: Shop, board: 'chat' | 'bbs', q: URLSearchParams): Reply {
     const key = board === 'chat' ? SEEN_CHAT : SEEN_BBS;
     const all = q.get('all') === '1';
-    const since = q.get('since') !== null ? Number(q.get('since')) : all ? 0 : Number(dt.user[key] ?? 0);
-    const posts = this.store.readPosts(board, since, clampNum(q.get('limit'), 1, 100, 30));
-    if (q.get('since') === null && !all) {
-      const last = this.store.lastPostId(board);
-      if (String(last) !== dt.user[key]) {
-        dt.user[key] = String(last);
-        this.store.saveWorld(this.world, [], this.clock(), this.config.logExpireTime * 2);
-      }
+    const limit = clampNum(q.get('limit'), 1, 100, 30);
+    if (q.get('since') !== null || all) {
+      const since = q.get('since') !== null ? Number(q.get('since')) : 0;
+      const posts = this.store.readPosts(board, since, limit);
+      return { status: 200, text: v.postsText(posts), json: posts };
     }
-    return { status: 200, text: v.postsText(posts), json: posts };
+    // 未読を古いほうから limit 件。返したところまでだけ既読にする (監査 A07)
+    const seen = Number(dt.user[key] ?? 0);
+    const posts = this.store.readPostsAfter(board, seen, limit);
+    const last = posts.length ? posts[posts.length - 1].id : 0;
+    if (last > seen) {
+      dt.user[key] = String(last);
+      this.persist([], this.clock());
+    }
+    posts.reverse();
+    const left = this.store.lastPostId(board) > Math.max(seen, last) ? this.store.readPosts(board, Math.max(seen, last), 100).length : 0;
+    const text = v.postsText(posts) + (left ? `(まだ未読が${left}件あります。もう一度 GET すると続きを読めます)\n` : '');
+    return { status: 200, text, json: posts, headers: { 'x-unread-left': String(left) } };
   }
 
   /** 原作 WriteBBS: 掲示板・井戸端への書き込み */
@@ -979,8 +1155,15 @@ export class App {
     this.rateLimit('a:' + sha256(token ?? '').slice(0, 16));
     if (this.isAdminToken(token)) return;
     if (!token) throw new HttpError(403, '管理用のトークンが必要です');
-    const shopId = await this.auth(req).catch(() => undefined);
-    if (shopId === undefined || !this.adminShops().includes(shopId)) throw new HttpError(403, '管理者として許可されていません');
+    // Party の混雑・障害 (429 / 503) は「許可されていない」にせず、そのまま返す (待てば通る。監査 B02)
+    const shopId = await this.auth(req, true).catch((e: unknown) => {
+      if (e instanceof HttpError && (e.status === 429 || e.status === 503)) throw e;
+      return undefined;
+    });
+    // 許可した店でも、営業中であること (不在閉店・倒産のあとに残ったトークンで管理できないように。監査 A04)
+    if (shopId === undefined || !this.adminShops().includes(shopId) || !this.world.shops.some((x) => x.id === shopId && x.status)) {
+      throw new HttpError(403, '管理者として許可されていません');
+    }
   }
 
   private async admin(req: IncomingMessage, method: string, p: string, q: URLSearchParams): Promise<Reply> {
@@ -1015,6 +1198,20 @@ export class App {
       if (code !== undefined && code.length < 8) throw new HttpError(400, '招待コードは8文字以上にしてください (null で登録停止)');
       this.store.setSetting('invite_hash', code ? sha256(code) : undefined);
       return { status: 200, text: code ? 'OK 招待コードを変えました\n' : 'OK 招待コードでの登録を止めました\n', json: { ok: true } };
+    }
+    if (method === 'POST' && p === '/token') {
+      // 店のトークンを出し直す (前のトークンは止める)。招待コードで開店して返事を受け取り損ねたとき・漏れたとき用 (監査 A03 / C04)
+      const body = await this.body(req);
+      const shopId = Number(body.shop);
+      if (!Number.isInteger(shopId) || !this.world.shops.some((x) => x.id === shopId && x.status)) throw new HttpError(404, 'その店はありません (shop に営業中の店idを入れてください)');
+      const token = newToken('so_');
+      this.store.replaceTokens(shopId, token, this.clock());
+      const party = this.store.isPartyShop(shopId);
+      return {
+        status: 200,
+        text: `OK 店id ${shopId} のトークンを出し直しました (前の so_ トークンは使えません)\ntoken ${token}\n` + (party ? 'この店は Muse Party でもつながっています。Party のトークンはそのまま使えます\n' : ''),
+        json: { ok: true, shop_id: shopId, token, party },
+      };
     }
     if (method === 'GET' && p === '/stats') {
       const { g } = this.game();
@@ -1084,6 +1281,34 @@ export class App {
 
   async loadHelp(path: string): Promise<void> {
     (this as { helpText: string }).helpText = await readFile(path, 'utf8');
+  }
+}
+
+/** 管理者に知らせる街の記録 (開店・閉店・倒産) */
+const ADMIN_SHOP_WORDS = ['が新装開店しました', 'が閉店しました', 'が経営者不在により閉店しました', 'が資金不足により倒産しました'];
+
+/** request_id の記録 (店の user に JSON で持つ。監査 A05) */
+const REQUESTS = '_requests';
+const REQUEST_KEEP = 20;
+const REQUEST_TTL = 86400;
+interface RequestRec {
+  id: string;
+  /** 送った中身 (request_id を除く) のハッシュ */
+  h: string;
+  at: number;
+  /** 何件目まで済んだか */
+  n: number;
+  r: unknown[];
+  /** stop_on_error で、そこで止めた (送り直しでも続きをしない) */
+  stopped?: boolean;
+}
+
+function readRequests(dt: Shop, now: number): RequestRec[] {
+  try {
+    const list = JSON.parse(dt.user[REQUESTS] ?? '[]') as RequestRec[];
+    return Array.isArray(list) ? list.filter((x) => x && now - x.at < REQUEST_TTL) : [];
+  } catch {
+    return [];
   }
 }
 
