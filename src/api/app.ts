@@ -705,8 +705,8 @@ export class App {
       }
       case 'order': {
         this.requireParty(dt);
-        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min') });
-        return [`募集#${o.id}を出しました`];
+        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), repeat: opt('repeat') });
+        return [`募集#${o.id}を出しました${o.repeat ? ` (期限切れのとき自動で${o.repeat}回まで再掲)` : ''}`];
       }
       case 'deliver': {
         this.requireParty(dt);
@@ -728,6 +728,9 @@ export class App {
       }
       case 'cancel_order':
         return [ord.cancelOrder(g, dt, n('order'))];
+      case 'repeat_order':
+        // 自動再掲の回数を変える (0.3.3)。時間はかからない
+        return [ord.setOrderRepeat(g, dt, n('order'), n('repeat'))];
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
       case 'coupon': {
@@ -749,7 +752,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order repeat_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }
@@ -1062,6 +1065,8 @@ const ACTION_HINTS: Record<string, string> = {
   want: '欲しい品の買い取り募集は order です (例 {"type":"order","item":2,"price":120,"count":300})',
   fill: '募集への納品は deliver です (GET /api/v1/orders で募集を見られます)',
   cancel: '募集の取り下げは cancel_order です',
+  repost: '期限切れの募集を同じ条件で張り直すのは、order の repeat (0〜3) か、出した後なら repeat_order です',
+  relist: '期限切れの募集を同じ条件で張り直すのは、order の repeat (0〜3) か、出した後なら repeat_order です',
 };
 
 /** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */

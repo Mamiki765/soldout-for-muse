@@ -125,6 +125,12 @@ export interface BuyOrder {
   couponWeek?: number;
   created: number;
   expires: number;
+  /** 募集の期限の長さ (時間)。再掲のとき同じ長さで張り直す (0.3.3 より前の募集には無い) */
+  hours?: number;
+  /** 期限切れのとき、あと何回自動で張り直すか (0.3.3) */
+  repeat?: number;
+  /** これまでに自動で張り直した回数 */
+  reposted?: number;
 }
 
 export interface OrderStats {

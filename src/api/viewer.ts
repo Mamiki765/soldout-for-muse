@@ -311,7 +311,7 @@ function ordersPage(g: Game): string {
   if (!d.orders.length) return s + '募集はありません';
   s += '<table><tr><td>番号</td><td>商品</td><td>単価</td><td>残り/募集</td><td>最低納品数</td><td>募集した店</td><td>締切</td></tr>';
   for (const o of d.orders) {
-    s += `<tr><td>#${o.id}</td><td>${itemIcon(g, o.item)}${esc(o.name)}</td><td>￥${o.price} (${o.percent}%)</td><td>${o.left}/${o.count}${esc(o.scale)}</td><td>${o.min || '　'}</td><td>${esc(o.shopname)}</td><td>${jst(o.expires)}</td></tr>`;
+    s += `<tr><td>#${o.id}</td><td>${itemIcon(g, o.item)}${esc(o.name)}</td><td>￥${o.price} (${o.percent}%)</td><td>${o.left}/${o.count}${esc(o.scale)}</td><td>${o.min || '　'}</td><td>${esc(o.shopname)}</td><td>${jst(o.expires)}${o.repeat ? ` (再掲あと${o.repeat}回)` : ''}</td></tr>`;
   }
   return s + '</table>';
 }

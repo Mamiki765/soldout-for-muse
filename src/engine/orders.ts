@@ -26,6 +26,8 @@ export const ORDER_RULES = {
   fillsPerDay: 10,
   /** 1セット (1回の deliver) に入れられる募集の数 */
   linesPerSet: 8,
+  /** 期限切れのときに自動で張り直せる回数の上限 (0.3.3)。張り直すたびに「1期に出せる募集の数」を1回使う */
+  maxRepeat: 3,
 };
 
 /** 決まりの一文。ヘルプ・告知・一覧の先頭に同じ文を置く (Museが迷わないように。リカさん 2026-11-14) */
@@ -33,6 +35,10 @@ export const ORDER_RULES_LINE =
   `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
   `募集は同時に棚の数まで・1期に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
   `納品は同じ店へ1期1セットまで (その店の募集なら${ORDER_RULES.linesPerSet}種類まで1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る (1期=決算から次の決算まで)。`;
+
+/** 自動再掲の一文 (0.3.3)。一覧ではきまりの次に置く */
+export const ORDER_REPEAT_LINE =
+  `自動再掲 (repeat 0〜${ORDER_RULES.maxRepeat}) を付けると、期限切れのとき残りの数を同じ単価・同じ期限の長さで張り直す (届いた分はそのとき倉庫へ、張り直すたびに募集の回数を1回使う)。`;
 
 /** 募集の一覧 (古い保存データには無いので、無ければ作る) */
 export function orders(g: Game): BuyOrder[] {
@@ -79,6 +85,14 @@ export interface OrderRequest {
   hours: number;
   /** 1回の納品で受け付ける最低数 (任意) */
   min?: number;
+  /** 期限切れのとき自動で張り直す回数 (任意、0〜maxRepeat) */
+  repeat?: number;
+}
+
+function checkRepeat(v: number | undefined): number {
+  const r = v === undefined ? 0 : Math.trunc(v);
+  if (!(r >= 0 && r <= ORDER_RULES.maxRepeat)) throw new GameError(`範囲外: 自動再掲 (repeat) は0〜${ORDER_RULES.maxRepeat}回です`);
+  return r;
 }
 
 /** 募集を出す */
@@ -98,6 +112,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   if (count > room) throw new GameError(`上限: ${item.name}の所持上限。今の在庫と募集中の残りを足すと、あと${Math.max(0, room)}${item.scale}までしか募集できません`);
   const min = req.min === undefined ? 0 : Math.trunc(req.min);
   if (min < 0 || min > count) throw new GameError('最低納品数は 0〜数量 で指定してください');
+  const repeat = checkRepeat(req.repeat);
 
   const mine = orders(g).filter((o) => o.shop === dt.id).length;
   if (mine >= dt.showcasecount) throw new GameError(`上限: 同時に出せる募集 ${mine}/${dt.showcasecount}件 (棚の数まで)。あと0件です。取り下げるか、締まると出せます`);
@@ -126,10 +141,66 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
     ...(fromCoupon ? { coupon: fromCoupon, couponWeek: g.couponWeekStart() } : {}),
     created: g.now,
     expires: g.now + hours * 3600,
+    hours,
+    ...(repeat ? { repeat } : {}),
   };
   orders(g).push(o);
-  g.writeLog(0, dt.id, 0, `${item.name}を${count}${item.scale}@￥${price}で募集しました (預り￥${total}、${hours}時間)`);
+  g.writeLog(0, dt.id, 0, `${item.name}を${count}${item.scale}@￥${price}で募集しました (預り￥${total}、${hours}時間${repeat ? `、自動再掲${repeat}回` : ''})`);
   return o;
+}
+
+/** 預かっていた品をまとめて渡す。締めるまでに棚などで買い足して上限を超えた分は、原作の郵便と同じく破棄 */
+function handOver(g: Game, o: BuyOrder, buyer: Shop): { got: number; put: number } {
+  const got = o.count - o.left;
+  const put = Math.max(0, Math.min(got, g.items[o.item].limit - buyer.item[o.item - 1]));
+  buyer.item[o.item - 1] += put;
+  return { got, put };
+}
+
+/**
+ * 期限切れの募集を、残りの数・同じ単価・同じ期限の長さで張り直す (自動再掲 0.3.3)。張り直せたら true。
+ * 届いていた分はここで倉庫へ渡し、新しい回として数え直す。預り金は残りの代金そのままなので動かさない。
+ * 取引時間は張り直しでは払わない (棚で1回買うのと同じく、募集1件で1回ぶん)。一度でも届いたら、その時間は使ったものとして戻さない。
+ * 張り直すたびに「1期に出せる募集の数」を1回使い、使い切っていたら張り直さずに締める。
+ */
+function repostOrder(g: Game, o: BuyOrder, buyer: Shop): boolean {
+  const item = g.items[o.item];
+  const stats = orderStats(g);
+  const maxPosts = buyer.showcasecount * ORDER_RULES.postsPerShelf;
+  if ((stats.posted[buyer.id] ?? 0) >= maxPosts) return false;
+  if (buyer.item[o.item - 1] >= item.limit) return false;
+  const { got, put } = handOver(g, o, buyer);
+  if (got > 0) {
+    o.time = 0;
+    delete o.coupon;
+    delete o.couponWeek;
+  }
+  bump(stats.posted, buyer.id);
+  o.repeat = (o.repeat ?? 0) - 1;
+  o.reposted = (o.reposted ?? 0) + 1;
+  o.count = o.left;
+  o.created = o.expires;
+  o.expires += (o.hours ?? 24) * 3600;
+  g.writeLog(
+    0,
+    buyer.id,
+    0,
+    `募集#${o.id} ${item.name}を再掲しました (残り${o.left}${item.scale}@￥${o.price}、${o.hours ?? 24}時間、あと${o.repeat}回` +
+      (got ? `。届いた${got}${item.scale}を倉庫へ` + (put < got ? `、所持上限を超えた${got - put}${item.scale}は破棄` : '') : '') +
+      ')',
+  );
+  return true;
+}
+
+/** 自分の募集の自動再掲の回数を変える (時間はかからない) */
+export function setOrderRepeat(g: Game, dt: Shop, id: number, repeat: number): string {
+  const o = orders(g).find((x) => x.id === Math.trunc(id));
+  if (!o || o.shop !== dt.id) throw new GameError('その募集はありません');
+  const r = checkRepeat(repeat);
+  if (r) o.repeat = r;
+  else delete o.repeat;
+  if (!o.hours) o.hours = Math.max(ORDER_RULES.minHours, Math.min(ORDER_RULES.maxHours, Math.round((o.expires - o.created) / 3600)));
+  return `募集#${o.id}の自動再掲を${r ? `あと${r}回` : 'なし'}にしました`;
 }
 
 /** 預けた資金と時間のうち、使わなかった分を返して募集を消す */
@@ -138,11 +209,8 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
   const i = list.indexOf(o);
   if (i >= 0) list.splice(i, 1);
   if (!buyer) return '';
-  // 預かっていた品をまとめて渡す。締めるまでに棚などで買い足して上限を超えた分は、原作の郵便と同じく破棄
   const item = g.items[o.item];
-  const got = o.count - o.left;
-  const put = Math.max(0, Math.min(got, item.limit - buyer.item[o.item - 1]));
-  buyer.item[o.item - 1] += put;
+  const { got, put } = handOver(g, o, buyer);
   let back = o.escrow;
   let toStock = 0;
   if (buyer.money + back > g.maxMoney) {
@@ -187,9 +255,13 @@ export function sweepOrders(g: Game, upTo: number = g.now): boolean {
       // 閉店した店の資金は 0 になる (原作 CloseShop) ので、預り金も街に消える
       list.splice(list.indexOf(o), 1);
       changed = true;
-    } else if (o.expires <= upTo) {
-      closeOrder(g, o, buyer, '期限切れで終了');
-      changed = true;
+    } else {
+      // 自動再掲が残っていれば張り直す。長くアクセスが無かったときは、前の期限から続けて何回分でも
+      while (o.expires <= upTo && (o.repeat ?? 0) > 0 && repostOrder(g, o, buyer)) changed = true;
+      if (o.expires <= upTo) {
+        closeOrder(g, o, buyer, (o.repeat ?? 0) > 0 ? '期限切れで終了 (今期の募集回数か所持上限のため再掲せず)' : '期限切れで終了');
+        changed = true;
+      }
     }
   }
   return changed;
@@ -286,5 +358,7 @@ export function orderView(g: Game, o: BuyOrder) {
     got: o.count - o.left,
     min: o.min,
     expires: o.expires,
+    /** 期限切れのとき、あと何回自動で張り直すか */
+    repeat: o.repeat ?? 0,
   };
 }
