@@ -1679,6 +1679,18 @@
                "key" : "point",
                "op" : "*",
                "value" : 2
+            },
+            {
+               "item_no" : 114,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 114,
+               "key" : "point",
+               "op" : "*",
+               "value" : 2
             }
          ],
          "plustime" : 86400,
@@ -7111,6 +7123,67 @@
                   {
                      "count" : 5,
                      "item_no" : 104,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作る",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : 3600,
+               "func" : null,
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 2,
+                     "item_no" : 114,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "固めプリンを作ります",
+               "jobs" : [
+                  {
+                     "job" : "cow",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "固めプリンを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "固めプリンを作りました",
+               "params" : [
+                  null,
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 5,
+                     "item_no" : 25,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 26,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 3,
+                     "item_no" : 103,
                      "proba" : 1000
                   }
                ]
@@ -13320,6 +13393,35 @@
          "type" : 2,
          "uses" : [],
          "wslimit" : 0.2
+      },
+      {
+         "code" : "firm-pudding",
+         "cost" : 70,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミノ牛乳から作った固めのプリン　カラメルは苦め",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "固めプリン",
+         "no" : 114,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 2200,
+         "pricebase" : 0,
+         "pricehalf" : 0,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 3,
+         "uses" : [],
+         "wslimit" : 0
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",
