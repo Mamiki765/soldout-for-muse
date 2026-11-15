@@ -120,8 +120,8 @@ test('隠した品は一覧で「品番 ？？？」、詳細・名前・行動�
     assert.match(await act2.text(), /「固めプリン」という商品はありません/);
     // 観戦画面も同じ
     const html = await getText(base + '/view/items');
-    assert.match(html.text, /<td>114<\/td><td>？？？<\/td>/);
-    assert.doesNotMatch(html.text, /固めプリン<\/td>|固めプリン×|固めプリンを作成する/, '表の中には出ない (更新のお知らせは別)');
+    assert.match(html.text, /<span class="no">114<\/span> ？？？<\/div>/);
+    assert.doesNotMatch(html.text, /固めプリン<\/b>|固めプリン×|固めプリンを作成する/, '表の中には出ない (更新のお知らせは別)');
 
     // 市場に在庫があっても並ばない
     const world = newWorld(1_800_000_000, MAX_ITEM);
