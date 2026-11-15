@@ -6,7 +6,7 @@
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
 //   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
-// 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (60、街の時間を進めにいく間隔。0で止める), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
+// 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
 //           BASE_PATH (別サイトの下に置くときの頭。例 /soldout)
@@ -111,8 +111,9 @@ if (cmd === 'set-invite') {
     partyPublicUrl: env.PARTY_PUBLIC_URL ?? env.PARTY_URL ?? '',
     basePath: env.BASE_PATH ?? '',
   });
-  // 誰もアクセスしなくても街の時間が5分刻みで進むように (TICK_SECONDS=0 で止める)
-  const tickSeconds = Number(env.TICK_SECONDS ?? 60);
+  // TICK_SECONDS を入れると、誰もアクセスしなくても街の時間がその間隔で確かめられ、5分刻みで進む。
+  // 既定は 0 (止める): 今はアクセスだけで5分ごとに進んでいるので、番犬運用で止まると分かってから入れる (リカさん 2026-11-15)
+  const tickSeconds = Number(env.TICK_SECONDS ?? 0);
   if (tickSeconds > 0) setInterval(() => app.tick(), tickSeconds * 1000).unref();
   await app.loadHelp(resolve(env.HELP_PATH ?? 'docs/API.md')).catch(() => console.warn('API.md が読めませんでした'));
   const server = createServer((req, res) => {
