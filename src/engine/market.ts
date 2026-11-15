@@ -2,6 +2,7 @@
 // Copyright (C) 2001-2004 MUTOYS (original), SOLD OUT for Muse contributors (port)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
+import { isPublicItem } from '../data/catalog.js';
 import type { Game } from './game.js';
 
 /** 原作 GetMarketStatus: 陳列在庫・相場・需要供給バランス(uppoint)を計算して @ITEM に書き込む */
@@ -63,7 +64,8 @@ export interface WholeStoreCase {
 /** 原作 GetWholeStore: 市場を「店」の形にしたもの。在庫が多いほど安くなる */
 export function getWholeStore(g: Game): WholeStoreCase[] {
   const list: number[] = [];
-  for (let i = 0; i < g.maxItem; i++) if (g.world.wholestore[i]) list.push(i);
+  // 隠した品 (item-ref.json) は市場に並べない (見えない・買えない)
+  for (let i = 0; i < g.maxItem; i++) if (g.world.wholestore[i] && isPublicItem(i + 1)) list.push(i);
   list.sort((a, b) => g.items[a + 1].sort - g.items[b + 1].sort);
   const cases: WholeStoreCase[] = [];
   for (const i of list) {

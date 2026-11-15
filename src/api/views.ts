@@ -2,12 +2,12 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { CATALOG, itemNoByName } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
-import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
+import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
@@ -341,20 +341,83 @@ export function rankingText(d: ReturnType<typeof rankingData>, periodLog: { msg:
 }
 
 // ---------------------------------------------------------------------------
-// items: 商品の一覧 (変わらないので最初に 1 回取れば十分)
+// items: 商品の一覧と、1 品の詳しい説明
+//   一覧: 品番・名前・分類・標準価格 (定義の値。イベントでは変わらない) と「入手」(←道具の品番 / 市場 / 他) だけ。
+//         版が変わるまで同じなので、ETag の 304 がそのまま効く
+//   詳細: 作り方 (この品が手に入る使い方の逆引き)・材料になる先・使い方 (この品を使うと何ができるか)
+//   隠した品 (data/item-ref.json) は一覧で「品番 ？？？」、詳細は無い品と同じ。ほかの品の行では名前を ？？？ にする
 
-export function itemsData(g: Game) {
+/** 道具の品番・使い方の番号の組 */
+interface UseRef {
+  item: number;
+  use: number;
+}
+
+/** 逆引きの索引 (定義から1回だけ作る): 品番 → その品が成果に入っている使い方 / 材料に入っている使い方 */
+let reverseIndex: { madeBy: Map<number, UseRef[]>; usedIn: Map<number, UseRef[]>; version: number } | undefined;
+
+function reverse() {
+  if (reverseIndex && reverseIndex.version === itemVisibilityVersion()) return reverseIndex;
+  const madeBy = new Map<number, UseRef[]>();
+  const usedIn = new Map<number, UseRef[]>();
+  const push = (m: Map<number, UseRef[]>, no: number, r: UseRef) => {
+    const list = m.get(no) ?? m.set(no, []).get(no)!;
+    if (!list.some((x) => x.item === r.item && x.use === r.use)) list.push(r);
+  };
+  for (let no = 1; no <= MAX_ITEM; no++) {
+    const it = BASE_ITEMS[no];
+    if (!it || !isPublicItem(no)) continue; // 隠した品の使い方は、どこにも逆引きで出さない
+    for (const u of it.uses) {
+      if (!u.get.every((l) => isPublicItem(l.item_no)) || makesHiddenItem(no, u.no)) continue; // 隠した品が出る使い方は無いものとして扱う
+      for (const l of u.get) push(madeBy, l.item_no, { item: no, use: u.no });
+      for (const l of u.use) if (l.item_no !== no) push(usedIn, l.item_no, { item: no, use: u.no });
+    }
+  }
+  for (let no = 1; no <= MAX_ITEM; no++) {
+    for (const [item, use] of itemNote(no).from) if (isPublicItem(item)) push(madeBy, no, { item, use });
+  }
+  reverseIndex = { madeBy, usedIn, version: itemVisibilityVersion() };
+  return reverseIndex;
+}
+
+/** 名前 (隠した品は ？？？) */
+function shownName(no: number): string {
+  return itemVisibility(no) === 'hidden' ? HIDDEN_NAME : BASE_ITEMS[no]?.name ?? '';
+}
+
+/** 一覧と詳細に共通の「入手」: 逆引きの道具の品番・市場に入ってくるか・それ以外 */
+function sourceOf(no: number) {
+  const from = [...new Set((reverse().madeBy.get(no) ?? []).map((r) => r.item))];
+  const market = BASE_ITEMS[no].plus > 0;
+  return { from, market, other: !from.length && !market };
+}
+
+export function itemsData(g: Game, filter: { type?: string; q?: string } = {}) {
   const out = [];
   for (let no = 1; no <= g.maxItem; no++) {
-    const it = g.items[no];
+    const vis = itemVisibility(no);
+    if (vis === 'hidden') {
+      if (!filter.type && !filter.q) out.push({ item: no, name: HIDDEN_NAME, hidden: true as const });
+      continue;
+    }
+    const it = BASE_ITEMS[no];
+    const type = CATALOG.itemTypes[it.type];
+    if (filter.type && type !== filter.type) continue;
+    if (filter.q && !it.name.includes(filter.q)) continue;
+    if (vis === 'teaser') {
+      out.push({ item: no, name: it.name, teaser: true as const });
+      continue;
+    }
+    const src = sourceOf(no);
     out.push({
       item: no,
       name: it.name,
-      type: CATALOG.itemTypes[it.type],
+      type,
       price: it.price,
       cost: it.cost,
       limit: it.limit,
-      uses: it.uses.length,
+      from: src.from,
+      market: src.market,
       flags: flagWords(it.flag),
     });
   }
@@ -369,27 +432,97 @@ function flagWords(flag: string): string[] {
   return out;
 }
 
+function sourceWord(from: number[], market: boolean): string {
+  const w = [from.length ? '←' + from.join(',') : '', market ? '市場' : ''].filter(Boolean).join(' ');
+  return w || '他';
+}
+
 export function itemsText(d: ReturnType<typeof itemsData>): string {
-  const lines = ['# 商品 品番 名前 分類 標準価格 維持費/日 上限 使い方の数 注記'];
-  for (const i of d) lines.push(`${i.item} ${i.name} ${i.type} ${i.price} ${i.cost} ${i.limit} ${i.uses}${i.flags.length ? ' ' + i.flags.join(',') : ''}`);
+  const lines = ['# 商品 品番 名前 分類 標準価格 維持費/日 上限 入手(←N=品番Nの使い方で手に入る/市場/他) 注記。作り方は GET /api/v1/items/品番'];
+  for (const i of d) {
+    if ('hidden' in i) lines.push(`${i.item} ${i.name}`);
+    else if ('teaser' in i) lines.push(`${i.item} ${i.name} 予告`);
+    else lines.push(`${i.item} ${i.name} ${i.type} ${i.price} ${i.cost} ${i.limit} ${sourceWord(i.from, i.market)}${i.flags.length ? ' ' + i.flags.join(',') : ''}`);
+  }
   return lines.join('\n') + '\n';
 }
 
-/** 1 商品の詳しい説明と使い方。dt があれば、その店で今使えるかも付ける */
+/** 品番か名前 (商品コードも可) から、詳細を見せてよい品番。隠した品・無い品は undefined */
+export function findItem(key: string): number | undefined {
+  const k = key.trim();
+  let no: number | undefined;
+  if (/^\d+$/.test(k)) no = Number(k);
+  else {
+    for (let i = 1; i <= MAX_ITEM; i++) if (BASE_ITEMS[i] && (BASE_ITEMS[i].name === k || BASE_ITEMS[i].code === k)) no = i;
+  }
+  if (no === undefined || no < 1 || no > MAX_ITEM || itemVisibility(no) === 'hidden') return undefined;
+  return no;
+}
+
+/** 職業の補正の言葉 (例: 山師 時間1/2) */
+function jobWords(u: RtUse): string[] {
+  return u.def.jobs.map((j) => {
+    const what = j.key === 'times' || j.key === 'time' ? '時間' : j.key === 'money' ? '費用' : j.key;
+    const how = j.op === '/' ? `1/${j.value}` : j.op === '*' ? `×${j.value}` : j.op === '=' ? `=${j.value}` : `${j.op}${j.value}`;
+    return `${CATALOG.jobTypes[j.job] ?? j.job} ${what}${how}`;
+  });
+}
+
+const lineOut = (l: { no: number; count: number; proba: number }, key: 'consume' | 'chance') => ({ item: l.no, name: shownName(l.no), count: l.count, [key]: l.proba / 10 }) as { item: number; name: string; count: number } & Record<typeof key, number>;
+
+/** 作り方の1行 (道具 tool の使い方 useNo)。dt があれば、その店での時間と今使えるかも付ける */
+function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
+  const uses = dt ? checkUses(g, dt, loadUses(g, tool)) : loadUses(g, tool);
+  const u = uses.find((x) => x.no === useNo);
+  if (!u) return undefined;
+  const skill = u.expno;
+  const owned = !!dt && (dt.item[tool - 1] ?? 0) > 0;
+  // 職業の補正は店ごとに checkUses が time に掛ける。定義の時間は補正前で出す
+  return {
+    item: tool,
+    tool: shownName(tool),
+    use: u.no,
+    name: u.name,
+    time: u.def.time,
+    time_skilled: u.def.exptime,
+    money: u.money,
+    needs: u.use.map((l) => lineOut(l, 'consume')),
+    gets: u.result.create.map((l) => lineOut(l, 'chance')),
+    skill_item: { item: skill, name: shownName(skill) },
+    needexp: Math.trunc(u.needexp / 10),
+    jobs: jobWords(u),
+    ...(dt ? { my_time: itemUseTime(dt, u), usable: owned && !!u.useok } : {}),
+    ...(dt && !owned ? { why: `${shownName(tool)}を持っていません` } : dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
+  };
+}
+
+/**
+ * 1 商品の詳しい説明。dt があれば、その店での時間と今使えるかも付ける。
+ * 隠した品は呼ぶ前に findItem で弾く。予告の品は teaserText を返す
+ */
 export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
   const it = g.items[itemno];
+  const base = BASE_ITEMS[itemno];
   const uses = dt ? checkUses(g, dt, loadUses(g, itemno)) : loadUses(g, itemno);
   const owned = !!dt && (dt.item[itemno - 1] ?? 0) > 0;
+  const rev = reverse();
+  const src = sourceOf(itemno);
+  const note = itemNote(itemno).note;
   return {
     item: itemno,
     name: it.name,
     info: it.info,
     type: CATALOG.itemTypes[it.type],
-    price: it.price,
+    price: base.price,
+    ...(it.price !== base.price ? { price_now: it.price } : {}),
     cost: it.cost,
     limit: it.limit,
     flags: flagWords(it.flag),
-    ...(it.expitem ? { skill_item: { item: it.expitem, name: g.items[it.expitem].name } } : {}),
+    market: src.market,
+    ...(note ? { note } : {}),
+    ...(it.expitem ? { skill_item: { item: it.expitem, name: shownName(it.expitem) } } : {}),
+    made_by: (rev.madeBy.get(itemno) ?? []).map((r) => recipeData(g, r.item, r.use, dt)).filter((x) => x !== undefined),
+    used_in: (rev.usedIn.get(itemno) ?? []).map((r) => ({ item: r.item, tool: shownName(r.item), use: r.use, name: BASE_ITEMS[r.item].uses.find((u) => u.no === r.use)?.name ?? '' })),
     uses: uses.map((u) => ({
       use: u.no,
       name: u.name,
@@ -398,8 +531,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
       money: u.money,
       exp: Math.trunc(u.exp / 10),
       needexp: Math.trunc(u.needexp / 10),
-      needs: u.use.map((l) => ({ item: l.no, name: g.items[l.no].name, count: l.count, consume: l.proba / 10 })),
-      gets: u.result.create.map((l) => ({ item: l.no, name: g.items[l.no].name, count: l.count, chance: l.proba / 10 })),
+      needs: u.use.map((l) => lineOut(l, 'consume')),
+      gets: u.result.create.map((l) => lineOut(l, 'chance')),
       target: u.argspec.includes('target'),
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
@@ -410,17 +543,43 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
   };
 }
 
+const needsText = (needs: { name: string; count: number; consume: number }[]) =>
+  needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',') || '-';
+const getsText = (gets: { name: string; count: number; chance: number }[]) =>
+  gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',') || '-';
+
+/** 予告の品 (item-ref.json の teaser) の詳細: 名前だけ */
+export function teaserData(itemno: number) {
+  return { item: itemno, name: BASE_ITEMS[itemno].name, teaser: true as const };
+}
+
+export function teaserText(d: ReturnType<typeof teaserData>): string {
+  return `${d.item} ${d.name} は準備中です\n`;
+}
+
 export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
-  const lines = [`${d.item} ${d.name} (${d.type}) 標準${d.price} 維持費${d.cost} 上限${d.limit}${d.flags.length ? ' ' + d.flags.join(',') : ''}`, d.info];
+  const lines = [
+    `${d.item} ${d.name} (${d.type}) 標準${d.price}${d.price_now !== undefined ? `(いまは${d.price_now})` : ''} 維持費${d.cost} 上限${d.limit}${d.flags.length ? ' ' + d.flags.join(',') : ''}`,
+    d.info,
+  ];
+  const how = [d.market && '市場に入ってくる', d.note].filter(Boolean).join('。');
+  if (how) lines.push('入手: ' + how);
   if (d.skill_item) lines.push(`熟練は${d.skill_item.name}と共通 (時間の縮み・増える熟練は${d.skill_item.name}の熟練)`);
+  if (d.made_by.length) {
+    lines.push('# 作り方 道具/番号 使い方 時間(熟練0%→100%) 費用 | 材料 → 成果 | 熟練の持ち主 要熟練 職業補正');
+    for (const r of d.made_by) {
+      const me = r.my_time !== undefined ? ` あなた${dur(r.my_time)}` : '';
+      const ng = r.usable === false ? ` 今は使えない${r.why ? `(${r.why})` : ''}` : '';
+      lines.push(
+        `${r.item}${r.tool}/${r.use} ${r.name} ${dur(r.time)}→${dur(r.time_skilled)}${me} ${r.money} | ${needsText(r.needs)} → ${getsText(r.gets)} | ${r.skill_item.name}${r.needexp ? ` 要${r.needexp}%` : ''}${r.jobs.length ? ' ' + r.jobs.join(',') : ''}${ng}`,
+      );
+    }
+  }
+  if (d.used_in.length) lines.push('# 材料になる先 ' + d.used_in.map((u) => `${u.item}${u.tool}/${u.use}${u.name}`).join(', '));
   if (d.uses.length) lines.push('# 使い方 番号 名前 時間 費用 | 材料 → 成果 | 熟練');
   for (const u of d.uses) {
-    const needs = u.needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',');
-    const gets = u.gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',');
     const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && (u.why ? `今は使えない(${u.why})` : '今は使えない')].filter(Boolean).join(',');
-    lines.push(
-      `${u.use} ${u.name} ${dur(u.time)} ${u.money} | ${needs || '-'} → ${gets || '-'} | +${u.exp}%${u.needexp ? ` 要${u.needexp}%` : ''}${extra ? ' ' + extra : ''}`,
-    );
+    lines.push(`${u.use} ${u.name} ${dur(u.time)} ${u.money} | ${needsText(u.needs)} → ${getsText(u.gets)} | +${u.exp}%${u.needexp ? ` 要${u.needexp}%` : ''}${extra ? ' ' + extra : ''}`);
   }
   return lines.join('\n') + '\n';
 }

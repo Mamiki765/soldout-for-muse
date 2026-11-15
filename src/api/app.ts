@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_CONFIG, GAME_TITLE, type GameConfig } from '../config.js';
-import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
+import { BASE_ITEMS, isPublicItem, itemNoByName, itemVisibility, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
 import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/costs.js';
 import { Game, GameError } from '../engine/game.js';
@@ -497,7 +497,7 @@ export class App {
     if (path === '/healthz') return { status: 200, text: 'ok\n', json: { ok: true } };
 
     // ---- 人間向け (観戦・見学) ----
-    if (method === 'GET' && (path === '/' || path === '/updates' || path.startsWith('/view') || path.startsWith('/images/') || path === '/source' || path.startsWith('/source'))) {
+    if (method === 'GET' && (path === '/' || path === '/updates' || path.startsWith('/view') || path.startsWith('/images/'))) {
       if (path.startsWith('/images/')) return this.image(path);
       return renderViewer(this, req, url);
     }
@@ -524,8 +524,35 @@ export class App {
     }
     if (method === 'GET' && p === '/items') {
       const { g } = this.game();
-      const d = v.itemsData(g);
+      const d = v.itemsData(g, { type: q.get('type')?.trim() || undefined, q: q.get('q')?.trim() || undefined });
       return { status: 200, text: v.itemsText(d), json: d };
+    }
+    // 1 品の詳しい説明。誰でも読める。店のトークンがあれば、その店での時間と今使えるかを足す (?me=0 で足さない)
+    if (method === 'GET' && p.startsWith('/items/')) {
+      let key: string;
+      try {
+        key = decodeURIComponent(p.slice('/items/'.length));
+      } catch {
+        throw new HttpError(404, 'そんなアイテムはないです。');
+      }
+      const no = v.findItem(LEGACY_BOOK_NAMES.get(key) ?? key);
+      if (no === undefined) throw new HttpError(404, 'そんなアイテムはないです。');
+      if (itemVisibility(no) === 'teaser') {
+        const t = v.teaserData(no);
+        return { status: 200, text: v.teaserText(t), json: t };
+      }
+      const token = this.bearer(req);
+      const shopId = token && !this.isAdminToken(token) && q.get('me') !== '0' ? await this.auth(req) : undefined;
+      const { g } = this.game();
+      const d = v.itemDetailData(g, no, shopId === undefined ? undefined : this.me(g, shopId));
+      return { status: 200, text: v.itemDetailText(d), json: d };
+    }
+    // ソースは管理用だけ (遊ぶ側には出さない)
+    if (method === 'GET' && (p === '/source' || p.startsWith('/source/'))) {
+      await this.adminAuth(req);
+      if (!this.source) throw new HttpError(404, 'ありません');
+      const r = sourceText(this.source, p.slice('/source'.length));
+      return { status: r.status, text: r.text, json: { text: r.text } };
     }
     if (method === 'POST' && p === '/register') return this.register(req);
 
@@ -543,11 +570,6 @@ export class App {
     if (method === 'GET') {
       const { g } = this.game();
       const dt = this.me(g, shopId);
-      if (p === '/source' || p.startsWith('/source/')) {
-        if (!this.source) throw new HttpError(404, 'ありません');
-        const r = sourceText(this.source, p.slice('/source'.length));
-        return { status: r.status, text: r.text, json: { text: r.text } };
-      }
       switch (p) {
         case '/digest': {
           if (tut.syncTutorial(g, dt)) this.persist([], this.clock());
@@ -604,13 +626,6 @@ export class App {
         case '/chat':
         case '/bbs':
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
-      }
-      const im = /^\/items\/(\d+)$/.exec(p);
-      if (im) {
-        const no = Number(im[1]);
-        if (no < 1 || no > MAX_ITEM) throw new HttpError(404, 'そんなアイテムはないです。');
-        const d = v.itemDetailData(g, no, q.get('me') === '0' ? undefined : dt);
-        return { status: 200, text: v.itemDetailText(d), json: d };
       }
       throw new HttpError(404, 'ありません');
     }
@@ -848,8 +863,11 @@ export class App {
     /** 品番。商品名 ("薬草") でも書ける (0.3.0) */
     const item = (k: string, d?: number): number => {
       const x = a[k];
-      if (typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x))) return itemByName(x.trim());
-      return n(k, d);
+      // 小数は切り捨ててから確かめる (行動の側も切り捨てるので、114.5 で隠した品に届かないように)
+      const no = typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x)) ? itemByName(x.trim()) : Math.trunc(n(k, d));
+      // 隠した品は、持っている店でなければ無い品と同じ
+      if (no >= 1 && no <= MAX_ITEM && !isPublicItem(no) && !(dt.item[no - 1] > 0)) throw new GameError('そんなアイテムはないです。');
+      return no;
     };
     /** "max" / "all" を「いま持っている数」として読む (0.3.0) */
     const isAll = (k: string): boolean => a[k] === 'max' || a[k] === 'all';
@@ -1410,7 +1428,7 @@ function itemByName(name: string): number {
   const canonicalName = LEGACY_BOOK_NAMES.get(name) ?? name;
   for (let no = 1; no <= MAX_ITEM; no++) {
     const it = BASE_ITEMS[no];
-    if (it && (it.name === canonicalName || it.code === name)) return no;
+    if (it && (it.name === canonicalName || it.code === name) && isPublicItem(no)) return no;
   }
   throw new GameError(`「${name}」という商品はありません。品番か、GET /api/v1/items の名前で書いてください`);
 }

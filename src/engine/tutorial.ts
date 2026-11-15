@@ -4,6 +4,7 @@
 // 数値の表やレシピは書かず、街のその時の様子 (誰も出していない品・混んでいる品) をサーバーが入れる。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
+import { isPublicItem } from '../data/catalog.js';
 import type { Game } from './game.js';
 import type { Shop } from './types.js';
 
@@ -219,7 +220,8 @@ function shelfCounts(g: Game, except?: number): Map<number, number> {
   const m = new Map<number, number>();
   for (const s of g.shops) {
     if (s.id === except) continue;
-    for (const no of shelfItems(s)) m.set(no, (m.get(no) ?? 0) + 1);
+    // 隠した品 (item-ref.json) は数えない (候補・混雑の表示に名前が出ないように)
+    for (const no of shelfItems(s)) if (isPublicItem(no)) m.set(no, (m.get(no) ?? 0) + 1);
   }
   return m;
 }
@@ -238,7 +240,7 @@ export function townView(g: Game): TownView {
   const unlisted: TownView['unlisted'] = [];
   for (let no = 1; no <= g.maxItem; no++) {
     const it = g.items[no];
-    if (!it?.name || !notFromMarket(g, no) || !made.has(no) || counts.has(no)) continue;
+    if (!it?.name || !isPublicItem(no) || !notFromMarket(g, no) || !made.has(no) || counts.has(no)) continue;
     unlisted.push({ item: no, name: it.name });
   }
   unlisted.sort((a, b) => g.items[a.item].sort - g.items[b.item].sort || a.item - b.item);

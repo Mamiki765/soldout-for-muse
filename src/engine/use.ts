@@ -2,7 +2,7 @@
 // Copyright (C) 2001-2004 MUTOYS (original), SOLD OUT for Muse contributors (port)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import type { UseDef } from '../data/catalog.js';
+import { HIDDEN_NAME, isPublicItem, makesHiddenItem, type UseDef } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
 import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
@@ -72,7 +72,9 @@ export interface RtUse {
 export function loadUses(g: Game, itemno: number): RtUse[] {
   const item = g.items[itemno];
   if (!item) return [];
-  return item.uses.map((def) => {
+  // 隠した品 (item-ref.json) が成果に入る使い方は、無いものとして扱う (名前からも品が分かってしまうため)。
+  // 処理で品を出す使い方 (ミノタウロス♀の乳搾りなど) は item-ref.json の notes.from で分かる
+  return item.uses.filter((def) => def.get.every((l) => isPublicItem(l.item_no)) && !makesHiddenItem(itemno, def.no)).map((def) => {
     const u: RtUse = {
       def,
       no: def.no,
@@ -159,7 +161,7 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
 /** 使えない理由を短く (熟練 → 材料・道具の順。どちらでもなければ条件) */
 function useNgReason(g: Game, dt: Shop, u: RtUse): string {
   if ((dt.exp[u.expno] ?? 0) < u.needexp) return `熟練が足りません (要${Math.trunc(u.needexp / 10)}%、今${Math.trunc((dt.exp[u.expno] ?? 0) / 10)}%)`;
-  const short = u.use.filter((l) => dt.item[l.no - 1] < l.count).map((l) => `${g.items[l.no].name}x${l.count}${l.proba === 0 ? '(道具)' : ''}`);
+  const short = u.use.filter((l) => dt.item[l.no - 1] < l.count).map((l) => `${isPublicItem(l.no) ? g.items[l.no].name : HIDDEN_NAME}x${l.count}${l.proba === 0 ? '(道具)' : ''}`);
   if (short.length) return '足りない: ' + short.join(',');
   return '今は条件に合いません';
 }

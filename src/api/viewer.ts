@@ -13,9 +13,8 @@ import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, jobName, jst, ordersData, specialtyType } from './views.js';
+import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
-import { SourceTree } from './source.js';
 import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -70,14 +69,14 @@ function page(title: string, menu: string, body: string): string {
 <title>${GAME_TITLE}:${esc(title)}</title><style>${STYLE}</style></head><body>
 ${menu}<hr>
 ${body}
-<hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降 / <a href="/source">ソース</a></small>
+<hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降</small>
 </body></html>`;
 }
 
 function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
   const next = g.nextPeriodTime();
   const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `${GAME_TITLE}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `${GAME_TITLE}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -145,10 +144,6 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     }
   }
 
-  if (url.pathname === '/source' || url.pathname.startsWith('/source/') || url.pathname === '/source.tar.gz') {
-    return { ...sourcePage(app, url.pathname), headers: { ...headers } };
-  }
-
   const g = app.viewerGame();
   const inShop = shopId !== undefined && !!g.shopById(shopId);
   if (inShop) app.notifyUpdate(shopId!);
@@ -177,6 +172,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     case '/view/market':
       title = '市場';
       body = marketPage(g);
+      break;
+    case '/view/items':
+      title = 'アイテム一覧';
+      body = itemsPage(g);
       break;
     case '/view/orders':
       title = '買い取り募集';
@@ -373,31 +372,32 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   return s;
 }
 
-/** ソースの閲覧ページ。ディレクトリは一覧、文字のファイルはそのまま、一式は tar.gz */
-function sourcePage(app: App, pathname: string): Reply {
-  const tree = app.source;
-  if (!tree) return { status: 404, html: page('ソース', '', 'ソースの配布は設定されていません') };
-  if (pathname === '/source.tar.gz') {
-    return { status: 200, binary: { data: tree.tarGz(), type: 'application/gzip' }, headers: { 'content-disposition': 'attachment; filename="soldout-for-muse.tar.gz"' } };
+/** アイテム一覧 (原作にない追加)。作り方・材料になる先まで1ページで見せる。隠した品は「品番 ？？？」 */
+function itemsPage(g: Game): string {
+  const mats = (l: { item: number; name: string; count: number; consume: number }[]) =>
+    l.map((n) => `${esc(n.name)}×${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join('、') || '－';
+  const gets = (l: { name: string; count: number; chance: number }[]) =>
+    l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join('、') || '－';
+  let s = '●アイテム一覧<hr><small>標準価格はイベントの影響を含まない値です。今の値は市場で見られます。作り方の時間は「熟練0%→100%」。</small>';
+  s += '<table><tr><td>品番</td><td>商品</td><td>分類</td><td>標準価格</td><td>維持費<br>1個24時間分</td><td>上限</td><td>作り方・入手</td><td>材料になる先</td></tr>';
+  for (const row of itemsData(g)) {
+    if ('hidden' in row) {
+      s += `<tr><td>${row.item}</td><td>${esc(row.name)}</td><td colspan="6">　</td></tr>`;
+      continue;
+    }
+    if ('teaser' in row) {
+      s += `<tr><td>${row.item}</td><td>${esc(row.name)}</td><td colspan="6">準備中</td></tr>`;
+      continue;
+    }
+    const d = itemDetailData(g, row.item);
+    const how: string[] = d.made_by.map(
+      (r) =>
+        `${esc(r.tool)}「${esc(r.name)}」: ${mats(r.needs)} → ${gets(r.gets)} (${dur(r.time)}→${dur(r.time_skilled)}${r.money ? `、￥${r.money}` : ''}${r.needexp ? `、要熟練${r.needexp}%` : ''}${r.skill_item.item !== r.item ? `、熟練は${esc(r.skill_item.name)}` : ''}${r.jobs.length ? '、' + esc(r.jobs.join('、')) : ''})`,
+    );
+    if (d.market) how.push('市場に入ってくる');
+    if (d.note) how.push(esc(d.note));
+    const used = d.used_in.map((u) => `${esc(u.tool)}「${esc(u.name)}」`).join('、');
+    s += `<tr><td>${row.item}</td><td style="white-space:nowrap">${itemIcon(g, row.item)}${esc(d.name)}</td><td style="white-space:nowrap">${esc(d.type)}</td><td style="white-space:nowrap">￥${d.price}</td><td style="white-space:nowrap">￥${d.cost}</td><td>${d.limit}</td><td>${how.join('<br>') || '－'}</td><td>${used || '－'}</td></tr>`;
   }
-  const r = tree.resolve(pathname.slice('/source'.length));
-  if (!r) return { status: 404, html: page('ソース', '', 'ありません') };
-  if (r.kind === 'file') {
-    const b = tree.read(r.file);
-    if (r.file.path.startsWith('public/images/')) return { status: 302, headers: { location: '/' + r.file.path.slice('public/'.length) } };
-    if (!SourceTree.isText(b)) return { status: 200, binary: { data: b, type: 'application/octet-stream' } };
-    return { status: 200, text: b.toString('utf8') };
-  }
-  const up = r.path ? `<a href="/source/${r.path.split('/').slice(0, -1).map(encodeURIComponent).join('/')}">../</a><br>` : '';
-  const rows = r.entries
-    .map((e) => {
-      const href = '/source/' + [...(r.path ? r.path.split('/') : []), e.name].map(encodeURIComponent).join('/');
-      return `<tr><td><a href="${esc(href)}">${esc(e.name)}${e.dir ? '/' : ''}</a></td><td style="text-align:right">${e.dir ? '' : e.size}</td></tr>`;
-    })
-    .join('');
-  const intro = r.path
-    ? ''
-    : 'SOLD OUT for Muse のソース一式です (GNU GPL v2 以降)。原作は <a href="/source/original">original/</a>、遊び方は <a href="/source/docs/API.md">docs/API.md</a>。<br>' +
-      '<a href="/source.tar.gz">一式をダウンロード (tar.gz)</a> / Muse は <code>GET /api/v1/source/&lt;パス&gt;</code> でも読めます。<hr>';
-  return { status: 200, html: page('ソース', '<a href="/">[トップ]</a>', `${intro}●/${esc(r.path)}<br>${up}<table>${rows}</table>`) };
+  return s + '</table>';
 }

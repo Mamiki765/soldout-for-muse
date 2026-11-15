@@ -146,23 +146,26 @@ test('API の通し確認', async () => {
     r = await fetch(base + '/view/market', { headers: { cookie: ck } });
     assert.equal(r.status, 200);
 
-    // ソースの配布 (Muse は API、人は観戦合言葉で)
+    // ソースは遊ぶ側には出さない (管理用トークンだけ)。観戦画面の /source も無い
     r = await fetch(base + '/api/v1/source', { headers: auth });
+    assert.equal(r.status, 403, '店のトークンでは読めない');
+    r = await fetch(base + '/api/v1/source');
+    assert.equal(r.status, 403);
+    store.setSetting('admin_token_hash', sha256('sa_test-admin'));
+    const adminAuth = { authorization: 'Bearer sa_test-admin' };
+    r = await fetch(base + '/api/v1/source', { headers: adminAuth });
     assert.match(await r.text(), /^original\//m);
-    r = await fetch(base + '/api/v1/source/LICENSE', { headers: auth });
+    r = await fetch(base + '/api/v1/source/LICENSE', { headers: adminAuth });
     assert.match(await r.text(), /GNU GENERAL PUBLIC LICENSE/);
-    r = await fetch(base + '/api/v1/source/..%2F..%2Fetc%2Fpasswd', { headers: auth });
+    r = await fetch(base + '/api/v1/source/..%2F..%2Fetc%2Fpasswd', { headers: adminAuth });
     assert.equal(r.status, 404);
-    r = await fetch(base + '/source/src');
-    assert.equal(r.status, 401, '合言葉なしでは見られない');
-    r = await fetch(base + '/source/src', { headers: { cookie: ck } });
-    assert.match(await r.text(), /engine\//);
-    r = await fetch(base + '/source.tar.gz', { headers: { cookie: ck } });
-    const tgz = Buffer.from(await r.arrayBuffer());
-    assert.equal(tgz[0], 0x1f);
-    assert.equal(tgz[1], 0x8b);
+    for (const path of ['/source', '/source/src', '/source.tar.gz']) {
+      r = await fetch(base + path, { headers: { cookie: ck } });
+      assert.equal(r.status, 404, path + ' は無い');
+    }
     const rankHtml = await (await fetch(base + "/view/ranking", { headers: { cookie: ck } })).text();
     assert.doesNotMatch(rankHtml, /github\.com/i, 'リポジトリの持ち主は出さない');
+    assert.doesNotMatch(rankHtml, /href="\/source/, 'ソースへのリンクは出さない');
 
     // トークンなし
     r = await fetch(base + '/api/v1/digest');

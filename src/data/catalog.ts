@@ -4,6 +4,7 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import raw from './items.json' with { type: 'json' };
+import refRaw from './item-ref.json' with { type: 'json' };
 
 /** レシピの材料・成果物 1行 (use / get / need) */
 export interface UseLine {
@@ -187,4 +188,67 @@ export function itemNoByName(name: string): number {
     if (item.name === name || item.code === name) return item.no;
   }
   throw new Error('商品が見つかりません: ' + name);
+}
+
+// ---------------------------------------------------------------------------
+// 商品の公開範囲と、入手の補足 (item-ref.json)
+//   visibility: 品番 → "hidden" (一覧では「品番 ？？？」、ほかでは無い品と同じ) / "teaser" (名前だけ予告)。
+//               書いていない品はすべて公開。
+//   notes:      レシピの表から自動では逆引きできない入手方法 (from: [[道具の品番, 使い方の番号], ...]) と一言
+
+
+export type ItemVisibility = 'public' | 'hidden' | 'teaser';
+
+interface ItemRefFile {
+  visibility: Record<string, string>;
+  notes: Record<string, { from?: [number, number][]; note?: string }>;
+}
+
+const ref = refRaw as unknown as ItemRefFile;
+const VISIBILITY = new Map<number, ItemVisibility>();
+for (const [k, v] of Object.entries(ref.visibility)) {
+  if (v !== 'hidden' && v !== 'teaser') throw new Error(`item-ref.json: 品番${k} の公開範囲 "${v}" は hidden / teaser のどちらかです`);
+  VISIBILITY.set(Number(k), v);
+}
+
+let visibilityVersion = 0;
+
+/** 公開範囲を書き換える (テスト用)。v を省くと公開に戻す */
+export function overrideItemVisibility(no: number, v?: Exclude<ItemVisibility, 'public'>): void {
+  if (v) VISIBILITY.set(no, v);
+  else VISIBILITY.delete(no);
+  visibilityVersion++;
+}
+
+/** 公開範囲が変わるたびに増える (逆引きの索引を作り直すため) */
+export function itemVisibilityVersion(): number {
+  return visibilityVersion;
+}
+
+/** 隠した品の名前の代わり */
+export const HIDDEN_NAME = '？？？';
+
+export function itemVisibility(no: number): ItemVisibility {
+  return VISIBILITY.get(no) ?? 'public';
+}
+
+export function isPublicItem(no: number): boolean {
+  return !VISIBILITY.has(no);
+}
+
+/** 道具 tool の使い方 useNo が、処理で隠した品を出すか (notes.from に書いた関係) */
+export function makesHiddenItem(tool: number, useNo: number): boolean {
+  for (const [no, v] of VISIBILITY) {
+    if (v && ref.notes[String(no)]?.from?.some(([t, u]) => t === tool && u === useNo)) return true;
+  }
+  return false;
+}
+
+/** 入手の補足。from は [道具の品番, 使い方の番号]。from の道具が隠されていれば一言 (note) は返さない */
+export function itemNote(no: number): { from: [number, number][]; note?: string } {
+  const n = ref.notes[String(no)];
+  const from = n?.from ?? [];
+  // 一言は道具の名前を書くことが多い。道具を隠しているあいだは一言も出さない
+  const showNote = !!n?.note && from.every(([t]) => isPublicItem(t));
+  return { from, ...(showNote ? { note: n!.note } : {}) };
 }
