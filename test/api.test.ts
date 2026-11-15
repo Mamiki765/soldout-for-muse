@@ -6,6 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { resolve } from 'node:path';
 import { App } from '../src/api/app.js';
 import { setViewerKey } from '../src/api/viewer.js';
+import { BASE_ITEMS } from '../src/data/catalog.js';
 import { seededRng } from '../src/engine/rng.js';
 import { sha256, Store } from '../src/store.js';
 
@@ -168,6 +169,49 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 401);
   } finally {
     server.close();
+  }
+});
+
+test('2冊の書籍は新名称で表示し、新旧の商品名と執筆操作名が使える', async () => {
+  const now = 1_800_000_000;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    const registered = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'books', shopname: '試験書店' }) });
+    assert.equal(registered.status, 201);
+    const reg = (await registered.json()) as { token: string; shop_id: number };
+    const headers = { authorization: 'Bearer ' + reg.token };
+    const shop = app.world.shops.find((s) => s.id === reg.shop_id)!;
+    const kit = BASE_ITEMS[10];
+    shop.job = 'book';
+    const send = async (actions: unknown[]) => {
+      const response = await fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers, body: JSON.stringify({ actions }) });
+      assert.equal(response.status, 200);
+      return (await response.json() as { results: { ok: boolean }[] }).results;
+    };
+
+    for (const [no, name] of [[112, '調香の手引き'], [113, '乳菓のレシピ']] as const) {
+      const response = await fetch(base + `/api/v1/items/${no}?format=json`, { headers });
+      assert.equal(response.status, 200);
+      const item = await response.json() as { item: number; name: string };
+      assert.deepEqual([item.item, item.name], [no, name]);
+
+      const recipe = kit.uses.find((use) => use.get.some((line) => line.item_no === no))!;
+      for (const line of recipe.use) shop.item[line.item_no - 1] = line.count * 2;
+      const results = await send([
+        { type: 'use', item: kit.name, use: `${name}を執筆する` },
+        { type: 'use', item: kit.name, use: `『${name}』を執筆する` },
+        { type: 'shelf', slot: 1, item: name, percent: 100 },
+        { type: 'shelf', slot: 1, item: `『${name}』`, percent: 110 },
+      ]);
+      assert.deepEqual(results.map((result) => result.ok), [true, true, true, true], JSON.stringify(results));
+      assert.equal(shop.item[no - 1], 2);
+      assert.equal(shop.showcase[0], no);
+    }
+    const [unknown] = await send([{ type: 'shelf', slot: 1, item: '『薬草』', percent: 100 }]);
+    assert.equal(unknown.ok, false);
+  } finally {
+    server.close();
+    store.close();
   }
 });
 
