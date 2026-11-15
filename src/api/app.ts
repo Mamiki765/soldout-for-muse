@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { DEFAULT_CONFIG, GAME_TITLE, type GameConfig } from '../config.js';
 import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
+import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/costs.js';
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
@@ -457,6 +458,11 @@ export class App {
         case '/me': {
           const d = v.meData(g, dt);
           return { status: 200, text: v.meText(d), json: d };
+        }
+        case '/costs': {
+          // 維持費の内訳 (目安箱 #5)。ago=1 前期の決算 (既定)、2・3 はその前、0 は今期ここまで
+          const d = costReportData(g, dt, clampNum(q.get('ago'), 0, COST_REPORT_KEEP, 1));
+          return { status: 200, text: costReportText(d, v.jst), json: d };
         }
         case '/market': {
           const d = v.marketData(g);

@@ -5,6 +5,7 @@
 
 import { EVENTS } from '../data/catalog.js';
 import type { Game } from './game.js';
+import { addItemCost, startTracking } from './costs.js';
 import { checkWholeStore, getMarketStatus } from './market.js';
 import { sweepOrders } from './orders.js';
 import { turnPeriod } from './period.js';
@@ -164,16 +165,25 @@ export function turnProc(g: Game): void {
       if (dt.rank > 10000) dt.rank = 10000;
 
       // 維持費計算＆蓄積 (陳列中の商品は1/10)
+      // 品物ごとの額は維持費の内訳 (engine/costs.ts) にも同じ値で足す。合計の計算は原作のまま
+      if (!dt.costitems) startTracking(dt);
       let costsum = 0;
       for (let idx = 1; idx <= g.maxItem; idx++) {
         if (!dt.item[idx - 1]) continue;
         let c = dt.item[idx - 1];
-        if (showcaseitemno.get(idx)) c /= 10;
-        costsum += g.items[idx].cost * c;
+        const shown = showcaseitemno.get(idx);
+        if (shown) c /= 10;
+        const ic = g.items[idx].cost;
+        costsum += ic * c;
+        if (ic) addItemCost(dt, idx, (ic * c * timespan) / 86400, 0, shown ? (ic * (dt.item[idx - 1] - c) * timespan) / 86400 : 0);
       }
       // 買い取り募集で預かり中の品も、受け取る店の倉庫にあるものとして維持費を掛ける (まとめて受け取りで維持費を逃れないように)
       for (const o of w.orders ?? []) {
-        if (o.shop === dt.id && o.count > o.left) costsum += g.items[o.item].cost * (o.count - o.left);
+        if (o.shop === dt.id && o.count > o.left) {
+          const ic = g.items[o.item].cost;
+          costsum += ic * (o.count - o.left);
+          if (ic) addItemCost(dt, o.item, 0, (ic * (o.count - o.left) * timespan) / 86400, 0);
+        }
       }
       dt.costtoday += (costsum * timespan) / 86400;
     }
@@ -201,7 +211,7 @@ export function turnProc(g: Game): void {
     sweepOrders(g, temptimenow + timespan);
 
     // 決算処理
-    if (dateupdate && g.shops.length) turnPeriod(g);
+    if (dateupdate && g.shops.length) turnPeriod(g, temptimenow + timespan);
 
     // 市場商品数のUP/DOWN処理
     for (let cnt = 1; cnt <= g.maxItem; cnt++) {
