@@ -9,6 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
+import { periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
@@ -68,6 +69,9 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     else if (s.stock === 0) warnings.push(`棚${s.slot + 1}の${s.name}が売切`);
   }
   if (full <= 0) warnings.push('持ち時間が満タン');
+  // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
+  const est = periodEstimate(g, dt);
+  if (est.short > 0) warnings.push(`このままだと決算で倒産の恐れ (見込み支払い${est.total}に対し資金+入金庫${est.available}、不足${est.short})`);
   // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
   const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
   const myOrders: string[] = [];
@@ -486,5 +490,16 @@ export function ordersText(d: ReturnType<typeof ordersData>): string {
         (t.delivered_to.length ? ` 納品済みの相手 ${t.delivered_to.join(',')}` : ''),
     );
   }
+  return lines.join('\n') + '\n';
+}
+
+// ---------------------------------------------------------------------------
+// peek: 番犬スクリプト向けの見張り (読むだけ)
+
+export function peekText(d: ReturnType<typeof peekData>, fresh: Alert[], cursor: string): string {
+  const lines = [`as_of ${d.as_of} age ${d.age}s cursor ${cursor || '-'}` + (d.next_timed ? ` next_timed ${d.next_timed}` : '')];
+  const freshKeys = new Set(fresh.map((a) => a.key));
+  for (const a of d.alerts) lines.push(`${freshKeys.has(a.key) ? 'NEW' : 'OLD'} ${a.level} ${a.type} ${a.msg}`);
+  if (!d.alerts.length) lines.push('アラートなし');
   return lines.join('\n') + '\n';
 }

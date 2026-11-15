@@ -1,0 +1,295 @@
+// SOLD OUT for Muse — 見張り (peek) のための判定。原作にない追加機能。
+// 各 Muse の番犬スクリプトが短い間隔で GET /api/v1/peek を読み、ここで判定したアラートがあるときだけ Muse を起こす。
+// ここは「読むだけ」: 時間を進めない・保存しない・最後の行動時刻も変えない
+// (時間計算の回数が増えると人気の自然減が増えるため。値は最後に時間計算した時点 as_of のもの)。
+// 案: アキさん (トリガー式アラート)、ミュートさん (as-of、起こすラインは各 Muse の番犬で)、ラピス (2026-11-15)
+// This program is free software under the GNU GPL v2 or later. See LICENSE.
+
+import { createHash } from 'node:crypto';
+import { CATALOG, EVENTS } from '../data/catalog.js';
+import type { Game } from './game.js';
+import { orders } from './orders.js';
+import type { Shop } from './types.js';
+
+/** アラートの重さ。番犬はこれと type を見て起こすかを決める */
+export type AlertLevel = 'critical' | 'high' | 'mid' | 'low';
+
+export interface Alert {
+  type: AlertType;
+  level: AlertLevel;
+  /** 同じ状態のあいだ変わらない鍵。番犬はこれで「もう知らせた」を判断する */
+  key: string;
+  msg: string;
+}
+
+export const ALERT_TYPES = [
+  'bankrupt_risk',
+  'closing_soon',
+  'shelf1_low',
+  'shelves_empty',
+  'period_soon',
+  'coupon_expiring',
+  'soldout_soon',
+  'event',
+  'order_closed',
+  'order_discard',
+  'time_full',
+  'wanted',
+] as const;
+export type AlertType = (typeof ALERT_TYPES)[number];
+
+/** モードごとの既定 (省トークン = save が既定) */
+export const ALERT_MODES: Record<'save' | 'normal' | 'all' | 'off', readonly AlertType[]> = {
+  save: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring'],
+  normal: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'soldout_soon', 'event', 'order_closed', 'order_discard', 'time_full'],
+  all: ALERT_TYPES,
+  off: [],
+};
+export type AlertMode = keyof typeof ALERT_MODES;
+
+/** 判定のきまり (時間は秒) */
+export const WATCH_RULES = {
+  /** 決算の何秒前から period_soon */
+  periodSoon: 2 * 3600,
+  /** 不在閉店の何秒前から closing_soon */
+  closingSoon: 2 * 86400,
+  /** クーポンがこれ以上残っていて */
+  couponLeft: 12 * 3600,
+  /** 戻るまでこれ以内なら coupon_expiring */
+  couponSoon: 6 * 3600,
+  /** 1番棚がこの時間以内に空く見込みなら soldout_soon */
+  soonFirst: 4 * 3600,
+  /** ほかの棚は、この時間以内に空く見込みの棚が2つ以上で soldout_soon */
+  soonOther: 6 * 3600,
+  /** 持ち時間が満タンまでこれ以内なら time_full (やることがあるときだけ) */
+  timeFull: 3 * 3600,
+  /** 他店の募集が標準価格のこの%以上なら wanted */
+  wantedPercent: 120,
+  /** 自分の募集が締まった知らせを出し続ける時間 */
+  orderClosedFor: 24 * 3600,
+};
+
+/** 店ごとの設定 (Shop.user に JSON で保存) */
+export const ALERT_SETTING = '_alerts';
+
+export interface AlertSetting {
+  mode: AlertMode;
+  on: AlertType[];
+  off: AlertType[];
+}
+
+export function alertSetting(dt: Shop): AlertSetting {
+  try {
+    const s = JSON.parse(dt.user[ALERT_SETTING] ?? '') as Partial<AlertSetting>;
+    const mode = s.mode && s.mode in ALERT_MODES ? s.mode : 'save';
+    const pick = (a: unknown): AlertType[] => (Array.isArray(a) ? a.filter((x): x is AlertType => (ALERT_TYPES as readonly string[]).includes(x)) : []);
+    return { mode, on: pick(s.on), off: pick(s.off) };
+  } catch {
+    return { mode: 'save', on: [], off: [] };
+  }
+}
+
+export function enabledTypes(s: AlertSetting): Set<AlertType> {
+  const set = new Set<AlertType>(ALERT_MODES[s.mode]);
+  for (const t of s.on) set.add(t);
+  for (const t of s.off) set.delete(t);
+  return set;
+}
+
+/** 時刻 t のあとに来る決算の時刻 (Game.nextPeriodTime は最後の時間計算からなので、こちらは任意の時刻で) */
+export function periodAfter(g: Game, t: number): number {
+  const offset = g.config.tzOffset - g.config.dateReviseTime;
+  const x = t + offset;
+  return x + g.config.oneDayTime - (x % g.config.oneDayTime) - offset;
+}
+
+/**
+ * 次の決算でいくら引かれるかの見込み (原作 period.cgi の順: 当期の維持費＋棚の維持費＋入金庫の税)。
+ * 当期の維持費は「ここまでの額 ÷ 経過時間」の速さで決算まで続くとみなす。売上は入れない (悪いほうに見る)。
+ */
+export function periodEstimate(g: Game, dt: Shop, asOf = g.world.lasttime) {
+  const next = periodAfter(g, asOf);
+  const start = next - g.config.oneDayTime;
+  const elapsed = Math.max(1, asOf - start);
+  const costSoFar = Math.trunc(dt.costtoday);
+  const costProjected = Math.trunc(dt.costtoday + (dt.costtoday / elapsed) * Math.max(0, next - asOf));
+  const showcaseCost = CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
+  const [tax, taxRate] = g.taxToday(dt);
+  const total = costProjected + showcaseCost + tax;
+  const available = dt.money + dt.moneystock;
+  return {
+    next_period: next,
+    cost_so_far: costSoFar,
+    cost_projected: costProjected,
+    showcase_cost: showcaseCost,
+    tax,
+    tax_rate: taxRate,
+    total,
+    available,
+    /** 足りない額 (0 なら足りる) */
+    short: Math.max(0, total - available),
+  };
+}
+
+/** 最後の行動からの不在閉店の時刻 (原作 turn.cgi 末尾) */
+export function closingAt(g: Game, dt: Shop): number {
+  return dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt);
+}
+
+export interface PeekShelf {
+  slot: number;
+  item: number;
+  name: string;
+  price: number;
+  stock: number;
+  /** 今の売れ行きで空くまでの見込み (秒)。売れていなければ null */
+  empty_in: number | null;
+}
+
+export interface PeekLog {
+  id: number;
+  time: number;
+  msg: string;
+}
+
+/** 見張りの結果 (事実＋アラート) */
+export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
+  const w = g.world;
+  const now = g.now;
+  const asOf = w.lasttime;
+  const setting = alertSetting(dt);
+  const on = enabledTypes(setting);
+  const alerts: Alert[] = [];
+  const add = (a: Alert) => {
+    if (on.has(a.type)) alerts.push(a);
+  };
+
+  // ---- 事実
+  const est = periodEstimate(g, dt, asOf);
+  const periodStart = est.next_period - g.config.oneDayTime;
+  const elapsed = asOf - periodStart;
+  const shelves: PeekShelf[] = [];
+  for (let i = 0; i < dt.showcasecount; i++) {
+    const no = dt.showcase[i] ?? 0;
+    const stock = no ? dt.item[no - 1] : 0;
+    let emptyIn: number | null = null;
+    if (no && stock > 0) {
+      // 今期の売れ行き。始まって1時間たっていなければ前期の売れ行きで見る
+      const rate = elapsed >= 3600 ? (dt.itemtoday[no] ?? 0) / elapsed : (dt.itemyesterday[no] ?? 0) / g.config.oneDayTime;
+      if (rate > 0) emptyIn = Math.max(0, Math.round(stock / rate - (now - asOf)));
+    } else if (no) emptyIn = 0;
+    shelves.push({ slot: i + 1, item: no, name: no ? g.items[no].name : '', price: no ? dt.price[i] : 0, stock, empty_in: emptyIn });
+  }
+  const stockTime = g.stockTime(dt);
+  const timeFullIn = Math.max(0, g.config.maxStockTime - stockTime);
+  const coupon = g.couponTime(dt);
+  const couponReset = g.nextCouponTime();
+  const closeAt = closingAt(g, dt);
+  const myItems = new Set<number>();
+  for (let i = 0; i < g.maxItem; i++) if (dt.item[i]) myItems.add(i + 1);
+  for (const s of shelves) if (s.item) myItems.add(s.item);
+  const events: { code: string; info: string; ends?: number; mine: boolean }[] = [];
+  for (const [code, ends] of Object.entries(w.events)) {
+    const ev = EVENTS.get(code);
+    const mine = !!ev?.params.some((p) => myItems.has(p.item_no));
+    events.push({ code, info: ev?.info ?? code, mine, ...(ends ? { ends } : {}) });
+  }
+
+  // ---- アラート
+  // 決算の時刻は as_of ではなく今から数える (as_of が古くて決算をまたいでいても、次の決算を指すように)
+  const nextPeriod = periodAfter(g, now);
+  if (est.short > 0) {
+    add({ type: 'bankrupt_risk', level: 'critical', key: `bankrupt:${nextPeriod}`, msg: `このままだと決算で倒産の恐れ: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
+  }
+  if (closeAt - now <= WATCH_RULES.closingSoon) {
+    add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}`, msg: `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)` });
+  }
+  const s1 = shelves[0];
+  if (s1 && (!s1.item || s1.stock <= 1)) {
+    add({ type: 'shelf1_low', level: 'high', key: `shelf1:${s1.item}`, msg: s1.item ? `1番棚の${s1.name}が${s1.stock ? '残り1' : '売切'}` : '1番棚が空' });
+  }
+  const emptyOthers = shelves.slice(1).filter((s) => !s.item || s.stock === 0);
+  if (emptyOthers.length >= 2) {
+    add({ type: 'shelves_empty', level: 'mid', key: `shelves:${emptyOthers.map((s) => s.slot).join(',')}`, msg: `棚${emptyOthers.map((s) => s.slot).join('・')}が空/売切` });
+  }
+  if (nextPeriod - now <= WATCH_RULES.periodSoon) {
+    add({ type: 'period_soon', level: 'high', key: `period:${nextPeriod}`, msg: `決算まで${hours(nextPeriod - now)}` + (est.tax ? ` 入金庫の税の見込み￥${est.tax} (${est.tax_rate}%、入金庫100万を超えた分)` : '') + ` 見込み支払い￥${est.total}` });
+  }
+  if (coupon >= WATCH_RULES.couponLeft && couponReset - now <= WATCH_RULES.couponSoon) {
+    add({ type: 'coupon_expiring', level: 'mid', key: `coupon:${couponReset}`, msg: `時間クーポンが${hours(coupon)}残ったまま、${hours(couponReset - now)}後に戻ります (繰り越しなし)` });
+  }
+  const soonFirst = s1?.item && s1.stock > 1 && s1.empty_in !== null && s1.empty_in <= WATCH_RULES.soonFirst ? s1 : undefined;
+  const soonOthers = shelves.slice(1).filter((s) => s.item && s.stock > 0 && s.empty_in !== null && s.empty_in <= WATCH_RULES.soonOther);
+  if (soonFirst || soonOthers.length >= 2) {
+    const list = [...(soonFirst ? [soonFirst] : []), ...(soonOthers.length >= 2 ? soonOthers : [])];
+    add({ type: 'soldout_soon', level: 'mid', key: `soon:${list.map((s) => `${s.slot}-${s.item}`).join(',')}`, msg: '売り切れ見込み ' + list.map((s) => `棚${s.slot}${s.name}あと約${hours(s.empty_in ?? 0)}`).join(' ') });
+  }
+  for (const e of events) {
+    if (e.mine) add({ type: 'event', level: 'mid', key: `event:${e.code}:${e.ends ?? 0}`, msg: `あなたの品に関係するイベント: ${e.info}` });
+  }
+  for (const l of myLogs) {
+    if (now - l.time > WATCH_RULES.orderClosedFor) continue;
+    if (/^募集#\d+ .*を(集め終わりました|期限切れで終了)/.test(l.msg)) add({ type: 'order_closed', level: 'mid', key: `order:${l.id}`, msg: l.msg });
+  }
+  let wantedCount = 0;
+  for (const o of orders(g)) {
+    if (o.expires <= now) continue;
+    const it = g.items[o.item];
+    if (o.shop === dt.id) {
+      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      if (over > 0) add({ type: 'order_discard', level: 'mid', key: `discard:${o.id}`, msg: `募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄` });
+      continue;
+    }
+    if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
+    if (o.price * 100 < it.price * WATCH_RULES.wantedPercent) continue;
+    wantedCount++;
+    add({ type: 'wanted', level: 'low', key: `wanted:${o.id}`, msg: `あなたの在庫の${it.name}を募集#${o.id}が単価￥${o.price}で募集中 (残り${o.left}${it.scale})` });
+  }
+  const somethingToDo = shelves.some((s) => !s.item || s.stock === 0) || wantedCount > 0;
+  if (timeFullIn <= WATCH_RULES.timeFull && somethingToDo) {
+    add({ type: 'time_full', level: 'low', key: `timefull:${dt.time}`, msg: timeFullIn ? `持ち時間があと${hours(timeFullIn)}で満タン` : '持ち時間が満タン (溢れています)' });
+  }
+
+  // 次に「時間で」鳴る予定 (番犬がそれまで見張りを間引けるように)
+  const timed: number[] = [];
+  if (on.has('period_soon')) timed.push(nextPeriod - WATCH_RULES.periodSoon);
+  if (on.has('closing_soon')) timed.push(closeAt - WATCH_RULES.closingSoon);
+  if (on.has('coupon_expiring') && coupon >= WATCH_RULES.couponLeft) timed.push(couponReset - WATCH_RULES.couponSoon);
+  const nextTimed = timed.filter((t) => t > now).sort((a, b) => a - b)[0] ?? null;
+
+  return {
+    as_of: asOf,
+    now,
+    /** as_of から何秒たっているか (値の古さ) */
+    age: now - asOf,
+    alerts,
+    next_timed: nextTimed,
+    setting: { mode: setting.mode, on: setting.on, off: setting.off, enabled: [...on] },
+    facts: {
+      popularity: Math.round(dt.rank) / 100,
+      money: dt.money,
+      moneystock: dt.moneystock,
+      time: stockTime,
+      time_full_in: timeFullIn,
+      coupon,
+      coupon_reset: couponReset,
+      closing_at: closeAt,
+      period: est,
+      shelves,
+      events,
+    },
+  };
+}
+
+/** アラートの鍵の短い印 (cursor 用) */
+export function alertMark(key: string): string {
+  return createHash('sha1').update(key).digest('base64url').slice(0, 6);
+}
+
+function hours(sec: number): string {
+  const s = Math.max(0, Math.round(sec));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h >= 48) return `${Math.floor(h / 24)}日${h % 24}時間`;
+  return h ? `${h}時間${m}分` : `${m}分`;
+}
