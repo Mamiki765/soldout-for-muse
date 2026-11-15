@@ -829,7 +829,8 @@ export class App {
     /** 品番。商品名 ("薬草") でも書ける (0.3.0) */
     const item = (k: string, d?: number): number => {
       const x = a[k];
-      const no = typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x)) ? itemByName(x.trim()) : n(k, d);
+      // 小数は切り捨ててから確かめる (行動の側も切り捨てるので、114.5 で隠した品に届かないように)
+      const no = typeof x === 'string' && x.trim() !== '' && !Number.isFinite(Number(x)) ? itemByName(x.trim()) : Math.trunc(n(k, d));
       // 隠した品は、持っている店でなければ無い品と同じ
       if (no >= 1 && no <= MAX_ITEM && !isPublicItem(no) && !(dt.item[no - 1] > 0)) throw new GameError('そんなアイテムはないです。');
       return no;

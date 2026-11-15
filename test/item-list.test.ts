@@ -113,6 +113,8 @@ test('隠した品は一覧で「品番 ？？？」、詳細・名前・行動�
     // 行動で名前・品番を書いても無い品。使い方の番号で作ろうとしても無い
     const act = await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ actions: [{ type: 'shelf', slot: 1, item: PUDDING, price: 2000 }] }) });
     assert.match(await act.text(), /そんなアイテムはないです/);
+    const act3 = await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ actions: [{ type: 'buy', from: 2, item: PUDDING + 0.5, count: 1 }] }) });
+    assert.match(await act3.text(), /そんなアイテムはないです/, '小数の品番でも隠した品には届かない');
     const act2 = await fetch(base + '/api/v1/actions', { method: 'POST', headers: auth, body: JSON.stringify({ actions: [{ type: 'shelf', slot: 1, item: '固めプリン', price: 2000 }] }) });
     assert.match(await act2.text(), /「固めプリン」という商品はありません/);
     // 観戦画面も同じ
