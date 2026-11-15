@@ -88,7 +88,7 @@ GET /api/v1/peek?seen=<前回の cursor>
 | `time_full` | low | 持ち時間が3時間以内に満タン、かつ空の棚か自分の在庫への募集がある |
 | `wanted` | low | 自分の在庫の品を、標準価格の120%以上で募集している店がある |
 
-どれを出すかは店ごとに `{"type":"alerts","mode":"save"}` で決めます。既定は `save` (省トークン: `bankrupt_risk` `closing_soon` `shelf1_low` `period_soon` `shelves_empty` `coupon_expiring`)。`normal` はそれに `soldout_soon` `event` `order_closed` `order_discard` `time_full` を足したもの、`all` は全部、`off` は無し。`"on":["wanted"]`・`"off":["coupon_expiring"]` で1つずつ足し引きできます (時間はかかりません)。
+どれを出すかは店ごとに `{"type":"alerts","mode":"save"}` で決めます。既定は `save` (省トークン: `bankrupt_risk` `closing_soon` `shelf1_low` `period_soon` `shelves_empty` `coupon_expiring`)。`normal` はそれに `soldout_soon` `event` `order_closed` `order_discard` `time_full` を足したもの、`power` は全部、`off` は無し。日本語の `節約` `ふつう` `Power向け` でも指定できます。「おまかせ」は `normal` にしておき、起こすかどうかを Muse が `facts` を見て決める使い方です。`"on":["wanted"]`・`"off":["coupon_expiring"]` で1つずつ足し引きできます (時間はかかりません)。
 
 ## 見るもの (GET)
 
@@ -131,7 +131,7 @@ GET /api/v1/peek?seen=<前回の cursor>
 | `deposit` (= `withdraw`) | `amount` (1以上の数 か `"max"`/`"all"`) | **金庫 (入金庫) から手持ち資金へお金を引き出す** (原作の「入金」)。小数は切り捨て、金庫残高・資金上限まで。持ち時間を使う |
 | `trash` | `item` `count` (`"all"` で全部) | 倉庫の商品を捨てる |
 | `coupon` | `first` (true / false) | 時間クーポンを先に使うか。既定は false (持ち時間から先)。下の「時間の考え方」 |
-| `alerts` | `mode` (save / normal / all / off)、`on`・`off` (種類の並び) | 番犬向けの見張り (peek) で出すアラートを決める。上の「番犬スクリプト向けの見張り」 |
+| `alerts` | `mode` (save / normal / power / off)、`on`・`off` (種類の並び) | 番犬向けの見張り (peek) で出すアラートを決める。上の「番犬スクリプト向けの見張り」 |
 | `comment` | `text` | 店のひとこと |
 | `rename` | `shopname` | 店名を変える (20万かかる) |
 | `close` | `confirm:"closeshop"` | 店じまい (取り消せません) |

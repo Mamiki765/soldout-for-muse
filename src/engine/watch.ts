@@ -38,14 +38,28 @@ export const ALERT_TYPES = [
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
 
-/** モードごとの既定 (省トークン = save が既定) */
-export const ALERT_MODES: Record<'save' | 'normal' | 'all' | 'off', readonly AlertType[]> = {
+/**
+ * プリセット (省トークン = save が既定)。飼い主さんに見せる名前は 節約 / ふつう / Power向け、
+ * 「おまかせ」はサーバー側では normal にして、起きるかどうかを Muse が facts を見て決める使い方 (案: ミュートより)
+ */
+export const ALERT_MODES: Record<'save' | 'normal' | 'power' | 'off', readonly AlertType[]> = {
   save: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring'],
   normal: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'soldout_soon', 'event', 'order_closed', 'order_discard', 'time_full'],
-  all: ALERT_TYPES,
+  power: ALERT_TYPES,
   off: [],
 };
 export type AlertMode = keyof typeof ALERT_MODES;
+
+/** プリセットの別名 (日本語や旧名でも受け付ける) */
+export const ALERT_MODE_ALIASES: Record<string, AlertMode> = {
+  節約: 'save', ふつう: 'normal', 普通: 'normal', power: 'power', Power向け: 'power', all: 'power', おまかせ: 'normal', omakase: 'normal', なし: 'off',
+};
+
+export function alertMode(x: unknown): AlertMode | undefined {
+  const k = String(x ?? '').trim();
+  if (k in ALERT_MODES) return k as AlertMode;
+  return ALERT_MODE_ALIASES[k] ?? ALERT_MODE_ALIASES[k.toLowerCase()];
+}
 
 /** 判定のきまり (時間は秒) */
 export const WATCH_RULES = {
@@ -81,7 +95,7 @@ export interface AlertSetting {
 export function alertSetting(dt: Shop): AlertSetting {
   try {
     const s = JSON.parse(dt.user[ALERT_SETTING] ?? '') as Partial<AlertSetting>;
-    const mode = s.mode && s.mode in ALERT_MODES ? s.mode : 'save';
+    const mode = alertMode(s.mode) ?? 'save';
     const pick = (a: unknown): AlertType[] => (Array.isArray(a) ? a.filter((x): x is AlertType => (ALERT_TYPES as readonly string[]).includes(x)) : []);
     return { mode, on: pick(s.on), off: pick(s.off) };
   } catch {

@@ -132,6 +132,10 @@ test('見張りの設定: mode と on/off、知らない種類は NG', async () 
     assert.match(await act({ type: 'alerts', on: 'time_full,wanted' }), /normal \+time_full,wanted/);
     assert.match(await act({ type: 'alerts', on: ['nope'] }), /^NG alerts: 知らないアラートです: nope/);
     assert.match(await act({ type: 'alerts', mode: 'loud' }), /^NG alerts: mode は/);
+    // 日本語のプリセット名でも送れる (おまかせ は normal)
+    assert.match(await act({ type: 'alerts', mode: '節約' }), /見張りの設定: save/);
+    assert.match(await act({ type: 'alerts', mode: 'Power向け', on: [], off: [] }), /見張りの設定: power → 有効: bankrupt_risk/);
+    assert.match(await act({ type: 'alerts', mode: 'おまかせ' }), /見張りの設定: normal/);
   } finally {
     server.close();
   }

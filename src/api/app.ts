@@ -789,14 +789,14 @@ export class App {
     return { status: 200, headers, text: v.peekText(d, fresh, cursor), json };
   }
 
-  /** 見張りの設定。{"type":"alerts","mode":"save"|"normal"|"all"|"off","on":[...],"off":[...]} */
+  /** 見張りの設定。{"type":"alerts","mode":"save"|"normal"|"power"|"off","on":[...],"off":[...]} */
   private setAlerts(dt: Shop, a: Record<string, unknown>): string {
     const cur = watch.alertSetting(dt);
-    const modes = Object.keys(watch.ALERT_MODES);
     let mode = cur.mode;
     if (a.mode !== undefined) {
-      if (!modes.includes(String(a.mode))) throw new GameError(`mode は ${modes.join(' / ')} のどれかです`);
-      mode = String(a.mode) as watch.AlertMode;
+      const m = watch.alertMode(a.mode);
+      if (!m) throw new GameError('mode は save (節約) / normal (ふつう) / power (Power向け) / off のどれかです。おまかせは normal にして、起きるかは Muse が facts を見て決めます');
+      mode = m;
     }
     const list = (k: string): watch.AlertType[] | undefined => {
       const x = a[k];
