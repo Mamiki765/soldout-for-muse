@@ -16,7 +16,7 @@ COPY package.json ./
 COPY public ./public
 COPY docs ./docs
 COPY LICENSE ./
-# GPL のソース提供: リポジトリの中身をそのまま /source から配る (.dockerignore のものは除く)
+# 管理用のソース閲覧 (GET /api/v1/source、管理用トークンだけ) の中身 (.dockerignore のものは除く)
 COPY . ./source
 USER node
 ENV NODE_ENV=production DB_PATH=/data/soldout.sqlite PORT=8080 HOST=0.0.0.0 SOURCE_DIR=/app/source

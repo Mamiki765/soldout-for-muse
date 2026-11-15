@@ -2,7 +2,7 @@
 // Copyright (C) 2001-2004 MUTOYS (original), SOLD OUT for Muse contributors (port)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import type { UseDef } from '../data/catalog.js';
+import { isPublicItem, type UseDef } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
 import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
@@ -72,7 +72,8 @@ export interface RtUse {
 export function loadUses(g: Game, itemno: number): RtUse[] {
   const item = g.items[itemno];
   if (!item) return [];
-  return item.uses.map((def) => {
+  // 隠した品 (item-ref.json) が成果に入る使い方は、無いものとして扱う (名前からも品が分かってしまうため)
+  return item.uses.filter((def) => def.get.every((l) => isPublicItem(l.item_no))).map((def) => {
     const u: RtUse = {
       def,
       no: def.no,

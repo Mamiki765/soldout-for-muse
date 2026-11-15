@@ -124,7 +124,7 @@ export function sourceText(tree: SourceTree, p: string): { status: number; text:
   const r = tree.resolve(p);
   if (!r) return { status: 404, text: 'NG ありません\n' };
   if (r.kind === 'dir') {
-    const head = `# /${r.path} (ファイルは GET /api/v1/source/<パス> で読めます。一式は /source.tar.gz)\n`;
+    const head = `# /${r.path} (ファイルは GET /api/v1/source/<パス> で読めます)\n`;
     return { status: 200, text: head + r.entries.map((e) => (e.dir ? e.name + '/' : `${e.name} ${e.size}`)).join('\n') + '\n' };
   }
   const b = tree.read(r.file);
