@@ -7,7 +7,7 @@ import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 import { CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
-import { cancelOrder, createOrder, deliver, orders, periodNo, priceRange, sweepOrders } from '../src/engine/orders.js';
+import { cancelOrder, createOrder, deliver, ORDER_RULES, orders, periodNo, priceRange, setOrderRenew, sweepOrders } from '../src/engine/orders.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld, type Shop, type World } from '../src/engine/types.js';
 import { digestData, digestText, ordersData, ordersText } from '../src/api/views.js';
@@ -324,60 +324,189 @@ test('決まりの一文がヘルプ・告知・一覧で同じ', async () => {
   const { UPDATES } = await import('../src/updates.js');
   assert.ok(readFileSync('docs/API.md', 'utf8').includes(ORDER_RULES_LINE));
   assert.ok(JSON.stringify(UPDATES).includes(ORDER_RULES_LINE));
-  const { ORDER_REPEAT_LINE } = await import('../src/engine/orders.js');
-  assert.ok(readFileSync('docs/API.md', 'utf8').includes(ORDER_REPEAT_LINE));
+  const { ORDER_RENEW_LINE } = await import('../src/engine/orders.js');
+  assert.ok(readFileSync('docs/API.md', 'utf8').includes(ORDER_RENEW_LINE));
 });
 
 // ---------------------------------------------------------------------------
-// 自動再掲 (0.3.3)
+// 期限切れの扱い (renew): A=未成立なら無料延長 / B=回数を決めて再掲 / C=無期限で再掲
 
-test('自動再掲: 期限切れで残りを同じ条件で張り直し、届いた分は倉庫へ、時間は戻さず、回数を使う', () => {
+const H = 3600;
+const shopOf = (world: World, id: number) => world.shops.find((x) => x.id === id)!;
+const at = (world: World, now: number) => new Game(world, DEFAULT_CONFIG, seededRng(9), now);
+const post = (world: World, dt: Shop, now: number, req: Partial<Parameters<typeof createOrder>[2]>) =>
+  act(world, dt, now, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: 100, count: 300, hours: 10, ...req }));
+const give = (world: World, from: Shop, to: Shop, now: number, order: number, count: number) =>
+  act(world, from, now, (g) => deliver(g, g.shopById(from.id)!, to.id, [{ order, count }]));
+const logsOf = (world: World, g: Game, id: number) => g.newLogs.filter((l) => l.from === id).map((l) => l.msg);
+
+test('A 延長: 1個も届かなければ同じ長さだけ無料で延ばす (何回分でも一度に)。時間・代金・回数を使わず、届いたら期限で締める', () => {
   const { world, buyer, seller } = setup();
-  const b = () => world.shops.find((s) => s.id === buyer.id)!;
-  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 300, hours: 10, repeat: 2 }));
-  const timeAfterPost = b().time;
-  const stock0 = b().item[LEATHER - 1];
-  act(world, seller, T0 + 3600, (g) => deliver(g, g.shopById(seller.id)!, buyer.id, [{ order: o.id, count: 100 }]));
+  const o = post(world, buyer, T0, { renew: 'extend' });
+  const time0 = shopOf(world, buyer.id).time;
+  const money0 = shopOf(world, buyer.id).money;
+  const posted0 = world.orderStats!.posted[buyer.id];
 
-  // 1回目の期限切れ → 張り直し
-  const g1 = new Game(world, DEFAULT_CONFIG, seededRng(3), T0 + 10 * 3600);
-  assert.equal(sweepOrders(g1), true);
-  const o1 = orders(g1).find((x) => x.id === o.id)!;
-  assert.ok(o1, '募集は残る');
-  assert.equal(o1.left, 200);
-  assert.equal(o1.count, 200);
-  assert.equal(o1.repeat, 1);
-  assert.equal(o1.expires, T0 + 20 * 3600, '前の期限から同じ長さ');
-  assert.equal(o1.escrow, 20000, '預り金は残りの代金のまま');
-  assert.equal(o1.time, 0, '届いたので時間は使ったもの');
-  assert.equal(b().item[LEATHER - 1], stock0 + 100, '届いた分は倉庫へ');
-  const samePeriod = periodNo(g1) === periodNo(new Game(world, DEFAULT_CONFIG, seededRng(3), T0));
-  assert.equal(g1.world.orderStats!.posted[buyer.id], samePeriod ? 2 : 1, '張り直しで募集の回数を1回使う');
+  const g = at(world, T0 + 35 * H);
+  sweepOrders(g);
+  const o1 = orders(g).find((x) => x.id === o.id)!;
+  assert.ok(o1, '延長されて残る');
+  assert.equal(o1.expires, T0 + 40 * H, '10時間ずつ、今を越えるまで');
+  assert.equal(o1.renewed, 3);
+  assert.equal(shopOf(world, buyer.id).time, time0, '時間は使わず、戻しもしない');
+  assert.equal(shopOf(world, buyer.id).money, money0);
+  assert.equal(o1.escrow, 30000);
+  assert.equal(o1.count, 300);
+  assert.equal(world.orderStats!.posted[buyer.id] ?? 0, world.orderStats!.period === periodNo(at(world, T0)) ? posted0 : 0, '募集の回数を使わない');
+  assert.equal(logsOf(world, g, buyer.id).filter((m) => m.includes('期限を延ばしました')).length, 1, 'ログは1回分にまとめる');
 
-  // 長く誰も来ないと、残りの回数ぶん続けて張り直してから締める
-  const g2 = new Game(world, DEFAULT_CONFIG, seededRng(4), T0 + 40 * 3600);
-  const money0 = b().money;
+  give(world, seller, buyer, T0 + 36 * H, o.id, 50);
+  const stock0 = shopOf(world, buyer.id).item[LEATHER - 1];
+  const g2 = at(world, T0 + 40 * H);
   sweepOrders(g2);
-  assert.equal(orders(g2).length, 0);
-  assert.equal(b().money, money0 + 20000, '残りの代金が戻る');
-  assert.equal(b().time, timeAfterPost, '一度届いたので時間は戻らない');
+  assert.equal(orders(g2).length, 0, '1個でも届いていれば締める');
+  assert.equal(shopOf(world, buyer.id).item[LEATHER - 1], stock0 + 50);
+  assert.equal(shopOf(world, buyer.id).money, money0 + 25000, '届かなかった分の代金が戻る');
+  assert.equal(shopOf(world, buyer.id).time, time0, '届いたので時間は戻らない');
 });
 
-test('自動再掲: 1個も届かずに終われば時間は戻る。回数を使い切っていたら張り直さない。repeat_order で変えられる', async () => {
-  const { setOrderRepeat } = await import('../src/engine/orders.js');
-  const { world, buyer } = setup();
-  const b = () => world.shops.find((s) => s.id === buyer.id)!;
-  const bt0 = b().time;
-  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 1 }));
-  assert.equal(o.repeat, undefined);
-  assert.throws(() => act(world, buyer, T0, (g) => setOrderRepeat(g, g.shopById(buyer.id)!, o.id, 4)), GameError);
-  act(world, buyer, T0, (g) => setOrderRepeat(g, g.shopById(buyer.id)!, o.id, 3));
-  // 今期の回数を使い切っておく
-  world.orderStats!.posted[buyer.id] = b().showcasecount * 3 - 1;
-  const g = new Game(world, DEFAULT_CONFIG, seededRng(5), T0 + 5 * 3600);
+test('B 再掲: 残りを同じ単価・長さで出し直し、そのたびに時間と回数を払う。届いた分は倉庫へ、預り金は引き継ぐ、最低納品数は残りまで', () => {
+  const { world, buyer, seller, other } = setup();
+  const o = post(world, buyer, T0, { renew: 'repost', repeat: 2, min: 280 });
+  const money0 = shopOf(world, buyer.id).money;
+  give(world, seller, buyer, T0 + H, o.id, 280);
+  // 残り20。期限 T0+10h で再掲
+  const stock0 = shopOf(world, buyer.id).item[LEATHER - 1];
+  const before = shopOf(world, buyer.id).time;
+  const g = at(world, T0 + 10 * H);
+  const cost = g.timeDeal(20 * 100, LEATHER, 20);
+  const p0 = world.orderStats!.period === periodNo(at(world, T0 + 10 * H)) ? world.orderStats!.posted[buyer.id] ?? 0 : 0;
   sweepOrders(g);
-  assert.equal(orders(g).length, 0, '1回張り直したあと回数切れで締まる');
-  assert.equal(b().time, bt0, '1個も届かなかったので時間は戻る');
-  assert.equal(b().money, 1_000_000);
-  assert.throws(() => act(world, buyer, T0, (g2) => createOrder(g2, g2.shopById(buyer.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 1, repeat: -1 })), GameError);
+  const o1 = orders(g).find((x) => x.id === o.id)!;
+  assert.equal(o1.left, 20);
+  assert.equal(o1.count, 20);
+  assert.equal(o1.min, 20, '最低納品数は残りの数まで下げる');
+  assert.equal(o1.escrow, 2000, '預り金は残りの代金のまま (二重に取らない)');
+  assert.equal(o1.expires, T0 + 20 * H);
+  assert.equal(o1.repeat, 1);
+  assert.equal(shopOf(world, buyer.id).item[LEATHER - 1], stock0 + 280, '届いた分は倉庫へ');
+  assert.equal(shopOf(world, buyer.id).time, Math.max(before, T0 + 10 * H - 48 * H) + cost, '期限の時点の持ち時間 (48時間まで) から、新しい募集と同じ取引時間');
+  assert.equal(world.orderStats!.posted[buyer.id], p0 + 1, '募集の回数を1回使う');
+  assert.equal(shopOf(world, buyer.id).money, money0, '代金は動かない');
+
+  // 同じ相手への納品は今期1セットのまま (再掲で戻らない)
+  if (periodNo(at(world, T0 + H)) === periodNo(at(world, T0 + 11 * H))) {
+    assert.throws(() => give(world, seller, buyer, T0 + 11 * H, o.id, 5), /1期1セット/);
+  }
+  // 最低納品数20 = 残り全部でないと受け付けない (今までの最低納品数の決まりのまま)
+  assert.throws(() => give(world, other, buyer, T0 + 11 * H, o.id, 5), /20枚以上/);
+  world.orders!.find((x) => x.id === o.id)!.min = 0; // ここからは部分納品を見るため (失敗した行動で world は巻き戻るので取り直す)
+  give(world, other, buyer, T0 + 11 * H, o.id, 5);
+
+  // 2回目の再掲 (最後) → 3回目の期限で締める
+  const g2 = at(world, T0 + 30 * H);
+  sweepOrders(g2);
+  assert.equal(orders(g2).length, 0, '回数を使い切ったら締める');
+  const b = shopOf(world, buyer.id);
+  assert.equal(b.item[LEATHER - 1], stock0 + 285);
+  assert.equal(b.money, money0 + 1500, '最後に残りの代金だけ戻る (届いた285個ぶんは払ったまま)');
+  // 資金の合計: 300個ぶん預けて、285個ぶん払い、15個ぶん戻った
+  assert.equal(1_000_000 - b.money, 285 * 100);
+});
+
+test('B 再掲: 全部届いたら締めて、新しい募集を始めない', () => {
+  const { world, buyer, seller } = setup();
+  const o = post(world, buyer, T0, { renew: 'forever', count: 100 });
+  give(world, seller, buyer, T0 + H, o.id, 100);
+  const g = at(world, T0 + 50 * H);
+  sweepOrders(g);
+  assert.equal(orders(g).length, 0);
+  assert.equal(shopOf(world, buyer.id).money, 1_000_000 - 10000);
+  assert.ok(!orders(g).some((x) => x.id === o.id));
+});
+
+test('B/C 再掲: 持ち時間・募集の回数が足りない、所持上限に入らないときは再掲せずに締め、代金と (届いていなければ) 時間を返す', () => {
+  // 持ち時間が足りない (待ち中)
+  {
+    const { world, buyer } = setup();
+    const o = post(world, buyer, T0, { renew: 'forever' });
+    const b = shopOf(world, buyer.id);
+    b.time = T0 + 30 * H; // 期限の時点では待ち中
+    const t1 = b.time;
+    const g = at(world, T0 + 10 * H);
+    sweepOrders(g);
+    assert.equal(orders(g).length, 0);
+    assert.ok(logsOf(world, g, buyer.id).some((m) => m.includes(`募集#${o.id}`) && m.includes('期限切れで終了 (持ち時間が足りないため再掲せず)')));
+    assert.equal(b.money, 1_000_000, '代金は全部戻る');
+    assert.equal(b.time, t1 - o.time, '1個も届いていないので最初の時間は戻る (今までの締めと同じ)');
+  }
+  // 募集の回数を使い切っている
+  {
+    const { world, buyer } = setup();
+    post(world, buyer, T0, { renew: 'repost', repeat: 5 });
+    const g = at(world, T0 + 10 * H);
+    const no = periodNo(g);
+    world.orderStats = { period: no, posted: { [buyer.id]: shopOf(world, buyer.id).showcasecount * ORDER_RULES.postsPerShelf }, filled: {}, pairs: {} };
+    sweepOrders(g);
+    assert.equal(orders(g).length, 0);
+    assert.ok(logsOf(world, g, buyer.id).some((m) => m.includes('今期の募集回数を使い切ったため再掲せず')));
+  }
+  // 所持上限 (募集の後で棚から買い足した)
+  {
+    const { world, buyer } = setup();
+    post(world, buyer, T0, { renew: 'forever' });
+    const b = shopOf(world, buyer.id);
+    b.item[LEATHER - 1] = at(world, T0).items[LEATHER].limit - 100;
+    const g = at(world, T0 + 10 * H);
+    sweepOrders(g);
+    assert.equal(orders(g).length, 0);
+    assert.ok(logsOf(world, g, buyer.id).some((m) => m.includes('所持上限のため再掲せず')));
+    assert.equal(b.money, 1_000_000);
+  }
+});
+
+test('C 無期限・B 2147483647回: 長く放っておいても止まり、保存データも増えない', () => {
+  for (const req of [{ renew: 'forever' as const }, { renew: 'repost' as const, repeat: 2_147_483_647 }]) {
+    const { world, buyer } = setup();
+    const o = post(world, buyer, T0, { ...req, hours: 1, count: 10 });
+    const g = at(world, T0 + 400 * 24 * H);
+    sweepOrders(g);
+    const left = orders(g);
+    assert.ok(left.length <= 1);
+    const logs = logsOf(world, g, buyer.id).filter((m) => m.startsWith(`募集#${o.id}`));
+    assert.ok(logs.length <= 1001, `ログは上限まで (${logs.length})`);
+    assert.ok(JSON.stringify(world.orders).length < 1000);
+    // 次のアクセスで続きを処理しても、預り金は増えも減りもしない
+    for (let i = 0; i < 20 && orders(g).length; i++) sweepOrders(g);
+    const b = shopOf(world, buyer.id);
+    assert.equal(b.money + (orders(g)[0]?.escrow ?? 0), 1_000_000, '代金は増えも減りもしない');
+  }
+});
+
+test('renew の指定: 範囲・組み合わせの確かめ、renew_order で変える、古い募集 (hours 無し) も扱える', () => {
+  const { world, buyer } = setup();
+  const bad = (req: Partial<Parameters<typeof createOrder>[2]>) => assert.throws(() => post(world, buyer, T0, req), GameError);
+  bad({ renew: 'repost' });
+  bad({ renew: 'repost', repeat: 0 });
+  bad({ renew: 'repost', repeat: 2_147_483_648 });
+  bad({ renew: 'extend', repeat: 3 });
+  bad({ renew: 'forever', repeat: 3 });
+  bad({ renew: 'auto' as never });
+  const o = post(world, buyer, T0, {});
+  assert.equal(o.renew, undefined);
+  // 古い募集の形
+  const raw = orders(at(world, T0)).find((x) => x.id === o.id)!;
+  delete raw.hours;
+  act(world, buyer, T0, (g) => setOrderRenew(g, g.shopById(buyer.id)!, o.id, 'extend', undefined));
+  assert.equal(raw.renew, 'extend');
+  assert.equal(raw.hours, 10);
+  act(world, buyer, T0, (g) => setOrderRenew(g, g.shopById(buyer.id)!, o.id, 'repost', 7));
+  assert.equal(raw.repeat, 7);
+  act(world, buyer, T0, (g) => setOrderRenew(g, g.shopById(buyer.id)!, o.id, 'none', undefined));
+  assert.equal(raw.renew, undefined);
+  assert.equal(raw.repeat, undefined);
+  // repeat だけ書いたら repost
+  act(world, buyer, T0, (g) => cancelOrder(g, g.shopById(buyer.id)!, o.id));
+  const o2 = post(world, buyer, T0, { repeat: 2, count: 1 });
+  assert.equal(o2.renew, 'repost');
 });

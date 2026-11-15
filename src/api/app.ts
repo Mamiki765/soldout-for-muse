@@ -705,8 +705,8 @@ export class App {
       }
       case 'order': {
         this.requireParty(dt);
-        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), repeat: opt('repeat') });
-        return [`募集#${o.id}を出しました${o.repeat ? ` (期限切れのとき自動で${o.repeat}回まで再掲)` : ''}`];
+        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), renew: renewIn(a.renew), repeat: opt('repeat') });
+        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}`];
       }
       case 'deliver': {
         this.requireParty(dt);
@@ -728,9 +728,9 @@ export class App {
       }
       case 'cancel_order':
         return [ord.cancelOrder(g, dt, n('order'))];
-      case 'repeat_order':
-        // 自動再掲の回数を変える (0.3.3)。時間はかからない
-        return [ord.setOrderRepeat(g, dt, n('order'), n('repeat'))];
+      case 'renew_order':
+        // 期限切れのときの扱い (延長・再掲) を変える。時間はかからない
+        return [ord.setOrderRenew(g, dt, n('order'), renewIn(a.renew) ?? 'none', opt('repeat'))];
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
       case 'coupon': {
@@ -752,7 +752,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order repeat_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }
@@ -1054,6 +1054,14 @@ const ACTION_ALIASES: Record<string, string> = {
 };
 
 /** 別名にはしないが、送られがちな名前への案内 */
+/** renew の値。日本語の名前でも受ける */
+function renewIn(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  const x = String(v).trim().toLowerCase();
+  const alias: Record<string, string> = { なし: 'none', 締める: 'none', 延長: 'extend', 無料延長: 'extend', 再掲: 'repost', 無期限: 'forever', 無期限再掲: 'forever' };
+  return alias[x] ?? x;
+}
+
 const ACTION_HINTS: Record<string, string> = {
   sell: '売るには shelf で棚に並べます。お客が買っていきます',
   price: '値段は shelf の price か percent で付けます',
@@ -1065,8 +1073,10 @@ const ACTION_HINTS: Record<string, string> = {
   want: '欲しい品の買い取り募集は order です (例 {"type":"order","item":2,"price":120,"count":300})',
   fill: '募集への納品は deliver です (GET /api/v1/orders で募集を見られます)',
   cancel: '募集の取り下げは cancel_order です',
-  repost: '期限切れの募集を同じ条件で張り直すのは、order の repeat (0〜3) か、出した後なら repeat_order です',
-  relist: '期限切れの募集を同じ条件で張り直すのは、order の repeat (0〜3) か、出した後なら repeat_order です',
+  repost: '期限切れの募集の延長・再掲は、order に renew (extend / repost / forever) を付けるか、出した後なら renew_order です',
+  relist: '期限切れの募集の延長・再掲は、order に renew (extend / repost / forever) を付けるか、出した後なら renew_order です',
+  repeat_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"repost","repeat":3})',
+  extend_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"extend"})',
 };
 
 /** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */

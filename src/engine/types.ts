@@ -101,6 +101,9 @@ export interface World {
   orderStats?: OrderStats;
 }
 
+/** 期限切れのときの自動の張り直し方 (engine/orders.ts) */
+export type OrderRenew = 'extend' | 'repost' | 'forever';
+
 /** 買い取り募集 1 件 (engine/orders.ts) */
 export interface BuyOrder {
   id: number;
@@ -125,12 +128,17 @@ export interface BuyOrder {
   couponWeek?: number;
   created: number;
   expires: number;
-  /** 募集の期限の長さ (時間)。再掲のとき同じ長さで張り直す (0.3.3 より前の募集には無い) */
+  /** 募集の期限の長さ (時間)。延長・再掲で同じ長さを足す (自動の張り直しより前の募集には無い) */
   hours?: number;
-  /** 期限切れのとき、あと何回自動で張り直すか (0.3.3) */
+  /**
+   * 期限切れのときの扱い (無ければ締める)。
+   * extend: 1個も届いていなければ同じ長さだけ無料で延長 / repost: 回数を決めて有料で再掲 / forever: 無期限で有料で再掲
+   */
+  renew?: OrderRenew;
+  /** repost の残り回数 */
   repeat?: number;
-  /** これまでに自動で張り直した回数 */
-  reposted?: number;
+  /** これまでに延長・再掲した回数 (表示用) */
+  renewed?: number;
 }
 
 export interface OrderStats {
