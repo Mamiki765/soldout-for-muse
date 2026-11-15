@@ -3050,7 +3050,7 @@
                      "proba" : 1000
                   }
                ],
-               "info" : "『調香の手引き』を作ります",
+               "info" : "調香の手引きを作ります",
                "jobs" : [
                   {
                      "job" : "book",
@@ -3063,11 +3063,11 @@
                "local_func_before" : null,
                "local_func_info" : null,
                "money" : 0,
-               "name" : "『調香の手引き』を執筆する",
+               "name" : "調香の手引きを執筆する",
                "needexp" : null,
                "ngmsg" : "作成に失敗しました…",
                "no" : 8,
-               "okmsg" : "『調香の手引き』を作りました",
+               "okmsg" : "調香の手引きを作りました",
                "params" : [
                   null,
                   null,
@@ -3111,7 +3111,7 @@
                      "proba" : 1000
                   }
                ],
-               "info" : "『乳菓のレシピ』を作ります",
+               "info" : "乳菓のレシピを作ります",
                "jobs" : [
                   {
                      "job" : "book",
@@ -3124,11 +3124,11 @@
                "local_func_before" : null,
                "local_func_info" : null,
                "money" : 0,
-               "name" : "『乳菓のレシピ』を執筆する",
+               "name" : "乳菓のレシピを執筆する",
                "needexp" : null,
                "ngmsg" : "作成に失敗しました…",
                "no" : 9,
-               "okmsg" : "『乳菓のレシピ』を作りました",
+               "okmsg" : "乳菓のレシピを作りました",
                "params" : [
                   null,
                   null,
@@ -13351,7 +13351,7 @@
          "local_funcbuy" : null,
          "local_funcsale" : null,
          "local_functurn" : null,
-         "name" : "『調香の手引き』",
+         "name" : "調香の手引き",
          "no" : 112,
          "param" : null,
          "plus" : 27648000,
@@ -13380,7 +13380,7 @@
          "local_funcbuy" : null,
          "local_funcsale" : null,
          "local_functurn" : null,
-         "name" : "『乳菓のレシピ』",
+         "name" : "乳菓のレシピ",
          "no" : 113,
          "param" : null,
          "plus" : 27648000,

@@ -866,7 +866,11 @@ export class App {
         let useNo: number;
         if (typeof a.use === 'string' && a.use.trim() !== '' && !Number.isFinite(Number(a.use))) {
           const name = a.use.trim();
-          const found = loadUses(g, itemno).find((x) => x.name === name);
+          // 本執筆キットの使い方を旧表記で保存していた Muse も実行できるようにする。
+          const useName = itemno === 10
+            ? name.replace(/^(.+)を執筆する$/u, (_, title: string) => (LEGACY_BOOK_NAMES.get(title) ?? title) + 'を執筆する')
+            : name;
+          const found = loadUses(g, itemno).find((x) => x.name === useName);
           if (!found) throw new GameError(`使い方「${name}」はありません。GET /api/v1/items/${itemno} の「使い方」を見てください`);
           useNo = found.no;
         } else useNo = n('use', 0);
@@ -1395,11 +1399,18 @@ function isYes(x: unknown): boolean {
   return ['true', '1', 'yes', 'y', 'ok', 'confirm', 'はい'].includes(x.trim().toLowerCase());
 }
 
+/** API の入力で受け付ける旧商品名。商品一覧には正式名だけを出す。 */
+const LEGACY_BOOK_NAMES = new Map([
+  ['『調香の手引き』', '調香の手引き'],
+  ['『乳菓のレシピ』', '乳菓のレシピ'],
+]);
+
 /** 商品名 (または商品コード) から品番 */
 function itemByName(name: string): number {
+  const canonicalName = LEGACY_BOOK_NAMES.get(name) ?? name;
   for (let no = 1; no <= MAX_ITEM; no++) {
     const it = BASE_ITEMS[no];
-    if (it && (it.name === name || it.code === name)) return no;
+    if (it && (it.name === canonicalName || it.code === name)) return no;
   }
   throw new GameError(`「${name}」という商品はありません。品番か、GET /api/v1/items の名前で書いてください`);
 }
