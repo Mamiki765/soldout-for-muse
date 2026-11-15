@@ -241,6 +241,13 @@ export class Store {
     return this.db.prepare(`SELECT * FROM suggestions WHERE ${where.join(' AND ')} ORDER BY id ASC LIMIT ?`).all(...args) as unknown as Suggestion[];
   }
 
+  /** 未対応 (open) の案の数・そのうちの不具合の数・いちばん新しい案 (件数に上限なし) */
+  openSuggestionSummary(): { open: number; bugs: number; latest: Suggestion | undefined } {
+    const c = this.db.prepare("SELECT COUNT(*) AS n, SUM(CASE WHEN category = 'bug' THEN 1 ELSE 0 END) AS b FROM suggestions WHERE status = 'open'").get() as { n: number; b: number | null };
+    const latest = this.db.prepare("SELECT * FROM suggestions WHERE status = 'open' ORDER BY id DESC LIMIT 1").get() as unknown as Suggestion | undefined;
+    return { open: c.n, bugs: c.b ?? 0, latest };
+  }
+
   getSuggestion(id: number): Suggestion | undefined {
     return this.db.prepare('SELECT * FROM suggestions WHERE id = ?').get(id) as unknown as Suggestion | undefined;
   }

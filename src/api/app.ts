@@ -710,12 +710,12 @@ export class App {
       results.push(...(req.rec.r as Result[]));
       start = req.rec.n;
       // 前の回が失敗で止まっていたら (stop_on_error)、続きもしない (前の回と同じ答えにする)
-      if (body.stop_on_error === true && results.length && !results[results.length - 1].ok) start = list.length;
+      if (req.rec.stopped) start = list.length;
     }
     const replayed = req?.rec ? Math.min(start, list.length) : 0;
     /** 済んだところまでを、その店の記録に書く (行動の保存と同じ保存に入る) */
     const note = (dt: Shop, n: number) => {
-      if (req) this.writeRequestRecord(dt, req.id, req.hash, n, results);
+      if (req) this.writeRequestRecord(dt, req.id, req.hash, n, results, false);
     };
     for (let i = start; i < list.length; i++) {
       const a = (list[i] ?? {}) as Record<string, unknown>;
@@ -738,8 +738,9 @@ export class App {
         } else if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
         else throw e;
         // 失敗した行動も「済んだ」に数える (送り直しで同じ答えを返す。何も変わっていないので書くのは記録だけ)
-        if (req) this.saveRequestOnly(shopId, req.id, req.hash, i + 1, results);
-        if (a.stop_on_error !== false && body.stop_on_error === true) break;
+        const stop = a.stop_on_error !== false && body.stop_on_error === true;
+        if (req) this.saveRequestOnly(shopId, req.id, req.hash, i + 1, results, stop);
+        if (stop) break;
       }
     }
     void wantJson;
@@ -776,19 +777,19 @@ export class App {
     return { id, hash, rec };
   }
 
-  private writeRequestRecord(dt: Shop, id: string, hash: string, n: number, results: unknown[]): void {
+  private writeRequestRecord(dt: Shop, id: string, hash: string, n: number, results: unknown[], stopped: boolean): void {
     const now = this.clock();
     const list = readRequests(dt, now).filter((x) => x.id !== id);
-    list.push({ id, h: hash, at: now, n, r: results.slice() });
+    list.push({ id, h: hash, at: now, n, r: results.slice(), ...(stopped ? { stopped: true } : {}) });
     // 新しいほうから REQUEST_KEEP 件、24時間まで
     dt.user[REQUESTS] = JSON.stringify(list.slice(-REQUEST_KEEP));
   }
 
   /** 失敗した行動のあと、記録だけを保存する */
-  private saveRequestOnly(shopId: number, id: string, hash: string, n: number, results: unknown[]): void {
+  private saveRequestOnly(shopId: number, id: string, hash: string, n: number, results: unknown[], stopped: boolean): void {
     const dt = this.world.shops.find((x) => x.id === shopId && x.status);
     if (!dt) return;
-    this.writeRequestRecord(dt, id, hash, n, results);
+    this.writeRequestRecord(dt, id, hash, n, results, stopped);
     this.persist([], this.clock());
   }
 
@@ -960,16 +961,14 @@ export class App {
    */
   private adminAlerts(now: number): watch.Alert[] {
     const out: watch.Alert[] = [];
-    const open = this.store.listSuggestions({ status: 'open', limit: 200 });
-    if (open.length) {
-      const latest = open[open.length - 1];
-      const bugs = open.filter((x) => x.category === 'bug').length;
+    const { open, bugs, latest } = this.store.openSuggestionSummary();
+    if (latest) {
       const head = [...latest.text.replace(/\s+/g, ' ')].slice(0, 40).join('');
       out.push({
         type: 'admin',
         level: bugs ? 'high' : 'mid',
         key: `admin:suggest:${latest.id}`,
-        msg: `目安箱に未対応の案${open.length}件${bugs ? ` (うち不具合${bugs})` : ''}。新しいもの #${latest.id} ${latest.shopname} [${v.CATEGORY_JA[latest.category] ?? latest.category}] ${head} … GET /api/v1/admin/suggestions`,
+        msg: `目安箱に未対応の案${open}件${bugs ? ` (うち不具合${bugs})` : ''}。新しいもの #${latest.id} ${latest.shopname} [${v.CATEGORY_JA[latest.category] ?? latest.category}] ${head} … GET /api/v1/admin/suggestions`,
       });
     }
     const logs = this.store.readLogs(0, { scope: 'town', mode: 1, limit: 10, fromTime: now - 86400, contains: ADMIN_SHOP_WORDS });
@@ -1300,6 +1299,8 @@ interface RequestRec {
   /** 何件目まで済んだか */
   n: number;
   r: unknown[];
+  /** stop_on_error で、そこで止めた (送り直しでも続きをしない) */
+  stopped?: boolean;
 }
 
 function readRequests(dt: Shop, now: number): RequestRec[] {

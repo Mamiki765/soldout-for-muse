@@ -363,3 +363,51 @@ test('admin: 管理者として許可した店の peek にだけ、目安箱の�
     server.close();
   }
 });
+
+test('A05: 失敗に stop_on_error:false を付けた行動のあとで途切れても、送り直しで続きをする', async () => {
+  let now = T0;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    const { auth, shopId } = await register(base, 'つづき商店');
+    now += 2 * 3600;
+    const market = (await (await fetch(base + '/api/v1/market?format=json', { headers: auth })).json()) as { items: { item: number; stock: number }[] };
+    const item = market.items.find((x) => x.stock >= 5)!.item;
+    const body = JSON.stringify({ request_id: 'r3', stop_on_error: true, actions: [{ type: 'buy', item: 9999, count: 1, stop_on_error: false }, { type: 'buy', item, count: 1 }] });
+    const orig = store.saveWorld.bind(store);
+    let calls = 0;
+    store.saveWorld = (...args: Parameters<Store['saveWorld']>) => {
+      // 1回目 (失敗の記録) は通し、2回目 (2件目の行動) で落ちる
+      if (++calls === 2) throw new Error('disk full');
+      return orig(...args);
+    };
+    let r = await fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers: auth, body });
+    assert.equal(r.status, 500);
+    store.saveWorld = orig;
+    r = await fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers: auth, body });
+    const d = (await r.json()) as { results: { ok: boolean }[]; replayed: number };
+    assert.equal(d.replayed, 1);
+    assert.deepEqual(d.results.map((x) => x.ok), [false, true]);
+    assert.equal(app.world.shops.find((s) => s.id === shopId)!.item[item - 1], 1);
+  } finally {
+    server.close();
+  }
+});
+
+test('admin: 未対応の案が200件を超えても、新しい案で鍵が変わる', async () => {
+  let now = T0;
+  const { base, server, store } = await start(() => now);
+  try {
+    const admin = await register(base, 'おおい商店');
+    store.setSetting('admin_shops', String(admin.shopId));
+    for (let i = 0; i < 205; i++) store.addSuggestion(999, 'よそ', 'other', '案' + i, now);
+    const id = store.addSuggestion(999, 'よそ', 'bug', '最新の不具合', now);
+    const r = await fetch(base + '/api/v1/peek?format=json', { headers: admin.auth });
+    const d = (await r.json()) as { alerts: { type: string; level: string; key: string; msg: string }[] };
+    const a = d.alerts.find((x) => x.type === 'admin' && x.key.startsWith('admin:suggest:'))!;
+    assert.equal(a.key, `admin:suggest:${id}`);
+    assert.equal(a.level, 'high');
+    assert.match(a.msg, /未対応の案206件/);
+  } finally {
+    server.close();
+  }
+});
