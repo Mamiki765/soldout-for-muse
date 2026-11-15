@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { DEFAULT_CONFIG, GAME_TITLE, type GameConfig } from '../config.js';
 import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../data/catalog.js';
 import * as act from '../engine/actions.js';
+import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/costs.js';
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
@@ -23,7 +24,7 @@ import { TIPS } from '../tips.js';
 import { dropViewSessions, renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
-import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
+import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 
 export interface AppOptions {
   store: Store;
@@ -85,7 +86,10 @@ const SEEN_LOG = '_api_seen_log';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
 const SEEN_SUGGEST = '_api_seen_suggest';
+/** 店に【更新】の通知を出した版 (届けたかどうか。読んだかどうかとは別) */
 const SEEN_VERSION = '_seen_version';
+/** 認証して GET /api/v1/updates で最新版まで読んだ版 (digest の「未読更新」を消す) */
+const READ_VERSION = '_updates_read';
 /** 目安箱: 1店あたり 24 時間に出せる案の数と、1件の長さ (文字) */
 const SUGGEST_PER_DAY = 5;
 const SUGGEST_MAX_CHARS = 800;
@@ -139,19 +143,41 @@ export class App {
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
-    // この版で初めて起動した時刻をデプロイ時刻として記録する (再起動しても変わらない)
-    const sinceKey = 'update_since:' + APP_VERSION;
-    const since = Number(this.store.getSetting(sinceKey));
-    this.updateSince = Number.isFinite(since) && since > 0 ? since : this.clock();
-    if (!(since > 0)) this.store.setSetting(sinceKey, String(this.updateSince));
   }
 
-  /** この版のデプロイ時刻 (秒) */
-  readonly updateSince: number;
+  /**
+   * digest に付ける未読の案内。最新版を /api/v1/updates で読むまで毎回1行だけ出し、読んだら消える。
+   * 前に読んだ版があれば、その版より新しいぶんだけ取れる URL にする (読むトークンを減らす)。
+   */
+  digestNotice(dt: Shop): string | null {
+    const read = dt.user[READ_VERSION];
+    if (read && !newerVersion(APP_VERSION, read)) return null;
+    return `未読更新 v${APP_VERSION} /api/v1/updates${read ? '?since=' + read : ''}`;
+  }
 
-  /** デプロイから一定期間だけ digest に付ける短い案内 */
-  digestNotice(): string | null {
-    return this.clock() < this.updateSince + DIGEST_NOTICE_SECONDS ? DIGEST_NOTICE : null;
+  /**
+   * 認証つきの GET /api/v1/updates で最新版まで返したとき、その店を既読にする。
+   * 認証なし・トークン違い・Party に確かめられない ときは何も書かずに null (履歴はいつもどおり誰でも読める)。
+   */
+  private async markUpdatesRead(req: IncomingMessage): Promise<number | null> {
+    const token = this.bearer(req);
+    if (!token || this.isAdminToken(token)) return null;
+    let shopId: number;
+    try {
+      shopId = await this.auth(req);
+    } catch (e) {
+      if (e instanceof HttpError) return null;
+      throw e;
+    }
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    const dt = g.shopById(shopId);
+    if (!dt) return null;
+    const read = dt.user[READ_VERSION];
+    if (!read || newerVersion(APP_VERSION, read)) {
+      dt.user[READ_VERSION] = APP_VERSION;
+      this.save(g);
+    }
+    return shopId;
   }
 
   // ---------------------------------------------------------------------------
@@ -420,7 +446,15 @@ export class App {
     if (method === 'GET' && p === '/help') return { status: 200, text: this.helpText, json: { help: this.helpText } };
     if (method === 'GET' && p === '/tips') return { status: 200, text: TIPS, json: { tips: TIPS } };
     if (method === 'GET' && p === '/updates') {
-      return { status: 200, text: updatesText(), json: { version: APP_VERSION, updates: UPDATES } };
+      // ?since=0.3.1 なら、その版より新しいぶんだけ (無ければ全部。今までどおり認証なしで読める)
+      const since = q.get('since')?.trim().replace(/^v/i, '') ?? '';
+      if (since && !/^\d+(\.\d+)*$/.test(since)) throw new HttpError(400, 'since は 0.3.1 のような版で指定してください');
+      const list = since ? UPDATES.filter((u) => newerVersion(u.version, since)) : UPDATES;
+      // 最新版まで返したときだけ、認証した店を既読にする (匿名の取得では誰の既読も変えない)
+      const marked = list.some((u) => u.version === APP_VERSION) ? await this.markUpdatesRead(req) : null;
+      const text = (list.length ? updatesText(list) : `v${since} より新しい更新はありません (最新は v${APP_VERSION})\n`) +
+        (marked !== null ? `\n(このお店は v${APP_VERSION} まで既読になりました。digest の「未読更新」は次から出ません)\n` : '');
+      return { status: 200, text, json: { version: APP_VERSION, updates: list, ...(marked !== null ? { read: APP_VERSION } : {}) } };
     }
     if (method === 'GET' && p === '/items') {
       const { g } = this.game();
@@ -451,12 +485,17 @@ export class App {
       switch (p) {
         case '/digest': {
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n, this.digestNotice());
+          const d = v.digestData(g, dt, n, this.digestNotice(dt));
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
           const d = v.meData(g, dt);
           return { status: 200, text: v.meText(d), json: d };
+        }
+        case '/costs': {
+          // 維持費の内訳 (目安箱 #5)。ago=1 前期の決算 (既定)、2・3 はその前、0 は今期ここまで
+          const d = costReportData(g, dt, clampNum(q.get('ago'), 0, COST_REPORT_KEEP, 1));
+          return { status: 200, text: costReportText(d, v.jst), json: d };
         }
         case '/market': {
           const d = v.marketData(g);
@@ -560,6 +599,8 @@ export class App {
     }
     const { g } = this.game();
     const shop = act.openShop(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') });
+    // 開店したての店は今の説明書 (help) から始めるので、今までの更新は読んだものとして数える
+    shop.user[READ_VERSION] = APP_VERSION;
     this.save(g);
     const token = newToken('so_');
     this.store.addToken(shop.id, token, g.now);
@@ -586,6 +627,7 @@ export class App {
     const { g } = this.game();
     const name = String(body.name ?? '') || who.ownerId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 12);
     const shop = act.openShop(g, { name, shopname: String(body.shopname ?? '') });
+    shop.user[READ_VERSION] = APP_VERSION;
     this.save(g);
     this.store.linkPartyOwner(who.ownerId, shop.id, g.now);
     const text =
@@ -625,7 +667,7 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice());
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt));
       digest = d;
       tail = v.digestText(d);
     }
@@ -705,8 +747,8 @@ export class App {
       }
       case 'order': {
         this.requireParty(dt);
-        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min') });
-        return [`募集#${o.id}を出しました`];
+        const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), renew: renewIn(a.renew), repeat: opt('repeat') });
+        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}`];
       }
       case 'deliver': {
         this.requireParty(dt);
@@ -728,6 +770,9 @@ export class App {
       }
       case 'cancel_order':
         return [ord.cancelOrder(g, dt, n('order'))];
+      case 'renew_order':
+        // 期限切れのときの扱い (延長・再掲) を変える。時間はかからない
+        return [ord.setOrderRenew(g, dt, n('order'), renewIn(a.renew) ?? 'none', opt('repeat'))];
       case 'comment':
         return [act.setComment(g, dt, s('text'))];
       case 'coupon': {
@@ -749,7 +794,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }
@@ -1051,6 +1096,14 @@ const ACTION_ALIASES: Record<string, string> = {
 };
 
 /** 別名にはしないが、送られがちな名前への案内 */
+/** renew の値。日本語の名前でも受ける */
+function renewIn(v: unknown): string | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  const x = String(v).trim().toLowerCase();
+  const alias: Record<string, string> = { なし: 'none', 締める: 'none', 延長: 'extend', 無料延長: 'extend', 再掲: 'repost', 無期限: 'forever', 無期限再掲: 'forever' };
+  return alias[x] ?? x;
+}
+
 const ACTION_HINTS: Record<string, string> = {
   sell: '売るには shelf で棚に並べます。お客が買っていきます',
   price: '値段は shelf の price か percent で付けます',
@@ -1062,6 +1115,10 @@ const ACTION_HINTS: Record<string, string> = {
   want: '欲しい品の買い取り募集は order です (例 {"type":"order","item":2,"price":120,"count":300})',
   fill: '募集への納品は deliver です (GET /api/v1/orders で募集を見られます)',
   cancel: '募集の取り下げは cancel_order です',
+  repost: '期限切れの募集の延長・再掲は、order に renew (extend / repost / forever) を付けるか、出した後なら renew_order です',
+  relist: '期限切れの募集の延長・再掲は、order に renew (extend / repost / forever) を付けるか、出した後なら renew_order です',
+  repeat_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"repost","repeat":3})',
+  extend_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"extend"})',
 };
 
 /** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */

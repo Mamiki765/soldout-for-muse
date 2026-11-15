@@ -10,7 +10,7 @@ import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
-import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
+import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
 /** 秒を「18h05m」のような短い形にする */
@@ -81,7 +81,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
       const it = g.items[o.item];
       const over = discards.get(o.id) ?? 0;
       if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
-      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
+      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : '') + (o.renew ? `(${renewLabel(o)})` : ''));
       continue;
     }
     if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
@@ -196,7 +196,7 @@ export function meText(d: ReturnType<typeof meData>): string {
   const lines = [
     `店 id${d.id} ${d.shop} 職業${d.job} ${d.rank}位 人気${d.popularity}% 点${d.point}`,
     `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン、${d.coupon_first ? 'クーポン' : '持ち時間'}から先に使う)` : ''}`,
-    `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday}`,
+    `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday} (内訳 /api/v1/costs)`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,
     '# 棚 番号 品番 名前 価格 在庫',
     ...d.shelves.map((s) => (s.item ? `${s.slot + 1} ${s.item} ${s.name} ${s.price} ${s.stock}` : `${s.slot + 1} - 空`)),
@@ -479,11 +479,11 @@ export function ordersData(g: Game, dt: Shop | undefined, opt: { item?: number; 
 export function ordersText(d: ReturnType<typeof ordersData>): string {
   const lines = d.orders.map(
     (o) =>
-      `#${o.id} ${o.name}@${o.price}(${o.percent}%) 残${o.left}/${o.count}${o.min ? ` 最低${o.min}` : ''} ${o.shopname}(${o.shop_id}) 〆${jst(o.expires)}` +
+      `#${o.id} ${o.name}@${o.price}(${o.percent}%) 残${o.left}/${o.count}${o.min ? ` 最低${o.min}` : ''} ${o.shopname}(${o.shop_id}) 〆${jst(o.expires)}${o.renew !== 'none' ? ` ${renewLabel(o)}` : ''}` +
       (o.have ? ` 在庫${o.have}` : ''),
   );
   if (!lines.length) lines.push('募集はありません');
-  lines.unshift(ORDER_RULES_LINE);
+  lines.unshift(ORDER_RULES_LINE + ORDER_RENEW_LINE);
   if (d.today) {
     const t = d.today;
     lines.push(
