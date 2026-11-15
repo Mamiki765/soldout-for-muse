@@ -11,6 +11,7 @@ import { BASE_ITEMS, MAX_ITEM, overrideItemVisibility } from '../src/data/catalo
 import { openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
+import { itemDetailData, itemDetailText } from '../src/api/views.js';
 import { checkUses, loadUses } from '../src/engine/use.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
@@ -170,6 +171,15 @@ test('処理で出す品 (乳搾り → ミノ牛乳) を隠すと、その使�
     assert.equal(loadUses(g, 25).filter((u) => u.no === 0 || u.no === 1).length, 0);
   } finally {
     overrideItemVisibility(MILK);
+  }
+  // 道具 (ミノタウロス♀) を隠すと、ミノ牛乳の入手の一言 (道具の名前入り) も出さない
+  overrideItemVisibility(25, 'hidden');
+  try {
+    const d = itemDetailData(g, MILK);
+    assert.equal(d.note, undefined);
+    assert.doesNotMatch(itemDetailText(d), /ミノタウロス/);
+  } finally {
+    overrideItemVisibility(25);
   }
   const SUGAR = BASE_ITEMS.find((i) => i?.name === '砂糖')!.no;
   dt.item[MILK - 1] = 10;

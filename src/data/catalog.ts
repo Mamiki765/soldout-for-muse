@@ -244,8 +244,11 @@ export function makesHiddenItem(tool: number, useNo: number): boolean {
   return false;
 }
 
-/** 入手の補足。from は [道具の品番, 使い方の番号] */
+/** 入手の補足。from は [道具の品番, 使い方の番号]。from の道具が隠されていれば一言 (note) は返さない */
 export function itemNote(no: number): { from: [number, number][]; note?: string } {
   const n = ref.notes[String(no)];
-  return { from: n?.from ?? [], ...(n?.note ? { note: n.note } : {}) };
+  const from = n?.from ?? [];
+  // 一言は道具の名前を書くことが多い。道具を隠しているあいだは一言も出さない
+  const showNote = !!n?.note && from.every(([t]) => isPublicItem(t));
+  return { from, ...(showNote ? { note: n!.note } : {}) };
 }
