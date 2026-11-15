@@ -9,6 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
+import { tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
@@ -114,6 +115,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     /** 自分が持っている品の買い取り募集 (GET /api/v1/orders で詳しく) */
     wanted: [...wanted.values()],
     my_orders: myOrders,
+    /** 手引きの次の段と、状況別のヒント (どちらも OFF にできる。engine/tutorial.ts) */
+    tutorial: tutorialDigest(g, dt),
     version: APP_VERSION,
     update,
   };
@@ -144,6 +147,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' '));
   if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
   if (ords.length) lines.push(ords.join(' | '));
+  lines.push(...tutorialDigestLines(d.tutorial));
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
 }

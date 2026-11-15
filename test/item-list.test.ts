@@ -15,6 +15,7 @@ import { itemDetailData, itemDetailText } from '../src/api/views.js';
 import { checkUses, loadUses } from '../src/engine/use.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
+import { townView } from '../src/engine/tutorial.js';
 import { sha256, Store } from '../src/store.js';
 
 const PUDDING = 114;
@@ -193,5 +194,25 @@ test('処理で出す品 (乳搾り → ミノ牛乳) を隠すと、その使�
     assert.doesNotMatch(u.ngReason!, /砂糖/);
   } finally {
     overrideItemVisibility(SUGAR);
+  }
+});
+
+test('手引きの「誰も出していない品」「混んでいる品」に隠した品は出ない', () => {
+  const world = newWorld(1_800_000_000, MAX_ITEM);
+  const g = new Game(world, DEFAULT_CONFIG, { next: () => 0.2 }, 1_800_000_000);
+  openShop(g, { name: 't', shopname: '試験' });
+  const before = townView(g).unlisted.map((x) => x.item);
+  assert.ok(before.includes(PUDDING), '公開なら候補に出る');
+  overrideItemVisibility(PUDDING, 'hidden');
+  try {
+    assert.ok(!townView(g).unlisted.some((x) => x.item === PUDDING));
+    for (let i = 0; i < 3; i++) {
+      const s = openShop(g, { name: 'c' + i, shopname: '混雑' + i });
+      s.showcase[0] = PUDDING;
+      s.item[PUDDING - 1] = 5;
+    }
+    assert.ok(!townView(g).crowded.some((x) => x.item === PUDDING));
+  } finally {
+    overrideItemVisibility(PUDDING);
   }
 });

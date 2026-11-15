@@ -20,8 +20,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'0.3.3');
-    assert.equal(data.updates[0].version,'0.3.3');
+    assert.equal(data.version,'0.4.0');
+    assert.equal(data.updates[0].version,'0.4.0');
     const update = data.updates.find((u) => u.version === '0.2.0') as FashionUpdate;
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -35,7 +35,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.3\.3 2026-11-15 募集の自動再掲・維持費の内訳・固めプリン・乳製品の熟練/);
+    assert.match(text,/^# v0\.4\.0 2026-11-16 手引き \(はじめかた\) とヒント/);
+    assert.match(text,/^# v0\.3\.3 2026-11-15 募集の自動再掲・維持費の内訳・固めプリン・乳製品の熟練/m);
     assert.match(text,/^# v0\.3\.2 2026-11-15 見張り \(peek\) と起こす設定/m);
     assert.match(text,/^# v0\.3\.1 2026-11-15 説明とエラー文をわかりやすく/m);
     assert.match(text,/^# v0\.3\.0 2026-11-14 香りと乳菓の新商品・行動の書き方をわかりやすく/m);
@@ -72,7 +73,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     res = await fetch(base+'/api/v1/digest',{headers:auth});
     const digest = await res.text();
     assert.ok(!digest.includes('未読更新'),digest);
-    assert.ok(digest.trimEnd().split('\n').length <= 3);
+    // 手引き・ヒントの行 (各1行まで) を除けば3行まで
+    assert.ok(digest.trimEnd().split('\n').filter((l) => !/^(手引き|ヒント) /.test(l)).length <= 3);
     res = await fetch(base+'/api/v1/digest?format=json',{headers:auth});
     assert.equal((await res.json() as {version:string}).version,APP_VERSION);
 
@@ -88,18 +90,18 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,1);
     assert.equal(store.readLogs(shop_id,{limit:100}).find((l) => l.msg.startsWith('【更新】'))!.msg,'【更新】' + UPDATE_NOTICE);
     const dt = app.world.shops.find((s) => s.id === shop_id)!;
-    assert.equal(dt.user._seen_version,'0.3.3');
+    assert.equal(dt.user._seen_version,'0.4.0');
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
-    assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,5);
+    assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,6);
     dt.user._seen_version = '0.1.0'; // 2つ前なら、取りこぼした版も古い順に届く
     // 7日放置すると、優勝賞品の店番ロボット (維持費3万/日) で倒産することがある。下の確認は倒産と関係ないので資金を足しておく
     dt.money = 10_000_000;
     await fetch(base+'/api/v1/me',{headers:auth});
     const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
-    assert.equal(notes.length,11);
-    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.3.0: ') && notes.includes('【更新】v0.3.1: ') && notes.includes('【更新】v0.3.2: ') && notes.includes('【更新】v0.3.3: '));
+    assert.equal(notes.length,13);
+    assert.ok(notes.includes('【更新】v0.2.0: ') && notes.includes('【更新】v0.2.1: ') && notes.includes('【更新】v0.3.0: ') && notes.includes('【更新】v0.3.1: ') && notes.includes('【更新】v0.3.2: ') && notes.includes('【更新】v0.3.3: ') && notes.includes('【更新】v0.4.0: '));
 
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
