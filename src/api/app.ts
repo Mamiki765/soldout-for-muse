@@ -16,10 +16,11 @@ import { turn } from '../engine/turn.js';
 import { shownPeople, type Shop, type World } from '../engine/types.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
+import * as watch from '../engine/watch.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { TIPS } from '../tips.js';
-import { renderViewer } from './viewer.js';
+import { dropViewSessions, renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, DIGEST_NOTICE, DIGEST_NOTICE_SECONDS, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
@@ -435,6 +436,8 @@ export class App {
     }
 
     const shopId = await this.auth(req);
+    // 見張り (peek) は読むだけ。時間を進めず、更新通知も書かない
+    if (method === 'GET' && p === '/peek') return this.peek(shopId, q);
     this.notifyUpdate(shopId);
 
     if (method === 'GET') {
@@ -735,6 +738,8 @@ export class App {
         g.setCouponFirst(dt, on);
         return [on ? 'クーポンから先に使います (足りない分は持ち時間から)' : '持ち時間から先に使います (足りない分はクーポンから)'];
       }
+      case 'alerts':
+        return [this.setAlerts(dt, a)];
       case 'rename':
         return [act.renameShop(g, dt, s('shopname'))];
       case 'close':
@@ -744,10 +749,71 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order coupon comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order coupon alerts comment rename close。くわしくは GET /api/v1/help',
         );
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 見張り (peek)。番犬スクリプト向け。読むだけで、時間を進めない・保存しない
+
+  private peek(shopId: number, q: URLSearchParams): Reply {
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    const dt = g.shopById(shopId);
+    if (!dt) {
+      this.onShopClosed(shopId);
+      throw new HttpError(401, '店が見つかりません (閉店した可能性があります)');
+    }
+    // 募集の知らせだけを、知らせる期間 (24時間) の中から絞ってから数を切る (ほかの記録に押し出されないように)
+    const logs = this.store
+      .readLogs(dt.id, { scope: 'me', mode: 0, limit: 30, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor })
+      .map((l) => ({ id: l.id, time: l.time, msg: l.msg }));
+    const d = watch.peekData(g, dt, logs);
+    const marks = d.alerts.map((a) => watch.alertMark(a.key));
+    const cursor = marks.join('.');
+    const seenParam = q.get('seen');
+    const seen = new Set((seenParam ?? '').split('.').filter(Boolean));
+    const fresh = d.alerts.filter((_, i) => !seen.has(marks[i]));
+    const headers: Record<string, string> = {
+      'x-as-of': String(d.as_of),
+      'x-age': String(d.age),
+      'x-cursor': cursor,
+      ...(d.next_timed ? { 'x-next-timed': String(d.next_timed) } : {}),
+    };
+    // seen を渡されて、新しいアラートが無ければ 204 (起こす理由なし)
+    if (seenParam !== null && !fresh.length && q.get('full') !== '1') return { status: 204, headers };
+    // 明細 (facts) は facts=1 のときだけ。番犬の定期の見張りはアラートと要約だけで軽く
+    const { facts, ...head } = d;
+    const withFacts = q.get('facts') === '1';
+    const json = { ...head, cursor, new: fresh, alerts: d.alerts, ...(withFacts ? { facts } : {}) };
+    return { status: 200, headers, text: v.peekText(d, fresh, cursor, withFacts), json };
+  }
+
+  /** 見張りの設定。{"type":"alerts","mode":"save"|"normal"|"power"|"off","on":[...],"off":[...]} */
+  private setAlerts(dt: Shop, a: Record<string, unknown>): string {
+    const cur = watch.alertSetting(dt);
+    let mode = cur.mode;
+    if (a.mode !== undefined) {
+      const m = watch.alertMode(a.mode);
+      if (!m) throw new GameError('mode は save (節約) / normal (ふつう) / power (Power向け) / off のどれかです。おまかせは normal にして、起きるかは Muse が facts を見て決めます');
+      mode = m;
+    }
+    const list = (k: string): watch.AlertType[] | undefined => {
+      const x = a[k];
+      if (x === undefined) return undefined;
+      const arr = Array.isArray(x) ? x.map(String) : String(x).split(',').map((y) => y.trim()).filter(Boolean);
+      const bad = arr.filter((y) => !(watch.ALERT_TYPES as readonly string[]).includes(y));
+      if (bad.length) throw new GameError(`知らないアラートです: ${bad.join(',')} 使えるもの: ${watch.ALERT_TYPES.join(' ')}`);
+      return arr as watch.AlertType[];
+    };
+    // mode だけ変えたときは、前の on/off を残す。on/off を送ったときはその内容に置き換える
+    const onIn = list('on');
+    const on = onIn ?? cur.on;
+    const off = list('off') ?? cur.off.filter((t) => !(onIn ?? []).includes(t));
+    const next: watch.AlertSetting = { mode, on: on.filter((t) => !off.includes(t)), off };
+    dt.user[watch.ALERT_SETTING] = JSON.stringify(next);
+    return `見張りの設定: ${mode}` + (next.on.length ? ` +${next.on.join(',')}` : '') + (next.off.length ? ` -${next.off.join(',')}` : '') + ` → 有効: ${[...watch.enabledTypes(next)].join(' ') || 'なし'}`;
   }
 
   // ---------------------------------------------------------------------------
@@ -935,7 +1001,15 @@ export class App {
 
   private viewLink(shopId: number, body: Record<string, unknown>): Reply {
     const now = this.clock();
+    if (body.revoke === true) {
+      // 合鍵もリンクも全部無効にする (漏れたとき用。作り直すときは fixed:true をもう一度)
+      this.store.deleteViewKeysOf(shopId);
+      dropViewSessions(shopId);
+      return { status: 200, text: 'OK 見学用の合鍵とリンクをすべて無効にしました\n', json: { ok: true, revoked: true } };
+    }
     const fixed = body.fixed === true;
+    // 合鍵を作り直したら、前の合鍵で開いていた画面も締め出す (漏れたときの作り直しが効くように)
+    if (fixed) dropViewSessions(shopId);
     const key = newToken(fixed ? 'vk_' : 'vl_');
     const ttl = fixed ? 0 : 30 * 60;
     this.store.addViewKey(shopId, key, fixed ? 0 : now + ttl, fixed ? 'fixed' : 'link');
@@ -944,6 +1018,18 @@ export class App {
       ? `OK 見学用の合言葉を作りました (前のものは使えなくなります)\n${url}\nこのURLを飼い主さんに渡すと、いつでもお店の中を見られます。\n`
       : `OK 見学用リンクを作りました (30分のあいだ何度でも開けます。ずっと使える合鍵は {"fixed":true})\n${url}\n`;
     return { status: 200, text, json: { ok: true, url, expires_at: fixed ? null : now + ttl } };
+  }
+
+  /**
+   * 街の時間を進める (サーバーのタイマーから呼ぶ)。前回から updateTime (5分) たっていれば計算して保存する。
+   * 番犬が peek (時間を進めない) だけを読むようになっても、街の時計が止まらないように (0.3.2)
+   */
+  tick(): void {
+    try {
+      this.game();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   /** viewer.ts から使う */

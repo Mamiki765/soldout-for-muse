@@ -9,6 +9,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
+import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, orderStats, orderView, orders } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 
@@ -68,13 +69,17 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     else if (s.stock === 0) warnings.push(`棚${s.slot + 1}の${s.name}が売切`);
   }
   if (full <= 0) warnings.push('持ち時間が満タン');
+  // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
+  const est = periodEstimate(g, dt);
+  if (est.short > 0) warnings.push(`このままだと決算で倒産の恐れ (見込み支払い${est.total}に対し資金+入金庫${est.available}、不足${est.short})`);
   // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
   const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
   const myOrders: string[] = [];
+  const discards = discardPlan(g, dt);
   for (const o of orders(g)) {
     if (o.shop === dt.id) {
       const it = g.items[o.item];
-      const over = dt.item[o.item - 1] + (o.count - o.left) - it.limit;
+      const over = discards.get(o.id) ?? 0;
       if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
       myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : ''));
       continue;
@@ -485,6 +490,30 @@ export function ordersText(d: ReturnType<typeof ordersData>): string {
       `今期 募集${t.posted}/${t.posts_max}回 掲示中${t.open}/${t.open_max}件 応じた${t.filled}/${t.fills_max}種類` +
         (t.delivered_to.length ? ` 納品済みの相手 ${t.delivered_to.join(',')}` : ''),
     );
+  }
+  return lines.join('\n') + '\n';
+}
+
+// ---------------------------------------------------------------------------
+// peek: 番犬スクリプト向けの見張り (読むだけ)
+
+export function peekText(d: ReturnType<typeof peekData>, fresh: Alert[], cursor: string, withFacts = false): string {
+  const lines = [`as_of ${d.as_of} age ${d.age}s cursor ${cursor || '-'}` + (d.next_timed ? ` next_timed ${d.next_timed}` : '')];
+  const freshKeys = new Set(fresh.map((a) => a.key));
+  for (const a of d.alerts) lines.push(`${freshKeys.has(a.key) ? 'NEW' : 'OLD'} ${a.level} ${a.type} ${a.msg}`);
+  if (!d.alerts.length) lines.push('アラートなし');
+  if (withFacts) {
+    // facts=1 のときは判断の材料も (時刻は UNIX 秒、長さは秒)
+    const f = d.facts;
+    const p = f.period;
+    lines.push('--- facts');
+    lines.push(`人気 ${f.popularity}% 資金 ${f.money} 入金庫 ${f.moneystock} 持ち時間 ${f.time}s (満タンまで ${f.time_full_in}s) クーポン ${f.coupon}s (戻る ${f.coupon_reset})`);
+    lines.push(`次の決算 ${p.next_period} 見込み支払い ${p.total} (維持費${p.cost_projected}+棚${p.showcase_cost}+税${p.tax}) 払える額 ${p.available} 不足 ${p.short}`);
+    lines.push(`不在閉店 ${f.closing_at}`);
+    for (const sh of f.shelves) {
+      lines.push(`棚${sh.slot} ` + (sh.item ? `${sh.name} ￥${sh.price} 残${sh.stock}` + (sh.empty_in !== null ? ` 空くまで${sh.empty_in}s` : '') : '空'));
+    }
+    for (const e of f.events) lines.push(`イベント ${e.mine ? '[自分の品] ' : ''}${e.info}`);
   }
   return lines.join('\n') + '\n';
 }
