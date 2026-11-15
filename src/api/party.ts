@@ -42,9 +42,13 @@ export function httpPartyVerifier(baseUrl: string, timeoutMs = 5000): PartyVerif
   };
 }
 
-/** 確かめた結果を覚えておく。正しいトークンは長め、正しくないものは短め */
+/**
+ * 確かめた結果を覚えておく。正しいトークンは長め、正しくないものは短め。
+ * Party に確かめられない (落ちている・混んでいる) 間は、前に確かめた結果で通す。ただし最後に確かめてから staleMs (24時間) まで。
+ * 管理 API (strict) は期限の切れた結果では通さない (停止・失効が反映されないまま管理できないように。監査 B01)
+ */
 export class PartyAuth {
-  private cache = new Map<string, { who: PartyWho | undefined; until: number }>();
+  private cache = new Map<string, { who: PartyWho | undefined; until: number; checkedAt: number }>();
   /** Party に届かなかったら、この時刻まで聞きに行かない (不調のあいだ毎回待たせない・追い打ちしない) */
   private downUntil = 0;
 
@@ -55,36 +59,42 @@ export class PartyAuth {
     /** 聞きに行く直前に呼ぶ (全体の回数を数える。上限なら例外を投げる) */
     private readonly beforeFetch?: () => void,
     private readonly downMs = 20 * 1000,
+    private readonly staleMs = 24 * 3600 * 1000,
   ) {}
 
-  async who(token: string): Promise<PartyWho | undefined> {
+  async who(token: string, strict = false, clock: () => number = Date.now): Promise<PartyWho | undefined> {
     const key = sha256(token);
-    const now = Date.now();
+    const now = clock();
     const hit = this.cache.get(key);
     if (hit && hit.until > now) return hit.who;
+    // 確かめられないときに使ってよい、前の結果
+    const fallback = !strict && hit?.who && now - hit.checkedAt < this.staleMs ? hit.who : undefined;
     if (now < this.downUntil) {
-      if (hit?.who) return hit.who;
+      if (fallback) return fallback;
       throw new Error('party: しばらく問い合わせを控えています');
     }
     try {
       this.beforeFetch?.();
     } catch (e) {
       // 確認が混んでいるときも、前に確かめた結果があればそれで通す
-      if (hit?.who) return hit.who;
+      if (fallback) return fallback;
       throw e;
     }
     let who: PartyWho | undefined;
     try {
       who = await this.verify(token);
     } catch (e) {
-      if (e instanceof PartyBlocked) throw e;
-      this.downUntil = Date.now() + this.downMs;
+      if (e instanceof PartyBlocked) {
+        this.cache.delete(key);
+        throw e;
+      }
+      this.downUntil = clock() + this.downMs;
       // Party に届かないときは、前に確かめた結果があればそれを使う
-      if (hit?.who) return hit.who;
+      if (fallback) return fallback;
       throw e;
     }
     if (this.cache.size > 5000) this.cache.clear();
-    this.cache.set(key, { who, until: now + (who ? this.okTtl : this.ngTtl) });
+    this.cache.set(key, { who, until: now + (who ? this.okTtl : this.ngTtl), checkedAt: now });
     return who;
   }
 }

@@ -17,6 +17,7 @@ import { peekData, periodAfter, periodEstimate } from '../src/engine/watch.js';
 import { sha256, Store } from '../src/store.js';
 
 const T0 = 1_800_000_000;
+let nameNo = 0;
 
 async function start(clock: () => number, config?: Partial<GameConfig>): Promise<{ base: string; server: Server; store: Store; app: App }> {
   const store = new Store(':memory:');
@@ -29,7 +30,7 @@ async function start(clock: () => number, config?: Partial<GameConfig>): Promise
 }
 
 async function register(base: string, shopname: string): Promise<{ token: string; shopId: number; auth: Record<string, string> }> {
-  const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'm', shopname }) });
+  const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'm' + (++nameNo), shopname }) });
   assert.equal(r.status, 201, await r.clone().text());
   const d = (await r.json()) as { token: string; shop_id: number };
   return { token: d.token, shopId: d.shop_id, auth: { authorization: 'Bearer ' + d.token } };
@@ -248,6 +249,116 @@ test('A10: 取り下げの記録が多くても、24時間以内の募集の終�
     const r = await fetch(base + '/api/v1/peek?format=json', { headers: auth });
     const d = (await r.json()) as { alerts: { type: string }[] };
     assert.equal(d.alerts.filter((a) => a.type === 'order_closed').length, 25);
+  } finally {
+    server.close();
+  }
+});
+
+test('A01: 保存に失敗したら、メモリの街も保存してある街に戻る', async () => {
+  let now = T0;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    await register(base, 'ほぞん商店');
+    const before = app.world.lasttime;
+    now += 301;
+    const orig = store.saveWorld.bind(store);
+    store.saveWorld = () => {
+      throw new Error('disk full');
+    };
+    let r = await fetch(base + '/api/v1/items');
+    assert.equal(r.status, 500);
+    assert.equal(app.world.lasttime, before, 'メモリの街が進んだまま');
+    store.saveWorld = orig;
+    r = await fetch(base + '/api/v1/items');
+    assert.equal(r.status, 200);
+    assert.equal(store.loadWorld(0).lasttime, now);
+  } finally {
+    server.close();
+  }
+});
+
+test('A03: トークンの保存に失敗したら、店も残らない。管理 API でトークンを出し直せる', async () => {
+  let now = T0;
+  const { base, server, app, store } = await start(() => now);
+  try {
+    const orig = store.addToken.bind(store);
+    store.addToken = () => {
+      throw new Error('locked');
+    };
+    let r = await fetch(base + '/api/v1/register', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'm', shopname: 'のこらない商店' }) });
+    assert.equal(r.status, 500);
+    assert.equal(app.world.shops.length, 0);
+    assert.equal(store.loadWorld(0).shops.length, 0);
+    store.addToken = orig;
+    const { token, shopId, auth } = await register(base, 'のこらない商店');
+
+    // 出し直し: 管理用トークンで
+    store.setSetting('admin_token_hash', sha256('sa_admin'));
+    r = await fetch(base + '/api/v1/admin/token?format=json', { method: 'POST', headers: { authorization: 'Bearer sa_admin' }, body: JSON.stringify({ shop: shopId }) });
+    assert.equal(r.status, 200);
+    const d = (await r.json()) as { token: string };
+    assert.notEqual(d.token, token);
+    r = await fetch(base + '/api/v1/digest', { headers: auth });
+    assert.equal(r.status, 401, '前のトークンは止まる');
+    r = await fetch(base + '/api/v1/digest', { headers: { authorization: 'Bearer ' + d.token } });
+    assert.equal(r.status, 200);
+  } finally {
+    server.close();
+  }
+});
+
+test('A05: 同じ request_id の送り直しは、済んだ行動をもう一度しない', async () => {
+  let now = T0;
+  const { base, server, app } = await start(() => now);
+  try {
+    const { auth, shopId } = await register(base, 'にじゅう商店');
+    now += 2 * 3600;
+    const market = (await (await fetch(base + '/api/v1/market?format=json', { headers: auth })).json()) as { items: { item: number; stock: number }[] };
+    const item = market.items.find((x) => x.stock >= 5)!.item;
+    const send = (body: unknown) => fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers: auth, body: JSON.stringify(body) });
+    const shop = () => app.world.shops.find((s) => s.id === shopId)!;
+    let r = await send({ request_id: 'r1', type: 'buy', item, count: 1 });
+    assert.equal(shop().item[item - 1], 1);
+    const money = shop().money;
+    r = await send({ request_id: 'r1', type: 'buy', item, count: 1 });
+    const d = (await r.json()) as { results: { ok: boolean }[]; replayed: number };
+    assert.equal(d.replayed, 1);
+    assert.ok(d.results[0].ok);
+    assert.equal(shop().item[item - 1], 1, '二重に買っていない');
+    assert.equal(shop().money, money);
+    // 中身が違えば 409
+    r = await send({ request_id: 'r1', type: 'buy', item, count: 2 });
+    assert.equal(r.status, 409);
+    // request_id なしは今までどおり毎回
+    await send({ type: 'buy', item, count: 1 });
+    await send({ type: 'buy', item, count: 1 });
+    assert.equal(shop().item[item - 1], 3);
+    // まとめて送った途中まで済んでいたら、続きから
+    r = await send({ request_id: 'r2', actions: [{ type: 'buy', item, count: 1 }, { type: 'buy', item, count: 1 }] });
+    assert.equal(shop().item[item - 1], 5);
+    r = await send({ request_id: 'r2', actions: [{ type: 'buy', item, count: 1 }, { type: 'buy', item, count: 1 }] });
+    assert.equal(shop().item[item - 1], 5);
+  } finally {
+    server.close();
+  }
+});
+
+test('admin: 管理者として許可した店の peek にだけ、目安箱の案と開店の知らせが出る', async () => {
+  let now = T0;
+  const { base, server, store } = await start(() => now);
+  try {
+    const admin = await register(base, 'みはり商店');
+    const other = await register(base, 'ふつう商店');
+    store.setSetting('admin_shops', String(admin.shopId));
+    await fetch(base + '/api/v1/suggest', { method: 'POST', headers: other.auth, body: JSON.stringify({ category: 'bug', text: '棚が変です' }) });
+    let r = await fetch(base + '/api/v1/peek?format=json', { headers: admin.auth });
+    let d = (await r.json()) as { alerts: { type: string; level: string; msg: string }[] };
+    const adm = d.alerts.filter((a) => a.type === 'admin');
+    assert.ok(adm.some((a) => /目安箱に未対応の案1件/.test(a.msg) && a.level === 'high'), JSON.stringify(adm));
+    assert.ok(adm.some((a) => /ふつう商店が新装開店しました/.test(a.msg)), JSON.stringify(adm));
+    r = await fetch(base + '/api/v1/peek?format=json', { headers: other.auth });
+    d = (await r.json()) as typeof d;
+    assert.ok(!d.alerts.some((a) => a.type === 'admin'));
   } finally {
     server.close();
   }

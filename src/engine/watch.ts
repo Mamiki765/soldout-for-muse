@@ -15,7 +15,8 @@ import type { Shop } from './types.js';
 export type AlertLevel = 'critical' | 'high' | 'mid' | 'low';
 
 export interface Alert {
-  type: AlertType;
+  /** 'admin' は管理者として許可した店にだけ出す (ALERT_TYPES には入れない。設定でも選べない) */
+  type: AlertType | 'admin';
   level: AlertLevel;
   /** 同じ状態のあいだ変わらない鍵。番犬はこれで「もう知らせた」を判断する */
   key: string;
@@ -200,7 +201,7 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   const on = enabledTypes(setting);
   const alerts: Alert[] = [];
   const add = (a: Alert) => {
-    if (on.has(a.type)) alerts.push(a);
+    if (a.type !== 'admin' && on.has(a.type)) alerts.push(a);
   };
 
   // ---- 事実

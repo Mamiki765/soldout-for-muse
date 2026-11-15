@@ -114,7 +114,7 @@ export class Store {
   }
 
   /** 街の状態と、このリクエストで増えた出来事をまとめて保存する */
-  saveWorld(w: World, newLogs: LogEntry[], now: number, logKeepSeconds: number): void {
+  saveWorld(w: World, newLogs: LogEntry[], now: number, logKeepSeconds: number, extra?: () => void): void {
     const json = JSON.stringify({ ...w, shops: w.shops.filter((s) => s.status) }, (k, v) =>
       k === 'point' || k === 'status' ? undefined : v,
     );
@@ -124,6 +124,8 @@ export class Store {
       const ins = this.db.prepare('INSERT INTO logs(time,mode,from_id,to_id,msg) VALUES(?,?,?,?,?)');
       for (const l of newLogs) ins.run(l.time, l.mode, l.from, l.to, l.msg);
       if (newLogs.length) this.db.prepare('DELETE FROM logs WHERE time < ?').run(now - logKeepSeconds);
+      // 街と同じときに確定させたいもの (開店のトークン・Party のつながりなど)
+      extra?.();
       this.db.exec('COMMIT');
     } catch (e) {
       this.db.exec('ROLLBACK');
@@ -189,6 +191,19 @@ export class Store {
   shopIdByToken(token: string): number | undefined {
     const row = this.db.prepare('SELECT shop_id FROM tokens WHERE token_hash = ?').get(sha256(token)) as { shop_id: number } | undefined;
     return row?.shop_id;
+  }
+
+  /** 店のトークンを1本に差し替える (前のものは全部消す)。1つのトランザクションで */
+  replaceTokens(shopId: number, token: string, now: number): void {
+    this.db.exec('BEGIN');
+    try {
+      this.deleteTokensOf(shopId);
+      this.addToken(shopId, token, now);
+      this.db.exec('COMMIT');
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
   }
 
   deleteTokensOf(shopId: number): void {
