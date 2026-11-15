@@ -7128,7 +7128,7 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
@@ -7168,7 +7168,7 @@
                   null,
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 3600,
                "use" : [
                   {
@@ -13402,7 +13402,7 @@
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : null,
-         "info" : "ミノ牛乳をしっかり固めたプリン　カラメルは苦め",
+         "info" : "ミノ牛乳から作った固めのプリン　カラメルは苦め",
          "limit" : 100,
          "local_func" : null,
          "local_funcbuy" : null,

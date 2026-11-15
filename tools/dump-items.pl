@@ -326,6 +326,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$u->{info} = $name . 'を作ります';
 		$u->{okmsg} = $name . 'を作りました';
 		$u->{ngmsg} = '作成に失敗しました…';
+		# 置き場 (ミノ牛乳) の「飲む」の表示文言を引き継がない
+		@$u{qw(action scale)} = @$spec{qw(action scale)};
 		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
 		$u->{func} = undef;
 		$u->{params} = [undef, undef, undef, undef];

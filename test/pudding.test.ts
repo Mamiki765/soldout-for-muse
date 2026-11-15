@@ -46,6 +46,7 @@ test('固めプリン: 品番114・甘いもの (薬) 枠・市場に自然入�
 test('固めプリン: 本も熟練も要らず、ミノ5頭は減らずに牛乳10・砂糖3が減って2個できる', () => {
   const u = recipe();
   assert.ok(!u.needexp);
+  assert.deepEqual([u.name, u.action, u.scale], ['固めプリンを作成する', '作る', 'セット'], '「飲む」「本」を引き継がない');
   assert.equal(u.exp, 0);
   const { g, dt } = fixture();
   dt.item[25 - 1] = 5;
