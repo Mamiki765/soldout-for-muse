@@ -302,22 +302,6 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		};
 	}
 
-	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
-	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
-	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;
-	my $share = JSON::PP->new->utf8->decode(do { local $/; <$share_fh> });
-	close $share_fh;
-	for my $sh (@{ $share->{shares} }) {
-		my $it = $by_no{$sh->{item}} or die "skill-share: unknown item $sh->{item}";
-		$by_no{$sh->{exp_item}} or die "skill-share: unknown exp_item $sh->{exp_item}";
-		$it->{expitem} = $sh->{exp_item};
-		for my $u (@{ $it->{uses} }) {
-			next if !@{ $u->{get} };
-			die "skill-share: $sh->{item}/$u->{no} already has skill" if $u->{exp} || $u->{time} != $u->{exptime};
-			$u->{exptime} = int($u->{time} * $sh->{production_exptime_rate});
-			$u->{exp} = $sh->{production_exp};
-		}
-	}
 	$define{version} = $v030->{version};
 
 	# Party #4 の追加品 (固めプリン)。版番号は変えない (次版の番号は管理者が決める)。
@@ -356,6 +340,23 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	for my $ch (@{ $pudding->{event_add_params} }) {
 		my $e = $ev_now{$ch->{code}} or die "pudding: unknown event $ch->{code}";
 		push @{ $e->{params} }, @{ $params->($ch->{params}) };
+	}
+
+	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
+	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
+	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;
+	my $share = JSON::PP->new->utf8->decode(do { local $/; <$share_fh> });
+	close $share_fh;
+	for my $sh (@{ $share->{shares} }) {
+		my $it = $by_no{$sh->{item}} or die "skill-share: unknown item $sh->{item}";
+		$by_no{$sh->{exp_item}} or die "skill-share: unknown exp_item $sh->{exp_item}";
+		$it->{expitem} = $sh->{exp_item};
+		for my $u (@{ $it->{uses} }) {
+			next if !@{ $u->{get} };
+			die "skill-share: $sh->{item}/$u->{no} already has skill" if $u->{exp} || $u->{time} != $u->{exptime};
+			$u->{exptime} = int($u->{time} * $sh->{production_exptime_rate});
+			$u->{exp} = $sh->{production_exp};
+		}
 	}
 }
 

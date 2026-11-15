@@ -35,7 +35,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.3\.3 2026-11-15 募集の自動再掲・維持費の内訳・未読の更新/);
+    assert.match(text,/^# v0\.3\.3 2026-11-15 募集の自動再掲・維持費の内訳・固めプリン・乳製品の熟練/);
     assert.match(text,/^# v0\.3\.2 2026-11-15 見張り \(peek\) と起こす設定/m);
     assert.match(text,/^# v0\.3\.1 2026-11-15 説明とエラー文をわかりやすく/m);
     assert.match(text,/^# v0\.3\.0 2026-11-14 香りと乳菓の新商品・行動の書き方をわかりやすく/m);
