@@ -47,7 +47,7 @@ test('固めプリン: 本も熟練も要らず、ミノ5頭は減らずに牛�
   const u = recipe();
   assert.ok(!u.needexp);
   assert.deepEqual([u.name, u.action, u.scale], ['固めプリンを作成する', '作る', 'セット'], '「飲む」「本」を引き継がない');
-  assert.equal(u.exp, 0);
+  assert.deepEqual([u.exp, u.exptime], [10, 2700], '熟練はミノタウロス♀と共有、最大で45分');
   const { g, dt } = fixture();
   dt.item[25 - 1] = 5;
   dt.item[26 - 1] = 30;

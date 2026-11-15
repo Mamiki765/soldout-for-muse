@@ -6748,6 +6748,7 @@
       {
          "code" : "mino_milk",
          "cost" : 50,
+         "expitem" : 25,
          "flag" : "",
          "func" : null,
          "funcbuy" : null,
@@ -6822,8 +6823,8 @@
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 4320,
+               "exp" : 10,
+               "exptime" : 3240,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -6878,8 +6879,8 @@
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 8640,
+               "exp" : 10,
+               "exptime" : 6480,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -6930,12 +6931,12 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 2400,
+               "exp" : 10,
+               "exptime" : 1800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -6970,7 +6971,7 @@
                   null,
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 2400,
                "use" : [
                   {
@@ -6991,12 +6992,12 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 5400,
+               "exp" : 10,
+               "exptime" : 4050,
                "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
@@ -7031,7 +7032,7 @@
                   "30",
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 5400,
                "use" : [
                   {
@@ -7057,12 +7058,12 @@
                ]
             },
             {
-               "action" : "飲む",
+               "action" : "作る",
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 9600,
+               "exp" : 10,
+               "exptime" : 7200,
                "func" : "lostbooktool",
                "func_before" : null,
                "func_info" : null,
@@ -7097,7 +7098,7 @@
                   "30",
                   null
                ],
-               "scale" : "本",
+               "scale" : "セット",
                "time" : 9600,
                "use" : [
                   {
@@ -7132,8 +7133,8 @@
                "arg" : null,
                "argmessage" : null,
                "argselect" : null,
-               "exp" : 0,
-               "exptime" : 3600,
+               "exp" : 10,
+               "exptime" : 2700,
                "func" : null,
                "func_before" : null,
                "func_info" : null,

@@ -115,6 +115,11 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
     if (toolBonus[old.no]) expected.uses.slice(0, toolBonus[old.no]).forEach((u) => {
       u.jobs = [...u.jobs, { job: 'tool', key: 'times', op: '/', value: 2 }];
     });
+    // 熟練の共有 (tools/skill-share.json): ミノ牛乳は熟練をミノタウロス♀と共有し、物を作る使い方は熟練最大で 3/4 の時間・1セット熟練+1%
+    if (old.no === 26) {
+      (expected as typeof expected & { expitem?: number }).expitem = 25;
+      for (const u of expected.uses) if (u.get.length) { u.exptime = Math.trunc(u.time * 0.75); u.exp = 10; }
+    }
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);

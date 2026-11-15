@@ -79,6 +79,8 @@ export interface ItemDef {
   local_functurn: string | null;
   local_funcsale: string | null;
   local_funcbuy: string | null;
+  /** 熟練の共有: この品の使い方は、この品番の熟練で時間が縮み、熟練もそこに入る (Muse 追加。無ければ自分) */
+  expitem?: number;
   uses: UseDef[];
 }
 
