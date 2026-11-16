@@ -246,6 +246,19 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     return CATALOG.itemTypes[itemtype] + '市場の悪い噂が広まったようです';
   },
 
+  // 禁断の書 使いたくないので警察に届け出を出す (Muse 追加・目安箱 #6)。本は use の消費でなくなる。
+  // 人気は params[0] (100 = 1%) を1回ぶん上げる (所持上限1冊なので1回きり)
+  'badgossip:_local_4'(g, dt, u, { count }) {
+    if (!count) return '';
+    const up = Math.trunc(Number(u.params[0] ?? 0)) * count;
+    dt.rank += up;
+    capRank(dt);
+    const ret = '禁断の書を警察に引き渡しました：人気' + Math.trunc(up / 100) + '%アップ';
+    log(g, 0, dt.id, ret);
+    log(g, 3, 0, dt.shopname + 'が禁断の書を警察に届け出ました');
+    return ret;
+  },
+
   // 転職のススメ
   'port-exp:_local_1'(g, dt, u) {
     let ret = '';
