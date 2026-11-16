@@ -246,7 +246,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     return CATALOG.itemTypes[itemtype] + '市場の悪い噂が広まったようです';
   },
 
-  // 禁断の書 警察に届け出て引き渡す (Muse 追加・目安箱 #6)。本は use の消費でなくなる。
+  // 禁断の書 使いたくないので警察に届け出を出す (Muse 追加・目安箱 #6)。本は use の消費でなくなる。
   // 人気は params[0] (100 = 1%) を1回ぶん上げる (所持上限1冊なので1回きり)
   'badgossip:_local_4'(g, dt, u, { count }) {
     if (!count) return '';

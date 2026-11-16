@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 目安箱 #6 禁断の書を警察に届け出て引き渡す のテスト
+// SOLD OUT for Muse — 目安箱 #6 禁断の書を使いたくないので警察に届け出を出す のテスト
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';
@@ -23,8 +23,8 @@ function fixture() {
 }
 
 const report = () => {
-  const u = BASE_ITEMS[BOOK].uses.find((x) => x.name === '警察に届け出て引き渡す');
-  assert.ok(u, '禁断の書に「警察に届け出て引き渡す」がある');
+  const u = BASE_ITEMS[BOOK].uses.find((x) => x.name === '使いたくないので警察に届け出を出す');
+  assert.ok(u, '禁断の書に「使いたくないので警察に届け出を出す」がある');
   return u;
 };
 
