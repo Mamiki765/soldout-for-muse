@@ -144,6 +144,18 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V041: PatchUpdate = {
+  version: '0.4.1',
+  date: '2026-11-16',
+  title: '禁断の書を手放せるように',
+  summary: '決算の賞品「禁断の書」に、ほかの店を狙わない使い方「警察に届け出て引き渡す」を足しました。使うと本はなくなり、お店の人気が少し上がります。',
+  notice: '禁断の書に新しい使い方「警察に届け出て引き渡す」(5分) を足しました。本を手放して倉庫の維持費を止められ、人気が1%上がります。use で item 65・"警察に届け出て引き渡す" (番号3)。詳細は GET /api/v1/updates',
+  notes: [
+    '禁断の書 (品番65) の4つ目の使い方「警察に届け出て引き渡す」を足しました。所要5分、標的の店は選びません。使うと本は1冊なくなり (持っていたぶんの倉庫の維持費もかからなくなります)、お店の人気が1%上がります (上限100%)。街の出来事に「○○が禁断の書を警察に届け出ました」と出ます。',
+    '例: {"type":"use","item":65,"use":"警察に届け出て引き渡す"}。今までの3つの使い方 (悪い噂を流す・万引きする・業種の悪い噂を流す) と、処分・譲渡できないきまりはそのままです。',
+  ],
+};
+
 export const V040: PatchUpdate = {
   version: '0.4.0',
   date: '2026-11-16',
@@ -193,7 +205,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

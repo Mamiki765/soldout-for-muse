@@ -10652,6 +10652,44 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "届け出る",
+               "arg" : "nocount",
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : 300,
+               "func" : "_local_4",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [],
+               "info" : "本を警察に引き渡して手放します (本はなくなります)。届け出が評判になり、お店の人気が1%上がります",
+               "jobs" : [],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "警察に届け出て引き渡す",
+               "needexp" : null,
+               "ngmsg" : null,
+               "no" : 3,
+               "okmsg" : "禁断の書を警察に引き渡しました",
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "回",
+               "time" : 300,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 65,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 0.2

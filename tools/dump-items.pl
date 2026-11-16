@@ -342,6 +342,28 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		push @{ $e->{params} }, @{ $params->($ch->{params}) };
 	}
 
+	# 目安箱 #6: 禁断の書を手放す使い方 (加害でない選択肢)。本を1冊消費し、効果は scripts.ts の 商品コード:func。
+	open(my $fb_fh, '<:raw', "$FindBin::Bin/forbidden-book.json") or die $!;
+	my $fb = JSON::PP->new->utf8->decode(do { local $/; <$fb_fh> });
+	close $fb_fh;
+	$fb = $as_bytes->($fb);
+	for my $spec (@{ $fb->{uses} }) {
+		my $it = $by_no{$spec->{item}} or die "forbidden-book: unknown item $spec->{item}";
+		die "forbidden-book: duplicate use $spec->{name}" if grep { $_->{name} eq $spec->{name} } @{ $it->{uses} };
+		push @{ $it->{uses} }, {
+			action => $spec->{action}, name => $spec->{name}, info => $spec->{info},
+			okmsg => $spec->{okmsg}, ngmsg => undef, scale => '回',
+			no => scalar @{ $it->{uses} }, needexp => undef, jobs => [],
+			arg => 'nocount', argmessage => undef, argselect => undef,
+			time => $spec->{time}, exptime => $spec->{time}, exp => 0, money => 0,
+			func => $spec->{func}, params => ["$spec->{rank_up}", undef, undef, undef],
+			func_before => undef, func_info => undef,
+			local_func => undef, local_func_before => undef, local_func_info => undef,
+			use => [{ item_no => $spec->{item}, count => 1, proba => 1000 }],
+			get => [],
+		};
+	}
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;
