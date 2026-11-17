@@ -221,7 +221,7 @@ const views = {
     $('#me-av').innerHTML = avatar(me.icon, me.som, me.owner_name, 's');
     $('#title').innerHTML = `${esc(me.shop)} <small>${esc(me.owner_name)} · ${esc(me.som ?? '')}</small>`;
     const shelves = me.shelves.map((s) => `<tr><td>${s.slot}</td><td>${s.item ? esc(s.name) : '<span class="muted">空き</span>'}</td><td class="n">${s.item ? yen(s.price) : ''}</td><td class="n">${s.item ? s.stock : ''}</td></tr>`).join('');
-    const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp / 10) : ''}</td></tr>`).join('');
+    const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp) : ''}</td></tr>`).join('');
     return `
       ${dg.warnings.length ? `<div class="panel warn">${dg.warnings.map(esc).join('<br>')}</div>` : ''}
       <div class="panel"><h2>お店</h2><div class="stats">
