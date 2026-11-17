@@ -7,11 +7,14 @@ import { recordCostReport, resetTracking } from './costs.js';
 import type { Game } from './game.js';
 import type { Shop } from './types.js';
 import { onTutorialPeriod } from './tutorial.js';
+import { closePeriodPrices } from './prices.js';
 
 /** 原作 TurnPeriod */
 export function turnPeriod(g: Game, at: number = g.now): void {
   g.periodMode = true;
   g.world.periodLog = [];
+  // 値動きの記録 (0.6.0)。店の今期売上数が前期へ移る前に、品ごとに1行作る
+  closePeriodPrices(g, at);
   const shops = g.shops;
 
   if (shops[0]) {
