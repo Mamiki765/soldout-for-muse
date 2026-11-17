@@ -295,7 +295,7 @@ $('[data-view="town"]').addEventListener('click', async (ev) => {
 });
 
 // ---- 許可証フォーム ----
-let kit, draft, frameImg, photo = null, made = null, fontName = null;
+let kit, draft, frameImg, photo = null, made = null, fontName = null, akaText0 = '';
 function loadImage(src) {
   return new Promise((ok, ng) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = () => ng(new Error('画像を読めません: ' + src)); i.src = src; });
 }
@@ -307,7 +307,9 @@ async function loadLicense() {
   frameImg = await loadImage(fr.base + draft.frame.file);
   const p = await api('/profile');
   base = cfg.server.replace(/\/+$/, '') + '/assets/';
-  $('#lic-aka').value = draft.card.aka.map((a) => [a.where, a.name || a.id].join('　')).join('\n');
+  // 通り名の欄は「どこ　名前」の簡単な形。id・label 付きの通り名は、欄を書き換えない限りそのまま送り返す
+  akaText0 = draft.card.aka.map((a) => [a.where, a.label, a.id, a.name].filter(Boolean).join('　')).join('\n');
+  $('#lic-aka').value = akaText0;
   $('#lic-alt').value = draft.card.alt;
   const cur = $('#lic-current');
   if (p.card) { cur.src = p.card.url; cur.classList.remove('hidden'); }
@@ -318,14 +320,16 @@ async function loadLicense() {
   if (p.icon_url) { ic.src = p.icon_url; ic.classList.remove('hidden'); } else ic.classList.add('hidden');
 }
 function readAka() {
+  if ($('#lic-aka').value === akaText0) return draft.card.aka;
   return $('#lic-aka').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
     // 「どこ　名前」: 全角空白かタブがあればそこで、なければ最後の半角空白で分ける (Muse Party のように空白を含む場所名のため)
     const m = /^(.+?)[　\t]+(.+)$/.exec(l) || /^(.+)\s+(\S+)$/.exec(l);
     return m ? { where: m[1].trim(), name: m[2].trim() } : { where: l, name: undefined };
   }).filter((a) => a.name);
 }
-async function compose(img, fit) {
-  const card = { ...draft.card, aka: readAka(), alt: $('#lic-alt').value };
+async function compose(img, fit, keep = false) {
+  // keep: 同期のとき。通り名・alt は登録済みのまま (欄の書きかけは使わない)
+  const card = keep ? { ...draft.card } : { ...draft.card, aka: readAka(), alt: $('#lic-alt').value };
   const blob = await kit.makeLicense({ card, photo: img, frame: draft.frame, frameImage: frameImg, font: fontName, fit });
   if (blob.type !== 'image/webp') throw new Error('このブラウザーは webp を作れません (Chrome・Edge・Firefox で開いてください)');
   return { blob, card };
@@ -365,11 +369,13 @@ $('#lic-upload').addEventListener('click', async (ev) => {
 $('#lic-sync').addEventListener('click', async (ev) => {
   ev.target.disabled = true;
   try {
+    // 今の店名・職業・店主名で描き直すので、下書きを取り直してから合成する
+    draft = await api('/profile/card/draft');
     const p = await api('/profile');
     const cur = await loadImage(p.card.url);
     const w = draft.frame.photo;
     const cut = await createImageBitmap(cur, w.x, w.y, w.w, w.h);
-    await uploadCard(await compose(cut, 'cover'));
+    await uploadCard(await compose(cut, 'cover', true));
   } catch (e) { toast(e.message); }
   ev.target.disabled = false;
 });
