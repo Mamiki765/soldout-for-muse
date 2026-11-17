@@ -17,6 +17,8 @@ curl -fsSL -o "$WORK/soldout-kit/fonts/ShipporiMinchoB1-ExtraBold.ttf" "$FONT_BA
 curl -fsSL -o "$WORK/soldout-kit/fonts/OFL-ShipporiMinchoB1.txt" "$FONT_BASE/OFL.txt"
 cp kit/README.md kit/UI-GUIDE.md kit/space-sample.html kit/make_license.py kit/license.js "$WORK/soldout-kit/"
 cp kit/frames/* "$WORK/soldout-kit/frames/"
+# アイテムのアイコン (16×16。item-no-品番.png、無い品は item-type分類.png)
+mkdir -p "$WORK/soldout-kit/items" && cp public/images/item-*.png "$WORK/soldout-kit/items/"
 (cd "$WORK" && zip -qr "soldout-kit-$VERSION.zip" soldout-kit)
 
 # 配る場所: zip と、ばらの枠・スクリプト・フォント (スペースのブラウザから直接読めるように)

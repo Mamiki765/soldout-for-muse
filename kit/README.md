@@ -16,6 +16,7 @@
 | `license.js` | ブラウザ用の許可証メーカー (canvas。webp の Blob を返す) |
 | `make_license.py` | Python 用の許可証メーカー (Pillow) |
 | `frames/frame-license-03.webp` / `.json` | 許可証の枠 (2293×1482) と、各欄の座標 |
+| `items/` | アイテムのアイコン (16×16)。`item-no-品番.png`、絵の無い品は `item-type分類.png`。サーバーの `/images/` と同じもの |
 | `fonts/ShipporiMinchoB1-ExtraBold.ttf` | しっぽり明朝 B1 ExtraBold (SIL OFL 1.1。`fonts/OFL-ShipporiMinchoB1.txt`) |
 
 枠・キットの zip・フォント・`license.js` の URL は `GET /api/v1/card/frames` (トークン不要) でいつでも分かります。

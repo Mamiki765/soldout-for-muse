@@ -45,12 +45,19 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line
 th { color: var(--sub); font-weight: normal; font-size: 12px; white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .scroll { overflow-x: auto; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--gap); }
-.shop { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; cursor: pointer; font: inherit; color: inherit; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--gap); }
+.shop { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.shop .hd { display: flex; gap: 10px; align-items: center; }
+.goods { list-style: none; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--line); font-size: 13px; }
+.goods li { display: flex; gap: 6px; align-items: center; padding: 1px 0; }
+.goods li.hit { background: var(--chip); border-radius: 6px; font-weight: bold; }
+.goods .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.goods .pr { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--sub); }
+.ii { width: 16px; height: 16px; flex: none; image-rendering: pixelated; }
 .shop:hover { border-color: var(--accent); }
-.shop .av { display: grid; margin: 0 auto; }
+.av.m { width: 48px; height: 48px; font-size: 18px; }
 .shop .rank { font-size: 12px; color: var(--sub); }
-.shop .name { font-weight: bold; margin-top: 6px; overflow-wrap: anywhere; }
+.shop .name { font-weight: bold; overflow-wrap: anywhere; }
 .av { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--chip); display: inline-grid; place-items: center; font-weight: bold; color: #fff; }
 .av.s { width: 28px; height: 28px; font-size: 12px; vertical-align: middle; }
 .av.l { width: 96px; height: 96px; font-size: 28px; }
@@ -231,16 +238,13 @@ const views = {
       <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th></tr>${stock || '<tr><td colspan="5" class="muted">空</td></tr>'}</table></div></div>`;
   },
   async town() {
+    // 街で見たいのは「どの店が何を売っているか」。棚の品・値段・在庫をカードの主役にし、アイコンと店主は見出しに
     const t = await api('/town');
     base = t.base;
-    const cards = t.shops.map((s) => `<button class="shop" data-som="${esc(s.som ?? '')}">
-      ${avatar(s.icon, s.som, s.owner_name)}
-      <div class="rank">${s.rank}位 · ${pct(s.popularity)}</div>
-      <div class="name">${esc(s.shop)}</div>
-      <div class="muted">${esc(s.owner_name)}</div>
-      <div class="chips">${s.job ? `<span class="chip">${esc(s.job)}</span>` : ''}${s.specialty ? `<span class="chip">${esc(s.specialty)}</span>` : ''}</div>
-    </button>`).join('');
-    return `${t.events.length ? `<div class="panel">イベント: ${t.events.map(esc).join(' / ')}</div>` : ''}<div class="grid">${cards}</div>`;
+    townShops = t.shops;
+    return `${t.events.length ? `<div class="panel">イベント: ${t.events.map(esc).join(' / ')}</div>` : ''}
+      <div class="row"><input type="text" id="town-q" placeholder="品名で探す (例: プリン)" value="${esc(townQ)}"></div>
+      <div class="grid" id="town-grid">${townCards()}</div>`;
   },
   async market() {
     const m = await api('/market');
@@ -258,6 +262,27 @@ const views = {
   },
   async license() { await loadLicense(); return null; },
 };
+
+// 街: 品名で絞り込む (読み直さずにその場で)
+let townShops = [], townQ = '';
+// アイテムのアイコン (16×16)。品ごとの絵が無い品は分類の絵 (item-type分類.png) に替える。
+// 名前は変わらないので、スペースに落として保管しても構いません (キットの items/ にも同じものがあります)
+const imgBase = () => cfg.server.replace(/\/+$/, '') + '/images/';
+const itemImg = (no, type) => `<img class="ii" src="${esc(imgBase() + 'item-no-' + no + '.png')}" alt="" loading="lazy" onerror="this.onerror=null;${type ? `this.src='${esc(imgBase() + 'item-type' + type + '.png')}'` : 'this.remove()'}">`;
+function townCards() {
+  const q = townQ.trim();
+  const list = q ? townShops.filter((s) => s.shelves.some((x) => x.name.includes(q))) : townShops;
+  if (!list.length) return '<p class="muted">その品を並べている店はありません</p>';
+  return list.map((s) => {
+    const goods = s.shelves.length
+      ? s.shelves.map((x) => `<li class="${q && x.name.includes(q) ? 'hit' : ''}">${itemImg(x.item, x.type)}<span class="nm">${esc(x.name)}</span><span class="pr">${yen(x.price)} ×${x.stock}</span></li>`).join('')
+      : '<li class="muted">棚は空</li>';
+    return `<button class="shop" data-som="${esc(s.som ?? '')}">
+      <div class="hd">${avatar(s.icon, s.som, s.owner_name, 'm')}<div><div class="rank">${s.rank}位 · ${pct(s.popularity)}${s.job ? ' · ' + esc(s.job) : ''}</div><div class="name">${esc(s.shop)}</div><div class="muted">${esc(s.owner_name)}</div></div></div>
+      <ul class="goods">${goods}</ul>
+    </button>`;
+  }).join('');
+}
 
 let current = 'room';
 async function show(tab) {
@@ -277,6 +302,12 @@ async function show(tab) {
 }
 document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => show(b.dataset.tab)));
 $('#reload').addEventListener('click', () => show(current));
+
+document.addEventListener('input', (ev) => {
+  if (ev.target.id !== 'town-q') return;
+  townQ = ev.target.value;
+  $('#town-grid').innerHTML = townCards();
+});
 
 // 店主を開く: まず JSON (文字) だけ。許可証の絵は「絵を見る」を押したときだけ取る
 $('[data-view="town"]').addEventListener('click', async (ev) => {

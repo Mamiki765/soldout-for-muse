@@ -392,7 +392,7 @@ export class OwnerHub {
         yesterday: s.rankingyesterday,
         wins: s.rankingcount,
         comment: s.comment,
-        shelves: shelfData(g, s).filter((x) => x.item && x.stock),
+        shelves: shelfData(g, s).filter((x) => x.item && x.stock).map((x) => ({ ...x, type: g.items[x.item].type })),
       };
     });
   }
@@ -434,7 +434,7 @@ export class OwnerHub {
             point: dt.point,
             popularity: pct(dt.rank),
             comment: dt.comment,
-            shelves: shelfData(g, dt).filter((x) => x.item && x.stock),
+            shelves: shelfData(g, dt).filter((x) => x.item && x.stock).map((x) => ({ ...x, type: g.items[x.item].type })),
           }
         : null,
       icon: ow.icon_file ? { file: ow.icon_file, url: this.url(ow.icon_file) } : null,

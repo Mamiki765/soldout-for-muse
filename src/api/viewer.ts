@@ -13,7 +13,7 @@ import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
-import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, specialtyType } from './views.js';
+import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
 import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
@@ -72,17 +72,23 @@ small{font-size:11px}
 .top .main{flex:1;min-width:0}
 .top .side{width:300px;position:sticky;top:8px}
 @media (max-width:960px){.top{display:block}.top .side{width:auto;position:static}}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:6px 0}
-.cell{background:#eef4ff;border:1px solid #ccddff;padding:6px 4px;text-align:center;overflow-wrap:anywhere;color:inherit}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:6px 0}
+.cell{display:block;background:#eef4ff;border:1px solid #ccddff;padding:6px 8px;overflow-wrap:anywhere;color:inherit}
+.cell .hd{display:flex;gap:8px;align-items:center}
+.cell ul{list-style:none;margin:6px 0 0;padding:4px 0 0;border-top:1px dotted #ccddff;font-size:12px}
+.cell li{display:flex;gap:4px;align-items:center}
+.cell li .nm{flex:1;min-width:0}
+.cell li .pr{white-space:nowrap}
 a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .cell .rk{font-size:11px;color:#666699}
-.cell .on{font-weight:bold;font-size:13px}
-.cell .sn{font-size:12px}
+.cell .on{font-size:12px;color:#444}
+.cell .sn{font-size:14px}
 .cell .pt{font-size:11px;color:#666699}
 .av{width:100px;height:100px;border-radius:12px;display:block;margin:2px auto 4px;object-fit:cover;background:#dde6ff}
 .av.e{display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;font-weight:bold}
 .av.s{width:32px;height:32px;border-radius:6px;display:inline-flex;margin:0 4px 0 0;vertical-align:middle;font-size:16px}
 .av.l{width:160px;height:160px;font-size:72px;margin:0}
+.cell .av{width:56px;height:56px;flex:none;margin:0;font-size:26px;border-radius:10px}
 .lic{max-width:100%;height:auto;border-radius:8px;display:block;margin:6px 0}
 `;
 
@@ -299,11 +305,16 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
 function topPage(app: App, g: Game): string {
   let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
-  let main = `●店主の顔ぶれ (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
+  let main = `●街のお店 (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
   g.shops.forEach((dt, i) => {
     const ow = app.store.ownerByShop(dt.id);
     const href = ow ? `/view/owner/${ow.som}` : '/view/shops';
-    main += `<a class="cell" href="${href}"><div class="rk">${i + 1}位</div>${avatar(app, ow, dt.shopname)}<div class="on">${esc(ow?.display_name ?? dt.name)}</div><div class="sn">${raw(dt.shopname)}</div><div class="pt">${dt.point}点</div></a>`;
+    // 街で見たいのは何を売っているか: 棚の品・値段・在庫をカードの主役に (アイコンと店主は見出し)
+    const shelves = shelfData(g, dt).filter((x) => x.item && x.stock);
+    const goods = shelves.length
+      ? shelves.map((x) => `<li>${itemIcon(g, x.item)}<span class="nm">${esc(x.name)}</span><span class="pr">￥${x.price} ×${x.stock}</span></li>`).join('')
+      : '<li><span class="nm">(棚は空)</span></li>';
+    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
   const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 8, scope: 'town' }));

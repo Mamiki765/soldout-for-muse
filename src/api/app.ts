@@ -329,7 +329,7 @@ export class App {
     }
     const wantJson = url.searchParams.get('format') === 'json' || (req.headers.accept ?? '').startsWith('application/json');
     // スペース (Muse が作るページ) から直接読めるように、API は CORS を開ける。cookie は使わないので * でよい
-    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/assets/')) {
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/images/')) {
       for (const [k, val] of Object.entries(CORS)) res.setHeader(k, val);
       if (req.method === 'OPTIONS') {
         res.writeHead(204, { 'access-control-max-age': '86400' });
@@ -798,7 +798,8 @@ export class App {
       this.images.set(name, data);
     }
     const type = m[1] === 'png' ? 'image/png' : m[1] === 'gif' ? 'image/gif' : 'image/jpeg';
-    return { status: 200, binary: { data, type } };
+    // アイテムのアイコンなど。名前は版をまたいで変わらないので、1週間は取り直さなくてよい (スペースが落として保管しても構わない)
+    return { status: 200, binary: { data, type }, headers: { 'cache-control': 'public, max-age=604800' } };
   }
 
   // ---------------------------------------------------------------------------
