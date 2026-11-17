@@ -62,6 +62,8 @@ export class Game {
   readonly newLogs: LogEntry[] = [];
   /** このリクエストの決算で記録した値動き (1期1行)。保存側が market_history に書く (engine/prices.ts) */
   readonly newPriceRows: PeriodPriceRow[] = [];
+  /** 決算で数えた今期の売れ数。同じ区間の市場在庫の増減のあとで1行にする (engine/prices.ts) */
+  pendingPrices: { at: number; sold: Map<number, number> } | undefined;
 
   constructor(world: World, config: GameConfig, rng: Rng, now: number) {
     this.world = world;

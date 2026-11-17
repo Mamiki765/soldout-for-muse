@@ -74,16 +74,28 @@ export function observePrices(g: Game): void {
 }
 
 /**
- * 決算の頭で呼ぶ (店の今期売上数が前期へ移る前)。品ごとの1行を g.newPriceRows に足し、今期の最安・最高を空にする。
- * 棚にも市場にも無く、売れてもいない品は書かない。
+ * 決算の頭で呼ぶ (店の今期売上数が前期へ移る前)。街全体の今期の売れ数だけ数えておく。
+ * 1行にするのは、同じ区間の市場在庫の増減が済んでから (closePeriodPrices)
  */
-export function closePeriodPrices(g: Game, at: number): void {
-  observePrices(g);
-  const whole = wholePrices(g);
+export function collectPeriodSales(g: Game, at: number): void {
   const sold = new Map<number, number>();
   for (const dt of g.shops) {
     for (const [k, v] of Object.entries(dt.itemtoday)) sold.set(Number(k), (sold.get(Number(k)) ?? 0) + v);
   }
+  g.pendingPrices = { at, sold };
+}
+
+/**
+ * turnProc で、決算をした区間の市場在庫の増減が済んだあとに呼ぶ。品ごとの1行を g.newPriceRows に足し、今期の最安・最高を空にする。
+ * 棚にも市場にも無く、売れてもいない品は書かない。決算が無かった区間では何もしない。
+ */
+export function closePeriodPrices(g: Game): void {
+  const pending = g.pendingPrices;
+  if (!pending) return;
+  g.pendingPrices = undefined;
+  const { at, sold } = pending;
+  observePrices(g);
+  const whole = wholePrices(g);
   const items = g.world.mstat?.items ?? {};
   for (let no = 1; no <= g.maxItem; no++) {
     const it = g.items[no];
