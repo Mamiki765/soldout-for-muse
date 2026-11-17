@@ -129,6 +129,15 @@ export interface World {
   orderSeq?: number;
   /** 募集・納品の今日の回数 (決算で空になる) */
   orderStats?: OrderStats;
+  /** 今期ここまでの相場・市場の単価の最安・最高 (engine/prices.ts。0.6.0 から。決算で空になる) */
+  mstat?: PriceStat;
+}
+
+/** 今期ここまでの値動き。items は品番 → [相場の最安, 相場の最高, 単価の最安, 単価の最高] (見ていなければ 0) */
+export interface PriceStat {
+  /** 記録を始めた時刻 (前の決算、または 0.6.0 にしてから最初に見た時刻) */
+  since: number;
+  items: Record<string, [number, number, number, number]>;
 }
 
 /** 期限切れのときの自動の張り直し方 (engine/orders.ts) */

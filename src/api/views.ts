@@ -13,6 +13,10 @@ import { tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
+import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
+
+/** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
+export type LastPrices = Map<number, PeriodPriceRow>;
 
 /** 秒を「18h05m」のような短い形にする */
 export function dur(sec: number): string {
@@ -87,7 +91,35 @@ export function taxWarning(g: Game, dt: Shop): string | null {
   return `入金庫が税の掛からない上限${line}に近づいています (あと${line - dt.moneystock})。決算のときに超えていると、超えた分に税が掛かります`;
 }
 
-export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | null = null) {
+/** digest の「値動き」で知らせるしきい値 (前の決算から ±20% 以上) と、出す品の数 */
+export const PRICE_MOVE_PCT = 20;
+export const PRICE_MOVE_MAX = 5;
+
+/**
+ * 自分の倉庫・棚にある品のうち、相場か市場の単価が前の決算から大きく動いた品 (0.6.0)。
+ * 動いた幅の大きい順に PRICE_MOVE_MAX 品まで
+ */
+export function priceMoves(g: Game, dt: Shop, prev: LastPrices) {
+  if (!prev.size) return [];
+  getMarketStatus(g);
+  const whole = new Map(getWholeStore(g).map((c) => [c.itemno, c.price]));
+  const mine = new Set<number>();
+  for (let no = 1; no <= g.maxItem; no++) if (dt.item[no - 1]) mine.add(no);
+  for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k]) mine.add(dt.showcase[k]);
+  const out: { item: number; name: string; market_change: number | null; price_change: number | null }[] = [];
+  for (const no of mine) {
+    const p = prev.get(no);
+    if (!p || !isPublicItem(no)) continue;
+    const mc = changePct(g.items[no].marketprice, p.market);
+    const pc = changePct(whole.get(no) ?? 0, p.whole);
+    const big = (x: number | null) => x !== null && Math.abs(x) >= PRICE_MOVE_PCT;
+    if (big(mc) || big(pc)) out.push({ item: no, name: g.items[no].name, market_change: big(mc) ? mc : null, price_change: big(pc) ? pc : null });
+  }
+  const size = (x: (typeof out)[number]) => Math.max(Math.abs(x.market_change ?? 0), Math.abs(x.price_change ?? 0));
+  return out.sort((a, b) => size(b) - size(a)).slice(0, PRICE_MOVE_MAX);
+}
+
+export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | null = null, prev: LastPrices = new Map()) {
   const rankNo = g.shopIndex(dt.id) + 1;
   const stock = g.stockTime(dt);
   const full = g.config.maxStockTime - stock;
@@ -148,6 +180,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     my_orders: myOrders,
     /** 手引きの次の段と、状況別のヒント (どちらも OFF にできる。engine/tutorial.ts) */
     tutorial: tutorialDigest(g, dt),
+    /** 自分の品で、前の決算から相場・市場の単価が ±20% 以上動いたもの (0.6.0) */
+    price_moves: priceMoves(g, dt, prev),
     version: APP_VERSION,
     update,
   };
@@ -178,6 +212,10 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' '));
   if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
   if (ords.length) lines.push(ords.join(' | '));
+  if (d.price_moves.length) {
+    const mv = d.price_moves.map((m) => [m.name, m.market_change !== null && `相場${pctWord(m.market_change)}`, m.price_change !== null && `単価${pctWord(m.price_change)}`].filter(Boolean).join(' '));
+    lines.push(`値動き(前の決算から) ${mv.join(' / ')} 推移は /api/v1/items/品番`);
+  }
   lines.push(...tutorialDigestLines(d.tutorial));
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
@@ -255,13 +293,33 @@ export function meText(d: ReturnType<typeof meData>): string {
 // ---------------------------------------------------------------------------
 // market: 市場 (卸) と相場
 
-export function marketData(g: Game) {
+export function marketData(g: Game, prev: LastPrices = new Map()) {
   getMarketStatus(g);
   const cases = getWholeStore(g).map((c) => {
     const it = g.items[c.itemno];
-    return { item: c.itemno, name: it.name, stock: c.stock, price: c.price, std: it.price, market: it.marketprice, balance: it.uppoint };
+    const p = prev.get(c.itemno);
+    return {
+      item: c.itemno, name: it.name, stock: c.stock, price: c.price, std: it.price, market: it.marketprice, balance: it.uppoint,
+      // 0.6.0: 普段の標準価格 (価格高騰のイベント中だけ std と違う)・今並んでいる棚の最安/最高・並べている店の数
+      std_base: BASE_ITEMS[c.itemno].price,
+      shelf_lo: it.marketprice ? it.marketpricelow : 0,
+      shelf_hi: it.marketprice ? it.marketpricehigh : 0,
+      shops: it.listshops,
+      // 前の決算のときの値と、そこから何%動いたか (どちらかが無ければ null)
+      market_prev: p?.market ?? 0,
+      market_change: changePct(it.marketprice, p?.market ?? 0),
+      price_prev: p?.whole ?? 0,
+      price_change: changePct(c.price, p?.whole ?? 0),
+    };
   });
   return { people: shownPeople(g.world), events: g.eventMessages, items: cases };
+}
+
+/** GET /api/v1/market/history: 何品かの決算ごとの値動き (0.6.0) */
+export function priceHistoryText(list: { item: number; name: string; prices: ReturnType<typeof itemPricesData> }[]): string {
+  const lines: string[] = [];
+  for (const x of list) lines.push(`## ${x.item} ${x.name}`, ...itemPricesLines(x.prices));
+  return lines.join('\n') + '\n';
 }
 
 /** 原作 GetMarketStatusGraph の文字版: 均衡/飽和/不足 */
@@ -273,8 +331,15 @@ export function balanceWord(per: number): string {
 }
 
 export function marketText(d: ReturnType<typeof marketData>): string {
-  const lines = [`人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''), '# 市場 品番 名前 在庫 単価 標準 相場 需給'];
-  for (const c of d.items) lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${c.std} ${c.market || '-'} ${balanceWord(c.balance)}`);
+  const lines = [
+    `人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''),
+    '# 市場 品番 名前 在庫 単価 標準 相場(棚の最安〜最高・店数) 需給 前期比(単価/相場) 推移は /api/v1/items/品番',
+  ];
+  for (const c of d.items) {
+    const std = c.std !== c.std_base ? `${c.std}(高騰中、普段${c.std_base})` : String(c.std);
+    const market = c.market ? `${c.market}(${c.shelf_lo}〜${c.shelf_hi}・${c.shops}店)` : '-';
+    lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)}`);
+  }
   return lines.join('\n') + '\n';
 }
 
@@ -541,7 +606,55 @@ function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
  * 1 商品の詳しい説明。dt があれば、その店での時間と今使えるかも付ける。
  * 隠した品は呼ぶ前に findItem で弾く。予告の品は teaserText を返す
  */
-export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
+/**
+ * 1品の値動き (0.6.0)。今の値・今期ここまでの最安/最高・決算ごとの記録 (新しい順)。
+ * history は保存側から渡す (渡さなければ空)
+ */
+export function itemPricesData(g: Game, itemno: number, history: PeriodPriceRow[] = []) {
+  getMarketStatus(g);
+  const it = g.items[itemno];
+  const wh = getWholeStore(g).find((c) => c.itemno === itemno);
+  const st = g.world.mstat;
+  const e = st?.items[itemno];
+  return {
+    std: it.price,
+    std_base: BASE_ITEMS[itemno].price,
+    market: it.marketprice,
+    shelf_lo: it.marketprice ? it.marketpricelow : 0,
+    shelf_hi: it.marketprice ? it.marketpricehigh : 0,
+    shops: it.listshops,
+    balance: it.marketprice ? it.uppoint : 0,
+    whole: wh?.price ?? 0,
+    whole_stock: g.world.wholestore[itemno - 1] ?? 0,
+    this_period: { since: st?.since ?? 0, market_lo: e?.[0] ?? 0, market_hi: e?.[1] ?? 0, whole_lo: e?.[2] ?? 0, whole_hi: e?.[3] ?? 0 },
+    history,
+  };
+}
+
+export function itemPricesLines(p: ReturnType<typeof itemPricesData>): string[] {
+  const range = (lo: number, hi: number) => (lo ? (lo === hi ? String(lo) : `${lo}〜${hi}`) : '-');
+  const now = [
+    `標準${p.std}${p.std !== p.std_base ? `(高騰中、普段${p.std_base})` : ''}`,
+    p.market ? `相場${p.market}(棚${range(p.shelf_lo, p.shelf_hi)}・${p.shops}店・${balanceWord(p.balance)})` : '相場-(どの店にも並んでいない)',
+    p.whole ? `市場の単価${p.whole}(在庫${p.whole_stock})` : '市場に在庫なし',
+  ];
+  const lines = ['# 値動き 今: ' + now.join(' ')];
+  const t = p.this_period;
+  if (t.since) lines.push(`今期(${jst(t.since)}から) 相場${range(t.market_lo, t.market_hi)} 市場の単価${range(t.whole_lo, t.whole_hi)}`);
+  if (p.history.length) {
+    lines.push('# 決算ごと 決算 相場(期中の最安〜最高) 市場の単価(最安〜最高) 市場在庫 街で売れた数 並べた店 標準');
+    for (const h of p.history) {
+      // 決算のときの値 (期中の最安〜最高)。期中に一度も見ていなければ '-' だけ
+      const cell = (v: number, lo: number, hi: number) => (lo ? `${v || '-'}(${range(lo, hi)})` : '-');
+      const m = cell(h.market, h.market_lo, h.market_hi);
+      const w = cell(h.whole, h.whole_lo, h.whole_hi);
+      lines.push(`${jst(h.at)} ${m} ${w} ${h.whole_stock} ${h.sold} ${h.shops}店 ${h.std}`);
+    }
+  } else lines.push('決算ごとの記録はまだありません (0.6.0 にしてから最初の決算で記録が始まります)');
+  return lines;
+}
+
+export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: PeriodPriceRow[]) {
   const it = g.items[itemno];
   const base = BASE_ITEMS[itemno];
   const uses = dt ? checkUses(g, dt, loadUses(g, itemno)) : loadUses(g, itemno);
@@ -561,6 +674,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop) {
     flags: flagWords(it.flag),
     market: src.market,
     ...(note ? { note } : {}),
+    /** 値動き (0.6.0)。history を渡したときだけ */
+    ...(history ? { prices: itemPricesData(g, itemno, history) } : {}),
     ...(it.expitem ? { skill_item: { item: it.expitem, name: shownName(it.expitem) } } : {}),
     made_by: (rev.madeBy.get(itemno) ?? []).map((r) => recipeData(g, r.item, r.use, dt)).filter((x) => x !== undefined),
     used_in: (rev.usedIn.get(itemno) ?? []).map((r) => ({ item: r.item, tool: shownName(r.item), use: r.use, name: BASE_ITEMS[r.item].uses.find((u) => u.no === r.use)?.name ?? '' })),
@@ -605,6 +720,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   ];
   const how = [d.market && '市場に入ってくる', d.note].filter(Boolean).join('。');
   if (how) lines.push('入手: ' + how);
+  if (d.prices) lines.push(...itemPricesLines(d.prices));
   if (d.skill_item) lines.push(`熟練は${d.skill_item.name}と共通 (時間の縮み・増える熟練は${d.skill_item.name}の熟練)`);
   if (d.made_by.length) {
     lines.push('# 作り方 道具/番号 使い方 時間(熟練0%→100%) 費用 | 材料 → 成果 | 熟練の持ち主 要熟練 職業補正');

@@ -8,6 +8,7 @@ import { BASE_ITEMS, CATALOG, EVENTS, MAX_ITEM, type ItemDef } from '../data/cat
 import type { GameConfig } from '../config.js';
 import type { LogEntry, Shop, World } from './types.js';
 import type { Rng } from './rng.js';
+import type { PeriodPriceRow } from './prices.js';
 
 /** 時間クーポンの保存先 (Shop.user)。配られた週の開始時刻と残り秒 */
 export const COUPON_WEEK = '_coupon_week';
@@ -29,6 +30,8 @@ export interface RtItem extends ItemDef {
   marketprice: number;
   marketpricelow: number;
   marketpricehigh: number;
+  /** 棚に並べている店の数 (0.6.0) */
+  listshops: number;
   uppoint: number;
 }
 
@@ -59,6 +62,8 @@ export class Game {
   periodMode = false;
   /** このリクエストで増えた最近の出来事。保存側がまとめて書き込む */
   readonly newLogs: LogEntry[] = [];
+  /** このリクエストの決算で記録した値動き (1期1行)。保存側が market_history に書く (engine/prices.ts) */
+  readonly newPriceRows: PeriodPriceRow[] = [];
 
   constructor(world: World, config: GameConfig, rng: Rng, now: number) {
     this.world = world;
@@ -339,6 +344,7 @@ function newRtItem(def: ItemDef): RtItem {
     marketprice: 0,
     marketpricelow: 0,
     marketpricehigh: 0,
+    listshops: 0,
     uppoint: 0,
   };
 }
