@@ -64,8 +64,13 @@ test('値動き: 期中の最安・最高を行動のたびに更新し、決算
     assert.equal(h.item, pick.item);
     assert.ok(h.market_hi >= h.market_lo && h.market_lo > 0, JSON.stringify(h));
     assert.ok(h.sold >= 0 && h.std > 0);
-    // 決算で今期の記録は空になる (次の観測から始まる)
+    // 決算で今期の記録は、決算のときの値から始まり直す
     assert.ok(d.prices.this_period.since >= h.at);
+    if (periods === 2) {
+      // 2回またいだとき、新しい期の最安・最高には前の決算のときの値が入っている
+      const [newer, older] = d.prices.history;
+      if (older.market) assert.ok(newer.market_lo <= older.market && newer.market_hi >= older.market, JSON.stringify(d.prices.history));
+    }
 
     // 前期比が /market に出る
     const m2 = (await (await fetch(base + '/api/v1/market?format=json', { headers: auth })).json()) as { items: { item: number; price_prev: number; price_change: number | null; std_base: number }[] };
