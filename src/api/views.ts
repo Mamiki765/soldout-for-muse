@@ -32,10 +32,10 @@ export function jst(t: number): string {
   return `${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
 }
 
-const pct = (rank: number) => Math.trunc(rank / 100);
+export const pct = (rank: number) => Math.trunc(rank / 100);
 
 /** 棚の一覧。slot は 1 始まり (行動の shelf / buy の slot・peek と同じ番号。0.3.3 までの JSON は 0 始まりだった) */
-function shelfData(g: Game, dt: Shop) {
+export function shelfData(g: Game, dt: Shop) {
   const out = [];
   for (let i = 0; i < dt.showcasecount; i++) {
     const no = dt.showcase[i] ?? 0;
@@ -157,7 +157,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
 
 export function meData(g: Game, dt: Shop) {
   getMarketStatus(g);
-  const stock: { item: number; name: string; count: number; limit: number; today: number; yesterday: number; exp: number; market: number }[] = [];
+  const stock: { item: number; name: string; count: number; limit: number; today: number; yesterday: number; exp: number; market: number; std: number; cost: number; balance: number; shelves: number[] }[] = [];
   for (let no = 1; no <= g.maxItem; no++) {
     const c = dt.item[no - 1];
     const today = dt.itemtoday[no] ?? 0;
@@ -165,7 +165,10 @@ export function meData(g: Game, dt: Shop) {
     const exp = dt.exp[no] ?? 0;
     if (!c && !today && !yesterday && !exp) continue;
     const it = g.items[no];
-    stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice });
+    // std=標準価格 cost=維持費(1個24時間) balance=需要供給 (110以上で飽和・90以下で不足) shelves=並べている棚 (観戦画面の倉庫と同じ項目。0.5.0)
+    const shelves: number[] = [];
+    for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(k + 1);
+    stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves });
   }
   stock.sort((a, b) => g.items[a.item].sort - g.items[b.item].sort);
   const [tax, taxrate] = g.taxToday(dt);
@@ -192,6 +195,13 @@ export function meData(g: Game, dt: Shop) {
     tax: { sale_rate: g.userTaxRate(dt), stock_tax: tax, stock_tax_rate: taxrate },
     next_period: g.nextPeriodTime(),
     comment: dt.comment,
+    // 観戦画面の店長室にある項目 (スペースで同じ画面を作れるように。0.5.0)
+    wins: dt.rankingcount,
+    founded_at: dt.foundation,
+    closing_at: dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt),
+    tax_paid_today: dt.taxtoday,
+    tax_yesterday: dt.taxyesterday,
+    exp_total: Math.trunc(Object.values(dt.exp).reduce((a, b) => a + b, 0) / 10),
     shelves: shelfData(g, dt),
     stock,
   };

@@ -24,7 +24,7 @@ node dist/src/main.js set-viewer-key <観戦用の合言葉>   # 省略すると
 node dist/src/main.js serve                # http://localhost:8080/
 ```
 
-環境変数: `DB_PATH` (既定 `data/soldout.sqlite`)、`PORT` (8080)、`HOST` (0.0.0.0)、`PUBLIC_URL` (見学用リンクに使う外向きのURL)、`IMAGES_DIR` (`public/images`)、`HELP_PATH` (`docs/API.md`)、`SOURCE_DIR` (配るソース。既定 `.`)、`PARTY_URL` / `PARTY_PUBLIC_URL` (Muse Party 連携)。
+環境変数: `DB_PATH` (既定 `data/soldout.sqlite`)、`PORT` (8080)、`HOST` (0.0.0.0)、`PUBLIC_URL` (見学用リンクに使う外向きのURL)、`IMAGES_DIR` (`public/images`)、`HELP_PATH` (`docs/API.md`)、`SOURCE_DIR` (配るソース。既定 `.`)、`PARTY_URL` / `PARTY_PUBLIC_URL` (Muse Party 連携)、`ASSETS_ROOT` (アイコン・許可証の保存先。既定 DB と同じフォルダの `assets/`)、`ASSETS_BASE_URL` (その公開URL。既定 `PUBLIC_URL/assets`)、`KIT_DIR` (許可証の枠。既定 `kit`)。
 
 ## VM に置く (docker compose)
 
@@ -58,6 +58,26 @@ docker compose up -d                             # この起動時刻から7日�
 - `seed-market` は、その版で追加した品のうち plus が正の素材 (時間で市場に湧く品) の市場在庫だけを、市場が自然に増減する式の12時間ぶん足します (上限 wslimit は通常どおり)。plus が負の品 (市場から減る側でプレイヤーが作る品) には入れません。時間・イベント・お店には触れません。版ごとに一度しか実行できません。
 - 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、`seed-market` は必ず止めてから実行してください。
 - 元に戻すときは、コードと一緒にバックアップした DB も戻します (新しい版で起動すると保存データが新しい品数に広がるため)。
+
+### アイコン・許可証の置き場 (0.5.0)
+
+画像は `/data/assets` (ホストでは `data/assets`) に `som0001_000001.webp` の名前で置き、サーバーが `PUBLIC_URL/assets/…` で配ります (中身の変わらないファイルは1年の immutable キャッシュなので、Cloudflare の後ろならほぼ初回しか来ません)。いちばん簡単な置き方は、何も足さずにキットだけ置くことです (画像は `data/` のバックアップに一緒に入ります):
+
+```sh
+ASSETS_ROOT=./data/assets sh tools/build-kit.sh && sudo chown -R 1000:1000 data/assets
+```
+
+assets 箱 (`/srv/bot-assets`) から配るときは (あとから移すときも、ファイルを移して ASSETS_BASE_URL を入れるだけ):
+
+```sh
+sudo mkdir -p /srv/bot-assets/soldout && sudo chown 1000:1000 /srv/bot-assets/soldout
+# compose.yml の volumes の `/srv/bot-assets/soldout:/data/assets` と、ASSETS_BASE_URL のコメントを外す
+ASSETS_ROOT=/srv/bot-assets/soldout sh tools/build-kit.sh   # キットの zip (フォント入り) と枠を kit/ に置く
+docker compose up -d
+```
+
+- `build-kit.sh` はしっぽり明朝 B1 (SIL OFL 1.1) を Google Fonts のリポジトリから取ってきて zip に入れます。キットの版を上げたときにもう一度実行します。
+- 差し替えた古い画像は1日後に、サーバーが自分で消します。運営が下げるときは `POST /api/v1/admin/assets/<ファイル名>/remove` (すぐ消える)。最近の登録は `GET /api/v1/admin/assets`。
 
 ## 街の設定
 

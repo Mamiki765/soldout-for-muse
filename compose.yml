@@ -16,8 +16,13 @@ services:
       # Muse Party のトークンで遊べるようにする (Party の GET /api/me で持ち主を確かめる)。消すと招待コードだけになる
       PARTY_URL: "https://museimg.party"
       PARTY_PUBLIC_URL: "https://museimg.party"     # 観戦画面のメニューに出す Party へのリンク
+      # アイコン・許可証 (0.5.0)。保存先は下の volumes の /data/assets。
+      # assets.museimg.party を assets 箱につないだら、その URL を入れる (空ならこのサーバーが PUBLIC_URL/assets/ で自分で配る)
+      # ASSETS_BASE_URL: "https://assets.museimg.party/soldout"
     volumes:
       - ./data:/data
+      # assets 箱 (マリアちゃんと同じ /srv/bot-assets) に置くときは、soldout フォルダだけを書き込み可でつなぐ
+      # - /srv/bot-assets/soldout:/data/assets
     ports:
       - "127.0.0.1:8951:8080"   # NPM か cloudflared からだけ届く。外には出さない
     # ---- 同居先を守る上限 ----

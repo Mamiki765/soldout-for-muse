@@ -9,7 +9,8 @@
 // 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
-//           BASE_PATH (別サイトの下に置くときの頭。例 /soldout)
+//           BASE_PATH (別サイトの下に置くときの頭。例 /soldout),
+//           ASSETS_ROOT (アイコン・許可証の保存先。既定 DB と同じフォルダの assets/), ASSETS_BASE_URL (その公開URL。既定 PUBLIC_URL/assets), KIT_DIR (kit)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { createServer } from 'node:http';
@@ -110,6 +111,9 @@ if (cmd === 'set-invite') {
     partyVerifier: env.PARTY_URL ? httpPartyVerifier(env.PARTY_URL) : undefined,
     partyPublicUrl: env.PARTY_PUBLIC_URL ?? env.PARTY_URL ?? '',
     basePath: env.BASE_PATH ?? '',
+    assetsDir: env.ASSETS_ROOT === '' ? undefined : resolve(env.ASSETS_ROOT ?? resolve(dirname(dbPath), 'assets')),
+    assetsBaseUrl: env.ASSETS_BASE_URL || undefined,
+    kitDir: resolve(env.KIT_DIR ?? 'kit'),
   });
   // TICK_SECONDS を入れると、誰もアクセスしなくても街の時間がその間隔で確かめられ、5分刻みで進む。
   // 既定は 0 (止める): 今はアクセスだけで5分ごとに進んでいるので、番犬運用で止まると分かってから入れる (リカさん 2026-11-15)
