@@ -168,6 +168,12 @@ export class OwnerHub {
     if (ow && ow.name_source === 'party' && ow.display_name !== name) this.store.updateOwner(ow.som, { display_name: name }, now);
   }
 
+  /** 店名が変わったとき (店主の一覧の差分に出す) */
+  onRenamed(shopId: number, now: number): void {
+    const ow = this.store.ownerByShop(shopId);
+    if (ow) this.store.touchOwner(ow.som, now);
+  }
+
   onClosed(shopId: number, now: number): void {
     const ow = this.store.ownerByShop(shopId);
     if (ow) this.store.updateOwner(ow.som, { shop_id: null }, now);
@@ -227,22 +233,25 @@ export class OwnerHub {
     }
   }
 
-  private async save(som: string, kind: 'icon' | 'card', data: Buffer, w: number, h: number, now: number): Promise<string> {
+  /** ファイルを書くだけ (番号は await の前に取る)。配るのは publish で、持ち主の記録と一緒に */
+  private async write(som: string, data: Buffer): Promise<string> {
     if (!this.o.assetsDir) throw new GameError('画像の保存先が設定されていないので、今は登録できません');
-    // 番号は await の前に取って記録まで済ませる (同じ店主の登録が重なっても同じ名前にならない)
     const no = this.store.nextAssetNo(som);
     const file = `${som}_${String(no).padStart(6, '0')}.webp`;
-    this.store.addAsset({ file, som, kind, w, h, bytes: data.length, now });
     const path = join(this.o.assetsDir, file);
-    try {
-      // 途中まで書いたファイルが配られないよう、一時ファイルに書いてから名前を変える
-      await writeFile(path + '.tmp', data);
-      await rename(path + '.tmp', path);
-    } catch (e) {
-      this.store.dropAsset(file);
-      throw e;
-    }
+    // 途中まで書いたファイルが配られないよう、一時ファイルに書いてから名前を変える
+    await writeFile(path + '.tmp', data);
+    await rename(path + '.tmp', path);
     return file;
+  }
+
+  /** 書き終えた画像を、差分 (assets) と店主の今の画像に同時に載せる (間に await を挟まない) */
+  private publish(som: string, kind: 'icon' | 'card', file: string, w: number, h: number, bytes: number, now: number, extra: Partial<Pick<Owner, 'card_json'>> = {}): void {
+    this.store.addAsset({ file, som, kind, w, h, bytes, now });
+    const cur = this.store.ownerBySom(som)!;
+    const prev = kind === 'icon' ? cur.icon_file : cur.card_file;
+    if (prev) this.store.markAssetReplaced(prev, now);
+    this.store.updateOwner(som, kind === 'icon' ? { icon_file: file } : { card_file: file, ...extra }, now);
   }
 
   private decode(b64: unknown, max: number): Buffer {
@@ -271,11 +280,8 @@ export class OwnerHub {
   async uploadIcon(ow: Owner, body: Record<string, unknown>, now: number): Promise<string> {
     this.checkQuota(ow.som, 'icon', now);
     const info = this.inspect(this.decode(body.image_base64, ICON_MAX_BYTES), ICON_SIZE, ICON_SIZE, 'アイコン');
-    const file = await this.save(ow.som, 'icon', info.data, ICON_SIZE, ICON_SIZE, now);
-    // 書いている間にほかの登録が先に済んでいることがあるので、今の持ち主の記録を読み直してから差し替える
-    const cur = this.store.ownerBySom(ow.som)!;
-    if (cur.icon_file) this.store.markAssetReplaced(cur.icon_file, now);
-    this.store.updateOwner(ow.som, { icon_file: file }, now);
+    const file = await this.write(ow.som, info.data);
+    this.publish(ow.som, 'icon', file, ICON_SIZE, ICON_SIZE, info.data.length, now);
     return file;
   }
 
@@ -288,22 +294,23 @@ export class OwnerHub {
     const aka = body.aka === undefined ? prev?.aka ?? [] : parseAka(body.aka);
     const alt = body.alt === undefined ? prev?.alt ?? '' : cleanText(body.alt, 'alt (見た目の説明)', 120);
     const values = this.serverValues(g, ow);
-    let file = ow.card_file;
-    let drawn = prev?.drawn;
     if (body.image_base64 !== undefined) {
       this.checkQuota(ow.som, 'card', now);
       const [w, h] = fr.size;
       const info = this.inspect(this.decode(body.image_base64, CARD_MAX_BYTES), w, h, '許可証');
-      file = await this.save(ow.som, 'card', info.data, w, h, now);
-      const cur = this.store.ownerBySom(ow.som)!;
-      if (cur.card_file) this.store.markAssetReplaced(cur.card_file, now);
-      drawn = { owner_name: values.owner_name, shopname: values.shopname, job: values.job, at: now };
-    } else if (!ow.card_file) {
-      throw new GameError('はじめは画像 (image_base64) も一緒に送ってください');
+      const file = await this.write(ow.som, info.data);
+      const drawn = { owner_name: values.owner_name, shopname: values.shopname, job: values.job, at: now };
+      const st: CardStored = { frame: fr.frame, aka, alt, drawn };
+      this.publish(ow.som, 'card', file, w, h, info.data.length, now, { card_json: JSON.stringify(st) });
+      return file;
     }
-    const st: CardStored = { frame: fr.frame, aka, alt, drawn: drawn! };
-    this.store.updateOwner(ow.som, { card_file: file, card_json: JSON.stringify(st) }, now);
-    return file;
+    // 画像なし: 通り名・alt・枠だけ直す (今の記録を読み直して、絵の情報はそのまま)
+    const cur = this.store.ownerBySom(ow.som)!;
+    const curSt = this.stored(cur);
+    if (!cur.card_file || !curSt) throw new GameError('はじめは画像 (image_base64) も一緒に送ってください');
+    const st: CardStored = { frame: fr.frame, aka, alt, drawn: curSt.drawn };
+    this.store.updateOwner(ow.som, { card_json: JSON.stringify(st) }, now);
+    return cur.card_file;
   }
 
   removeIcon(ow: Owner, now: number): void {

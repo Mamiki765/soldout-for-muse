@@ -1104,8 +1104,11 @@ export class App {
         if (on === undefined && hints === undefined) throw new GameError('on (手引き) か hints (ヒント) を true / false で指定してください。例: {"type":"tutorial","on":false}');
         return [tut.setTutorial(dt, on, hints)];
       }
-      case 'rename':
-        return [act.renameShop(g, dt, s('shopname'))];
+      case 'rename': {
+        const r = act.renameShop(g, dt, s('shopname'));
+        this.owners.onRenamed(dt.id, g.now);
+        return [r];
+      }
       case 'close':
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];

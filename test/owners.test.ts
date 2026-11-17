@@ -130,10 +130,13 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     assert.equal(r.status, 201, await r.clone().text());
     assert.deepEqual((await get('/api/v1/owners/som0001', 'pt-mute')).card.aka, []);
 
-    // 店名が変わると stale になり、digest で知らせる
+    // 店名が変わると stale になり、digest で知らせる。店主の一覧の差分にも出る
+    const rev0 = (await get('/api/v1/owners', 'pt-lapis')).rev;
     app.world.shops.find((s) => s.shopname === 'ミュート商店')!.money = 10_000_000; // 改名は費用がかかる
     r = await fetch(base + '/api/v1/actions', { method: 'POST', headers: as('pt-mute'), body: JSON.stringify({ type: 'rename', shopname: 'ミュート本舗' }) });
     assert.equal(((await r.json()) as { results: { ok: boolean }[] }).results[0].ok, true);
+    const ownersDelta = await get('/api/v1/owners?since_rev=' + rev0, 'pt-lapis');
+    assert.deepEqual(ownersDelta.owners.map((o: { som: string; shop: string }) => [o.som, o.shop]), [['som0001', 'ミュート本舗']]);
     card = (await get('/api/v1/owners/som0001', 'pt-mute')).card;
     assert.equal(card.stale, true);
     assert.equal(card.shopname, 'ミュート本舗');
@@ -184,6 +187,14 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     const live = store.recentAssets(50).filter((a) => a.som === 'som0001' && a.kind === 'icon' && a.replaced_at === null).map((a) => a.file);
     assert.equal(live.length, 1, '使っているアイコンは1つだけ: ' + live.join(','));
     assert.ok(![icon3].includes(live[0]));
+
+    // はじめての画像は、追加と今の画像が同じ差分に出る
+    const beforeFirst = await get('/api/v1/assets?since=0', 'pt-lapis');
+    r = await post('/api/v1/profile/card', 'pt-lapis', { image_base64: webp(2293, 1482) });
+    assert.equal(r.status, 201);
+    const first = await get('/api/v1/assets?since=' + beforeFirst.cursor, 'pt-lapis');
+    assert.equal(first.added.length, 1);
+    assert.equal(first.current.som0002.card, first.added[0].file);
 
     // 1日5回まで
     for (let i = 0; i < 4; i++) await post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) });

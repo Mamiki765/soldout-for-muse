@@ -392,6 +392,11 @@ export class Store {
   }
 
   /** 店主の欄を書き換えて rev を進める */
+  /** 中身は owners の外 (店名など) で変わったとき、差分に出すため rev だけ進める */
+  touchOwner(som: string, now: number): void {
+    this.db.prepare('UPDATE owners SET rev = ?, updated_at = ? WHERE som = ?').run(this.nextRev(), now, som);
+  }
+
   updateOwner(som: string, f: Partial<Pick<Owner, 'shop_id' | 'display_name' | 'name_source' | 'icon_file' | 'card_file' | 'card_json'>>, now: number): void {
     const keys = Object.keys(f) as (keyof typeof f)[];
     if (!keys.length) return;
@@ -403,8 +408,13 @@ export class Store {
 
   /** その店主の次の画像の番号 (som ごとに 1 から。消した番号も使い回さない) */
   nextAssetNo(som: string): number {
+    // 取り消した予約があっても戻らないよう、行の数ではなく店主ごとの数え上げで配る
+    const key = 'asset_no_' + som;
+    const used = Number(this.getSetting(key) ?? 0);
     const row = this.db.prepare('SELECT COUNT(*) AS c FROM assets WHERE som = ?').get(som) as { c: number };
-    return row.c + 1;
+    const n = Math.max(used, row.c) + 1;
+    this.setSetting(key, String(n));
+    return n;
   }
 
   /** 追加と削除で共通の通し番号 (差分のカーソル)。どちらも必ずこれまでより大きい番号になる */
@@ -414,16 +424,10 @@ export class Store {
     return n;
   }
 
-  /** 名前を先に取っておく (同じ店主の登録が重なっても、別のファイル名になる) */
   addAsset(a: { file: string; som: string; kind: 'icon' | 'card'; w: number; h: number; bytes: number; now: number }): number {
     const seq = this.nextAssetSeq();
     this.db.prepare('INSERT INTO assets(seq,file,som,kind,w,h,bytes,created_at) VALUES(?,?,?,?,?,?,?,?)').run(seq, a.file, a.som, a.kind, a.w, a.h, a.bytes, a.now);
     return seq;
-  }
-
-  /** 書き込みに失敗した予約を取り消す (まだ誰にも配っていない) */
-  dropAsset(file: string): void {
-    this.db.prepare('DELETE FROM assets WHERE file = ?').run(file);
   }
 
   /** 使い終わった印を付ける (すぐには消さない。消すのは sweepAssets) */
