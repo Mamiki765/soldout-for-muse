@@ -213,6 +213,7 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     r = await post('/api/v1/profile/icon', vk, { image_base64: webp(200, 200) });
     assert.equal(r.status, 403);
     assert.equal((await fetch(base + '/api/v1/tutorial', { headers: as(vk) })).status, 403);
+    assert.equal((await fetch(base + '/api/v1/items/1', { headers: as(vk) })).status, 200, '品物の詳細は合鍵で読める');
 
     // CORS の事前確認
     r = await fetch(base + '/api/v1/town', { method: 'OPTIONS' });

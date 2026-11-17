@@ -615,7 +615,7 @@ export class App {
         return { status: 200, text: v.teaserText(t), json: t };
       }
       const token = this.bearer(req);
-      const shopId = token && !this.isAdminToken(token) && q.get('me') !== '0' ? await this.auth(req) : undefined;
+      const shopId = token && !this.isAdminToken(token) && q.get('me') !== '0' ? (await this.authInfo(req)).shopId : undefined; // 合鍵 (vk_) でも読める
       const { g } = this.game();
       const d = v.itemDetailData(g, no, shopId === undefined ? undefined : this.me(g, shopId));
       return { status: 200, text: v.itemDetailText(d), json: d };
