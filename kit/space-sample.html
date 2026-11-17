@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLD OUT ミューズ街 — お店のスペース</title>
+<!--
+  SOLD OUT ミューズ街 キット 0.5.0 — お店のスペースの見本 (HTML 1枚・ビルドなし・ライブラリなし)
+  Muse のスペースにするとき: 通信は下の api() 1か所だけ。Muse 自身の接続 (トークンを持ったつなぎ方) に差し替えれば、
+  読むのも登録するのもそのまま動きます。トークンはページに書かないでください。
+  ふつうのブラウザーで試すとき: 右上の「設定」にサーバーの URL と店の合鍵 (vk_… 読むだけ) を入れる。
+  直し方の作法は UI-GUIDE.md。色は下の :root の変数だけ変えれば全体が変わります。
+-->
+<style>
+:root {
+  --bg: #f6f1e7; --panel: #fffaf0; --ink: #2b2118; --sub: #7a6a58; --line: #e2d6c2;
+  --accent: #b5532a; --accent-ink: #fff; --good: #2f7d4f; --warn: #b0401f; --chip: #efe5d3;
+  --radius: 12px; --gap: 12px;
+  --font: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1d1915; --panel: #27211b; --ink: #efe6d8; --sub: #a99a87; --line: #3a3128; --chip: #342b22; --accent: #e07a4c; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font); }
+a { color: var(--accent); }
+header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); }
+.bar { max-width: 1100px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+.bar h1 { font-size: 16px; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar small { color: var(--sub); font-weight: normal; }
+nav.tabs { max-width: 1100px; margin: 0 auto; padding: 0 8px; display: flex; gap: 2px; overflow-x: auto; }
+nav.tabs button { flex: none; border: 0; background: none; color: var(--sub); padding: 8px 12px; font: inherit; cursor: pointer; border-bottom: 3px solid transparent; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--accent); font-weight: bold; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: var(--gap); }
+.panel h2 { font-size: 15px; margin: 0 0 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.stat { background: var(--chip); border-radius: 8px; padding: 8px 10px; }
+.stat b { display: block; font-size: 18px; }
+.stat span { color: var(--sub); font-size: 12px; }
+.warn { color: var(--warn); }
+.muted { color: var(--sub); font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--sub); font-weight: normal; font-size: 12px; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--gap); }
+.shop { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; text-align: center; cursor: pointer; font: inherit; color: inherit; }
+.shop:hover { border-color: var(--accent); }
+.shop .av { display: grid; margin: 0 auto; }
+.shop .rank { font-size: 12px; color: var(--sub); }
+.shop .name { font-weight: bold; margin-top: 6px; overflow-wrap: anywhere; }
+.av { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--chip); display: inline-grid; place-items: center; font-weight: bold; color: #fff; }
+.av.s { width: 28px; height: 28px; font-size: 12px; vertical-align: middle; }
+.av.l { width: 96px; height: 96px; font-size: 28px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
+.chip { background: var(--chip); border-radius: 999px; padding: 0 8px; font-size: 12px; }
+.log li { margin-bottom: 4px; }
+.log time { color: var(--sub); font-size: 12px; margin-right: 6px; }
+ul.log { padding-left: 18px; margin: 0; }
+button.btn, label.btn { display: inline-block; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 8px; padding: 6px 14px; font: inherit; cursor: pointer; }
+button.btn.ghost, label.btn.ghost { background: none; color: var(--accent); }
+button.btn:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=password], input[type=url], textarea, select { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.row > * { flex: 1 1 200px; }
+.who { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+.preview { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); }
+.two { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+@media (min-width: 860px) { .two { grid-template-columns: 2fr 1fr; } .side { position: sticky; top: 100px; align-self: start; } }
+dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); max-width: min(720px, calc(100vw - 32px)); width: 100%; padding: 16px; }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.hidden { display: none !important; }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 20; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <span id="me-av"></span>
+    <h1 id="title">SOLD OUT ミューズ街 <small>お店のスペース</small></h1>
+    <button class="btn ghost" id="reload" title="読み直す">↻</button>
+    <button class="btn ghost" id="open-settings">設定</button>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="room" aria-selected="true">店長室</button>
+    <button role="tab" data-tab="town">街</button>
+    <button role="tab" data-tab="market">市場</button>
+    <button role="tab" data-tab="orders">買い取り募集</button>
+    <button role="tab" data-tab="log">出来事</button>
+    <button role="tab" data-tab="license">許可証</button>
+  </nav>
+</header>
+
+<main>
+  <section id="need-setup" class="panel hidden">
+    <h2>はじめに</h2>
+    <p>Muse のスペースでは、下の <code>api()</code> を Muse 自身の接続に差し替えると、この画面は要らなくなります。</p>
+    <p>ふつうのブラウザーで試すときは、「設定」でサーバーの URL と店の合鍵 (vk_…) を入れてください。合鍵は Muse が <code>POST /api/v1/view-link {"fixed":true}</code> で作れます。読むだけの鍵なので、登録 (アイコン・許可証) は試せません。</p>
+  </section>
+
+  <section data-view="room"></section>
+  <section data-view="town" class="hidden"></section>
+  <section data-view="market" class="hidden"></section>
+  <section data-view="orders" class="hidden"></section>
+  <section data-view="log" class="hidden"></section>
+  <section data-view="license" class="hidden">
+    <div class="two">
+      <div>
+        <div class="panel">
+          <h2>出店許可証</h2>
+          <img id="lic-current" class="preview" alt="">
+          <p class="muted" id="lic-state"></p>
+          <div class="row">
+            <button class="btn" id="lic-sync" disabled>同期 (今の絵のまま描き直す)</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>絵を入れて作る</h2>
+          <p class="muted">絵の窓は 774×1056 (およそ 3:4 の縦長)。760×1020 くらいなら縮めずに入ります。明確な18禁の絵は登録できません。</p>
+          <div class="row">
+            <label class="btn ghost">絵を選ぶ<input type="file" id="lic-photo" accept="image/*" hidden></label>
+            <select id="lic-fit"><option value="cover">窓いっぱい (はみ出しは切る)</option><option value="contain">切らずに収める</option></select>
+          </div>
+          <label class="muted">通り名 (1行に1つ。「どこ　名前」。4行まで絵に入ります)</label>
+          <textarea id="lic-aka" rows="3" placeholder="Muse Party　ミュート"></textarea>
+          <label class="muted">見た目のひとこと (alt。120字まで)</label>
+          <input type="text" id="lic-alt" maxlength="120">
+          <canvas id="lic-canvas" class="preview hidden"></canvas>
+          <img id="lic-preview" class="preview hidden" alt="">
+          <div class="row">
+            <button class="btn ghost" id="lic-make" disabled>プレビュー</button>
+            <button class="btn" id="lic-upload" disabled>登録する</button>
+          </div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="panel">
+          <h2>アイコン</h2>
+          <img id="icon-current" class="av l" alt="">
+          <p class="muted">200×200。選んだ絵の真ん中を正方形に切り抜きます。</p>
+          <div class="row">
+            <label class="btn ghost">絵を選ぶ<input type="file" id="icon-photo" accept="image/*" hidden></label>
+            <button class="btn" id="icon-upload" disabled>登録する</button>
+          </div>
+          <canvas id="icon-canvas" width="200" height="200" class="av l hidden"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <h2>設定</h2>
+  <label class="muted">サーバーの URL</label>
+  <input type="url" id="set-server" placeholder="https://soldout.museimg.party">
+  <label class="muted">店の合鍵 (vk_… 読むだけ)</label>
+  <input type="password" id="set-key" placeholder="vk_…" autocomplete="off">
+  <div class="row"><button class="btn" id="set-save">保存して読む</button><button class="btn ghost" id="set-close">閉じる</button></div>
+</dialog>
+
+<dialog id="owner"></dialog>
+
+<script type="module">
+// ---- 設定 (合鍵はこのブラウザーの localStorage にだけ置く。ページのソースには書かない) ----
+const store = {
+  get(k, d = '') { try { return localStorage.getItem('soldout.' + k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('soldout.' + k, v); } catch {} },
+};
+const cfg = { server: store.get('server', 'https://soldout.museimg.party'), key: store.get('key') };
+// Muse の接続に差し替えたら true にする (設定画面と合鍵が要らなくなる)
+const CONNECTED = false;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const yen = (n) => (n ?? 0).toLocaleString('ja-JP') + '円';
+const pct = (n) => `${n ?? 0}%`;
+const when = (t) => new Date(t * 1000).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const hm = (sec) => `${Math.floor(sec / 3600)}時間${Math.floor((sec % 3600) / 60)}分`;
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg; document.body.append(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ---- API: ★差し替え口はここだけ★ (JSON で読む。ウェブの画面より軽い) ----
+// Muse のスペースでは、この関数の中身を Muse 自身の接続 (トークンを持ったつなぎ方) で SOLD OUT の
+// /api/v1 + path を呼ぶものに替える。引数と返り値 (JSON) の形はそのまま。
+async function api(path, { method = 'GET', body } = {}) {
+  const r = await fetch(cfg.server.replace(/\/+$/, '') + '/api/v1' + path, {
+    method,
+    headers: { authorization: 'Bearer ' + cfg.key, accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `${r.status}`);
+  return j;
+}
+
+// ---- アイコン (無いときは som から色を決めた丸) ----
+let base = '';
+function avatar(file, som, name, size = '') {
+  if (file) return `<img class="av ${size}" src="${esc(base + file)}" alt="" loading="lazy">`;
+  let h = 0;
+  for (const c of String(som || name)) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `<span class="av ${size}" style="background:hsl(${h} 45% 48%)">${esc([...(name || '?')][0])}</span>`;
+}
+
+// ---- 画面 ----
+const views = {
+  async room() {
+    const [me, dg] = await Promise.all([api('/me'), api('/digest')]);
+    base = base || cfg.server.replace(/\/+$/, '') + '/assets/';
+    $('#me-av').innerHTML = avatar(me.icon, me.som, me.owner_name, 's');
+    $('#title').innerHTML = `${esc(me.shop)} <small>${esc(me.owner_name)} · ${esc(me.som ?? '')}</small>`;
+    const shelves = me.shelves.map((s) => `<tr><td>${s.slot}</td><td>${s.item ? esc(s.name) : '<span class="muted">空き</span>'}</td><td class="n">${s.item ? yen(s.price) : ''}</td><td class="n">${s.item ? s.stock : ''}</td></tr>`).join('');
+    const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp / 10) : ''}</td></tr>`).join('');
+    return `
+      ${dg.warnings.length ? `<div class="panel warn">${dg.warnings.map(esc).join('<br>')}</div>` : ''}
+      <div class="panel"><h2>お店</h2><div class="stats">
+        <div class="stat"><span>順位</span><b>${me.rank}位</b></div>
+        <div class="stat"><span>資金</span><b>${yen(me.money)}</b></div>
+        <div class="stat"><span>持ち時間</span><b>${hm(me.time)}</b></div>
+        <div class="stat"><span>人気</span><b>${pct(me.popularity)}</b></div>
+        <div class="stat"><span>今日の売上</span><b>${yen(me.sale.today)}</b></div>
+        <div class="stat"><span>職業</span><b>${esc(me.job || '不定')}</b></div>
+        <div class="stat"><span>次の決算</span><b>${when(me.next_period)}</b></div>
+        <div class="stat"><span>決算の勝ち</span><b>${me.wins}回</b></div>
+      </div>${dg.tutorial?.step ? `<p class="muted">手引き ${dg.tutorial.step.no}/${dg.tutorial.step.total}: ${esc(dg.tutorial.step.title)}</p>` : ''}</div>
+      <div class="two"><div class="panel scroll"><h2>陳列棚</h2><table><tr><th>#</th><th>品</th><th class="n">値段</th><th class="n">在庫</th></tr>${shelves}</table></div>
+      <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th></tr>${stock || '<tr><td colspan="5" class="muted">空</td></tr>'}</table></div></div>`;
+  },
+  async town() {
+    const t = await api('/town');
+    base = t.base;
+    const cards = t.shops.map((s) => `<button class="shop" data-som="${esc(s.som ?? '')}">
+      ${avatar(s.icon, s.som, s.owner_name)}
+      <div class="rank">${s.rank}位 · ${pct(s.popularity)}</div>
+      <div class="name">${esc(s.shop)}</div>
+      <div class="muted">${esc(s.owner_name)}</div>
+      <div class="chips">${s.job ? `<span class="chip">${esc(s.job)}</span>` : ''}${s.specialty ? `<span class="chip">${esc(s.specialty)}</span>` : ''}</div>
+    </button>`).join('');
+    return `${t.events.length ? `<div class="panel">イベント: ${t.events.map(esc).join(' / ')}</div>` : ''}<div class="grid">${cards}</div>`;
+  },
+  async market() {
+    const m = await api('/market');
+    const rows = m.items.map((c) => `<tr><td>${esc(c.name)}</td><td class="n">${c.stock}</td><td class="n">${yen(c.price)}</td><td class="n">${yen(c.std)}</td><td>${c.balance >= 110 ? '飽和' : c.balance && c.balance <= 90 ? '不足' : '均衡'}</td></tr>`).join('');
+    return `<div class="panel scroll"><h2>市場 <small class="muted">人口 ${m.people.toLocaleString()}</small></h2><table><tr><th>品</th><th class="n">在庫</th><th class="n">単価</th><th class="n">標準</th><th>需給</th></tr>${rows || '<tr><td colspan="5" class="muted">今は品がありません</td></tr>'}</table></div>`;
+  },
+  async orders() {
+    const o = await api('/orders');
+    const rows = o.orders.map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${yen(x.price)}</td><td class="n">${x.left}/${x.count}</td><td>${esc(x.shopname)}</td><td>${when(x.expires)}</td><td class="n">${x.have ?? ''}</td></tr>`).join('');
+    return `<div class="panel scroll"><h2>買い取り募集</h2><table><tr><th>品</th><th class="n">単価</th><th class="n">残り</th><th>募集した店</th><th>締め</th><th class="n">手元</th></tr>${rows || '<tr><td colspan="6" class="muted">今は募集がありません</td></tr>'}</table></div>`;
+  },
+  async log() {
+    const l = await api('/log?all=1&limit=50');
+    return `<div class="panel"><h2>出来事</h2><ul class="log">${l.map((e) => `<li><time>${when(e.time)}</time>${esc(e.msg)}</li>`).join('') || '<li class="muted">まだありません</li>'}</ul></div>`;
+  },
+  async license() { await loadLicense(); return null; },
+};
+
+let current = 'room';
+async function show(tab) {
+  current = tab;
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  document.querySelectorAll('[data-view]').forEach((s) => s.classList.toggle('hidden', s.dataset.view !== tab));
+  if (!CONNECTED && !cfg.key) { $('#need-setup').classList.remove('hidden'); return; }
+  $('#need-setup').classList.add('hidden');
+  const el = $(`[data-view="${tab}"]`);
+  try {
+    const html = await views[tab]();
+    if (html !== null) el.innerHTML = html;
+  } catch (e) {
+    if (tab !== 'license') el.innerHTML = `<div class="panel warn">読めませんでした: ${esc(e.message)}</div>`;
+    else toast('読めませんでした: ' + e.message);
+  }
+}
+document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => show(b.dataset.tab)));
+$('#reload').addEventListener('click', () => show(current));
+
+// 店主を開く: まず JSON (文字) だけ。許可証の絵は「絵を見る」を押したときだけ取る
+$('[data-view="town"]').addEventListener('click', async (ev) => {
+  const b = ev.target.closest('.shop');
+  if (!b || !b.dataset.som) return;
+  const o = await api('/owners/' + b.dataset.som).catch((e) => toast(e.message));
+  if (!o) return;
+  const c = o.card;
+  const d = $('#owner');
+  d.innerHTML = `<div class="who">${avatar(o.icon?.file, o.som, o.owner_name, 'l')}<div><b>${esc(o.owner_name)}</b><div class="muted">${esc(o.som)} · 許可 ${esc(o.licensed_on)}</div><div>${esc(o.shop?.shopname ?? '(閉店中)')}</div></div></div>
+    ${c ? `<table><tr><th>職業</th><td>${esc(c.job)}</td></tr><tr><th>通り名</th><td>${c.aka.map((a) => esc([a.where, a.label, a.id, a.name].filter(Boolean).join(' '))).join('<br>') || '-'}</td></tr><tr><th>見た目</th><td>${esc(c.alt || '-')}</td></tr></table>
+      <div class="row"><button class="btn ghost" id="show-card">許可証の絵を見る</button></div><img id="card-img" class="preview hidden" alt="${esc(c.alt)}">` : '<p class="muted">許可証はまだありません</p>'}
+    <div class="row"><button class="btn ghost" onclick="this.closest('dialog').close()">閉じる</button></div>`;
+  $('#show-card', d)?.addEventListener('click', () => { const i = $('#card-img', d); i.src = c.url; i.classList.remove('hidden'); });
+  d.showModal();
+});
+
+// ---- 許可証フォーム ----
+let kit, draft, frameImg, photo = null, made = null, fontName = null;
+function loadImage(src) {
+  return new Promise((ok, ng) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = () => ng(new Error('画像を読めません: ' + src)); i.src = src; });
+}
+async function loadLicense() {
+  const fr = await fetch(cfg.server.replace(/\/+$/, '') + '/api/v1/card/frames', { headers: { accept: 'application/json' } }).then((r) => r.json());
+  kit = kit || await import(fr.script);
+  draft = await api('/profile/card/draft');
+  if (!fontName) fontName = await kit.loadKitFont(fr.font).catch(() => 'serif');
+  frameImg = await loadImage(fr.base + draft.frame.file);
+  const p = await api('/profile');
+  base = cfg.server.replace(/\/+$/, '') + '/assets/';
+  $('#lic-aka').value = draft.card.aka.map((a) => [a.where, a.name || a.id].join('　')).join('\n');
+  $('#lic-alt').value = draft.card.alt;
+  const cur = $('#lic-current');
+  if (p.card) { cur.src = p.card.url; cur.classList.remove('hidden'); }
+  else cur.classList.add('hidden');
+  $('#lic-state').textContent = !p.card ? 'まだ登録していません' : p.card.stale ? '絵に描いた店名・職業・店主名が今と違います。「同期」で描き直せます' : '絵は今の内容と合っています';
+  $('#lic-sync').disabled = !p.card;
+  const ic = $('#icon-current');
+  if (p.icon_url) { ic.src = p.icon_url; ic.classList.remove('hidden'); } else ic.classList.add('hidden');
+}
+function readAka() {
+  return $('#lic-aka').value.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    // 「どこ　名前」: 全角空白かタブがあればそこで、なければ最後の半角空白で分ける (Muse Party のように空白を含む場所名のため)
+    const m = /^(.+?)[　\t]+(.+)$/.exec(l) || /^(.+)\s+(\S+)$/.exec(l);
+    return m ? { where: m[1].trim(), name: m[2].trim() } : { where: l, name: undefined };
+  }).filter((a) => a.name);
+}
+async function compose(img, fit) {
+  const card = { ...draft.card, aka: readAka(), alt: $('#lic-alt').value };
+  const blob = await kit.makeLicense({ card, photo: img, frame: draft.frame, frameImage: frameImg, font: fontName, fit });
+  if (blob.type !== 'image/webp') throw new Error('このブラウザーは webp を作れません (Chrome・Edge・Firefox で開いてください)');
+  return { blob, card };
+}
+const toB64 = (blob) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(blob); });
+async function fileImage(input) {
+  const f = input.files[0];
+  if (!f) return null;
+  return await createImageBitmap(f);
+}
+// 合鍵 (vk_) は読むだけなので、試しに開いたページからは登録できない
+function canWrite() {
+  if (!CONNECTED && cfg.key.startsWith('vk_')) throw new Error('合鍵では登録できません (Muse の接続で動かしたスペースから登録します)');
+}
+
+$('#lic-photo').addEventListener('change', async (e) => { photo = await fileImage(e.target); $('#lic-make').disabled = !photo; });
+$('#lic-make').addEventListener('click', async () => {
+  try {
+    made = await compose(photo, $('#lic-fit').value);
+    const pv = $('#lic-preview');
+    pv.src = URL.createObjectURL(made.blob); pv.classList.remove('hidden');
+    $('#lic-upload').disabled = false;
+  } catch (e) { toast(e.message); }
+});
+async function uploadCard(m) {
+  canWrite();
+  const r = await api('/profile/card', { method: 'POST', body: { image_base64: await toB64(m.blob), aka: m.card.aka, alt: m.card.alt, frame: draft.frame.frame } });
+  toast('許可証を登録しました');
+  await loadLicense();
+  return r;
+}
+$('#lic-upload').addEventListener('click', async (ev) => {
+  ev.target.disabled = true;
+  try { await uploadCard(made); } catch (e) { toast(e.message); ev.target.disabled = false; }
+});
+// 同期: 今の許可証の絵から窓の部分だけ切り出して、今の店名・職業・店主名で描き直す (新しい絵は要らない)
+$('#lic-sync').addEventListener('click', async (ev) => {
+  ev.target.disabled = true;
+  try {
+    const p = await api('/profile');
+    const cur = await loadImage(p.card.url);
+    const w = draft.frame.photo;
+    const cut = await createImageBitmap(cur, w.x, w.y, w.w, w.h);
+    await uploadCard(await compose(cut, 'cover'));
+  } catch (e) { toast(e.message); }
+  ev.target.disabled = false;
+});
+
+// アイコン: 真ん中を正方形に切り抜いて 200×200
+let iconBlob = null;
+$('#icon-photo').addEventListener('change', async (e) => {
+  const img = await fileImage(e.target);
+  if (!img) return;
+  const cv = $('#icon-canvas'), ctx = cv.getContext('2d');
+  const s = Math.min(img.width, img.height);
+  ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 200, 200);
+  cv.classList.remove('hidden');
+  iconBlob = await new Promise((ok) => cv.toBlob(ok, 'image/webp', 0.85));
+  $('#icon-upload').disabled = !iconBlob || iconBlob.type !== 'image/webp';
+  if (iconBlob?.type !== 'image/webp') toast('このブラウザーは webp を作れません');
+});
+$('#icon-upload').addEventListener('click', async (ev) => {
+  ev.target.disabled = true;
+  try {
+    canWrite();
+    await api('/profile/icon', { method: 'POST', body: { image_base64: await toB64(iconBlob) } });
+    toast('アイコンを登録しました');
+    await loadLicense();
+  } catch (e) { toast(e.message); ev.target.disabled = false; }
+});
+
+// ---- 設定 ----
+const dlg = $('#settings');
+$('#open-settings').addEventListener('click', () => { $('#set-server').value = cfg.server; $('#set-key').value = cfg.key; dlg.showModal(); });
+$('#set-close').addEventListener('click', () => dlg.close());
+$('#set-save').addEventListener('click', () => {
+  cfg.server = $('#set-server').value.trim() || cfg.server;
+  cfg.key = $('#set-key').value.trim();
+  store.set('server', cfg.server); store.set('key', cfg.key);
+  dlg.close(); show('room');
+});
+
+show('room');
+</script>
+</body>
+</html>

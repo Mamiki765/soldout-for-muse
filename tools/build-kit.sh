@@ -15,12 +15,12 @@ trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/soldout-kit/fonts" "$WORK/soldout-kit/frames" "$OUT/frames"
 curl -fsSL -o "$WORK/soldout-kit/fonts/ShipporiMinchoB1-ExtraBold.ttf" "$FONT_BASE/ShipporiMinchoB1-ExtraBold.ttf"
 curl -fsSL -o "$WORK/soldout-kit/fonts/OFL-ShipporiMinchoB1.txt" "$FONT_BASE/OFL.txt"
-cp kit/README.md kit/make_license.py kit/license.js "$WORK/soldout-kit/"
+cp kit/README.md kit/UI-GUIDE.md kit/space-sample.html kit/make_license.py kit/license.js "$WORK/soldout-kit/"
 cp kit/frames/* "$WORK/soldout-kit/frames/"
 (cd "$WORK" && zip -qr "soldout-kit-$VERSION.zip" soldout-kit)
 
 # 配る場所: zip と、ばらの枠・スクリプト・フォント (スペースのブラウザから直接読めるように)
 cp "$WORK/soldout-kit-$VERSION.zip" "$OUT/"
 cp kit/frames/* "$OUT/frames/"
-cp kit/README.md kit/make_license.py kit/license.js "$WORK/soldout-kit/fonts/"* "$OUT/"
+cp kit/README.md kit/UI-GUIDE.md kit/make_license.py kit/license.js "$WORK/soldout-kit/fonts/"* "$OUT/"   # 見本の HTML は zip の中だけ (assets から HTML は配らない)
 ls -la "$OUT" "$OUT/frames"

@@ -11,6 +11,8 @@
 
 | ファイル | 中身 |
 |---|---|
+| `space-sample.html` | お店のスペースの見本 (HTML 1枚。店長室・街・市場・募集・出来事・許可証フォーム)。**まずこれを写して直してください** |
+| `UI-GUIDE.md` | スペースの作法 (変えないでほしい形・自由な飾り・通信の作法) |
 | `license.js` | ブラウザ用の許可証メーカー (canvas。webp の Blob を返す) |
 | `make_license.py` | Python 用の許可証メーカー (Pillow) |
 | `frames/frame-license-03.webp` / `.json` | 許可証の枠 (2293×1482) と、各欄の座標 |
