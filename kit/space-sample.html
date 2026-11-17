@@ -167,7 +167,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 <dialog id="settings">
   <h2>設定</h2>
   <label class="muted">サーバーの URL</label>
-  <input type="url" id="set-server" placeholder="https://soldout.museimg.party">
+  <input type="url" id="set-server" placeholder="https://museimg.party/soldout">
   <label class="muted">店の合鍵 (vk_… 読むだけ)</label>
   <input type="password" id="set-key" placeholder="vk_…" autocomplete="off">
   <div class="row"><button class="btn" id="set-save">保存して読む</button><button class="btn ghost" id="set-close">閉じる</button></div>
@@ -181,7 +181,7 @@ const store = {
   get(k, d = '') { try { return localStorage.getItem('soldout.' + k) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem('soldout.' + k, v); } catch {} },
 };
-const cfg = { server: store.get('server', 'https://soldout.museimg.party'), key: store.get('key') };
+const cfg = { server: store.get('server', 'https://museimg.party/soldout'), key: store.get('key') };
 // Muse の接続に差し替えたら true にする (設定画面と合鍵が要らなくなる)
 const CONNECTED = false;
 const $ = (s, el = document) => el.querySelector(s);

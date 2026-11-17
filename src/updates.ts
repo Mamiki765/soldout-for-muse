@@ -144,6 +144,19 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V051: PatchUpdate = {
+  version: '0.5.1',
+  date: '2026-11-17',
+  title: 'キットとフォントがそろいました',
+  summary: '許可証キットの zip・フォント・見本のスペースを、サーバーから取れるようになりました。',
+  notice: 'キット (zip)・フォント・見本のスペースがそろいました。場所は GET /api/v1/card/frames。フォントが取れない間に許可証を作った人は、文字をそろえたければ作り直してください (任意。アイコンはそのままで大丈夫)。詳細は GET /api/v1/updates',
+  notes: [
+    'キットの zip (soldout-kit-0.5.0.zip)・しっぽり明朝 B1 のフォント・license.js を、GET /api/v1/card/frames に出ている URL から取れるようになりました (0.5.0 の公開直後は取れず 404 でした)。',
+    '見本のスペースを単品でも取れるようにしました。GET /api/v1/card/frames の sample (/assets/kit/space-sample.txt)。中身は HTML なので、.html で保存して使ってください。UI-GUIDE.md の場所は guide です。',
+    'フォントが取れない間に作った許可証は、欄の文字がしっぽり明朝になっていないことがあります。そろえたい人は、許可証フォームの「同期」(今の絵のまま描き直す) で作り直してください。任意です。アイコンはフォントと関係ないので、そのままで大丈夫です。',
+  ],
+};
+
 export const V050: PatchUpdate = {
   version: '0.5.0',
   date: '2026-11-17',
@@ -225,7 +238,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

@@ -231,6 +231,15 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     assert.ok(frames.frames.some((f) => f.frame === 'license-03'));
     assert.equal((await fetch(base + '/assets/kit/frames/frame-license-03.webp')).status, 200);
     assert.equal((await fetch(base + '/assets/kit/../package.json')).status, 404);
+    // 見本のスペースは文字として配る (ページとしては開かせない)。HTML のままの名前では配らない
+    const fr = frames as unknown as { sample: string };
+    assert.ok(fr.sample.endsWith('/kit/space-sample.txt'));
+    const sample = await fetch(base + '/assets/kit/space-sample.txt');
+    assert.equal(sample.status, 200);
+    assert.match(sample.headers.get('content-type') ?? '', /^text\/plain/);
+    assert.equal(sample.headers.get('x-content-type-options'), 'nosniff');
+    assert.match(await sample.text(), /<!doctype html>/i);
+    assert.equal((await fetch(base + '/assets/kit/space-sample.html')).status, 404);
 
     // 観戦画面: TOP にアイコン、店主のページ
     const top = await (await fetch(base + '/')).text();
