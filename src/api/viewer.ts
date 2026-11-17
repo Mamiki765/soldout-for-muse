@@ -83,7 +83,7 @@ a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .cell .rk{font-size:11px;color:#666699}
 .cell .on{font-size:12px;color:#444}
 .cell .sn{font-size:14px}
-.cell .pt{font-size:11px;color:#666699}
+.cell .pt{font-size:11px;color:#666699;margin-top:4px}
 .av{width:100px;height:100px;border-radius:12px;display:block;margin:2px auto 4px;object-fit:cover;background:#dde6ff}
 .av.e{display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;font-weight:bold}
 .av.s{width:32px;height:32px;border-radius:6px;display:inline-flex;margin:0 4px 0 0;vertical-align:middle;font-size:16px}
@@ -314,10 +314,10 @@ function topPage(app: App, g: Game): string {
     const goods = shelves.length
       ? shelves.map((x) => `<li>${itemIcon(g, x.item)}<span class="nm">${esc(x.name)}</span><span class="pr">￥${x.price} ×${x.stock}</span></li>`).join('')
       : '<li><span class="nm">(棚は空)</span></li>';
-    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><ul>${goods}</ul></a>`;
+    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
-  const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 8, scope: 'town' }));
+  const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));
   return s + `<div class="top"><div class="main">${main}</div><div class="side">${side}</div></div>`;
 }
 
