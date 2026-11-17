@@ -412,7 +412,7 @@ export class OwnerHub {
       som: ow.som,
       owner_name: ow.display_name,
       shop: dt?.shopname ?? null,
-      rank: dt ? g.shopIndex(dt.id) + 1 : null,
+      // 順位は刻々と変わるので rev の差分には入れない (順位は GET /town で)
       icon: ow.icon_file,
       card: ow.card_file,
       rev: ow.rev,

@@ -723,7 +723,7 @@ export class App {
             return { status: 200, text: list.map((o) => `${o.som} ${o.owner_name} ${o.shop ?? '(閉店中)'}`).join('\n') + '\n', json: { owners: list } };
           }
           const d = this.owners.ownersSince(g, clampNum(q.get('since_rev'), 0, Number.MAX_SAFE_INTEGER, 0));
-          return { status: 200, text: d.owners.map((o) => `${o.som} ${o.owner_name} ${o.shop ?? '(閉店中)'} ${o.rank ?? '-'}位 icon:${o.icon ?? '-'} card:${o.card ?? '-'}`).join('\n') + `\nrev ${d.rev}\n`, json: d };
+          return { status: 200, text: d.owners.map((o) => `${o.som} ${o.owner_name} ${o.shop ?? '(閉店中)'} icon:${o.icon ?? '-'} card:${o.card ?? '-'}`).join('\n') + `\nrev ${d.rev}\n`, json: d };
         }
         case '/assets': {
           const d = this.owners.assetsDiff(clampNum(q.get('since'), 0, Number.MAX_SAFE_INTEGER, 0));
