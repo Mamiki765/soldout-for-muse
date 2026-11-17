@@ -229,13 +229,19 @@ export class OwnerHub {
 
   private async save(som: string, kind: 'icon' | 'card', data: Buffer, w: number, h: number, now: number): Promise<string> {
     if (!this.o.assetsDir) throw new GameError('画像の保存先が設定されていないので、今は登録できません');
+    // 番号は await の前に取って記録まで済ませる (同じ店主の登録が重なっても同じ名前にならない)
     const no = this.store.nextAssetNo(som);
     const file = `${som}_${String(no).padStart(6, '0')}.webp`;
-    const path = join(this.o.assetsDir, file);
-    // 途中まで書いたファイルが配られないよう、一時ファイルに書いてから名前を変える
-    await writeFile(path + '.tmp', data);
-    await rename(path + '.tmp', path);
     this.store.addAsset({ file, som, kind, w, h, bytes: data.length, now });
+    const path = join(this.o.assetsDir, file);
+    try {
+      // 途中まで書いたファイルが配られないよう、一時ファイルに書いてから名前を変える
+      await writeFile(path + '.tmp', data);
+      await rename(path + '.tmp', path);
+    } catch (e) {
+      this.store.dropAsset(file);
+      throw e;
+    }
     return file;
   }
 
@@ -266,7 +272,9 @@ export class OwnerHub {
     this.checkQuota(ow.som, 'icon', now);
     const info = this.inspect(this.decode(body.image_base64, ICON_MAX_BYTES), ICON_SIZE, ICON_SIZE, 'アイコン');
     const file = await this.save(ow.som, 'icon', info.data, ICON_SIZE, ICON_SIZE, now);
-    if (ow.icon_file) this.store.markAssetReplaced(ow.icon_file, now);
+    // 書いている間にほかの登録が先に済んでいることがあるので、今の持ち主の記録を読み直してから差し替える
+    const cur = this.store.ownerBySom(ow.som)!;
+    if (cur.icon_file) this.store.markAssetReplaced(cur.icon_file, now);
     this.store.updateOwner(ow.som, { icon_file: file }, now);
     return file;
   }
@@ -287,7 +295,8 @@ export class OwnerHub {
       const [w, h] = fr.size;
       const info = this.inspect(this.decode(body.image_base64, CARD_MAX_BYTES), w, h, '許可証');
       file = await this.save(ow.som, 'card', info.data, w, h, now);
-      if (ow.card_file) this.store.markAssetReplaced(ow.card_file, now);
+      const cur = this.store.ownerBySom(ow.som)!;
+      if (cur.card_file) this.store.markAssetReplaced(cur.card_file, now);
       drawn = { owner_name: values.owner_name, shopname: values.shopname, job: values.job, at: now };
     } else if (!ow.card_file) {
       throw new GameError('はじめは画像 (image_base64) も一緒に送ってください');
@@ -411,7 +420,7 @@ export class OwnerHub {
   assetsDiff(since: number) {
     const added = this.store.assetsAddedSince(since);
     const removed = since ? this.store.assetsRemovedSince(since) : [];
-    const touched = new Set([...added.map((a) => a.som)]);
+    const touched = new Set([...added.map((a) => a.som), ...(since ? this.store.assetsReplacedSince(since) : [])]);
     for (const f of removed) touched.add(f.slice(0, f.indexOf('_')));
     const current: Record<string, { icon: string | null; card: string | null }> = {};
     const list = since ? [...touched].map((s) => this.store.ownerBySom(s)).filter((x): x is Owner => !!x) : this.store.ownersSince(0);

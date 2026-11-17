@@ -164,6 +164,27 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     const d2 = await get('/api/v1/assets?since=' + d1.cursor, 'pt-lapis');
     assert.ok(d2.removed.includes(icon1));
 
+    // 外したらすぐ差分に出る (ファイルを消すのは1日後でも、店主の今の画像は null になる)
+    const before = await get('/api/v1/assets?since=0', 'pt-lapis');
+    r = await fetch(base + '/api/v1/profile/icon', { method: 'DELETE', headers: as('pt-mute') });
+    assert.equal(r.status, 200);
+    const afterDel = await get('/api/v1/assets?since=' + before.cursor, 'pt-lapis');
+    assert.ok(afterDel.cursor > before.cursor);
+    assert.deepEqual(afterDel.current.som0001, { icon: null, card: card.file });
+    r = await post('/api/v1/profile/icon', 'pt-mute', { image_base64: webp(200, 200) });
+    const icon3 = ((await r.json()) as { file: string }).file;
+
+    // 同じ店主の登録が重なっても、別の名前になり、前のものは使い終わりの印が付く
+    const [c1, c2] = await Promise.all([0, 1].map(() => post('/api/v1/profile/icon', 'pt-mute', { image_base64: webp(200, 200) })));
+    assert.equal(c1.status, 201);
+    assert.equal(c2.status, 201);
+    const f1 = ((await c1.json()) as { file: string }).file;
+    const f2 = ((await c2.json()) as { file: string }).file;
+    assert.notEqual(f1, f2);
+    const live = store.recentAssets(50).filter((a) => a.som === 'som0001' && a.kind === 'icon' && a.replaced_at === null).map((a) => a.file);
+    assert.equal(live.length, 1, '使っているアイコンは1つだけ: ' + live.join(','));
+    assert.ok(![icon3].includes(live[0]));
+
     // 1日5回まで
     for (let i = 0; i < 4; i++) await post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) });
     r = await post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) });
@@ -196,7 +217,7 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
 
     // 観戦画面: TOP にアイコン、店主のページ
     const top = await (await fetch(base + '/')).text();
-    assert.ok(top.includes(icon2), 'TOP に今のアイコン');
+    assert.ok(top.includes(store.ownerBySom('som0001')!.icon_file!), 'TOP に今のアイコン');
     const page = await fetch(base + '/view/owner/som0001');
     assert.equal(page.status, 200);
     assert.match(await page.text(), /som0001/);

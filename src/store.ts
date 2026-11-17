@@ -132,10 +132,11 @@ export class Store {
       CREATE TABLE IF NOT EXISTS assets (
         seq INTEGER PRIMARY KEY, file TEXT NOT NULL UNIQUE, som TEXT NOT NULL, kind TEXT NOT NULL,
         w INTEGER NOT NULL, h INTEGER NOT NULL, bytes INTEGER NOT NULL, created_at INTEGER NOT NULL,
-        replaced_at INTEGER, removed_at INTEGER, removed_seq INTEGER
+        replaced_at INTEGER, replaced_seq INTEGER, removed_at INTEGER, removed_seq INTEGER
       );
       CREATE INDEX IF NOT EXISTS assets_som ON assets(som);
       CREATE INDEX IF NOT EXISTS assets_removed_seq ON assets(removed_seq);
+      CREATE INDEX IF NOT EXISTS assets_replaced_seq ON assets(replaced_seq);
     `);
   }
 
@@ -413,15 +414,29 @@ export class Store {
     return n;
   }
 
+  /** 名前を先に取っておく (同じ店主の登録が重なっても、別のファイル名になる) */
   addAsset(a: { file: string; som: string; kind: 'icon' | 'card'; w: number; h: number; bytes: number; now: number }): number {
     const seq = this.nextAssetSeq();
     this.db.prepare('INSERT INTO assets(seq,file,som,kind,w,h,bytes,created_at) VALUES(?,?,?,?,?,?,?,?)').run(seq, a.file, a.som, a.kind, a.w, a.h, a.bytes, a.now);
     return seq;
   }
 
+  /** 書き込みに失敗した予約を取り消す (まだ誰にも配っていない) */
+  dropAsset(file: string): void {
+    this.db.prepare('DELETE FROM assets WHERE file = ?').run(file);
+  }
+
   /** 使い終わった印を付ける (すぐには消さない。消すのは sweepAssets) */
   markAssetReplaced(file: string, now: number): void {
-    this.db.prepare('UPDATE assets SET replaced_at = ? WHERE file = ? AND replaced_at IS NULL').run(now, file);
+    // 差分のカーソルも進める (外した・差し替えた時点で、スペースは店主の今の画像を読み直す。ファイルを消すのは1日後)
+    if (this.db.prepare('SELECT 1 FROM assets WHERE file = ? AND replaced_at IS NULL').get(file)) {
+      this.db.prepare('UPDATE assets SET replaced_at = ?, replaced_seq = ? WHERE file = ?').run(now, this.nextAssetSeq(), file);
+    }
+  }
+
+  /** since の後に「使い終わった」印が付いた画像の持ち主 */
+  assetsReplacedSince(since: number): string[] {
+    return (this.db.prepare('SELECT DISTINCT som FROM assets WHERE replaced_seq > ?').all(since) as { som: string }[]).map((r) => r.som);
   }
 
   /** 差し替えから keep 秒たったもの (と運営が下げたもの) を消した扱いにして、消すファイル名を返す */
