@@ -29,6 +29,44 @@ export interface Suggestion {
 export const SUGGESTION_STATUS = ['open', 'seen', 'accepted', 'done', 'rejected'] as const;
 export const SUGGESTION_CATEGORY = ['feature', 'bug', 'balance', 'other'] as const;
 
+/** 店主 (人ごと)。som は表向きの番号で、閉店・建て直しでも変わらない */
+export interface Owner {
+  som: string;
+  num: number;
+  party_owner_id: string | null;
+  /** 今の店 (閉店中は null) */
+  shop_id: number | null;
+  display_name: string;
+  /** party = Party の名前を写す / local = SOLD OUT で決める (Party を通さない店) */
+  name_source: string;
+  icon_file: string | null;
+  card_file: string | null;
+  /** Muse が書いた分 (通り名・枠・alt) と、描いたときの値 (drawn) */
+  card_json: string | null;
+  rev: number;
+  /** som を渡した時刻 = 許可年月日 */
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StoredAsset {
+  seq: number;
+  file: string;
+  som: string;
+  kind: 'icon' | 'card';
+  w: number;
+  h: number;
+  bytes: number;
+  created_at: number;
+  replaced_at: number | null;
+  removed_at: number | null;
+}
+
+/** 'som0001'。1万人目からは自然に5桁 */
+export function somId(num: number): string {
+  return 'som' + String(num).padStart(4, '0');
+}
+
 /** 掲示板・井戸端の書き込み */
 export interface BoardPost {
   id: number;
@@ -83,6 +121,21 @@ export class Store {
       CREATE TABLE IF NOT EXISTS view_links (
         key_hash TEXT PRIMARY KEY, shop_id INTEGER NOT NULL, expires_at INTEGER NOT NULL, kind TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS owners (
+        som TEXT PRIMARY KEY, num INTEGER NOT NULL UNIQUE, party_owner_id TEXT UNIQUE, shop_id INTEGER,
+        display_name TEXT NOT NULL DEFAULT '', name_source TEXT NOT NULL DEFAULT 'local',
+        icon_file TEXT, card_file TEXT, card_json TEXT, rev INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS owners_shop ON owners(shop_id);
+      CREATE INDEX IF NOT EXISTS owners_rev ON owners(rev);
+      CREATE TABLE IF NOT EXISTS assets (
+        seq INTEGER PRIMARY KEY, file TEXT NOT NULL UNIQUE, som TEXT NOT NULL, kind TEXT NOT NULL,
+        w INTEGER NOT NULL, h INTEGER NOT NULL, bytes INTEGER NOT NULL, created_at INTEGER NOT NULL,
+        replaced_at INTEGER, removed_at INTEGER, removed_seq INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS assets_som ON assets(som);
+      CREATE INDEX IF NOT EXISTS assets_removed_seq ON assets(removed_seq);
     `);
   }
 
@@ -272,6 +325,17 @@ export class Store {
     this.db.prepare('INSERT INTO party_links(owner_id,shop_id,created_at) VALUES(?,?,?)').run(ownerId, shopId, now);
   }
 
+  partyOwnerOfShop(shopId: number): string | undefined {
+    const row = this.db.prepare('SELECT owner_id FROM party_links WHERE shop_id = ?').get(shopId) as { owner_id: string } | undefined;
+    return row?.owner_id;
+  }
+
+  /** 店の固定合鍵 (vk_) を確かめる。期限のある見学用リンクは使わない */
+  shopIdByFixedViewKey(key: string): number | undefined {
+    const row = this.db.prepare("SELECT shop_id FROM view_links WHERE key_hash = ? AND kind = 'fixed'").get(sha256(key)) as { shop_id: number } | undefined;
+    return row?.shop_id;
+  }
+
   /** Muse Party でつながった店か */
   isPartyShop(shopId: number): boolean {
     return !!this.db.prepare('SELECT 1 FROM party_links WHERE shop_id = ? LIMIT 1').get(shopId);
@@ -279,6 +343,127 @@ export class Store {
 
   unlinkPartyShop(shopId: number): void {
     this.db.prepare('DELETE FROM party_links WHERE shop_id = ?').run(shopId);
+  }
+
+  // ---- 店主 (som ID・店主名・アイコン・許可証)。人ごとに1行で、閉店・建て直しでも残る ----
+
+  /** 店主の公開情報が変わるたびに進める通し番号 (GET /owners?since_rev= のため) */
+  private nextRev(): number {
+    const n = Number(this.getSetting('owners_rev') ?? 0) + 1;
+    this.setSetting('owners_rev', String(n));
+    return n;
+  }
+
+  ownersRev(): number {
+    return Number(this.getSetting('owners_rev') ?? 0);
+  }
+
+  /** 新しい som を渡す。番号は通し (欠番も再利用しない) */
+  createOwner(o: { partyOwnerId?: string; shopId: number | null; name: string; nameSource: 'party' | 'local'; now: number }): Owner {
+    const row = this.db.prepare('SELECT MAX(num) AS m FROM owners').get() as { m: number | null };
+    const num = (row.m ?? 0) + 1;
+    const som = somId(num);
+    this.db
+      .prepare('INSERT INTO owners(som,num,party_owner_id,shop_id,display_name,name_source,rev,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
+      .run(som, num, o.partyOwnerId ?? null, o.shopId, o.name, o.nameSource, this.nextRev(), o.now, o.now);
+    return this.ownerBySom(som)!;
+  }
+
+  ownerBySom(som: string): Owner | undefined {
+    return this.db.prepare('SELECT * FROM owners WHERE som = ?').get(som) as Owner | undefined;
+  }
+
+  ownerByShop(shopId: number): Owner | undefined {
+    return this.db.prepare('SELECT * FROM owners WHERE shop_id = ?').get(shopId) as Owner | undefined;
+  }
+
+  ownerByParty(ownerId: string): Owner | undefined {
+    return this.db.prepare('SELECT * FROM owners WHERE party_owner_id = ?').get(ownerId) as Owner | undefined;
+  }
+
+  ownersByName(name: string): Owner[] {
+    return this.db.prepare('SELECT * FROM owners WHERE display_name = ? ORDER BY num').all(name) as unknown as Owner[];
+  }
+
+  /** 公開情報が since より後に変わった店主 (since=0 なら全員) */
+  ownersSince(since: number): Owner[] {
+    return this.db.prepare('SELECT * FROM owners WHERE rev > ? ORDER BY num').all(since) as unknown as Owner[];
+  }
+
+  /** 店主の欄を書き換えて rev を進める */
+  updateOwner(som: string, f: Partial<Pick<Owner, 'shop_id' | 'display_name' | 'name_source' | 'icon_file' | 'card_file' | 'card_json'>>, now: number): void {
+    const keys = Object.keys(f) as (keyof typeof f)[];
+    if (!keys.length) return;
+    const sets = keys.map((k) => `${k} = ?`).join(', ');
+    this.db.prepare(`UPDATE owners SET ${sets}, rev = ?, updated_at = ? WHERE som = ?`).run(...keys.map((k) => f[k] ?? null), this.nextRev(), now, som);
+  }
+
+  // ---- 画像 (アイコン・許可証)。ファイル名は不変。差し替えた古いものは後で消す ----
+
+  /** その店主の次の画像の番号 (som ごとに 1 から。消した番号も使い回さない) */
+  nextAssetNo(som: string): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS c FROM assets WHERE som = ?').get(som) as { c: number };
+    return row.c + 1;
+  }
+
+  /** 追加と削除で共通の通し番号 (差分のカーソル)。どちらも必ずこれまでより大きい番号になる */
+  private nextAssetSeq(): number {
+    const n = this.assetsCursor() + 1;
+    this.setSetting('assets_seq', String(n));
+    return n;
+  }
+
+  addAsset(a: { file: string; som: string; kind: 'icon' | 'card'; w: number; h: number; bytes: number; now: number }): number {
+    const seq = this.nextAssetSeq();
+    this.db.prepare('INSERT INTO assets(seq,file,som,kind,w,h,bytes,created_at) VALUES(?,?,?,?,?,?,?,?)').run(seq, a.file, a.som, a.kind, a.w, a.h, a.bytes, a.now);
+    return seq;
+  }
+
+  /** 使い終わった印を付ける (すぐには消さない。消すのは sweepAssets) */
+  markAssetReplaced(file: string, now: number): void {
+    this.db.prepare('UPDATE assets SET replaced_at = ? WHERE file = ? AND replaced_at IS NULL').run(now, file);
+  }
+
+  /** 差し替えから keep 秒たったもの (と運営が下げたもの) を消した扱いにして、消すファイル名を返す */
+  sweepAssets(now: number, keep: number): string[] {
+    const rows = this.db.prepare('SELECT file FROM assets WHERE removed_at IS NULL AND replaced_at IS NOT NULL AND replaced_at <= ?').all(now - keep) as { file: string }[];
+    for (const r of rows) this.removeAsset(r.file, now);
+    return rows.map((r) => r.file);
+  }
+
+  /** 消した扱いにする。差分一覧に「消えた」と出すため、そのときの通し番号を removed_seq に入れる */
+  removeAsset(file: string, now: number): void {
+    const row = this.assetByFile(file);
+    if (!row || row.removed_at !== null) return;
+    this.db.prepare('UPDATE assets SET removed_at = ?, removed_seq = ? WHERE file = ?').run(now, this.nextAssetSeq(), file);
+  }
+
+  /** 差分のカーソル (追加・削除のどちらでも進む) */
+  assetsCursor(): number {
+    return Number(this.getSetting('assets_seq') ?? 0);
+  }
+
+  assetsAddedSince(since: number): StoredAsset[] {
+    return this.db.prepare('SELECT * FROM assets WHERE seq > ? AND removed_at IS NULL ORDER BY seq').all(since) as unknown as StoredAsset[];
+  }
+
+  assetsRemovedSince(since: number): string[] {
+    return (this.db.prepare('SELECT file FROM assets WHERE removed_seq > ? AND seq <= ? ORDER BY removed_seq').all(since, since) as { file: string }[]).map((r) => r.file);
+  }
+
+  assetByFile(file: string): StoredAsset | undefined {
+    return this.db.prepare('SELECT * FROM assets WHERE file = ?').get(file) as StoredAsset | undefined;
+  }
+
+  /** 運営向け: 最近の画像 */
+  recentAssets(limit: number): StoredAsset[] {
+    return this.db.prepare('SELECT * FROM assets ORDER BY seq DESC LIMIT ?').all(limit) as unknown as StoredAsset[];
+  }
+
+  /** その店主が今日 (since 以降) 上げた数 */
+  countAssetsSince(som: string, kind: string, since: number): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS c FROM assets WHERE som = ? AND kind = ? AND created_at >= ?').get(som, kind, since) as { c: number };
+    return row.c;
   }
 
   // ---- 見学用リンク (人間が店長室を見るための鍵) ----

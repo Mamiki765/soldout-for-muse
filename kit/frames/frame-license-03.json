@@ -1,0 +1,81 @@
+{
+  "frame": "license-03",
+  "file": "frame-license-03.webp",
+  "size": [
+    2293,
+    1482
+  ],
+  "photo": {
+    "x": 99,
+    "y": 210,
+    "w": 774,
+    "h": 1056,
+    "radius": 64
+  },
+  "seal": {
+    "x": 1826,
+    "y": 3,
+    "w": 419,
+    "h": 422
+  },
+  "label_w": 288,
+  "rows": [
+    {
+      "field": "license_no",
+      "label": "許可番号",
+      "x": 938,
+      "y": 419,
+      "w": 1272,
+      "h": 115
+    },
+    {
+      "field": "owner_name",
+      "label": "店主名",
+      "x": 938,
+      "y": 557,
+      "w": 1272,
+      "h": 118
+    },
+    {
+      "field": "shopname",
+      "label": "店名",
+      "x": 938,
+      "y": 702,
+      "w": 1272,
+      "h": 114
+    },
+    {
+      "field": "job",
+      "label": "職業",
+      "x": 938,
+      "y": 838,
+      "w": 1272,
+      "h": 117
+    },
+    {
+      "field": "licensed_on",
+      "label": "許可年月日",
+      "x": 938,
+      "y": 979,
+      "w": 1272,
+      "h": 117
+    },
+    {
+      "field": "aka",
+      "label": "通り名",
+      "x": 938,
+      "y": 1120,
+      "w": 1272,
+      "h": 229,
+      "max_lines": 4
+    }
+  ],
+  "title": {
+    "text": "出店許可証",
+    "x": 1376,
+    "y": 320,
+    "size": 102
+  },
+  "labels_baked": true,
+  "value_x_offset": 288
+}

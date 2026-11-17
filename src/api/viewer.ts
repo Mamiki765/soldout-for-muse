@@ -68,6 +68,22 @@ small{font-size:11px}
 .lb{color:#666699;font-size:12px}
 .no{color:#666699;display:inline-block;min-width:2em}
 .nw{white-space:nowrap}
+.top{display:flex;gap:12px;align-items:flex-start}
+.top .main{flex:1;min-width:0}
+.top .side{width:300px;position:sticky;top:8px}
+@media (max-width:960px){.top{display:block}.top .side{width:auto;position:static}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:6px 0}
+.cell{background:#eef4ff;border:1px solid #ccddff;padding:6px 4px;text-align:center;overflow-wrap:anywhere;color:inherit}
+a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
+.cell .rk{font-size:11px;color:#666699}
+.cell .on{font-weight:bold;font-size:13px}
+.cell .sn{font-size:12px}
+.cell .pt{font-size:11px;color:#666699}
+.av{width:100px;height:100px;border-radius:12px;display:block;margin:2px auto 4px;object-fit:cover;background:#dde6ff}
+.av.e{display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;font-weight:bold}
+.av.s{width:32px;height:32px;border-radius:6px;display:inline-flex;margin:0 4px 0 0;vertical-align:middle;font-size:16px}
+.av.l{width:160px;height:160px;font-size:72px;margin:0}
+.lic{max-width:100%;height:auto;border-radius:8px;display:block;margin:6px 0}
 `;
 
 function page(title: string, menu: string, body: string): string {
@@ -91,6 +107,15 @@ function itemIcon(g: Game, no: number): string {
   if (!no) return '';
   const it = g.items[no];
   return `<img class="i" src="/images/item-no-${no}.png" alt="" onerror="this.src='/images/item-type${it.type}.png'">`;
+}
+
+/** 店主のアイコン。未登録なら som から決まる色と頭文字のエンブレム (画像を使わない) */
+function avatar(app: App, ow: { som: string; display_name: string; icon_file: string | null } | undefined, fallback: string, cls = ''): string {
+  if (ow?.icon_file) return `<img class="av ${cls}" src="${esc(app.owners.url(ow.icon_file)!)}" width="200" height="200" alt="" loading="lazy">`;
+  const seed = sha256(ow?.som ?? fallback);
+  const hue = parseInt(seed.slice(0, 4), 16) % 360;
+  const ch = [...(ow?.display_name || fallback)][0] ?? '?';
+  return `<span class="av e ${cls}" style="background:hsl(${hue} 45% 55%)">${esc(ch)}</span>`;
 }
 
 /** 原作 GetRankMessage: 人気の棒グラフ */
@@ -163,17 +188,22 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
       title = 'トップ';
       body = topPage(app, g);
       break;
+    case '/view/owner': {
+      title = '店主';
+      body = 'som を指定してください';
+      break;
+    }
     case '/updates':
       title = '更新履歴';
       body = updatesPage();
       break;
     case '/view/ranking':
       title = 'ランキング';
-      body = rankingPage(g);
+      body = rankingPage(app, g);
       break;
     case '/view/shops':
       title = '他店';
-      body = shopsPage(g);
+      body = shopsPage(app, g);
       break;
     case '/view/market':
       title = '市場';
@@ -214,8 +244,13 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
       body = ownerPage(app, g, dt);
       break;
     }
-    default:
-      return { status: 404, headers, html: page('なし', menu, 'ページがありません') };
+    default: {
+      const m = /^\/view\/owner\/(som\d{4,})$/.exec(path);
+      const b = m ? ownerPublicPage(app, g, m[1]) : undefined;
+      if (b === undefined) return { status: 404, headers, html: page('なし', menu, 'ページがありません') };
+      title = '店主';
+      body = b;
+    }
   }
   return { status: 200, headers, html: page(title, menu, `${updateNotice(app.basePath)}<div class="wrap">${body}</div>`) };
 }
@@ -260,34 +295,71 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
   app.store.setSetting('viewer_cookie', sha256('so:' + key));
 }
 
+/** トップ: 全員をアイコン付きで順位順に並べる (箱庭のように。0.5.0)。出来事は PC では右の列に置いて、スクロールしても見える */
 function topPage(app: App, g: Game): string {
-  const top = g.shops.slice(0, 5);
   let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
-  s += `●ランキング (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店)<br><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td></tr>`;
-  top.forEach((dt, i) => (s += `<tr><td>${i + 1}</td><td>${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td></tr>`));
-  s += '</table><a href="/view/ranking">[もっと見る]</a><hr>●最近の出来事<br>';
-  s += logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));
+  let main = `●店主の顔ぶれ (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
+  g.shops.forEach((dt, i) => {
+    const ow = app.store.ownerByShop(dt.id);
+    const href = ow ? `/view/owner/${ow.som}` : '/view/shops';
+    main += `<a class="cell" href="${href}"><div class="rk">${i + 1}位</div>${avatar(app, ow, dt.shopname)}<div class="on">${esc(ow?.display_name ?? dt.name)}</div><div class="sn">${raw(dt.shopname)}</div><div class="pt">${dt.point}点</div></a>`;
+  });
+  main += '</div>';
+  const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 8, scope: 'town' }));
+  return s + `<div class="top"><div class="main">${main}</div><div class="side">${side}</div></div>`;
+}
+
+/** 店主ページ (誰でも見てよい情報だけ。店の中は店長室で) */
+function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
+  const ow = app.store.ownerBySom(som);
+  if (!ow) return undefined;
+  const d = app.owners.ownerDetail(g, ow);
+  let s = `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${avatar(app, ow, som, 'l')}<div><b style="font-size:20px">${esc(d.owner_name)}</b> <small>${esc(d.som)}</small><br>`;
+  s += d.shop
+    ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 RANK ${d.shop.rank} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
+    : '閉店中<br>';
+  s += `許可年月日 ${esc(d.licensed_on)}</div></div>`;
+  if (d.card) {
+    s += `<hr>●出店許可証${d.card.stale ? ' <small>(描いたあとに店主名・店名・職業が変わっています)</small>' : ''}<a href="${esc(d.card.url!)}"><img class="lic" src="${esc(d.card.url!)}" width="2293" height="1482" alt="${esc(d.card.alt)}" loading="lazy"></a>`;
+    if (d.card.aka.length) {
+      s += '通り名<ul>' + d.card.aka.map((a) => `<li>${esc(a.label && a.name ? `${a.where}　${a.label}：${a.name}` : [a.where, a.id, a.name].filter(Boolean).join('　'))}</li>`).join('') + '</ul>';
+    }
+  }
+  if (d.shop) {
+    s += '<hr>●陳列棚<br><table>';
+    const dt = g.shopById(d.shop.id)!;
+    for (let k = 0; k < dt.showcasecount; k++) {
+      const no = dt.showcase[k] ?? 0;
+      const stock = no ? dt.item[no - 1] : 0;
+      s += no && stock ? `<tr><td>棚${k + 1}</td><td>${itemIcon(g, no)}${esc(g.items[no].name)}</td><td>￥${dt.price[k]}</td><td>在庫${stock}</td></tr>` : `<tr><td>棚${k + 1}</td><td colspan="3">－</td></tr>`;
+    }
+    s += '</table>';
+  }
   return s;
 }
 
-function rankingPage(g: Game): string {
-  let s = '●ランキング<hr><table><tr><td>順位</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
+function rankingPage(app: App, g: Game): string {
+  let s = '●ランキング<hr><table><tr><td>順位</td><td>店主</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
   g.shops.forEach((dt, i) => {
     const sp = specialtyType(g, dt);
     const job = jobName(dt);
     const tag = (sp ? `<img class="s" src="/images/item-typesign${sp}.png" alt="${esc(CATALOG.itemTypes[sp])}専門店" title="${esc(CATALOG.itemTypes[sp])}専門店">` : '') + (job ? `【${esc(job)}】` : '');
-    s += `<tr><td>${i + 1}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
+    const ow = app.store.ownerByShop(dt.id);
+    const who = `${avatar(app, ow, dt.shopname, 's')}${ow ? `<a href="/view/owner/${ow.som}">${esc(ow.display_name)}</a>` : esc(dt.name)}`;
+    s += `<tr><td>${i + 1}</td><td class="nw">${who}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
   });
   s += '</table>';
   if (g.world.periodLog.length) s += '<hr>●前回の決算<br>' + g.world.periodLog.map((l) => raw(l.msg)).join('<br>');
   return s;
 }
 
-function shopsPage(g: Game): string {
+function shopsPage(app: App, g: Game): string {
   let s = '●他店<hr>';
   g.shops.forEach((dt, i) => {
-    s += `<table><tr><td>RANK ${i + 1}</td><td>${raw(dt.shopname)}</td><td>人気 ${rankBar(dt.rank)}</td><td>${raw(dt.comment)}</td></tr></table><table>`;
+    const ow = app.store.ownerByShop(dt.id);
+    const who = `${avatar(app, ow, dt.shopname, 's')}${ow ? `<a href="/view/owner/${ow.som}">${esc(ow.display_name)}</a>` : esc(dt.name)}`;
+    s += `<table><tr><td>RANK ${i + 1}</td><td class="nw">${who}</td><td>${raw(dt.shopname)}</td><td>人気 ${rankBar(dt.rank)}</td><td>${raw(dt.comment)}</td></tr></table><table>`;
     for (let k = 0; k < dt.showcasecount; k++) {
       const no = dt.showcase[k] ?? 0;
       const stock = no ? dt.item[no - 1] : 0;
@@ -334,7 +406,8 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
   s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
-  s += `<tr>${td('名前', esc(dt.name))}${td('店名', raw(dt.shopname))}</tr>`;
+  const ow = app.store.ownerByShop(dt.id);
+  s += `<tr>${td('店主', ow ? `${esc(ow.display_name)} <small>${ow.som}</small>` : esc(dt.name))}${td('店名', raw(dt.shopname))}</tr>`;
   s += `<tr>${td('RANK', String(g.shopIndex(dt.id) + 1))}${td('TOP', dt.rankingcount + '回')}</tr>`;
   s += `<tr>${td('人気', rankBar(dt.rank))}${td('資金/入金庫', `￥${dt.money}/￥${dt.moneystock}`)}</tr>`;
   s += `<tr>${td('今期売上', '￥' + dt.saletoday)}${td('前期売上', '￥' + dt.saleyesterday)}</tr>`;

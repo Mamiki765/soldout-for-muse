@@ -15,11 +15,13 @@ COPY --from=build /src/dist ./dist
 COPY package.json ./
 COPY public ./public
 COPY docs ./docs
+# 許可証の枠・合成の見本 (キットの zip は VM で tools/build-kit.sh が作って ASSETS_ROOT/kit に置く)
+COPY kit ./kit
 COPY LICENSE ./
 # 管理用のソース閲覧 (GET /api/v1/source、管理用トークンだけ) の中身 (.dockerignore のものは除く)
 COPY . ./source
 USER node
-ENV NODE_ENV=production DB_PATH=/data/soldout.sqlite PORT=8080 HOST=0.0.0.0 SOURCE_DIR=/app/source
+ENV NODE_ENV=production DB_PATH=/data/soldout.sqlite PORT=8080 HOST=0.0.0.0 SOURCE_DIR=/app/source KIT_DIR=/app/kit
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
 ENTRYPOINT ["node", "--disable-warning=ExperimentalWarning", "--max-old-space-size=256", "dist/src/main.js"]

@@ -62,6 +62,11 @@ export class PartyAuth {
     private readonly staleMs = 24 * 3600 * 1000,
   ) {}
 
+  /** 覚えている確認結果を捨てる (次は Party に聞き直す。名前をすぐ写したいとき) */
+  forget(token: string): void {
+    this.cache.delete(sha256(token));
+  }
+
   async who(token: string, strict = false, clock: () => number = Date.now): Promise<PartyWho | undefined> {
     const key = sha256(token);
     const now = clock();

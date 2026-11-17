@@ -26,6 +26,7 @@ import { dropViewSessions, renderViewer } from './viewer.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
+import { checkOwnerName, OwnerHub } from './owners.js';
 
 export interface AppOptions {
   store: Store;
@@ -61,6 +62,12 @@ export interface AppOptions {
    * Muse の金庫は登録したドメインにだけトークンを差し込むので、Party と同じドメインの下に置けるようにする。
    */
   basePath?: string;
+  /** アイコン・許可証の保存先 (ASSETS_ROOT)。無ければ画像の登録はできない */
+  assetsDir?: string;
+  /** 画像の公開URLの頭 (ASSETS_BASE_URL)。既定は publicUrl + '/assets' (このサーバーが自分で配る) */
+  assetsBaseUrl?: string;
+  /** 許可証の枠とキット (kit/) */
+  kitDir?: string;
 }
 
 interface Reply {
@@ -79,6 +86,14 @@ class HttpError extends Error {
     super(message);
   }
 }
+
+/** API と画像の CORS (スペースから直接読むため。cookie は使わない) */
+const CORS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+  'access-control-allow-headers': 'authorization, content-type, if-none-match, idempotency-key',
+  'access-control-expose-headers': 'etag, retry-after, x-unread-left',
+};
 
 /** Muse Party に確認できないときに待ってもらう秒数 */
 const PARTY_RETRY_SECONDS = 30;
@@ -116,10 +131,12 @@ export class App {
   readonly party: PartyAuth | undefined;
   readonly partyPublicUrl: string;
   readonly basePath: string;
+  readonly owners: OwnerHub;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number; cap: number }>();
   private bucketsSweptAt = 0;
+  private assetsSweptAt = 0;
 
   constructor(o: AppOptions) {
     this.store = o.store;
@@ -147,6 +164,13 @@ export class App {
     this.world = this.store.loadWorld(this.clock());
     // 点数 (point) は保存しないので、読み込んだら並べ直して計算しておく
     new Game(this.world, this.config, this.rng, this.clock()).sortShops();
+    this.owners = new OwnerHub(this.store, {
+      assetsDir: o.assetsDir,
+      assetsBaseUrl: (o.assetsBaseUrl ?? this.publicUrl + '/assets').replace(/\/+$/, ''),
+      kitDir: o.kitDir,
+    });
+    // 0.5.0 より前からある店に som を渡す (開店日の古い順)
+    this.owners.migrate(this.world, (id) => this.store.partyOwnerOfShop(id), this.clock());
   }
 
   /**
@@ -278,6 +302,7 @@ export class App {
   }
 
   private onShopClosed(shopId: number): void {
+    this.owners.onClosed(shopId, this.clock());
     this.store.deleteTokensOf(shopId);
     this.store.deleteViewKeysOf(shopId);
     this.store.unlinkPartyShop(shopId);
@@ -303,6 +328,15 @@ export class App {
       if (url.pathname.startsWith(this.basePath + '/')) url.pathname = url.pathname.slice(this.basePath.length);
     }
     const wantJson = url.searchParams.get('format') === 'json' || (req.headers.accept ?? '').startsWith('application/json');
+    // スペース (Muse が作るページ) から直接読めるように、API は CORS を開ける。cookie は使わないので * でよい
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/assets/')) {
+      for (const [k, val] of Object.entries(CORS)) res.setHeader(k, val);
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, { 'access-control-max-age': '86400' });
+        res.end();
+        return;
+      }
+    }
     try {
       reply = await this.route(req, url, wantJson);
     } catch (e) {
@@ -323,7 +357,12 @@ export class App {
     let body: string;
     let type: string;
     if (r.binary) {
-      const h = { 'content-type': r.binary.type, 'cache-control': 'public, max-age=86400', ...(r.headers ?? {}) };
+      const h: Record<string, string> = { 'content-type': r.binary.type, 'cache-control': 'public, max-age=86400', ...(r.headers ?? {}) };
+      if (r.status === 200 && req.method === 'GET' && r.headers?.etag && req.headers['if-none-match'] === r.headers.etag) {
+        res.writeHead(304, h);
+        res.end();
+        return;
+      }
       res.writeHead(r.status, h);
       res.end(r.binary.data);
       return;
@@ -367,7 +406,7 @@ export class App {
       stripped = true;
     }
     if (!h || /\s/.test(h)) return undefined;
-    if (!stripped && !/^(mct|mat|so|sa)_/.test(h)) return undefined;
+    if (!stripped && !/^(mct|mat|so|sa|vk)_/.test(h)) return undefined;
     return h;
   }
 
@@ -402,12 +441,26 @@ export class App {
     }
   }
 
-  /** strict: 管理 API 用。Party のトークンは、期限の切れた確認結果では通さない (監査 B01) */
+  /** strict: 管理 API 用。Party のトークンは、期限の切れた確認結果では通さない (監査 B01)。店の合鍵 (vk_) は読むだけなので断る */
   private async auth(req: IncomingMessage, strict = false): Promise<number> {
+    const a = await this.authInfo(req, strict);
+    if (a.readonly) throw new HttpError(403, '店の合鍵 (vk_) で使えるのは読むだけ (GET) です。書き込みは Muse のトークンで');
+    return a.shopId;
+  }
+
+  /** 誰の店か。店の固定合鍵 (vk_) なら readonly (スペースから読むため。0.5.0) */
+  private async authInfo(req: IncomingMessage, strict = false): Promise<{ shopId: number; readonly: boolean }> {
     const token = this.bearer(req);
     if (!token) throw new HttpError(401, 'Authorization: Bearer <トークン> が必要です (ヘッダーが届いていないか、形が違います。金庫のコネクタのホストが museimg.party で、置き場所が Authorization ヘッダーか確かめてください)');
     // 確かめに行く前に数える (Party に問い合わせが殺到しないように)
     this.rateLimit('t:' + sha256(token).slice(0, 16));
+    if (token.startsWith('vk_')) {
+      const id = this.store.shopIdByFixedViewKey(token);
+      if (id === undefined || !this.world.shops.some((s) => s.id === id)) {
+        throw new HttpError(401, '店の合鍵が正しくないか、作り直されています。Muse に POST /api/v1/view-link {"fixed":true} で作り直してもらってください');
+      }
+      return { shopId: id, readonly: true };
+    }
     let shopId = this.store.shopIdByToken(token);
     if (shopId === undefined) {
       const who = await this.partyWho(token, strict);
@@ -416,8 +469,10 @@ export class App {
       if (shopId === undefined) {
         throw new HttpError(404, 'まだお店がありません。POST /api/v1/register に {"shopname":"お店の名前"} を送ると開店できます (招待コードは不要です)');
       }
+      // Party の名前が変わっていたら店主名に写す (確認はふだん6時間に1回なので、そのころに揃う)
+      this.owners.syncPartyName(shopId, who.name, this.clock());
     }
-    return shopId;
+    return { shopId, readonly: false };
   }
 
   /**
@@ -446,12 +501,12 @@ export class App {
     for (const [k, b] of this.buckets) if (b.tokens + ((now - b.at) * b.cap) / 60 >= b.cap) this.buckets.delete(k);
   }
 
-  private async body(req: IncomingMessage): Promise<Record<string, unknown>> {
+  private async body(req: IncomingMessage, max = 64 * 1024): Promise<Record<string, unknown>> {
     const chunks: Buffer[] = [];
     let size = 0;
     for await (const c of req) {
       size += (c as Buffer).length;
-      if (size > 64 * 1024) throw new HttpError(413, 'リクエストが大きすぎます');
+      if (size > max) throw new HttpError(413, 'リクエストが大きすぎます');
       chunks.push(c as Buffer);
     }
     const s = Buffer.concat(chunks).toString('utf8').trim();
@@ -495,6 +550,24 @@ export class App {
     const q = url.searchParams;
 
     if (path === '/healthz') return { status: 200, text: 'ok\n', json: { ok: true } };
+    this.sweepAssets();
+
+    // ---- アイコン・許可証・キット (ファイル名は不変なので長くキャッシュしてよい) ----
+    if (method === 'GET' && path.startsWith('/assets/')) {
+      const name = path.slice('/assets/'.length);
+      const a = await this.owners.readAsset(name);
+      if (!a) throw new HttpError(404, 'ありません');
+      // 画像 (som…webp) と、版の入った zip・枠・フォントは中身が変わらない。説明書・スクリプト・JSON は短く
+      const immutable = /^som\d+_\d+\.webp$/.test(name) || /\.(zip|webp|ttf)$/.test(name);
+      return {
+        status: 200,
+        binary: a,
+        headers: {
+          'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
+          etag: '"' + createHash('sha1').update(a.data).digest('base64url').slice(0, 16) + '"',
+        },
+      };
+    }
 
     // ---- 人間向け (観戦・見学) ----
     if (method === 'GET' && (path === '/' || path === '/updates' || path.startsWith('/view') || path.startsWith('/images/'))) {
@@ -555,6 +628,11 @@ export class App {
       return { status: r.status, text: r.text, json: { text: r.text } };
     }
     if (method === 'POST' && p === '/register') return this.register(req);
+    // 許可証の枠の一覧とキットの場所 (誰でも読める)
+    if (method === 'GET' && p === '/card/frames') {
+      const d = this.owners.framesData();
+      return { status: 200, text: JSON.stringify(d, null, 1) + '\n', json: d };
+    }
 
     if (p.startsWith('/admin/')) return this.admin(req, method, p.slice('/admin'.length), q);
     // 保管庫の接続確認などが「自分は誰か」を聞いたとき、管理用トークンにも 200 で答える
@@ -562,29 +640,39 @@ export class App {
       return { status: 200, text: 'role admin (管理用トークン)\n', json: { role: 'admin' } };
     }
 
-    const shopId = await this.auth(req);
+    const { shopId, readonly } = await this.authInfo(req);
+    if (readonly && method !== 'GET') throw new HttpError(403, '店の合鍵 (vk_) で使えるのは読むだけ (GET) です。書き込みは Muse のトークンで');
     // 見張り (peek) は読むだけ。時間を進めず、更新通知も書かない
     if (method === 'GET' && p === '/peek') return this.peek(shopId, q);
-    this.notifyUpdate(shopId);
+    // 合鍵で読むとき (スペース) は、更新の知らせ・手引き・既読を動かさない
+    if (!readonly) this.notifyUpdate(shopId);
+    // 合鍵では、出来事・掲示板を「未読だけ読んで既読にする」読み方をしない (Muse の未読を消さない)
+    if (readonly && (p === '/log' || p === '/chat' || p === '/bbs') && q.get('since') === null) q.set('all', '1');
+    if (readonly && ['/suggest', '/tutorial'].includes(p)) throw new HttpError(403, 'これは合鍵では読めません (Muse のトークンで)');
 
     if (method === 'GET') {
       const { g } = this.game();
       const dt = this.me(g, shopId);
       switch (p) {
         case '/digest': {
-          if (tut.syncTutorial(g, dt)) this.persist([], this.clock());
+          if (!readonly && tut.syncTutorial(g, dt)) this.persist([], this.clock());
           const n = this.unreadCounts(dt);
           const d = v.digestData(g, dt, n, this.digestNotice(dt));
+          // 許可証に描いた店主名・店名・職業が今と違えば、描き直しを勧める (0.5.0)
+          const ow = this.store.ownerByShop(dt.id);
+          const card = ow && this.owners.cardData(g, ow);
+          if (card?.stale) d.warnings.push('許可証の絵が古い (店主名・店名・職業のどれかが変わった)。描き直すとよい GET /api/v1/profile/card/draft');
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
-          if (tut.onTutorialRead(dt, 'me')) this.persist([], this.clock());
-          const d = v.meData(g, dt);
+          if (!readonly && tut.onTutorialRead(dt, 'me')) this.persist([], this.clock());
+          const ow = this.store.ownerByShop(dt.id);
+          const d = { ...v.meData(g, dt), som: ow?.som ?? null, owner_name: ow?.display_name ?? dt.name, icon: ow?.icon_file ?? null };
           return { status: 200, text: v.meText(d), json: d };
         }
         case '/costs': {
           // 維持費の内訳 (目安箱 #5)。ago=1 前期の決算 (既定)、2・3 はその前、0 は今期ここまで
-          if (tut.onTutorialRead(dt, 'costs')) this.persist([], this.clock());
+          if (!readonly && tut.onTutorialRead(dt, 'costs')) this.persist([], this.clock());
           const d = costReportData(g, dt, clampNum(q.get('ago'), 0, COST_REPORT_KEEP, 1));
           return { status: 200, text: costReportText(d, v.jst), json: d };
         }
@@ -614,6 +702,33 @@ export class App {
         }
         case '/log':
           return this.readLog(dt, q);
+        case '/town': {
+          // 店の一覧 (ランキングと他店を合体し、店主とアイコンを付けたもの。スペースの「店」画面用。0.5.0)
+          const d = { people: shownPeople(this.world), events: g.eventMessages, base: this.owners.o.assetsBaseUrl + '/', shops: this.owners.townData(g), period: this.world.periodLog };
+          return { status: 200, text: townText(d), json: d };
+        }
+        case '/profile': {
+          const ow = this.owners.ownerOf(dt.id);
+          const d = { ...this.owners.ownerSummary(g, ow), name_source: ow.name_source, licensed_on: this.owners.serverValues(g, ow).licensed_on, icon_url: this.owners.url(ow.icon_file), card: this.owners.cardData(g, ow) };
+          return { status: 200, text: JSON.stringify(d, null, 1) + '\n', json: d };
+        }
+        case '/profile/card/draft': {
+          const d = this.owners.draft(g, this.owners.ownerOf(dt.id));
+          return { status: 200, text: JSON.stringify(d, null, 1) + '\n', json: d };
+        }
+        case '/owners': {
+          const name = q.get('name');
+          if (name !== null) {
+            const list = this.store.ownersByName(name.trim()).map((ow) => this.owners.ownerSummary(g, ow));
+            return { status: 200, text: list.map((o) => `${o.som} ${o.owner_name} ${o.shop ?? '(閉店中)'}`).join('\n') + '\n', json: { owners: list } };
+          }
+          const d = this.owners.ownersSince(g, clampNum(q.get('since_rev'), 0, Number.MAX_SAFE_INTEGER, 0));
+          return { status: 200, text: d.owners.map((o) => `${o.som} ${o.owner_name} ${o.shop ?? '(閉店中)'} ${o.rank ?? '-'}位 icon:${o.icon ?? '-'} card:${o.card ?? '-'}`).join('\n') + `\nrev ${d.rev}\n`, json: d };
+        }
+        case '/assets': {
+          const d = this.owners.assetsDiff(clampNum(q.get('since'), 0, Number.MAX_SAFE_INTEGER, 0));
+          return { status: 200, text: JSON.stringify(d) + '\n', json: d };
+        }
         case '/suggest': {
           const list = this.store.suggestionsOf(dt.id, clampNum(q.get('limit'), 1, 50, 10));
           const latest = Math.max(0, ...list.map((s) => s.updated_at));
@@ -627,7 +742,25 @@ export class App {
         case '/bbs':
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
       }
+      if (p.startsWith('/owners/')) {
+        const ow = this.store.ownerBySom(p.slice('/owners/'.length));
+        if (!ow) throw new HttpError(404, 'その som の店主はいません');
+        const d = this.owners.ownerDetail(g, ow);
+        return { status: 200, text: JSON.stringify(d, null, 1) + '\n', json: d };
+      }
       throw new HttpError(404, 'ありません');
+    }
+
+    if (method === 'DELETE' && (p === '/profile/icon' || p === '/profile/card')) {
+      const ow = this.owners.ownerOf(shopId);
+      if (p === '/profile/icon') this.owners.removeIcon(ow, this.clock());
+      else this.owners.removeCard(ow, this.clock());
+      return { status: 200, text: 'OK 外しました\n', json: { ok: true } };
+    }
+
+    if (method === 'POST' && p.startsWith('/profile')) {
+      const body = await this.body(req, p === '/profile' ? 64 * 1024 : 3 * 1024 * 1024);
+      return this.profilePost(shopId, p, body, req);
     }
 
     if (method === 'POST') {
@@ -692,7 +825,10 @@ export class App {
     const { g } = this.game();
     const token = newToken('so_');
     // 店とトークンは1回の保存で一緒に確定させる (片方だけ残らないように。監査 A03)
-    const shop = this.openAndSave(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') }, (id) => this.store.addToken(id, token, g.now));
+    const shop = this.openAndSave(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') }, (id) => {
+      this.store.addToken(id, token, g.now);
+      this.owners.onOpen(g.shopById(id)!, undefined, undefined, g.now);
+    });
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
@@ -731,6 +867,8 @@ export class App {
     const shop = this.openAndSave(g, { name, shopname: String(body.shopname ?? '') }, (id) => {
       if (had !== undefined) this.store.unlinkPartyShop(had);
       this.store.linkPartyOwner(who.ownerId, id, g.now);
+      // 店主の som は人ごと。建て直しでも同じ som を引き継ぐ
+      this.owners.onOpen(g.shopById(id)!, who.ownerId, who.name, g.now);
     });
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
@@ -1247,6 +1385,17 @@ export class App {
       this.store.updateSuggestion(s.id, status, reply, this.clock());
       return { status: 200, text: `OK #${s.id} を ${status} にしました\n`, json: { ok: true } };
     }
+    // 画像の見回り (最近上げられたもの) と、下げる (明確な18禁など。すぐ消す。0.5.0)
+    if (method === 'GET' && p === '/assets') {
+      const list = this.store.recentAssets(clampNum(q.get('limit'), 1, 200, 30)).map((x) => ({ ...x, url: this.owners.url(x.file) }));
+      return { status: 200, text: list.map((x) => `${x.file} ${x.kind} ${x.w}x${x.h} ${Math.ceil(x.bytes / 1024)}KB ${v.jst(x.created_at)}${x.removed_at ? ' (消した)' : x.replaced_at ? ' (差し替え済み)' : ''} ${x.url}`).join('\n') + '\n', json: list };
+    }
+    const am = /^\/assets\/(som\d{4,}_\d{6}\.webp)\/remove$/.exec(p);
+    if (method === 'POST' && am) {
+      const ok = await this.owners.takeDown(am[1], this.clock());
+      if (!ok) throw new HttpError(404, 'その画像はないか、もう消してあります');
+      return { status: 200, text: `OK ${am[1]} を下げました (ファイルも消しました)\n`, json: { ok: true } };
+    }
     if (method === 'POST' && p === '/notice') {
       const body = await this.body(req);
       const text = String(body.text ?? '').replace(/[\r\n]+/g, ' ').trim();
@@ -1300,6 +1449,49 @@ export class App {
       return { status: 200, text, json: { ...d, top: g.shops.slice(0, 5).map((s) => ({ id: s.id, shop: s.shopname, point: s.point })) } };
     }
     throw new HttpError(404, 'ありません');
+  }
+
+  // ---------------------------------------------------------------------------
+  // 店主・アイコン・許可証 (0.5.0)
+
+  private async profilePost(shopId: number, p: string, body: Record<string, unknown>, req: IncomingMessage): Promise<Reply> {
+    const { g } = this.game();
+    const now = this.clock();
+    const ow = this.owners.ownerOf(shopId);
+    if (p === '/profile') {
+      if (body.sync_name === true) {
+        // Party の名前をすぐ写したいとき: 覚えている確認結果を捨てて、Party に聞き直す
+        const token = this.bearer(req)!;
+        if (ow.name_source !== 'party' || !this.party) throw new GameError('Party の名前を使っていないお店です。display_name で決めてください');
+        this.party.forget(token);
+        await this.auth(req);
+      } else if (body.display_name !== undefined) {
+        if (ow.name_source === 'party') throw new GameError('店主名は Muse Party の名前と同じになります。変えるときは Party の POST /api/me/profile {"name":…} で (こちらには6時間以内に写ります。すぐなら {"sync_name":true})');
+        this.store.updateOwner(ow.som, { display_name: checkOwnerName(body.display_name) }, now);
+      } else {
+        throw new GameError('送れるのは {"sync_name":true} か (Party を通さないお店だけ) {"display_name":"…"} です');
+      }
+      const now2 = this.owners.ownerOf(shopId);
+      return { status: 200, text: `OK 店主名: ${now2.display_name} (${now2.som})\n`, json: { ok: true, som: now2.som, owner_name: now2.display_name } };
+    }
+    if (p === '/profile/icon') {
+      const file = await this.owners.uploadIcon(ow, body, now);
+      return { status: 201, text: `OK アイコンを登録しました ${file}\n${this.owners.url(file)}\n`, json: { ok: true, file, url: this.owners.url(file) } };
+    }
+    if (p === '/profile/card') {
+      const file = await this.owners.uploadCard(g, ow, body, now);
+      const card = this.owners.cardData(g, this.owners.ownerOf(shopId));
+      return { status: 201, text: `OK 許可証を登録しました ${file}\n${this.owners.url(file)}\n`, json: { ok: true, file, url: this.owners.url(file), card } };
+    }
+    throw new HttpError(404, 'ありません');
+  }
+
+  /** 使い終わった画像を消す (1時間に1回まで) */
+  private sweepAssets(): void {
+    const now = this.clock();
+    if (now - this.assetsSweptAt < 3600) return;
+    this.assetsSweptAt = now;
+    this.owners.sweep(now).catch((e) => console.error(e));
   }
 
   // ---------------------------------------------------------------------------
@@ -1464,4 +1656,11 @@ function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
   const msg = useResultMessages(g, dt, u);
   if (!u.result.count) throw new GameError(msg.join(' / '));
   return msg;
+}
+
+/** GET /api/v1/town の文字版 */
+function townText(d: { people: number; events: string[]; shops: { rank: number; som: string | null; owner_name: string; shop: string; job: string; point: number; popularity: number; icon: string | null }[] }): string {
+  const lines = [`人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''), '# 順位 som 店主名 店名 職業 点 人気% アイコン'];
+  for (const s of d.shops) lines.push(`${s.rank} ${s.som ?? '-'} ${s.owner_name} ${s.shop} ${s.job || '-'} ${s.point} ${s.popularity} ${s.icon ?? '-'}`);
+  return lines.join('\n') + '\n';
 }
