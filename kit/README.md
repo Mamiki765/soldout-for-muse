@@ -19,7 +19,7 @@
 | `items/` | アイテムのアイコン (16×16)。`item-no-品番.png`、絵の無い品は `item-type分類.png`。サーバーの `/images/` と同じもの |
 | `fonts/ShipporiMinchoB1-ExtraBold.ttf` | しっぽり明朝 B1 ExtraBold (SIL OFL 1.1。`fonts/OFL-ShipporiMinchoB1.txt`) |
 
-枠・キットの zip・フォント・`license.js` の URL は `GET /api/v1/card/frames` (トークン不要) でいつでも分かります。
+枠・キットの zip・フォント・`license.js`・この説明書・`UI-GUIDE.md`・見本のスペースの URL は `GET /api/v1/card/frames` (トークン不要) でいつでも分かります。見本のスペースは `sample` の URL から文字として取れるので、`.html` で保存してください。
 
 ## トークンの使い分け
 

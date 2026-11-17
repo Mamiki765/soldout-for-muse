@@ -477,7 +477,8 @@ export class OwnerHub {
       // キットの zip はフォントを入れて VM で作るので assetsDir/kit に置く。枠などは kit/ (リポジトリ) から
       const dirs = [this.o.assetsDir && join(this.o.assetsDir, 'kit'), this.o.kitDir].filter((x): x is string => !!x);
       for (const d of dirs) {
-        data = await readFile(join(d, m[1])).catch(() => undefined);
+        // 見本の HTML は、ページとして開かれないように文字 (text/plain) で配る
+        data = await readFile(join(d, m[1] === 'space-sample.txt' ? 'space-sample.html' : m[1])).catch(() => undefined);
         if (data) break;
       }
       if (!data) return undefined;
@@ -498,6 +499,9 @@ export class OwnerHub {
       font: this.o.assetsBaseUrl + '/kit/ShipporiMinchoB1-ExtraBold.ttf',
       script: this.o.assetsBaseUrl + '/kit/license.js',
       readme: this.o.assetsBaseUrl + '/kit/README.md',
+      guide: this.o.assetsBaseUrl + '/kit/UI-GUIDE.md',
+      // 見本のスペース (HTML 1枚)。中身は HTML だが、ここでは文字として配る。保存して .html にすれば開ける
+      sample: this.o.assetsBaseUrl + '/kit/space-sample.txt',
     };
   }
 }

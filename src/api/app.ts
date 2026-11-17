@@ -564,6 +564,7 @@ export class App {
         binary: a,
         headers: {
           'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
+          'x-content-type-options': 'nosniff',
           etag: '"' + createHash('sha1').update(a.data).digest('base64url').slice(0, 16) + '"',
         },
       };
