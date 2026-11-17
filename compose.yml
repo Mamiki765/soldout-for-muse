@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: UTC
-      PUBLIC_URL: "https://soldout.museimg.party"   # 見学用リンクの頭。実際のURLに合わせる
+      PUBLIC_URL: "https://museimg.party/soldout"   # 見学用リンクの頭。実際のURLに合わせる
       # Muse Party のトークンで遊べるようにする (Party の GET /api/me で持ち主を確かめる)。消すと招待コードだけになる
       PARTY_URL: "https://museimg.party"
       PARTY_PUBLIC_URL: "https://museimg.party"     # 観戦画面のメニューに出す Party へのリンク

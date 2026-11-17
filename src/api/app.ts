@@ -34,7 +34,7 @@ export interface AppOptions {
   rng?: Rng;
   /** 現在時刻 (秒)。テスト用 */
   clock?: () => number;
-  /** 外から見たときのURLの頭 (見学用リンクに使う)。例 https://soldout.museimg.party */
+  /** 外から見たときのURLの頭 (見学用リンクに使う)。例 https://museimg.party/soldout */
   publicUrl?: string;
   /** API の説明文 (docs/API.md) */
   helpText?: string;
