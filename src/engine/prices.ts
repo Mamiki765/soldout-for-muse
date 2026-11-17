@@ -122,7 +122,9 @@ export function closePeriodPrices(g: Game): void {
       balance: it.marketprice ? it.uppoint : 0,
     });
   }
+  // 次の期は決算のときの値から始める (1回のアクセスで決算を2回以上またいでも、各期の最安・最高に始まりの値が入るように)
   g.world.mstat = { since: at, items: {} };
+  observePrices(g);
 }
 
 /** 前と比べて何%動いたか (どちらかが 0 なら null) */
