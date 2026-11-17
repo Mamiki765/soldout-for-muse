@@ -196,6 +196,11 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     assert.equal(first.added.length, 1);
     assert.equal(first.current.som0002.card, first.added[0].file);
 
+    // 重ねて送っても上限 (5回) はすり抜けない
+    const burst = await Promise.all([...Array(8)].map(() => post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) })));
+    assert.equal(burst.filter((x) => x.status === 201).length, 5);
+    now += 86400 + 1;
+
     // 1日5回まで
     for (let i = 0; i < 4; i++) await post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) });
     r = await post('/api/v1/profile/icon', 'pt-lapis', { image_base64: webp(200, 200) });

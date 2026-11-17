@@ -227,13 +227,31 @@ export class OwnerHub {
   // ---------------------------------------------------------------------------
   // 画像の受け取り
 
+  /** 書き込み中の登録 (まだ assets に載っていないもの) も回数に数える */
+  private pending = new Map<string, number>();
+
   private checkQuota(som: string, kind: 'icon' | 'card', now: number): void {
-    if (this.store.countAssetsSince(som, kind, now - 86400) >= UPLOADS_PER_DAY) {
+    const inflight = this.pending.get(som + ':' + kind) ?? 0;
+    if (this.store.countAssetsSince(som, kind, now - 86400) + inflight >= UPLOADS_PER_DAY) {
       throw new GameError(`${kind === 'icon' ? 'アイコン' : '許可証'}の登録は24時間に${UPLOADS_PER_DAY}回までです。作り直しは手元で済ませてから送ってください`);
     }
   }
 
   /** ファイルを書くだけ (番号は await の前に取る)。配るのは publish で、持ち主の記録と一緒に */
+  /** 回数を確かめて枠を取ったまま書く (重なった登録が上限をすり抜けないように)。publish が済むまで枠を持つ */
+  private async withQuota<T>(som: string, kind: 'icon' | 'card', now: number, fn: () => Promise<T>): Promise<T> {
+    this.checkQuota(som, kind, now);
+    const key = som + ':' + kind;
+    this.pending.set(key, (this.pending.get(key) ?? 0) + 1);
+    try {
+      return await fn();
+    } finally {
+      const n = (this.pending.get(key) ?? 1) - 1;
+      if (n > 0) this.pending.set(key, n);
+      else this.pending.delete(key);
+    }
+  }
+
   private async write(som: string, data: Buffer): Promise<string> {
     if (!this.o.assetsDir) throw new GameError('画像の保存先が設定されていないので、今は登録できません');
     const no = this.store.nextAssetNo(som);
@@ -278,11 +296,12 @@ export class OwnerHub {
   }
 
   async uploadIcon(ow: Owner, body: Record<string, unknown>, now: number): Promise<string> {
-    this.checkQuota(ow.som, 'icon', now);
     const info = this.inspect(this.decode(body.image_base64, ICON_MAX_BYTES), ICON_SIZE, ICON_SIZE, 'アイコン');
-    const file = await this.write(ow.som, info.data);
-    this.publish(ow.som, 'icon', file, ICON_SIZE, ICON_SIZE, info.data.length, now);
-    return file;
+    return this.withQuota(ow.som, 'icon', now, async () => {
+      const file = await this.write(ow.som, info.data);
+      this.publish(ow.som, 'icon', file, ICON_SIZE, ICON_SIZE, info.data.length, now);
+      return file;
+    });
   }
 
   /** 許可証。画像があれば差し替え、無ければ通り名などの文字だけ直す */
@@ -295,14 +314,15 @@ export class OwnerHub {
     const alt = body.alt === undefined ? prev?.alt ?? '' : cleanText(body.alt, 'alt (見た目の説明)', 120);
     const values = this.serverValues(g, ow);
     if (body.image_base64 !== undefined) {
-      this.checkQuota(ow.som, 'card', now);
       const [w, h] = fr.size;
       const info = this.inspect(this.decode(body.image_base64, CARD_MAX_BYTES), w, h, '許可証');
-      const file = await this.write(ow.som, info.data);
-      const drawn = { owner_name: values.owner_name, shopname: values.shopname, job: values.job, at: now };
-      const st: CardStored = { frame: fr.frame, aka, alt, drawn };
-      this.publish(ow.som, 'card', file, w, h, info.data.length, now, { card_json: JSON.stringify(st) });
-      return file;
+      return this.withQuota(ow.som, 'card', now, async () => {
+        const file = await this.write(ow.som, info.data);
+        const drawn = { owner_name: values.owner_name, shopname: values.shopname, job: values.job, at: now };
+        const st: CardStored = { frame: fr.frame, aka, alt, drawn };
+        this.publish(ow.som, 'card', file, w, h, info.data.length, now, { card_json: JSON.stringify(st) });
+        return file;
+      });
     }
     // 画像なし: 通り名・alt・枠だけ直す (今の記録を読み直して、絵の情報はそのまま)
     const cur = this.store.ownerBySom(ow.som)!;
