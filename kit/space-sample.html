@@ -57,6 +57,12 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .shop:hover { border-color: var(--accent); }
 .av.m { width: 48px; height: 48px; font-size: 18px; }
 .shop .rank { font-size: 12px; color: var(--sub); }
+.gauge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); margin-top: 6px; }
+.gauge i { flex: 1; height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; }
+.gauge i b { display: block; height: 100%; background: var(--accent); }
+.stat .gauge { margin-top: 4px; }
+.stat .gauge span { display: none; }
+.stat .gauge i { background: var(--bg); }
 .shop .name { font-weight: bold; overflow-wrap: anywhere; }
 .av { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--chip); display: inline-grid; place-items: center; font-weight: bold; color: #fff; }
 .av.s { width: 28px; height: 28px; font-size: 12px; vertical-align: middle; }
@@ -182,6 +188,8 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const yen = (n) => (n ?? 0).toLocaleString('ja-JP') + '円';
 const pct = (n) => `${n ?? 0}%`;
+// 人気ゲージ (原作の人気の棒グラフ)。数字だけより、店どうしを見比べやすい
+const gauge = (n) => `<div class="gauge" title="人気 ${pct(n)}"><span>人気</span><i><b style="width:${Math.max(0, Math.min(100, n ?? 0))}%"></b></i><span>${pct(n)}</span></div>`;
 const when = (t) => new Date(t * 1000).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 const hm = (sec) => `${Math.floor(sec / 3600)}時間${Math.floor((sec % 3600) / 60)}分`;
 function toast(msg) {
@@ -228,7 +236,7 @@ const views = {
         <div class="stat"><span>順位</span><b>${me.rank}位</b></div>
         <div class="stat"><span>資金</span><b>${yen(me.money)}</b></div>
         <div class="stat"><span>持ち時間</span><b>${hm(me.time)}</b></div>
-        <div class="stat"><span>人気</span><b>${pct(me.popularity)}</b></div>
+        <div class="stat"><span>人気</span><b>${pct(me.popularity)}</b>${gauge(me.popularity)}</div>
         <div class="stat"><span>今日の売上</span><b>${yen(me.sale.today)}</b></div>
         <div class="stat"><span>職業</span><b>${esc(me.job || '不定')}</b></div>
         <div class="stat"><span>次の決算</span><b>${when(me.next_period)}</b></div>
@@ -278,7 +286,8 @@ function townCards() {
       ? s.shelves.map((x) => `<li class="${q && x.name.includes(q) ? 'hit' : ''}">${itemImg(x.item, x.type)}<span class="nm">${esc(x.name)}</span><span class="pr">${yen(x.price)} ×${x.stock}</span></li>`).join('')
       : '<li class="muted">棚は空</li>';
     return `<button class="shop" data-som="${esc(s.som ?? '')}">
-      <div class="hd">${avatar(s.icon, s.som, s.owner_name, 'm')}<div><div class="rank">${s.rank}位 · ${pct(s.popularity)}${s.job ? ' · ' + esc(s.job) : ''}</div><div class="name">${esc(s.shop)}</div><div class="muted">${esc(s.owner_name)}</div></div></div>
+      <div class="hd">${avatar(s.icon, s.som, s.owner_name, 'm')}<div><div class="rank">${s.rank}位${s.job ? ' · ' + esc(s.job) : ''}</div><div class="name">${esc(s.shop)}</div><div class="muted">${esc(s.owner_name)}</div></div></div>
+      ${gauge(s.popularity)}
       <ul class="goods">${goods}</ul>
     </button>`;
   }).join('');

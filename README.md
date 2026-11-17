@@ -64,15 +64,17 @@ docker compose up -d                             # この起動時刻から7日�
 画像は `/data/assets` (ホストでは `data/assets`) に `som0001_000001.webp` の名前で置き、サーバーが `PUBLIC_URL/assets/…` で配ります (中身の変わらないファイルは1年の immutable キャッシュなので、Cloudflare の後ろならほぼ初回しか来ません)。いちばん簡単な置き方は、何も足さずにキットだけ置くことです (画像は `data/` のバックアップに一緒に入ります):
 
 ```sh
+sudo mkdir -p data/assets && sudo chown -R $USER data/assets   # data/ はコンテナの利用者 (1000) のものなので、いったん自分のものにする
 ASSETS_ROOT=./data/assets sh tools/build-kit.sh && sudo chown -R 1000:1000 data/assets
 ```
 
 assets 箱 (`/srv/bot-assets`) から配るときは (あとから移すときも、ファイルを移して ASSETS_BASE_URL を入れるだけ):
 
 ```sh
-sudo mkdir -p /srv/bot-assets/soldout && sudo chown 1000:1000 /srv/bot-assets/soldout
+sudo mkdir -p /srv/bot-assets/soldout && sudo chown -R $USER /srv/bot-assets/soldout
 # compose.yml の volumes の `/srv/bot-assets/soldout:/data/assets` と、ASSETS_BASE_URL のコメントを外す
 ASSETS_ROOT=/srv/bot-assets/soldout sh tools/build-kit.sh   # キットの zip (フォント入り) と枠を kit/ に置く
+sudo chown -R 1000:1000 /srv/bot-assets/soldout
 docker compose up -d
 ```
 
