@@ -683,7 +683,8 @@ export class App {
         }
         case '/shops': {
           const item = q.get('item') ? Number(q.get('item')) : undefined;
-          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 100, 30) });
+          // 既定で全店が入るように (62店で30店までだと半分見えなかった)
+          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 1000, 1000) });
           return { status: 200, text: v.shopsText(d), json: d };
         }
         case '/ranking': {
