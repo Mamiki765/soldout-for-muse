@@ -105,7 +105,11 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
 });
 
 test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草以外に差分がなく、イベントも不変', () => {
-  const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as { info_changes: { item: number; use: number; info: string }[] };
+  const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as {
+    info_changes: { item: number; use: number; info: string }[];
+    recipe_changes: { item: number; use: number; time: number; get: [number, number, number][]; info: string }[];
+    limit_changes: { item: number; limit: number }[];
+  };
   for (const old of original.items) {
     const expected = structuredClone(old);
     if (old.no === 66) expected.uses.forEach((u, index) => {
@@ -117,6 +121,14 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
       u.jobs = [...u.jobs, { job: 'tool', key: 'times', op: '/', value: 2 }];
     });
     // 熟練の共有 (tools/skill-share.json): ミノ牛乳は熟練をミノタウロス♀と共有し、物を作る使い方は熟練最大で 3/4 の時間・1セット熟練+1%
+    // 0.6.0 (tools/hay.json): ヘビー発酵の時間と出来高、牛乳の所持上限
+    for (const ch of hay.recipe_changes) if (ch.item === old.no) {
+      const u = expected.uses[ch.use];
+      u.time = u.exptime = ch.time;
+      u.get = ch.get.map(([item_no, count, proba]) => ({ item_no, count, proba }));
+      u.info = ch.info;
+    }
+    for (const ch of hay.limit_changes) if (ch.item === old.no) expected.limit = ch.limit;
     if (old.no === 26) {
       (expected as typeof expected & { expitem?: number }).expitem = 25;
       for (const u of expected.uses) if (u.get.length) { u.exptime = Math.trunc(u.time * 0.75); u.exp = 10; }

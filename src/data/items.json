@@ -6936,7 +6936,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "飲めば健康、経営すこやか",
-         "limit" : 500,
+         "limit" : 2000,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -7061,18 +7061,18 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 6480,
+               "exptime" : 3240,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 1,
+                     "count" : 2,
                      "item_no" : 36,
                      "proba" : 1000
                   }
                ],
-               "info" : "ミノ牛乳をかなり発酵させてみます",
+               "info" : "ミノ牛乳をかなり発酵させてみます。牛乳20本でミノチーズが2個できます",
                "jobs" : [
                   {
                      "job" : "cow",
@@ -7097,7 +7097,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 8640,
+               "time" : 4320,
                "use" : [
                   {
                      "count" : 10,
@@ -13507,7 +13507,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "濃いミノクリームの氷菓",
-         "limit" : 100,
+         "limit" : 200,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,

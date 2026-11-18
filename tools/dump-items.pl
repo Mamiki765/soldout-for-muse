@@ -417,6 +417,19 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		my $u = $by_no{$ch->{item}}{uses}[$ch->{use}] or die "hay: unknown use $ch->{item}/$ch->{use}";
 		$u->{info} = $ch->{info};
 	}
+	# 酪農の乳製品: ヘビー発酵 (チーズ) を牛乳売りより少し上に (時間はライト発酵と同じ、2個できる)。
+	# 熟練0の時間 (time) だけ書き、熟練最大の時間は下の熟練の共有で決まる。
+	for my $ch (@{ $hay->{recipe_changes} }) {
+		my $u = $by_no{$ch->{item}}{uses}[$ch->{use}] or die "hay: unknown use $ch->{item}/$ch->{use}";
+		$u->{time} = $u->{exptime} = $ch->{time};
+		$u->{get} = $lines->($ch->{get}, 1000);
+		$u->{info} = $ch->{info} if defined $ch->{info};
+	}
+	# 牛乳は干し草で量が増えて数時間で上限に届くので、所持上限を上げる (ジェラートも)
+	for my $ch (@{ $hay->{limit_changes} }) {
+		my $it = $by_no{$ch->{item}} or die "hay: unknown item $ch->{item}";
+		$it->{limit} = $ch->{limit};
+	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
