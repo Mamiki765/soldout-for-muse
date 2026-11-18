@@ -57,10 +57,18 @@ test('digest の未読更新: 読むまで残り、認証して読んだ店だ�
     shop(a.id).lastlogin = shop(b.id).lastlogin = now;
     assert.ok((await digest(a.auth)).includes(line));
 
-    // 見張り (peek) は既読を変えず、未読だけのためのアラートも出さない
-    const pk = await (await fetch(base + '/api/v1/peek?format=json&full=1', { headers: a.auth })).json() as { alerts: { type: string }[] };
-    assert.ok(!pk.alerts.some((x) => /update/.test(x.type)));
+    // 見張り (peek) にも未読の更新を知らせる (0.6.0。版ごとに同じ key)。既読は変えない
+    const peek = async (auth: Record<string, string>, q = '') => (await (await fetch(base + '/api/v1/peek?format=json&full=1' + q, { headers: auth })).json()) as { alerts: { type: string; level: string; key: string; msg: string }[] };
+    let up = (await peek(a.auth)).alerts.find((x) => x.type === 'update');
+    assert.ok(up, '既定 (節約) でも出る');
+    assert.equal(up.key, `update:${APP_VERSION}`);
+    assert.equal(up.level, 'mid');
+    assert.ok(up.msg.startsWith(line), up.msg);
     assert.equal(shop(a.id).user._updates_read, undefined);
+    // off にすれば出ない、"off":["update"] でも外せる
+    shop(a.id).user._alerts = JSON.stringify({ mode: 'save', off: ['update'] });
+    assert.ok(!(await peek(a.auth)).alerts.some((x) => x.type === 'update'));
+    delete shop(a.id).user._alerts;
 
     // 認証なしの取得は今までどおり読めるが、誰の既読も変えない
     let r = await fetch(base + '/api/v1/updates');
@@ -90,6 +98,8 @@ test('digest の未読更新: 読むまで残り、認証して読んだ店だ�
     assert.equal(shop(a.id).user._updates_read, APP_VERSION);
     assert.ok(!(await digest(a.auth)).includes('未読更新'));
     assert.ok((await digest(b.auth)).includes(line));
+    assert.ok(!(await peek(a.auth)).alerts.some((x) => x.type === 'update'), '読んだら peek からも消える');
+    assert.ok((await peek(b.auth)).alerts.some((x) => x.type === 'update'));
     // 既読の記録は再起動しても残る
     app = new App({ store, clock: () => now, rng: seededRng(1) });
     assert.ok(!(await digest(a.auth)).includes('未読更新'));
