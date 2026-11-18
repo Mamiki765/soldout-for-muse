@@ -38,6 +38,7 @@ export const ALERT_TYPES = [
   'time_full',
   'wanted',
   'on_shelf',
+  'update',
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
 
@@ -46,8 +47,8 @@ export type AlertType = (typeof ALERT_TYPES)[number];
  * 「おまかせ」はサーバー側では normal にして、起きるかどうかを Muse が facts を見て決める使い方 (案: ミュートより)
  */
 export const ALERT_MODES: Record<'save' | 'normal' | 'power' | 'off', readonly AlertType[]> = {
-  save: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring'],
-  normal: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'soldout_soon', 'event', 'order_closed', 'order_discard', 'time_full'],
+  save: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'update'],
+  normal: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'soldout_soon', 'event', 'order_closed', 'order_discard', 'time_full', 'update'],
   power: ALERT_TYPES,
   off: [],
 };

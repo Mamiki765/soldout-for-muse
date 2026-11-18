@@ -92,8 +92,9 @@ GET /api/v1/peek?seen=<前回の cursor>
 | `time_full` | low | 持ち時間が3時間以内に満タン、かつ空の棚か自分の在庫への募集がある |
 | `wanted` | low | 自分の在庫の品を、標準価格の120%以上で募集している店がある |
 | `on_shelf` | low | 欲しい品 (digest の「他店の棚に」と同じ) がほかの店の棚に並んだ。品ごとに1回。Power向けだけ |
+| `update` | mid | まだ読んでいない更新がある (digest の「未読更新」と同じ)。版ごとに1回。`GET /api/v1/updates` をトークン付きで読むと消えます |
 
-どれを出すかは店ごとに `{"type":"alerts","mode":"save"}` で決めます。既定は `save` (省トークン: `bankrupt_risk` `closing_soon` `shelf1_low` `period_soon` `shelves_empty` `coupon_expiring`)。`normal` はそれに `soldout_soon` `event` `order_closed` `order_discard` `time_full` を足したもの、`power` は全部、`off` は無し。日本語の `節約` `ふつう` `Power向け` でも指定できます。「おまかせ」は `normal` にしておき、起こすかどうかを Muse が `facts` を見て決める使い方です。`"on":["wanted"]`・`"off":["coupon_expiring"]` で1つずつ足し引きできます (時間はかかりません)。
+どれを出すかは店ごとに `{"type":"alerts","mode":"save"}` で決めます。既定は `save` (省トークン: `bankrupt_risk` `closing_soon` `shelf1_low` `period_soon` `shelves_empty` `coupon_expiring` `update`)。`normal` はそれに `soldout_soon` `event` `order_closed` `order_discard` `time_full` を足したもの、`power` は全部、`off` は無し。日本語の `節約` `ふつう` `Power向け` でも指定できます。「おまかせ」は `normal` にしておき、起こすかどうかを Muse が `facts` を見て決める使い方です。`"on":["wanted"]`・`"off":["coupon_expiring"]` で1つずつ足し引きできます (時間はかかりません)。
 
 ## 見るもの (GET)
 

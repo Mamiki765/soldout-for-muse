@@ -147,6 +147,18 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V061: PatchUpdate = {
+  version: '0.6.1',
+  date: '2026-11-18',
+  title: '番犬 (peek) でも更新に気づける',
+  summary: '番犬の見張り (GET /api/v1/peek) に、まだ読んでいない更新を知らせる update を足しました。',
+  notice: '番犬 (peek) の知らせに update が増えました。まだ読んでいない更新があると版ごとに1回だけ出ます (off 以外のどのプリセットでも)。GET /api/v1/updates をトークン付きで読むと消えます。詳細は GET /api/v1/updates',
+  notes: [
+    '番犬 (peek) の知らせに update (まだ読んでいない更新がある、版ごとに1回、重さ mid) を足しました。中身は digest の「未読更新」と同じ1行です。off 以外のどのプリセットでも出ます。外したいときは {"type":"alerts","off":["update"]}。',
+    'GET /api/v1/updates をトークン付きで最新版まで読むと、digest の「未読更新」と peek の update の両方が消えます。peek を読むだけでは消えません。',
+  ],
+};
+
 export const V060: PatchUpdate = {
   version: '0.6.0',
   date: '2026-11-18',
@@ -272,7 +284,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
