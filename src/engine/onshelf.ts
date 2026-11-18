@@ -82,7 +82,8 @@ export function onShelf(g: Game, dt: Shop, now?: number): OnShelf[] {
       const exp = dt.exp[u.expno] ?? 0;
       if (!(exp > 0) || exp < u.needexp) continue;
       for (const l of u.use) {
-        if (l.no === tool || !(l.count > 0)) continue;
+        // 使う品そのもの (ミノ牛乳を10使う発酵など) も、足りなければ材料として数える
+        if (!(l.count > 0)) continue;
         if ((dt.item[l.no - 1] ?? 0) < l.count && buyable(g, l.no)) want.add(l.no);
       }
     }

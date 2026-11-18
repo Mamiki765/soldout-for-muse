@@ -81,6 +81,18 @@ test('A: 自分の募集の品は、最安の棚が募集の単価以下のと�
   assert.match(digestText(digestData(g, me, { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 })), /他店の棚に/, 'ヒントを切っても出る');
 });
 
+test('B: 使う品そのものを複数使う作り方 (ミノ牛乳の発酵など) も、足りなければ出す', () => {
+  const { g, me, a } = setup();
+  const MILK = itemNoByName('ミノ牛乳');
+  const u = g.items[MILK].uses.find((x) => x.use.some((l) => l.item_no === MILK && l.count > 1));
+  assert.ok(u, 'ミノ牛乳を複数使う使い方がある');
+  me.item[MILK - 1] = 1;
+  for (const l of u.use) if (l.item_no !== MILK) me.item[l.item_no - 1] = l.count;
+  me.exp[g.items[MILK].expitem ?? MILK] = Math.max(10, u.needexp ?? 0);
+  shelve(a, 0, MILK, 100, 50);
+  assert.ok(onShelf(g, me).some((x) => x.item === MILK && x.why === 'recipe'));
+});
+
 test('見張り (peek): on_shelf は Power向けだけ', () => {
   const { g, me, a } = setup();
   me.item[LEATHER_BOOK - 1] = 1;
