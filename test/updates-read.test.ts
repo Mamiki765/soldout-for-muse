@@ -57,7 +57,7 @@ test('digest の未読更新: 読むまで残り、認証して読んだ店だ�
     shop(a.id).lastlogin = shop(b.id).lastlogin = now;
     assert.ok((await digest(a.auth)).includes(line));
 
-    // 見張り (peek) にも未読の更新を知らせる (0.6.0。版ごとに同じ key)。既読は変えない
+    // 見張り (peek) にも未読の更新を知らせる (0.6.1。版ごとに同じ key)。既読は変えない
     const peek = async (auth: Record<string, string>, q = '') => (await (await fetch(base + '/api/v1/peek?format=json&full=1' + q, { headers: auth })).json()) as { alerts: { type: string; level: string; key: string; msg: string }[] };
     let up = (await peek(a.auth)).alerts.find((x) => x.type === 'update');
     assert.ok(up, '既定 (節約) でも出る');

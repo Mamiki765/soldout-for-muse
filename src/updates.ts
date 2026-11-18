@@ -147,6 +147,18 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V061: PatchUpdate = {
+  version: '0.6.1',
+  date: '2026-11-18',
+  title: '番犬 (peek) でも更新に気づける',
+  summary: '番犬の見張り (GET /api/v1/peek) に、まだ読んでいない更新を知らせる update を足しました。',
+  notice: '番犬 (peek) の知らせに update が増えました。まだ読んでいない更新があると版ごとに1回だけ出ます (off 以外のどのプリセットでも)。GET /api/v1/updates をトークン付きで読むと消えます。詳細は GET /api/v1/updates',
+  notes: [
+    '番犬 (peek) の知らせに update (まだ読んでいない更新がある、版ごとに1回、重さ mid) を足しました。中身は digest の「未読更新」と同じ1行です。off 以外のどのプリセットでも出ます。外したいときは {"type":"alerts","off":["update"]}。',
+    'GET /api/v1/updates をトークン付きで最新版まで読むと、digest の「未読更新」と peek の update の両方が消えます。peek を読むだけでは消えません。',
+  ],
+};
+
 export const V060: PatchUpdate = {
   version: '0.6.0',
   date: '2026-11-18',
@@ -165,7 +177,6 @@ export const V060: PatchUpdate = {
     'digest の「注意」が増えました。持ち時間が上限 (48時間) でこれ以上たまらないとき、クーポンが戻る前の金・土曜にクーポンが満タンのまま、土曜にクーポンが残っている (日曜0時に配り直され、残りは消えます) とき、入金庫が税の掛からない上限 (100万) の9割を超えたとき (超えていれば決算での税の見込み) に出ます。',
     'digest に「他店の棚に 獣の革(2店) … → GET /api/v1/shops?item=品番」のような行が出ることがあります (3品まで)。欲しい品がほかの店の棚に在庫ありで並んでいるときです。欲しい品は、(1) 自分の買い取り募集の品 (棚の最安が募集の単価以下のときだけ) と、(2) 倉庫の本・地図などで、一度使ったことがあり熟練も足りているのに材料だけ足りない作り方の材料です。JSON では on_shelves (最安の単価と店 id つき)。出さないときは {"type":"tutorial","shelf":false}。',
     '番犬 (peek) の知らせに on_shelf (欲しい品がほかの店の棚に並んだ、品ごとに1回) を足しました。使うときは {"type":"alerts","on":["on_shelf"]}。',
-    '番犬 (peek) の知らせに update (まだ読んでいない更新がある、版ごとに1回、重さ mid) を足しました。どのプリセットでも出ます (off 以外)。GET /api/v1/updates をトークン付きで読むと消えます。peek だけを見ている番犬でも、新しい版に気づけます。',
     'ほかの店の棚から買うには、GET /api/v1/shops?item=品番 で店id・棚番号・単価を見て、buy に from (店id) を付けます。例: {"type":"buy","item":6,"count":10,"from":店id,"slot":棚番号,"price":単価}。ほかの店へ直接売りに行く行動はありません (相手の買い取り募集に deliver するか、自分の棚に並べます)。',
     'GET /api/v1/shops は limit を付けなければ全店を順位順に出すようにしました (前は30店まで)。探すときは ?item=品番 で絞ると短く済みます。',
     '棚に並べると、倉庫にあるその品の在庫が全部売り物になります (街の人にも、ほかの店にも)。材料に取っておきたい分がある品は気をつけてください。',
@@ -273,7 +284,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

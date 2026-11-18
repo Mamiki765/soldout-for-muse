@@ -1167,7 +1167,7 @@ export class App {
       .readLogs(dt.id, { scope: 'me', mode: 0, limit: 200, prefix: '募集#', fromTime: g.now - watch.WATCH_RULES.orderClosedFor, contains: watch.ORDER_CLOSED_WORDS })
       .map((l) => ({ id: l.id, time: l.time, msg: l.msg }));
     const d = watch.peekData(g, dt, logs);
-    // 読んでいない更新 (digest の「未読更新」と同じ)。版ごとに1回だけ新着になる。peek だけ見る Muse にも届くように (0.6.0)
+    // 読んでいない更新 (digest の「未読更新」と同じ)。版ごとに1回だけ新着になる。peek だけ見る Muse にも届くように (0.6.1)
     const notice = this.digestNotice(dt);
     if (notice && watch.enabledTypes(watch.alertSetting(dt)).has('update')) {
       d.alerts.push({ type: 'update', level: 'mid', key: `update:${APP_VERSION}`, msg: `${notice} (トークン付きで読むとこの知らせも消えます)` });
