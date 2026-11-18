@@ -218,3 +218,19 @@ test('所持上限: ミノ牛乳2000・ミノ・ジェラート200', () => {
   assert.equal(BASE_ITEMS[MILK].limit, 2000);
   assert.equal(BASE_ITEMS[110].limit, 200);
 });
+
+test('詫び草: ミノを持つ店にだけ頭数×10束、上限1000まで、記録に1行', async () => {
+  const { giveApologyHay } = await import('../src/engine/apology.js');
+  const { g, dt } = fixture();
+  dt.item[MINO - 1] = 12;
+  const big = openShop(g, { name: 'big', shopname: '大牧場' });
+  big.item[MINO - 1] = 30;
+  big.item[HAY - 1] = 900;
+  const none = openShop(g, { name: 'none', shopname: '牛なし' });
+  const rows = giveApologyHay(g);
+  assert.deepEqual(rows.map((r) => [r.shop, r.cows, r.hay]), [[dt.id, 12, 120], [big.id, 30, 100]]);
+  assert.equal(dt.item[HAY - 1], 120);
+  assert.equal(big.item[HAY - 1], 1000);
+  assert.equal(none.item[HAY - 1], 0);
+  assert.ok(g.newLogs.some((l) => l.from === dt.id && /お詫びの干し草を120束/.test(l.msg)));
+});
