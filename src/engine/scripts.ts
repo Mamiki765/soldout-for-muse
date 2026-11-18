@@ -363,12 +363,22 @@ export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req
 };
 
 /** USE の functionbefore。0=通常 1=使えない 2=表示だけ */
+/**
+ * 材料の数が店の状態で変わる使い方 (干し草を与えて搾る: 干し草が1回に頭数ぶん) の材料を、その店の数に直す。
+ * 実行前の判定 (USE_BEFORE_FUNCS) と、判定を通さずに材料を見るところ (他店の棚に など) の両方で使う
+ */
+export function scaleUseMaterials(dt: Shop, u: RtUse): void {
+  if (u.itemcode !== 'mino' || u.def.func_before !== '_local_b2') return;
+  const line = u.use.find((l) => l.no === HAY);
+  if (line) line.count = Math.max(1, dt.item[25 - 1]);
+}
+
 export type UseBeforeFunc = (g: Game, dt: Shop, u: RtUse) => number;
 
 export const USE_BEFORE_FUNCS: Record<string, UseBeforeFunc> = {
-  // 干し草を与えて搾る: 干し草が1回に頭数ぶん要る (材料の数が頭数で変わるので、使い方を調べるときに足す)
+  // 干し草を与えて搾る: 干し草が1回に頭数ぶん要る (定義には1頭ぶんで書いてあり、使い方を調べるときに頭数ぶんへ直す)
   'mino:_local_b2'(_g, dt, u) {
-    u.use.push({ no: HAY, count: Math.max(1, dt.item[25 - 1]), proba: 1000 });
+    scaleUseMaterials(dt, u);
     return 0;
   },
   // 剣市への地図: 1割の確率で収穫が2倍

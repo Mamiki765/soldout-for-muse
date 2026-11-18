@@ -408,6 +408,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$u->{func} = $spec->{func};
 		$u->{func_before} = $spec->{func_before};
 		$u->{params} = $spec->{params} // [undef, undef, undef, undef];
+		# 干し草を与えて搾るの干し草は「1頭ぶん」で書き、実行時に頭数ぶんへ直す (scripts.ts scaleUseMaterials)
+		push @{ $u->{use} }, @{ $lines->($spec->{materials} // [], 1000) };
 		$u->{get} = $lines->($spec->{get} // [], 1000);
 		push @{ $cow->{uses} }, $u;
 	}

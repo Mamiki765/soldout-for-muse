@@ -175,3 +175,22 @@ test('原作の乳を搾る・ハードに乳を搾るは式も時間もその�
   useItemAction(g, dt, MINO, 0, { count: 1 });
   assert.equal(dt.item[MILK - 1], 3, 'trunc(0.2×10)+1');
 });
+
+test('干し草を与えて搾る: 干し草は定義では1頭ぶん、店では頭数ぶん。材料の逆引きと「他店の棚に」にも出る', async () => {
+  const { onShelf } = await import('../src/engine/onshelf.js');
+  const { itemDetailData } = await import('../src/api/views.js');
+  const def = BASE_ITEMS[MINO].uses[FEED];
+  assert.deepEqual(def.use, [{ item_no: MINO, count: 1, proba: 0 }, { item_no: HAY, count: 1, proba: 1000 }]);
+  const { g, dt } = fixture();
+  assert.ok(itemDetailData(g, HAY).used_in.some((u) => u.item === MINO && u.use === FEED), '干し草の「材料になる先」に出る');
+  dt.item[MINO - 1] = 12;
+  dt.item[HAY - 1] = 11;
+  dt.exp[MINO] = 10;
+  const other = openShop(g, { name: 'hay', shopname: '牧草の店' });
+  other.showcase[0] = HAY;
+  other.price[0] = 160;
+  other.item[HAY - 1] = 300;
+  assert.deepEqual(onShelf(g, dt).map((x) => [x.item, x.why]), [[HAY, 'recipe']], '12頭に11束では足りない');
+  dt.item[HAY - 1] = 12;
+  assert.deepEqual(onShelf(g, dt), [], '頭数ぶんあれば出さない');
+});

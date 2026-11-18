@@ -45,6 +45,7 @@
    "exp": 10,
    "func": "_local_2",
    "func_before": "_local_b2",
+   "materials": [[115, 1]],
    "params": ["5", "2", null, null]
   },
   {
