@@ -45,6 +45,8 @@ function capRank(dt: Shop): void {
 }
 
 const ROBOT = (): number => itemNoByName('店番ロボット');
+/** 干し草 (0.6.0) */
+const HAY = 115;
 
 // ---------------------------------------------------------------------------
 // USE の function (使用したときの効果)
@@ -119,6 +121,22 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       itemUseItem(dt, u, 25, usecount, g.items[25].name + 'が' + (p1 === 1 ? '寿命' : '過労') + 'で天に召されました');
     }
     const ret = 'ミノ牛乳を' + val + '本精製しました';
+    log(g, 0, dt.id, ret);
+    return ret;
+  },
+
+  // 干し草を与えて搾る (目安箱 #7、0.6.0 で追加。原作に無い使い方)。干し草は前処理 mino:_local_b2 で頭数ぶん×回数を消費済み。
+  // 1回で 頭数×params[0] 〜 頭数×(params[0]+params[1]) 本 (5〜7、平均6)。牛は減らない
+  'mino:_local_2'(g, dt, u, { count }) {
+    const base = Number(u.params[0]);
+    const spread = Number(u.params[1]);
+    const n = dt.item[25 - 1] * count;
+    const val = base * n + Math.trunc(g.rand(spread * n + 1));
+    const got = addItemSub(g, dt, 26, val);
+    u.result.additem.push({ item_no: 26, count: got });
+    u.result.addmsg.push('ミノ牛乳を精製しました');
+    let ret = 'ミノ牛乳を' + val + '本精製しました';
+    if (got < val) ret += ' (持てる上限で' + (val - got) + '本は捨てました)';
     log(g, 0, dt.id, ret);
     return ret;
   },
@@ -348,6 +366,11 @@ export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req
 export type UseBeforeFunc = (g: Game, dt: Shop, u: RtUse) => number;
 
 export const USE_BEFORE_FUNCS: Record<string, UseBeforeFunc> = {
+  // 干し草を与えて搾る: 干し草が1回に頭数ぶん要る (材料の数が頭数で変わるので、使い方を調べるときに足す)
+  'mino:_local_b2'(_g, dt, u) {
+    u.use.push({ no: HAY, count: Math.max(1, dt.item[25 - 1]), proba: 1000 });
+    return 0;
+  },
   // 剣市への地図: 1割の確率で収穫が2倍
   'shiire-ken:_local_b1'(g, _dt, u) {
     if (g.rand(1000) > 100) return 0;

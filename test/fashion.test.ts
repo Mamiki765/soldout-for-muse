@@ -82,11 +82,11 @@ const triples = (u: UseDef['use']) => u.map((l) => [l.item_no, l.count, l.proba]
 const BOOK_TOOLS: Record<number, number[]> = { 66: [18, 19], 20: [18] };
 const toolsOf = (book: number) => BOOK_TOOLS[book] ?? [];
 
-test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が正しい (全114種で番号・名前が重ならない)', () => {
-  assert.equal(MAX_ITEM, 114);
-  assert.equal(current.items.length, 114);
-  assert.equal(new Set(current.items.map((it) => it.code)).size, 114);
-  assert.equal(new Set(current.items.map((it) => it.name)).size, 114);
+test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が正しい (全115種で番号・名前が重ならない)', () => {
+  assert.equal(MAX_ITEM, 115);
+  assert.equal(current.items.length, 115);
+  assert.equal(new Set(current.items.map((it) => it.code)).size, 115);
+  assert.equal(new Set(current.items.map((it) => it.name)).size, 115);
   for (const [no,name,price,popular,cost,limit,plus] of itemSpecs) {
     const i = BASE_ITEMS[no];
     assert.deepEqual([i.no,i.name,i.price,i.popular,i.cost,i.limit,i.plus,i.point,i.type],
@@ -104,7 +104,8 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
   }
 });
 
-test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス以外に差分がなく、イベントも不変', () => {
+test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草以外に差分がなく、イベントも不変', () => {
+  const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as { info_changes: { item: number; use: number; info: string }[] };
   for (const old of original.items) {
     const expected = structuredClone(old);
     if (old.no === 66) expected.uses.forEach((u, index) => {
@@ -120,6 +121,9 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
       (expected as typeof expected & { expitem?: number }).expitem = 25;
       for (const u of expected.uses) if (u.get.length) { u.exptime = Math.trunc(u.time * 0.75); u.exp = 10; }
     }
+    // 0.6.0 干し草 (tools/hay.json): 近くの山への地図の行き先すべてに副産物の干し草、乳搾り2つは説明に数字を足すだけ
+    if (old.no === 12) for (const u of expected.uses) u.get = [...u.get, { item_no: 115, count: 20, proba: 800 }];
+    if (old.no === 25) for (const ch of hay.info_changes) expected.uses[ch.use].info = ch.info;
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
@@ -143,8 +147,8 @@ test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕
     assert.deepEqual([u.time,u.exptime,u.func,u.params[0],u.needexp], [time,exptime,'lostbook',String(lostbook),null]);
     assert.deepEqual(u.jobs, [{ job:book === 20 ? 'weapon' : 'tool', key:'times', op:'/', value:2 }]);
   }
-  // v0.2.0 で19、v0.3.0 で11 (作り方8・行き先3)、固めプリンで1、禁断の書の届け出で1 増えた
-  assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19 + 11 + 1 + 1);
+  // v0.2.0 で19、v0.3.0 で11 (作り方8・行き先3)、固めプリンで1、禁断の書の届け出で1、干し草で3 (牧草地・干し草を与えて搾る・放牧地) 増えた
+  assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19 + 11 + 1 + 1 + 3);
   const choker = BASE_ITEMS[66].uses.find((u) => u.get[0]?.item_no === 84)!;
   assert.deepEqual(choker.use.map((l) => BASE_ITEMS[l.item_no].name), ['鍛冶屋の技術','魔法の知識','ミスリル線','草織り布','なめし革','エーテル']);
 });
@@ -181,7 +185,8 @@ test('追加採取の5ゲート・複数産出・熟練と、既存の行き先�
   for (const [book,name,needexp,products] of gathering) {
     const u = BASE_ITEMS[book].uses.find((u) => u.name === name)!;
     assert.deepEqual([u.needexp,u.time,u.exptime,u.exp], [needexp,10800,5400,10]);
-    assert.deepEqual(triples(u.get), products);
+    // 山の行き先には 0.6.0 から副産物の干し草 (115) が末尾に付く
+    assert.deepEqual(triples(u.get), book === 12 ? [...products, [115, 20, 800]] : products);
   }
   for (const book of [9,12]) assert.ok(BASE_ITEMS[book].uses.slice(0,originalByNo(book).uses.length).every((u) => u.needexp === null));
 });
@@ -237,7 +242,7 @@ test('原作定義からの再生成がコミット対象JSONと完全一致す�
   assert.equal(execFileSync('perl',['tools/dump-items.pl','normal'],{encoding:'utf8'}),readFileSync('src/data/items.json','utf8'));
 });
 
-test('79品時代のセーブは在庫を保ったまま114枠へ拡張し、新素材は初期投入しない', () => {
+test('79品時代のセーブは在庫を保ったまま115枠へ拡張し、新素材は初期投入しない', () => {
   const store = new Store(':memory:');
   try {
     const w = newWorld(T0,79);
@@ -248,8 +253,8 @@ test('79品時代のセーブは在庫を保ったまま114枠へ拡張し、新
     dt.exp[9] = 400;
     store.saveWorld(w,[],T0,172800);
     const loaded = store.loadWorld(T0);
-    assert.deepEqual(loaded.wholestore,[...Array(79).fill(3),...Array(35).fill(0)]);
-    assert.deepEqual(loaded.shops[0].item,[...Array(79).fill(2),...Array(35).fill(0)]);
+    assert.deepEqual(loaded.wholestore,[...Array(79).fill(3),...Array(36).fill(0)]);
+    assert.deepEqual(loaded.shops[0].item,[...Array(79).fill(2),...Array(36).fill(0)]);
     assert.equal(loaded.shops[0].exp[9],400);
   } finally { store.close(); }
 });
