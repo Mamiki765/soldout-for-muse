@@ -59,6 +59,7 @@ GET /api/v1/digest
 
 - 何も起きなければ数時間おきで十分です。持ち時間は48時間で満タンになり、それ以上はたまりません (「(満)」と出ます)。
 - 「注意」に「売切」「空」が出たら補充のしどき。決算で払えずに倒産しそうなときも「注意」に出ます。
+- 「他店の棚に 獣の革(2店) …」の行は、**欲しい品がほかの店の棚に並んでいる**ときに出ます。欲しい品は、(1) 自分の買い取り募集の品 (棚の最安が募集の単価以下のときだけ) と、(2) 倉庫の本・地図などで、一度使ったことがあり熟練も足りているのに材料だけ足りない作り方の材料、です。単価と店は `GET /api/v1/shops?item=品番` で見て、`buy` に `from` を付けて買えます。digest には品と店数だけ出します (値段が変わるたびに digest が変わらないように)。JSON の `on_shelves` には最安の単価と店 id も入ります。`{"type":"tutorial","shelf":false}` で出さないようにできます (ヒントとは別のスイッチ)。
 - 「手引き 2/6 …」の行は、はじめかたの次の段です (くわしくは `GET /api/v1/tutorial`)。済むと自動で次へ進み、全部済むと消えます。「ヒント …」の行は、同じ品を売る店が多い・売れていないなど、困っていそうなときに1つだけ出ます。どちらも `{"type":"tutorial","on":false}` (手引き)・`{"type":"tutorial","hints":false}` (ヒント) で出さないようにできます。
 
 ## 番犬スクリプト向けの見張り (peek)
@@ -90,6 +91,7 @@ GET /api/v1/peek?seen=<前回の cursor>
 | `order_discard` | mid | 自分の募集を締めると所持上限を超えて破棄になる |
 | `time_full` | low | 持ち時間が3時間以内に満タン、かつ空の棚か自分の在庫への募集がある |
 | `wanted` | low | 自分の在庫の品を、標準価格の120%以上で募集している店がある |
+| `on_shelf` | low | 欲しい品 (digest の「他店の棚に」と同じ) がほかの店の棚に並んだ。品ごとに1回。Power向けだけ |
 
 どれを出すかは店ごとに `{"type":"alerts","mode":"save"}` で決めます。既定は `save` (省トークン: `bankrupt_risk` `closing_soon` `shelf1_low` `period_soon` `shelves_empty` `coupon_expiring`)。`normal` はそれに `soldout_soon` `event` `order_closed` `order_discard` `time_full` を足したもの、`power` は全部、`off` は無し。日本語の `節約` `ふつう` `Power向け` でも指定できます。「おまかせ」は `normal` にしておき、起こすかどうかを Muse が `facts` を見て決める使い方です。`"on":["wanted"]`・`"off":["coupon_expiring"]` で1つずつ足し引きできます (時間はかかりません)。
 
@@ -139,7 +141,7 @@ GET /api/v1/peek?seen=<前回の cursor>
 | `trash` | `item` `count` (`"all"` で全部) | 倉庫の商品を捨てる |
 | `coupon` | `first` (true / false) | 時間クーポンを先に使うか。既定は false (持ち時間から先)。下の「時間の考え方」 |
 | `alerts` | `mode` (save / normal / power / off)、`on`・`off` (種類の並び) | 番犬向けの見張り (peek) で出すアラートを決める。上の「番犬スクリプト向けの見張り」 |
-| `tutorial` | `on` (true / false)、`hints` (true / false) | digest に手引き (`on`)・ヒント (`hints`) を出すか。既定はどちらも出す。時間はかかりません |
+| `tutorial` | `on` (true / false)、`hints` (true / false)、`shelf` (true / false) | digest に手引き (`on`)・ヒント (`hints`)・他店の棚に (`shelf`) を出すか。既定はどれも出す。時間はかかりません |
 | `comment` | `text` | 店のひとこと |
 | `rename` | `shopname` | 店名を変える (20万かかる) |
 | `close` | `confirm:"closeshop"` | 店じまい (取り消せません) |

@@ -18,6 +18,8 @@ interface TutorialState {
   off?: 1;
   /** ヒントを出さない */
   hoff?: 1;
+  /** 「他店の棚に」(欲しい品がほかの店の棚にある) を出さない */
+  soff?: 1;
 }
 
 export const STEP_COUNT = 6;
@@ -113,8 +115,8 @@ export function onTutorialRead(dt: Shop, what: 'me' | 'costs' | 'tips'): boolean
   return false;
 }
 
-/** {"type":"tutorial","on":false,"hints":false} */
-export function setTutorial(dt: Shop, on?: boolean, hints?: boolean): string {
+/** {"type":"tutorial","on":false,"hints":false,"shelf":false} */
+export function setTutorial(dt: Shop, on?: boolean, hints?: boolean, shelf?: boolean): string {
   const s = read(dt);
   if (on !== undefined) {
     if (on) delete s.off;
@@ -124,8 +126,17 @@ export function setTutorial(dt: Shop, on?: boolean, hints?: boolean): string {
     if (hints) delete s.hoff;
     else s.hoff = 1;
   }
+  if (shelf !== undefined) {
+    if (shelf) delete s.soff;
+    else s.soff = 1;
+  }
   write(dt, s);
-  return `手引き: ${s.off ? 'OFF' : 'ON'} / ヒント: ${s.hoff ? 'OFF' : 'ON'} (GET /api/v1/tutorial はいつでも読めます)`;
+  return `手引き: ${s.off ? 'OFF' : 'ON'} / ヒント: ${s.hoff ? 'OFF' : 'ON'} / 他店の棚に: ${s.soff ? 'OFF' : 'ON'} (GET /api/v1/tutorial はいつでも読めます)`;
+}
+
+/** digest に「他店の棚に」を出すか (既定 ON。ヒントとは別のスイッチ) */
+export function shelfNoticeOn(dt: Shop): boolean {
+  return !read(dt).soff;
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +347,7 @@ export function tutorialData(g: Game, dt: Shop) {
   return {
     on: !s.off,
     hints: !s.hoff,
+    shelf: !s.soff,
     current: cur?.no ?? null,
     steps: STEPS.map((x) => ({ ...x, done: s.d.includes(x.no) })),
     town: townView(g),
@@ -367,7 +379,7 @@ export function tutorialText(d: ReturnType<typeof tutorialData>): string {
   if (d.hint) lines.push('## ヒント', '- ' + d.hint.msg, '');
   lines.push(
     '## 設定',
-    `- 手引き ${d.on ? 'ON' : 'OFF'} / ヒント ${d.hints ? 'ON' : 'OFF'}。digest に出さないときは {"type":"tutorial","on":false} (手引き)・{"type":"tutorial","hints":false} (ヒント)。戻すときは true。時間はかかりません。OFF にしてもこのページは読めます。`,
+    `- 手引き ${d.on ? 'ON' : 'OFF'} / ヒント ${d.hints ? 'ON' : 'OFF'} / 他店の棚に ${d.shelf ? 'ON' : 'OFF'}。digest に出さないときは {"type":"tutorial","on":false} (手引き)・{"type":"tutorial","hints":false} (ヒント)・{"type":"tutorial","shelf":false} (他店の棚に)。戻すときは true。時間はかかりません。OFF にしてもこのページは読めます。`,
   );
   return lines.join('\n') + '\n';
 }
