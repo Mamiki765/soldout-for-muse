@@ -247,3 +247,73 @@ test('使えない使い方は理由を返す (材料・熟練)', () => {
   assert.throws(() => useItemAction(g, dt, 10, 0, { count: 1 }), (e: unknown) => e instanceof GameError && /^使えません \(足りない: /.test(e.message));
   assert.throws(() => useItemAction(g, dt, 10, 99, { count: 1 }), (e: unknown) => e instanceof GameError && /使い方の番号 99 はありません/.test(e.message));
 });
+
+// ---------------------------------------------------------------------------
+// digest の注意: 持ち時間の満タンと、週末のクーポン (0.6.0)
+
+const FRI = Date.UTC(2027, 0, 15, 3, 0, 0) / 1000; // 2027-01-15 (金) 12:00 JST
+const SAT = Date.UTC(2027, 0, 16, 3, 0, 0) / 1000; // 2027-01-16 (土) 12:00 JST
+const N0 = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 };
+const warns = (g: Game, dt: ReturnType<typeof setup>['dt']) => digestData(g, dt, N0).warnings;
+
+test('digest: 持ち時間が上限なら使うよう促し、手引きを案内する', () => {
+  const { g, dt } = setup(WED, false);
+  dt.time = g.now - DEFAULT_CONFIG.maxStockTime;
+  const w = warns(g, dt).find((x) => x.startsWith('持ち時間が'));
+  assert.ok(w && /上限の48時間に達し/.test(w) && /GET \/api\/v1\/tutorial/.test(w), String(w));
+  dt.time = g.now - DEFAULT_CONFIG.maxStockTime + 60;
+  assert.ok(!warns(g, dt).some((x) => x.startsWith('持ち時間が')));
+});
+
+test('digest: 平日はクーポンの注意を出さない', () => {
+  const { g, dt } = setup(WED, false);
+  assert.ok(!warns(g, dt).some((x) => /クーポン/.test(x)));
+});
+
+test('digest: 金曜にクーポンが満タンなら週末の注意 (優先の切り替えも案内)', () => {
+  const { g, dt } = setup(FRI, false);
+  const w = warns(g, dt).filter((x) => /クーポン/.test(x));
+  assert.equal(w.length, 1);
+  assert.match(w[0], /そろそろ週末/);
+  assert.match(w[0], /01\/17 00:00/);
+  assert.match(w[0], /\{"type":"coupon","first":true\}/);
+  // 少しでも使っていれば金曜は出さない
+  g.setCouponFirst(dt, true);
+  use(g, dt.id, H);
+  g.setCouponFirst(dt, false);
+  g.dt = dt;
+  assert.ok(!warns(g, dt).some((x) => /クーポン/.test(x)));
+});
+
+test('digest: 土曜にクーポンが残っていれば使い切りの注意、満タンなら週末の注意だけ', () => {
+  const { g, dt } = setup(SAT, true);
+  let w = warns(g, dt).filter((x) => /クーポン/.test(x));
+  assert.equal(w.length, 1);
+  assert.match(w[0], /そろそろ週末/);
+  assert.doesNotMatch(w[0], /"first":true/, '既に優先なら切り替えは出さない');
+  use(g, dt.id, 40 * H);
+  w = warns(g, dt).filter((x) => /クーポン/.test(x));
+  assert.equal(w.length, 1);
+  assert.match(w[0], /時間クーポンが8h00m残っています/);
+  use(g, dt.id, 8 * H);
+  assert.ok(!warns(g, dt).some((x) => /クーポン/.test(x)), '使い切ったら出さない');
+});
+
+test('digest: クーポンを切っている設定では出さない', () => {
+  const world = newWorld(SAT, MAX_ITEM);
+  const g = game(world, SAT, { ...DEFAULT_CONFIG, couponTime: 0 });
+  const dt = openShop(g, { name: 'bob', shopname: 'ボブ商店' });
+  assert.ok(!warns(g, dt).some((x) => /クーポン/.test(x)));
+});
+
+test('digest: 入金庫が税の掛からない上限の9割を超えたら注意、超えたら税の見込み', () => {
+  const { g, dt } = setup(WED, false);
+  dt.moneystock = 890_000;
+  assert.ok(!warns(g, dt).some((x) => x.startsWith('入金庫')));
+  dt.moneystock = 900_000;
+  assert.ok(warns(g, dt).some((x) => /入金庫が税の掛からない上限1000000に近づいています \(あと100000\)/.test(x)));
+  dt.moneystock = 1_000_000;
+  assert.ok(warns(g, dt).some((x) => /あと0/.test(x)), '上限ちょうどはまだ税なし');
+  dt.moneystock = 2_000_000;
+  assert.ok(warns(g, dt).some((x) => /決算で税110000 \(超えた分の11%\)/.test(x)));
+});

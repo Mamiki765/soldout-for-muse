@@ -4,7 +4,7 @@
 
 import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
-import type { Game } from '../engine/game.js';
+import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
@@ -64,6 +64,33 @@ export interface DigestInput {
   newReplies?: number;
 }
 
+/**
+ * 週末のクーポンの注意 (0.6.0)。曜日はクーポンが戻る時刻から数える (既定は日曜0時 JST)。
+ * - 戻る2日前から (金・土) でクーポンが満タンのまま: 週末なので使いましょう
+ * - 戻る1日前から (土) でクーポンが残っている: 0時までに使い切りましょう
+ * 両方に当たるときは前者だけ出す。
+ */
+export function couponWarning(g: Game, dt: Shop): string | null {
+  const max = g.config.couponTime;
+  if (max <= 0) return null;
+  const left = g.couponTime(dt);
+  if (left <= 0) return null;
+  const until = g.nextCouponTime() - g.now;
+  const sw = g.couponFirst(dt) ? '' : ' (クーポンから先に使う: {"type":"coupon","first":true})';
+  if (until <= 2 * 86400 && left >= max) return `そろそろ週末。時間クーポン${max / 3600}時間がまだ手つかずです。${jst(g.nextCouponTime())}に配り直され、残りは繰り越せないので早めに使いましょう${sw}`;
+  if (until <= 86400) return `時間クーポンが${dur(left)}残っています。${jst(g.nextCouponTime())}に配り直され、残りは消えるので、それまでに使い切りましょう${sw}`;
+  return null;
+}
+
+/** 入金庫に税が掛かりそうなときの注意 (0.6.0)。税の掛からない上限の9割から出す */
+export function taxWarning(g: Game, dt: Shop): string | null {
+  const line = TAX_FREE_MONEYSTOCK;
+  if (dt.moneystock < line * 0.9) return null;
+  const [tax, rate] = g.taxToday(dt);
+  if (tax > 0) return `入金庫が${line}を超えていて、このままだと決算で税${tax} (超えた分の${rate}%) が掛かります。仕入れに使う分は決算の前に資金へ移すと税が減ります`;
+  return `入金庫が税の掛からない上限${line}に近づいています (あと${line - dt.moneystock})。決算のときに超えていると、超えた分に税が掛かります`;
+}
+
 /** digest の「値動き」で知らせるしきい値 (前の決算から ±20% 以上) と、出す品の数 */
 export const PRICE_MOVE_PCT = 20;
 export const PRICE_MOVE_MAX = 5;
@@ -102,7 +129,11 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     if (!s.item) warnings.push(`棚${s.slot}が空`);
     else if (s.stock === 0) warnings.push(`棚${s.slot}の${s.name}が売切`);
   }
-  if (full <= 0) warnings.push('持ち時間が満タン');
+  if (full <= 0) warnings.push(`持ち時間が上限の${g.config.maxStockTime / 3600}時間に達し、これ以上たまりません。行動して使いましょう (何をするか迷ったら手引き GET /api/v1/tutorial)`);
+  const cw = couponWarning(g, dt);
+  if (cw) warnings.push(cw);
+  const tw = taxWarning(g, dt);
+  if (tw) warnings.push(tw);
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
   const est = periodEstimate(g, dt);
   if (est.short > 0) warnings.push(`このままだと決算で倒産の恐れ (見込み支払い${est.total}に対し資金+入金庫${est.available}、不足${est.short})`);

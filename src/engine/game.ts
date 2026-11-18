@@ -12,6 +12,8 @@ import type { PeriodPriceRow } from './prices.js';
 
 /** 時間クーポンの保存先 (Shop.user)。配られた週の開始時刻と残り秒 */
 export const COUPON_WEEK = '_coupon_week';
+/** 原作 GetTodayTax: 入金庫のこの額を超えた分に、決算で税が掛かる */
+export const TAX_FREE_MONEYSTOCK = 1000000;
 export const COUPON_LEFT = '_coupon_left';
 /** '1' ならクーポンから先に使う */
 export const COUPON_FIRST = '_coupon_first';
@@ -284,7 +286,7 @@ export class Game {
 
   /** 原作 GetTaxToday: 入金庫の残高にかかる税。[税額, 税率] */
   taxToday(dt: Shop): [number, number] {
-    let tax = dt.moneystock - 1000000;
+    let tax = dt.moneystock - TAX_FREE_MONEYSTOCK;
     let taxrate = 0;
     if (tax < 0) tax = 0;
     if (tax) {
