@@ -8,6 +8,7 @@ import type { Game } from './game.js';
 import { addItemCost, startTracking } from './costs.js';
 import { checkWholeStore, getMarketStatus } from './market.js';
 import { sweepOrders } from './orders.js';
+import { closePeriodPrices, observePrices } from './prices.js';
 import { turnPeriod } from './period.js';
 import { EVENT_FUNCS, EVENT_NOW_FUNCS, TURN_FUNCS } from './scripts.js';
 
@@ -238,6 +239,8 @@ export function turnProc(g: Game): void {
     }
     // 市場在庫上限下限チェック＆補正
     checkWholeStore(g);
+    // 決算をした区間なら、この区間の市場在庫の増減まで済んだ値で値動きを1行にする (0.6.0)
+    closePeriodPrices(g);
 
     // イベント終了処理
     const activeGroups = new Set<string>();
@@ -300,6 +303,8 @@ export function turnProc(g: Game): void {
 
     temptimenow += timespan;
   }
+  // 今期の相場・市場の単価の最安・最高を更新する (0.6.0)
+  observePrices(g);
 
   // 経営者不在処理
   for (const dt of g.shops) {
