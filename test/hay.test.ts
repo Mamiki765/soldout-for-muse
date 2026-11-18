@@ -138,13 +138,13 @@ test('干し草を与えて搾る: 干し草が頭数ぶん無いと使えず、
   assert.equal(dt.item[HAY - 1], 5);
 });
 
-test('干し草を与えて搾る: 牛乳の上限500を超えた分は捨てたと書く', () => {
+test('干し草を与えて搾る: 牛乳の上限2000を超えた分は捨てたと書く', () => {
   const { g, dt } = fixture();
   dt.item[MINO - 1] = 20;
   dt.item[HAY - 1] = 20;
-  dt.item[MILK - 1] = 450;
+  dt.item[MILK - 1] = 1950;
   const u = useItemAction(g, dt, MINO, FEED, { count: 1 });
-  assert.equal(dt.item[MILK - 1], 500);
+  assert.equal(dt.item[MILK - 1], 2000);
   assert.match(u.result.function_return!, /持てる上限で\d+本は捨てました/);
 });
 
@@ -193,4 +193,28 @@ test('干し草を与えて搾る: 干し草は定義では1頭ぶん、店で�
   assert.deepEqual(onShelf(g, dt).map((x) => [x.item, x.why]), [[HAY, 'recipe']], '12頭に11束では足りない');
   dt.item[HAY - 1] = 12;
   assert.deepEqual(onShelf(g, dt), [], '頭数ぶんあれば出さない');
+});
+
+test('ヘビー発酵: 牛乳20本でチーズ2個、熟練0で2時間・熟練最大1.5時間 (ライト発酵と同じ)、酪農家は半分', () => {
+  const heavy = BASE_ITEMS[MILK].uses[2];
+  const light = BASE_ITEMS[MILK].uses[1];
+  assert.equal(heavy.name, 'ヘビー発酵');
+  assert.deepEqual([heavy.time, heavy.exptime], [light.time, light.exptime]);
+  assert.deepEqual([heavy.time, heavy.exptime], [4320, 3240]);
+  assert.deepEqual(heavy.get, [{ item_no: 36, count: 2, proba: 1000 }]);
+  assert.match(heavy.info!, /ミノチーズが2個/);
+  const { g, dt } = fixture('cow');
+  dt.item[MINO - 1] = 10;
+  dt.item[MILK - 1] = 40;
+  dt.exp[MINO] = 1000;
+  const before = dt.time;
+  useItemAction(g, dt, MILK, 2, { count: 2 });
+  assert.equal(dt.item[36 - 1], 4);
+  assert.equal(dt.item[MILK - 1], 0);
+  assert.equal(dt.time - before, 3240);
+});
+
+test('所持上限: ミノ牛乳2000・ミノ・ジェラート200', () => {
+  assert.equal(BASE_ITEMS[MILK].limit, 2000);
+  assert.equal(BASE_ITEMS[110].limit, 200);
 });
