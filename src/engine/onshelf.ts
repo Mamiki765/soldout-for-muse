@@ -8,6 +8,7 @@ import { isPublicItem } from '../data/catalog.js';
 import type { Game } from './game.js';
 import { orders } from './orders.js';
 import type { Shop } from './types.js';
+import { scaleUseMaterials } from './scripts.js';
 import { loadUses } from './use.js';
 
 export interface OnShelf {
@@ -81,6 +82,7 @@ export function onShelf(g: Game, dt: Shop, now?: number): OnShelf[] {
     for (const u of loadUses(g, tool)) {
       const exp = dt.exp[u.expno] ?? 0;
       if (!(exp > 0) || exp < u.needexp) continue;
+      scaleUseMaterials(dt, u);
       for (const l of u.use) {
         // 使う品そのもの (ミノ牛乳を10使う発酵など) も、足りなければ材料として数える
         if (!(l.count > 0)) continue;
