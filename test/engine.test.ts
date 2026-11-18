@@ -33,8 +33,9 @@ function assertSane(world: World): void {
   assert.ok(Number.isFinite(world.people));
 }
 
-test('原作79種と追加35種 (v0.2.0 の23種・v0.3.0 の11種・固めプリン)、計114商品を読み込める', () => {
-  assert.equal(MAX_ITEM, 114);
+test('原作79種と追加36種 (v0.2.0 の23種・v0.3.0 の11種・固めプリン・干し草)、計115商品を読み込める', () => {
+  assert.equal(MAX_ITEM, 115);
+  assert.equal(BASE_ITEMS[115].name, '干し草');
   assert.equal(BASE_ITEMS[112].name, '調香の手引き');
   assert.equal(BASE_ITEMS[113].name, '乳菓のレシピ');
   assert.equal(itemNoByName('調香の手引き'), 112);

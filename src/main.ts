@@ -6,6 +6,7 @@
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
 //   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
+//   node dist/src/main.js give-hay                 0.6.0 の詫び草: ミノタウロス♀を持つ店に干し草を頭数×10束、一度だけ配る。サーバーを止めて実行
 // 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
@@ -24,6 +25,7 @@ import { BASE_ITEMS } from './data/catalog.js';
 import { DEFAULT_CONFIG } from './config.js';
 import { Game } from './engine/game.js';
 import { seedWholeStore } from './engine/market.js';
+import { APOLOGY_HAY_PER_HEAD, giveApologyHay } from './engine/apology.js';
 import { shownPeople } from './engine/types.js';
 import { APP_VERSION, UPDATES } from './updates.js';
 
@@ -101,6 +103,24 @@ if (cmd === 'set-invite') {
   store.close();
   console.log(`市場に新素材を ${hours} 時間ぶん入れました (人口 ${shownPeople(world)}、店 ${world.shops.length})`);
   for (const r of rows) console.log(`${r.no} ${r.name}: ${r.before} → ${r.after} (+${r.add})`);
+} else if (cmd === 'give-hay') {
+  // 0.6.0 の詫び草。動いているサーバーは街の状態をメモリに持っていて後で上書きするので、必ず止めてから実行する。
+  const store = new Store(dbPath);
+  const key = 'apology_hay:0.6.0';
+  if (store.getSetting(key)) {
+    console.error(`詫び草は配り済みです (${store.getSetting(key)})。二重には配りません`);
+    store.close();
+    process.exit(1);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const world = store.loadWorld(now);
+  const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
+  const rows = giveApologyHay(g);
+  store.saveWorld(world, g.newLogs, now, DEFAULT_CONFIG.logExpireTime * 2);
+  store.setSetting(key, `${new Date(now * 1000).toISOString()} ${rows.length}店`);
+  store.close();
+  console.log(`ミノタウロス♀を持つ ${rows.length} 店に干し草を頭数×${APOLOGY_HAY_PER_HEAD}束配りました`);
+  for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cows}頭 → 干し草 ${r.hay}束`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
   const app = new App({
@@ -139,6 +159,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間]]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay]');
   process.exit(2);
 }

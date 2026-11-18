@@ -15,9 +15,14 @@ export function getMarketStatus(g: Game): void {
     item.todaysale = 0;
     item.yesterdaysale = 0;
     item.marketprice = 0;
+    // 棚の最安・最高と出品店数も毎回数え直す (1回のリクエストで2回計算しても前の値が残らないように。0.6.0)
+    item.marketpricelow = 0;
+    item.marketpricehigh = 0;
+    item.listshops = 0;
     item.uppoint = 0;
   }
   for (const dt of g.shops) {
+    const counted = new Set<number>();
     for (let caseno = 0; caseno < dt.showcasecount; caseno++) {
       const no = dt.showcase[caseno] ?? 0;
       const stock = no ? dt.item[no - 1] : 0;
@@ -28,6 +33,10 @@ export function getMarketStatus(g: Game): void {
       item.todayprice += price * stock; // 陳列金額トータル
       if (item.marketpricelow > price || !item.marketpricelow) item.marketpricelow = price; // 最安値
       if (item.marketpricehigh < price) item.marketpricehigh = price; // 最高値
+      if (!counted.has(no)) {
+        counted.add(no);
+        item.listshops++; // 並べている店の数 (0.6.0)
+      }
       listed.add(no);
     }
     for (const [key, value] of Object.entries(dt.itemtoday)) {

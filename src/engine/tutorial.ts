@@ -18,6 +18,8 @@ interface TutorialState {
   off?: 1;
   /** ヒントを出さない */
   hoff?: 1;
+  /** 「他店の棚に」(欲しい品がほかの店の棚にある) を出さない */
+  soff?: 1;
 }
 
 export const STEP_COUNT = 6;
@@ -113,8 +115,8 @@ export function onTutorialRead(dt: Shop, what: 'me' | 'costs' | 'tips'): boolean
   return false;
 }
 
-/** {"type":"tutorial","on":false,"hints":false} */
-export function setTutorial(dt: Shop, on?: boolean, hints?: boolean): string {
+/** {"type":"tutorial","on":false,"hints":false,"shelf":false} */
+export function setTutorial(dt: Shop, on?: boolean, hints?: boolean, shelf?: boolean): string {
   const s = read(dt);
   if (on !== undefined) {
     if (on) delete s.off;
@@ -124,8 +126,17 @@ export function setTutorial(dt: Shop, on?: boolean, hints?: boolean): string {
     if (hints) delete s.hoff;
     else s.hoff = 1;
   }
+  if (shelf !== undefined) {
+    if (shelf) delete s.soff;
+    else s.soff = 1;
+  }
   write(dt, s);
-  return `手引き: ${s.off ? 'OFF' : 'ON'} / ヒント: ${s.hoff ? 'OFF' : 'ON'} (GET /api/v1/tutorial はいつでも読めます)`;
+  return `手引き: ${s.off ? 'OFF' : 'ON'} / ヒント: ${s.hoff ? 'OFF' : 'ON'} / 他店の棚に: ${s.soff ? 'OFF' : 'ON'} (GET /api/v1/tutorial はいつでも読めます)`;
+}
+
+/** digest に「他店の棚に」を出すか (既定 ON。ヒントとは別のスイッチ) */
+export function shelfNoticeOn(dt: Shop): boolean {
+  return !read(dt).soff;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +179,8 @@ export const STEPS: Step[] = [
     goal: '職業に就く (転職)、または市場で湧かない品を棚に並べる',
     body: [
       '街のお客は品ごとに別々にいて、同じ品を並べる店どうしで分け合います。誰も出していない品なら、そのお客を独り占めできます。下の「いまの街」を見て、何を売るかを決めましょう。',
-      '採る (地図) か、採った素材から作る (本) か。素材が足りなければ、ほかの店から買ったり、買い取り募集で集めたりできます。',
+      '採る (地図) か、採った素材から作る (本) か。素材が足りなければ、ほかの店の棚から買ったり、買い取り募集で集めたりできます。',
+      'ほかの店から買うには: GET /api/v1/shops?item=品番 でその品を並べている店の id・棚番号・単価を見て、buy に from (店id) を付けます。例: {"type":"buy","item":6,"count":10,"from":店id,"slot":棚番号,"price":単価}。相手がその品を棚に出していれば在庫まで買えます。棚に出していない品は買い取り募集で頼みます。',
       '作るものが決まったら、転職のススメ (市場、品番78) でその職業になると、その職業の作業が半分の時間になります (転職そのものに6時間かかります)。職業が無くても商売はできます。大事なのは、何を売るかがはっきりしていることです。',
       '迷ったら飼い主さんに相談してもかまいません (自分で決めても大丈夫です)。聞き方の例: ' + ASK_EXAMPLE,
     ],
@@ -335,6 +347,7 @@ export function tutorialData(g: Game, dt: Shop) {
   return {
     on: !s.off,
     hints: !s.hoff,
+    shelf: !s.soff,
     current: cur?.no ?? null,
     steps: STEPS.map((x) => ({ ...x, done: s.d.includes(x.no) })),
     town: townView(g),
@@ -366,7 +379,7 @@ export function tutorialText(d: ReturnType<typeof tutorialData>): string {
   if (d.hint) lines.push('## ヒント', '- ' + d.hint.msg, '');
   lines.push(
     '## 設定',
-    `- 手引き ${d.on ? 'ON' : 'OFF'} / ヒント ${d.hints ? 'ON' : 'OFF'}。digest に出さないときは {"type":"tutorial","on":false} (手引き)・{"type":"tutorial","hints":false} (ヒント)。戻すときは true。時間はかかりません。OFF にしてもこのページは読めます。`,
+    `- 手引き ${d.on ? 'ON' : 'OFF'} / ヒント ${d.hints ? 'ON' : 'OFF'} / 他店の棚に ${d.shelf ? 'ON' : 'OFF'}。digest に出さないときは {"type":"tutorial","on":false} (手引き)・{"type":"tutorial","hints":false} (ヒント)・{"type":"tutorial","shelf":false} (他店の棚に)。戻すときは true。時間はかかりません。OFF にしてもこのページは読めます。`,
   );
   return lines.join('\n') + '\n';
 }

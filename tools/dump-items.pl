@@ -364,6 +364,73 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		};
 	}
 
+	# 目安箱 #7 (0.6.0): 干し草飼料。干し草 (115) を足し、木こりの山歩き7つに副産物、新しい行き先「牧草地で草を刈る」、
+	# ミノタウロス♀に「干し草を与えて搾る」(処理は scripts.ts の mino:_local_2 / _local_b2) と「放牧地で草を刈る」を足す。
+	# 原作の乳を搾る・ハードに乳を搾るは式を変えず、説明 (info) に数字を足すだけ。
+	open(my $hay_fh, '<:raw', "$FindBin::Bin/hay.json") or die $!;
+	my $hay = JSON::PP->new->utf8->decode(do { local $/; <$hay_fh> });
+	close $hay_fh;
+	$hay = $as_bytes->($hay);
+	for my $spec (@{ $hay->{items} }) {
+		die "hay: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		die "hay: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+	for my $bp (@{ $hay->{byproducts} }) {
+		for my $no (@{ $bp->{uses} }) {
+			my $u = $by_no{$bp->{book}}{uses}[$no] or die "hay: unknown use $bp->{book}/$no";
+			die "hay: duplicate byproduct $bp->{book}/$no" if grep { $_->{item_no} == $bp->{get}[0] } @{ $u->{get} };
+			push @{ $u->{get} }, @{ $lines->([$bp->{get}], 1000) };
+		}
+	}
+	for my $spec (@{ $hay->{gathering} }) {
+		my $u = $new_use->($spec);
+		$u->{name} = $u->{info} = $spec->{name};
+		$u->{okmsg} = undef;
+		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
+		$u->{func} = 'lostbook';
+		$u->{params} = [$spec->{lostbook}, undef, undef, undef];
+		$u->{get} = $lines->($spec->{products}, 1000);
+	}
+	my $cow = $by_no{25};
+	for my $spec (@{ $hay->{cow_uses} }) {
+		die "hay: duplicate use $spec->{name}" if grep { $_->{name} eq $spec->{name} } @{ $cow->{uses} };
+		my $u = $copy->($cow->{uses}[0]);
+		$u->{no} = scalar @{ $cow->{uses} };
+		$u->{$_} = undef for qw(func_before local_func_before func_info local_func_info local_func okmsg ngmsg arg argmessage argselect needexp);
+		@$u{qw(name action scale info time exptime exp)} = @$spec{qw(name action scale info time exptime exp)};
+		$u->{okmsg} = $spec->{okmsg};
+		$u->{func} = $spec->{func};
+		$u->{func_before} = $spec->{func_before};
+		$u->{params} = $spec->{params} // [undef, undef, undef, undef];
+		# 干し草を与えて搾るの干し草は「1頭ぶん」で書き、実行時に頭数ぶんへ直す (scripts.ts scaleUseMaterials)
+		push @{ $u->{use} }, @{ $lines->($spec->{materials} // [], 1000) };
+		$u->{get} = $lines->($spec->{get} // [], 1000);
+		push @{ $cow->{uses} }, $u;
+	}
+	for my $ch (@{ $hay->{info_changes} }) {
+		my $u = $by_no{$ch->{item}}{uses}[$ch->{use}] or die "hay: unknown use $ch->{item}/$ch->{use}";
+		$u->{info} = $ch->{info};
+	}
+	# 酪農の乳製品: ヘビー発酵 (チーズ) を牛乳売りより少し上に (時間はライト発酵と同じ、2個できる)。
+	# 熟練0の時間 (time) だけ書き、熟練最大の時間は下の熟練の共有で決まる。
+	for my $ch (@{ $hay->{recipe_changes} }) {
+		my $u = $by_no{$ch->{item}}{uses}[$ch->{use}] or die "hay: unknown use $ch->{item}/$ch->{use}";
+		$u->{time} = $u->{exptime} = $ch->{time};
+		$u->{get} = $lines->($ch->{get}, 1000);
+		$u->{info} = $ch->{info} if defined $ch->{info};
+	}
+	# 牛乳は干し草で量が増えて数時間で上限に届くので、所持上限を上げる (ジェラートも)
+	for my $ch (@{ $hay->{limit_changes} }) {
+		my $it = $by_no{$ch->{item}} or die "hay: unknown item $ch->{item}";
+		$it->{limit} = $ch->{limit};
+	}
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;

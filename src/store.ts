@@ -6,6 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes } from 'node:crypto';
 import { MAX_ITEM } from './data/catalog.js';
 import { newWorld, type LogEntry, type World } from './engine/types.js';
+import type { PeriodPriceRow } from './engine/prices.js';
 
 export interface StoredLog extends LogEntry {
   id: number;
@@ -137,6 +138,10 @@ export class Store {
       CREATE INDEX IF NOT EXISTS assets_som ON assets(som);
       CREATE INDEX IF NOT EXISTS assets_removed_seq ON assets(removed_seq);
       CREATE INDEX IF NOT EXISTS assets_replaced_seq ON assets(replaced_seq);
+      CREATE TABLE IF NOT EXISTS market_history (
+        at INTEGER NOT NULL, item INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (item, at)
+      );
+      CREATE INDEX IF NOT EXISTS market_history_at ON market_history(at);
     `);
   }
 
@@ -185,6 +190,34 @@ export class Store {
       this.db.exec('ROLLBACK');
       throw e;
     }
+  }
+
+  /**
+   * 決算ごとの値動き (engine/prices.ts) を書き、新しいほうから keep 期ぶんだけ残す。
+   * 街の保存と同じトランザクションの中で呼ぶ (saveWorld の extra)
+   */
+  addPriceRows(rows: PeriodPriceRow[], keep: number): void {
+    if (!rows.length) return;
+    const ins = this.db.prepare('INSERT OR REPLACE INTO market_history(at,item,json) VALUES(?,?,?)');
+    for (const r of rows) ins.run(r.at, r.item, JSON.stringify(r));
+    this.db
+      .prepare('DELETE FROM market_history WHERE at < (SELECT MIN(at) FROM (SELECT DISTINCT at FROM market_history ORDER BY at DESC LIMIT ?))')
+      .run(keep);
+  }
+
+  /** 1品の値動き。新しい順に n 期ぶん */
+  priceHistory(item: number, n: number): PeriodPriceRow[] {
+    const rows = this.db.prepare('SELECT json FROM market_history WHERE item = ? ORDER BY at DESC LIMIT ?').all(item, n) as { json: string }[];
+    return rows.map((r) => JSON.parse(r.json) as PeriodPriceRow);
+  }
+
+  /** いちばん新しい決算の記録 (品番 → 行)。まだ無ければ空 */
+  lastPeriodPrices(): Map<number, PeriodPriceRow> {
+    const rows = this.db.prepare('SELECT json FROM market_history WHERE at = (SELECT MAX(at) FROM market_history)').all() as { json: string }[];
+    return new Map(rows.map((r) => {
+      const row = JSON.parse(r.json) as PeriodPriceRow;
+      return [row.item, row];
+    }));
   }
 
   /**

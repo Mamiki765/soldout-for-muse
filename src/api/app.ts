@@ -14,6 +14,7 @@ import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/cost
 import { Game, GameError } from '../engine/game.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
+import { observePrices, PRICE_HISTORY_KEEP } from '../engine/prices.js';
 import { shownPeople, type LogEntry, type Shop, type World } from '../engine/types.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
@@ -251,8 +252,17 @@ export class App {
   }
 
   private save(g: Game): void {
-    this.persist(g.newLogs, g.now);
+    // 決算で作った値動きの記録 (0.6.0) は、街と同じトランザクションで書く
+    const rows = g.newPriceRows.splice(0);
+    this.persist(g.newLogs, g.now, rows.length ? () => this.store.addPriceRows(rows, PRICE_HISTORY_KEEP) : undefined);
+    if (rows.length) this.prevPrices = undefined;
     g.newLogs.length = 0;
+  }
+
+  /** いちばん新しい決算の値動き (digest・market の前期比用)。決算で書くまで覚えておく */
+  private prevPrices: v.LastPrices | undefined;
+  private lastPrices(): v.LastPrices {
+    return (this.prevPrices ??= this.store.lastPeriodPrices());
   }
 
   /**
@@ -292,6 +302,8 @@ export class App {
     try {
       const r = fn(g, dt);
       g.sortShops();
+      // 棚・値段・市場在庫が変わったかもしれないので、今期の最安・最高を更新する (0.6.0)
+      observePrices(g);
       this.save(g);
       if (!g.shopById(shopId)) this.onShopClosed(shopId);
       return r;
@@ -618,7 +630,7 @@ export class App {
       const token = this.bearer(req);
       const shopId = token && !this.isAdminToken(token) && q.get('me') !== '0' ? (await this.authInfo(req)).shopId : undefined; // 合鍵 (vk_) でも読める
       const { g } = this.game();
-      const d = v.itemDetailData(g, no, shopId === undefined ? undefined : this.me(g, shopId));
+      const d = v.itemDetailData(g, no, shopId === undefined ? undefined : this.me(g, shopId), this.store.priceHistory(no, clampNum(q.get('n'), 1, PRICE_HISTORY_KEEP, 10)));
       return { status: 200, text: v.itemDetailText(d), json: d };
     }
     // ソースは管理用だけ (遊ぶ側には出さない)
@@ -658,7 +670,7 @@ export class App {
         case '/digest': {
           if (!readonly && tut.syncTutorial(g, dt)) this.persist([], this.clock());
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n, this.digestNotice(dt));
+          const d = v.digestData(g, dt, n, this.digestNotice(dt), this.lastPrices());
           // 許可証に描いた店主名・店名・職業が今と違えば、描き直しを勧める (0.5.0)
           const ow = this.store.ownerByShop(dt.id);
           const card = ow && this.owners.cardData(g, ow);
@@ -678,12 +690,26 @@ export class App {
           return { status: 200, text: costReportText(d, v.jst), json: d };
         }
         case '/market': {
-          const d = v.marketData(g);
+          const d = v.marketData(g, this.lastPrices());
           return { status: 200, text: v.marketText(d), json: d };
+        }
+        case '/market/history': {
+          // 決算ごとの値動き (0.6.0)。?item=12,鉄の剣 (5品まで、品番か名前) &n=10 (1〜30期)
+          const keys = (q.get('item') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+          if (!keys.length) throw new HttpError(400, 'item に品番か名前を指定してください (例 ?item=12,13)');
+          if (keys.length > 5) throw new HttpError(400, 'item は5品までです');
+          const n = clampNum(q.get('n'), 1, PRICE_HISTORY_KEEP, 10);
+          const list = keys.map((key) => {
+            const no = v.findItem(key);
+            if (no === undefined || itemVisibility(no) === 'teaser') throw new HttpError(404, `そんなアイテムはないです。(${key})`);
+            return { item: no, name: g.items[no].name, prices: v.itemPricesData(g, no, this.store.priceHistory(no, n)) };
+          });
+          return { status: 200, text: v.priceHistoryText(list), json: { items: list } };
         }
         case '/shops': {
           const item = q.get('item') ? Number(q.get('item')) : undefined;
-          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 100, 30) });
+          // 既定で全店が入るように (62店で30店までだと半分見えなかった)
+          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 1000, 1000) });
           return { status: 200, text: v.shopsText(d), json: d };
         }
         case '/ranking': {
@@ -939,7 +965,7 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt));
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt), this.lastPrices());
       digest = d;
       tail = v.digestText(d);
     }
@@ -1103,8 +1129,9 @@ export class App {
         const flag = (k: string): boolean | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : isYes(a[k]));
         const on = flag('on');
         const hints = flag('hints');
-        if (on === undefined && hints === undefined) throw new GameError('on (手引き) か hints (ヒント) を true / false で指定してください。例: {"type":"tutorial","on":false}');
-        return [tut.setTutorial(dt, on, hints)];
+        const shelf = flag('shelf');
+        if (on === undefined && hints === undefined && shelf === undefined) throw new GameError('on (手引き)・hints (ヒント)・shelf (他店の棚に) のどれかを true / false で指定してください。例: {"type":"tutorial","on":false}');
+        return [tut.setTutorial(dt, on, hints, shelf)];
       }
       case 'rename': {
         const r = act.renameShop(g, dt, s('shopname'));

@@ -129,7 +129,7 @@ test('手引き・ヒントの OFF。OFF でも /tutorial は読める', async (
   try {
     const a = await t.open('alice', '試験商店');
     let r = await t.act(a.auth, { type: 'tutorial' });
-    assert.match(r, /^NG tutorial: on \(手引き\) か hints/m);
+    assert.match(r, /^NG tutorial: on \(手引き\)・hints \(ヒント\)・shelf/m);
     r = await t.act(a.auth, { type: 'tutorial', on: false });
     assert.match(r, /^OK tutorial: 手引き: OFF \/ ヒント: ON/m);
     assert.ok(!r.includes('手引き 1/6'));
