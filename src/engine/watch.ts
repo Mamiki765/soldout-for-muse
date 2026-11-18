@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import { CATALOG, EVENTS } from '../data/catalog.js';
 import type { Game } from './game.js';
+import { onShelf } from './onshelf.js';
 import { orders } from './orders.js';
 import type { Shop } from './types.js';
 
@@ -36,6 +37,7 @@ export const ALERT_TYPES = [
   'order_discard',
   'time_full',
   'wanted',
+  'on_shelf',
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
 
@@ -296,6 +298,13 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     if (o.price * 100 < it.price * WATCH_RULES.wantedPercent) continue;
     wantedCount++;
     add({ type: 'wanted', level: 'low', key: `wanted:${o.id}`, msg: `あなたの在庫の${it.name}を募集#${o.id}が単価￥${o.price}で募集中 (残り${o.left}${it.scale})` });
+  }
+  // 欲しい品 (自分の募集の品・材料だけ足りない作り方の材料) がほかの店の棚にある。仕入れのチャンス (Power向けだけ)
+  if (on.has('on_shelf')) {
+    for (const x of onShelf(g, dt, now)) {
+      const it = g.items[x.item];
+      add({ type: 'on_shelf', level: 'low', key: `onshelf:${x.item}`, msg: `${x.why === 'order' ? '募集中の' : '材料の'}${it.name}がほかの店の棚に${x.shops}店 (最安 店${x.shop} ￥${x.cheapest})。GET /api/v1/shops?item=${x.item}` });
+    }
   }
   const somethingToDo = shelves.some((s) => !s.item || s.stock === 0) || wantedCount > 0;
   if (timeFullIn <= WATCH_RULES.timeFull && somethingToDo) {

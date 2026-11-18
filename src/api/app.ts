@@ -708,7 +708,8 @@ export class App {
         }
         case '/shops': {
           const item = q.get('item') ? Number(q.get('item')) : undefined;
-          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 100, 30) });
+          // 既定で全店が入るように (62店で30店までだと半分見えなかった)
+          const d = v.shopsData(g, { item, limit: clampNum(q.get('limit'), 1, 1000, 1000) });
           return { status: 200, text: v.shopsText(d), json: d };
         }
         case '/ranking': {
@@ -1128,8 +1129,9 @@ export class App {
         const flag = (k: string): boolean | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : isYes(a[k]));
         const on = flag('on');
         const hints = flag('hints');
-        if (on === undefined && hints === undefined) throw new GameError('on (手引き) か hints (ヒント) を true / false で指定してください。例: {"type":"tutorial","on":false}');
-        return [tut.setTutorial(dt, on, hints)];
+        const shelf = flag('shelf');
+        if (on === undefined && hints === undefined && shelf === undefined) throw new GameError('on (手引き)・hints (ヒント)・shelf (他店の棚に) のどれかを true / false で指定してください。例: {"type":"tutorial","on":false}');
+        return [tut.setTutorial(dt, on, hints, shelf)];
       }
       case 'rename': {
         const r = act.renameShop(g, dt, s('shopname'));
