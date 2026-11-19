@@ -35,16 +35,14 @@ export function dropViewSessions(shopId: number): void {
   for (const [sid, s] of sessions) if (s.shopId === shopId) sessions.delete(sid);
 }
 
-function cookies(req: IncomingMessage): Record<string, string> {
-  const out: Record<string, string> = {};
+function cookie(req: IncomingMessage, name: string): string | undefined {
   for (const part of (req.headers.cookie ?? '').split(';')) {
     const i = part.indexOf('=');
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
   }
-  return out;
 }
 
-const esc = (s: string | number) =>
+export const esc = (s: string | number) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** 原作のデータは書き込み時に HTML エスケープ済み (店名・コメント・掲示板)。二重にしないよう & だけは戻さない */
 const raw = (s: string) => s.replace(/<(?!\/?(br|BR)>)/g, '&lt;');
@@ -141,7 +139,7 @@ function logTable(logs: StoredLog[]): string {
 }
 
 export async function renderViewer(app: App, req: IncomingMessage, url: URL): Promise<Reply> {
-  const c = cookies(req);
+  const shopCookie = cookie(req, 'so_shop');
   const headers: Record<string, string> = {};
   const now = app.clock();
 
@@ -156,10 +154,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
     headers['set-cookie'] = `so_shop=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_TTL}`;
     shopId = id;
     // 入場したら観戦合言葉も不要にする
-  } else if (c.so_shop) {
-    const s = sessions.get(c.so_shop);
+  } else if (shopCookie) {
+    const s = sessions.get(shopCookie);
     if (s && s.expires > now) shopId = s.shopId;
-    else sessions.delete(c.so_shop);
+    else sessions.delete(shopCookie);
   }
 
   // ---- 観戦合言葉 (Muse Party と共通にする) ----
@@ -167,8 +165,8 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
   if (viewHash && shopId === undefined) {
     const k = url.searchParams.get('k');
     if (k && sha256(k) === viewHash) {
-      headers['set-cookie'] = `so_vk=${sha256('so:' + k)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}`;
-    } else if (!validViewerCookie(app, c.so_vk)) {
+      headers['set-cookie'] = viewerCookieHeader(app, k);
+    } else if (!hasViewerCookie(app, req)) {
       return {
         status: 401,
         headers,
@@ -284,10 +282,16 @@ ${u.recipe_changes.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(materialText
 <h4>数値の考え方</h4><p>${esc(u.balance)}</p></article>`).join('');
 }
 
-function validViewerCookie(app: App, v: string | undefined): boolean {
+export function hasViewerCookie(app: App, req: IncomingMessage): boolean {
+  const v = cookie(req, 'so_vk');
   if (!v) return false;
   const marker = app.store.getSetting('viewer_cookie');
   return !!marker && v === marker;
+}
+
+export function viewerCookieHeader(app: App, key: string): string {
+  const secure = app.publicUrl.startsWith('https://') ? '; Secure' : '';
+  return `so_vk=${sha256('so:' + key)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}${secure}`;
 }
 
 /** 観戦合言葉を設定する (CLI から呼ぶ)。cookie にはハッシュから作った値を入れる */
@@ -303,7 +307,9 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
 
 /** トップ: 全員をアイコン付きで順位順に並べる (箱庭のように。0.5.0)。出来事は PC では右の列に置いて、スクロールしても見える */
 function topPage(app: App, g: Game): string {
-  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
+  const start = app.party && app.partyPublicUrl && app.store.getSetting('viewer_key_hash') && app.store.getSetting('party_join_invite')
+    ? ' <a href="./start">[Museでもわかる！導入法]</a>' : '';
+  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small>${start}<hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
   let main = `●街のお店 (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
   g.shops.forEach((dt, i) => {

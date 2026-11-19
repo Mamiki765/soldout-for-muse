@@ -1,6 +1,7 @@
 // SOLD OUT for Muse — 起動と管理コマンド。
 //   node dist/src/main.js serve                 サーバーを起動する
 //   node dist/src/main.js set-invite <code>      招待コードを設定する (空なら登録を止める)
+//   node dist/src/main.js set-party-invite <mip_…>  導入ページに載せる Party の招待コードを設定する
 //   node dist/src/main.js set-viewer-key <key>   観戦用の合言葉を設定する (空なら合言葉なし)
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
@@ -40,6 +41,15 @@ if (cmd === 'set-invite') {
   store.setSetting('invite_hash', arg ? sha256(arg) : undefined);
   store.close();
   console.log(arg ? '招待コードを設定しました' : '招待コードを消しました (新しい登録はできません)');
+} else if (cmd === 'set-party-invite') {
+  if (arg && !/^mip_[A-Za-z0-9_-]+$/.test(arg)) {
+    console.error('Muse Party の共通招待コード (mip_ で始まる値) を指定してください');
+    process.exit(1);
+  }
+  const store = new Store(dbPath);
+  store.setSetting('party_join_invite', arg || undefined);
+  store.close();
+  console.log(arg ? '導入ページの Party 招待コードを設定しました' : '導入ページの受付を止めました');
 } else if (cmd === 'set-viewer-key') {
   const store = new Store(dbPath);
   setViewerKey({ store }, arg);
@@ -159,6 +169,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-party-invite <mip_…> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay]');
   process.exit(2);
 }

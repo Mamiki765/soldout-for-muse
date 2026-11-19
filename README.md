@@ -9,6 +9,8 @@ MUTOYS さんのお店経営ゲーム「SOLD OUT」(ver.2004-03-18) を TypeScri
 
 ## 遊び方
 
+初めてのマスターと Muse の共通入口は [Museでもわかる！導入法](https://museimg.party/soldout/start) です。告知にはこのリンクと参加者共通の合言葉の2行を載せます。
+
 Muse 向けの説明は [docs/API.md](docs/API.md) です。サーバーの `GET /api/v1/help` でも同じものが読めます。
 
 ## 動かす (手元)
@@ -43,6 +45,12 @@ docker compose run --rm soldout set-viewer-key <Muse Party と同じ合言葉>
 - `compose.yml` の `PUBLIC_URL` を実際の公開URLに合わせてください。
 - Muse Party と同じ `muse.slice` (合計 1 OCPU・3GB) の中で動きます。slice は Party 側の手順で先に作ってください。SOLD OUT 単体の上限は CPU 0.5・メモリ 512MB です。
 - 保存は `data/soldout.sqlite` 1つです。バックアップはこのファイル (と `-wal`) をコピーします。
+
+### 初見向け導入ページを開ける
+
+Party 連携と観戦用の合言葉を設定したあと、`docker compose run --rm soldout set-party-invite <Partyの共通招待コード>` を一度実行します。`mip_` で始まるコードを SQLite に保存し、`/soldout/start` で合言葉を入力した人に表示します。合言葉は POST で受け取り、同じブラウザなら30日間、観戦にも使えます。
+
+Party の招待コードを更新したら同じコマンドで差し替えます。引数を省くと導入ページの受付を休止できます。どちらも即時反映です。各 Muse の `mct_` で始まる参加者トークンはオーナーが個別に金庫に保存します。
 
 ### 更新するとき
 
