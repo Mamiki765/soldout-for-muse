@@ -20,8 +20,8 @@ const original = JSON.parse(execFileSync('perl', ['tools/dump-items.pl', 'normal
 const current = JSON.parse(readFileSync('src/data/items.json', 'utf8')) as typeof original;
 const originalByNo = (no: number) => original.items.find((it) => it.no === no)!;
 
-// 0.7.0 (tools/v070.json): 既存品の材料・時間・成功率・値段・popular・本のすり切れ率の直し
-type V070 = {
+// 1.0.0 (tools/v100.json): 既存品の材料・時間・成功率・値段・popular・本のすり切れ率の直し
+type V100 = {
   recipe_changes: { book: number; product: number; materials?: Record<string, number>; exptime?: number; time?: number; proba?: number }[];
   price_changes: Record<string, number>;
   popular_changes: Record<string, number>;
@@ -32,11 +32,11 @@ type V070 = {
   production: unknown[];
   event_add_params: { code: string }[];
 };
-const v070 = JSON.parse(readFileSync('tools/v070.json', 'utf8')) as V070;
-/** 0.7.0 のすり切れ率 (本 book の旧率 → 新率) */
-const lostbook070 = (book: number, rate: number) => v070.lostbook_changes[book]?.[rate] ?? rate;
-/** 0.7.0 の直しを、ある本のある品のレシピ (time, exptime) に当てる */
-const recipe070 = (book: number, product: number) => v070.recipe_changes.find((c) => c.book === book && c.product === product);
+const v100 = JSON.parse(readFileSync('tools/v100.json', 'utf8')) as V100;
+/** 1.0.0 のすり切れ率 (本 book の旧率 → 新率) */
+const lostbook100 = (book: number, rate: number) => v100.lostbook_changes[book]?.[rate] ?? rate;
+/** 1.0.0 の直しを、ある本のある品のレシピ (time, exptime) に当てる */
+const recipe100 = (book: number, product: number) => v100.recipe_changes.find((c) => c.book === book && c.product === product);
 
 // No, 正式名, price, popular, cost, limit, plus (§1)
 const itemSpecs: [number, string, number, number, number, number, number][] = [
@@ -122,7 +122,7 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
   }
 });
 
-test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草・0.7.0 の直し以外に差分がなく、イベントも不変', () => {
+test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草・1.0.0 の直し以外に差分がなく、イベントも不変', () => {
   const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as {
     info_changes: { item: number; use: number; info: string }[];
     recipe_changes: { item: number; use: number; time: number; get: [number, number, number][]; info: string }[];
@@ -147,8 +147,8 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
       u.info = ch.info;
     }
     for (const ch of hay.limit_changes) if (ch.item === old.no) expected.limit = ch.limit;
-    // 0.7.0 (tools/v070.json)
-    for (const ch of v070.recipe_changes) if (ch.book === old.no) {
+    // 1.0.0 (tools/v100.json)
+    for (const ch of v100.recipe_changes) if (ch.book === old.no) {
       const u = expected.uses.find((u) => u.get[0]?.item_no === ch.product);
       if (!u) continue; // 原作に無い使い方 (v0.2.0 以降に足したもの) はここでは比べない
       for (const [no, count] of Object.entries(ch.materials ?? {})) u.use.find((l) => l.item_no === Number(no) && l.proba > 0)!.count = count;
@@ -156,13 +156,13 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
       if (ch.time !== undefined) u.time = u.exptime = ch.time;
       if (ch.proba !== undefined) u.get[0].proba = ch.proba;
     }
-    if (v070.price_changes[old.no] !== undefined) expected.price = v070.price_changes[old.no];
-    if (v070.popular_changes[old.no] !== undefined) expected.popular = v070.popular_changes[old.no];
-    for (const ch of v070.field_changes.filter((c) => c.item === old.no)) {
+    if (v100.price_changes[old.no] !== undefined) expected.price = v100.price_changes[old.no];
+    if (v100.popular_changes[old.no] !== undefined) expected.popular = v100.popular_changes[old.no];
+    for (const ch of v100.field_changes.filter((c) => c.item === old.no)) {
       for (const [k, v] of Object.entries(ch)) if (k !== 'item' && k !== 'note') (expected as unknown as Record<string, unknown>)[k] = v;
     }
-    if (v070.lostbook_changes[old.no]) for (const u of expected.uses) {
-      if (u.func === 'lostbook' || u.func === 'lostbooktool') u.params[0] = String(lostbook070(old.no, Number(u.params[0])));
+    if (v100.lostbook_changes[old.no]) for (const u of expected.uses) {
+      if (u.func === 'lostbook' || u.func === 'lostbooktool') u.params[0] = String(lostbook100(old.no, Number(u.params[0])));
     }
     if (old.no === 26) {
       (expected as typeof expected & { expitem?: number }).expitem = 25;
@@ -177,20 +177,20 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
   }
   // v0.3.0 で変えたイベント (tools/v030.json の event_changes) と追加したイベント以外は原作のまま
   const v030 = JSON.parse(readFileSync('tools/v030.json', 'utf8')) as { event_changes: { code: string }[] };
-  const changed = new Set([...v030.event_changes.map((c) => c.code), ...v070.event_add_params.map((c) => c.code)]);
+  const changed = new Set([...v030.event_changes.map((c) => c.code), ...v100.event_add_params.map((c) => c.code)]);
   const byCode = (list: unknown[]) => new Map((list as { code: string }[]).map((e) => [e.code, e]));
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
-  assert.deepEqual(current.define, { ...original.define, version: '0.7.0' });
+  assert.deepEqual(current.define, { ...original.define, version: '1.0.0' });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 
 test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕様どおり', () => {
   for (const [book,product,ingredients,get,proba,time,exptime0,lostbook0] of production) {
     const u = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!;
-    // 0.7.0: 樹脂板の時間短縮・本のすり切れ率の見直し
-    const exptime = recipe070(book, product)?.exptime ?? exptime0;
-    const lostbook = lostbook070(book, lostbook0);
+    // 1.0.0: 樹脂板の時間短縮・本のすり切れ率の見直し
+    const exptime = recipe100(book, product)?.exptime ?? exptime0;
+    const lostbook = lostbook100(book, lostbook0);
     assert.ok(u, BASE_ITEMS[product].name);
     assert.deepEqual(triples(u.use), [...toolsOf(book).map((n) => [n,1,0]), ...ingredients.map(([n,c]) => [n,c,1000])]);
     assert.deepEqual(triples(u.get), [[product,get,proba]]);
@@ -198,7 +198,7 @@ test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕
     assert.deepEqual(u.jobs, [{ job:book === 20 ? 'weapon' : 'tool', key:'times', op:'/', value:2 }]);
   }
   // v0.2.0 で19、v0.3.0 で11 (作り方8・行き先3)、固めプリンで1、禁断の書の届け出で1、干し草で3 (牧草地・干し草を与えて搾る・放牧地) 増えた
-  assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19 + 11 + 1 + 1 + 3 + v070.production.length + v070.item_uses.length);
+  assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19 + 11 + 1 + 1 + 3 + v100.production.length + v100.item_uses.length);
   const choker = BASE_ITEMS[66].uses.find((u) => u.get[0]?.item_no === 84)!;
   assert.deepEqual(choker.use.map((l) => BASE_ITEMS[l.item_no].name), ['鍛冶屋の技術','魔法の知識','ミスリル線','草織り布','なめし革','エーテル']);
 });

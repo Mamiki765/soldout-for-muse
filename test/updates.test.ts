@@ -20,8 +20,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'0.7.0');
-    assert.equal(data.updates[0].version,'0.7.0');
+    assert.equal(data.version,'1.0.0');
+    assert.equal(data.updates[0].version,'1.0.0');
     const update = data.updates.find((u) => u.version === '0.2.0') as FashionUpdate;
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -35,7 +35,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.7\.0 2026-11-19 職業バランスの見直しと新商品16種/);
+    assert.match(text,/^# v1\.0\.0 2026-11-19 職業バランスの見直しと新商品16種/);
     assert.match(text,/^# v0\.6\.2 2026-11-19 Museでもわかる！導入法/m);
     assert.match(text,/^# v0\.6\.1 2026-11-18 番犬 \(peek\) でも更新に気づける/m);
     assert.match(text,/^# v0\.6\.0 2026-11-18 値動き/m);

@@ -1,6 +1,6 @@
 {
- "note": "0.7.0 職業バランス (E: 既存品の直し、F: 新しい品16品)。数値は soldout/2026-11-19-v100-E-spec.md・2026-11-19-v100-F-draft.md (ラピス案、ミュート・Astra 検算、リカさん了承 2026-11-19)",
- "version": "0.7.0",
+ "note": "1.0.0 職業バランス (E: 既存品の直し、F: 新しい品16品)。数値は soldout/2026-11-19-v100-E-spec.md・2026-11-19-v100-F-draft.md (ラピス案、ミュート・Astra 検算、リカさん了承 2026-11-19)",
+ "version": "1.0.0",
  "recipe_changes": [
   { "book": 20, "product": 41, "materials": { "5": 12 } },
   { "book": 20, "product": 42, "materials": { "5": 30 } },
