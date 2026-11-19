@@ -24,6 +24,7 @@ import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from 
 import * as v from './views.js';
 import { TIPS } from '../tips.js';
 import { dropViewSessions, renderViewer } from './viewer.js';
+import { renderOnboarding } from './onboarding.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
@@ -513,7 +514,7 @@ export class App {
     for (const [k, b] of this.buckets) if (b.tokens + ((now - b.at) * b.cap) / 60 >= b.cap) this.buckets.delete(k);
   }
 
-  private async body(req: IncomingMessage, max = 64 * 1024): Promise<Record<string, unknown>> {
+  private async bodyText(req: IncomingMessage, max: number): Promise<string> {
     const chunks: Buffer[] = [];
     let size = 0;
     for await (const c of req) {
@@ -521,7 +522,11 @@ export class App {
       if (size > max) throw new HttpError(413, 'リクエストが大きすぎます');
       chunks.push(c as Buffer);
     }
-    const s = Buffer.concat(chunks).toString('utf8').trim();
+    return Buffer.concat(chunks).toString('utf8').trim();
+  }
+
+  private async body(req: IncomingMessage, max = 64 * 1024): Promise<Record<string, unknown>> {
+    const s = await this.bodyText(req, max);
     if (!s) return {};
     try {
       const o = JSON.parse(s);
@@ -562,6 +567,11 @@ export class App {
     const q = url.searchParams;
 
     if (path === '/healthz') return { status: 200, text: 'ok\n', json: { ok: true } };
+    if (path === '/start') {
+      if (method !== 'GET' && method !== 'POST') return { status: 405, headers: { allow: 'GET, POST' } };
+      const password = method === 'POST' ? new URLSearchParams(await this.bodyText(req, 1024)).get('password') ?? '' : undefined;
+      return renderOnboarding(this, req, url, password);
+    }
     this.sweepAssets();
 
     // ---- アイコン・許可証・キット (ファイル名は不変なので長くキャッシュしてよい) ----

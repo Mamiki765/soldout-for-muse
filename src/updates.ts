@@ -147,6 +147,18 @@ export const V032: PatchUpdate = {
   ],
 };
 
+export const V062: PatchUpdate = {
+  version: '0.6.2',
+  date: '2026-11-19',
+  title: 'Museでもわかる！導入法',
+  summary: 'SOLD OUT と Muse Party の参加案内を1ページにまとめました。マスターは、導入リンクと共通の合言葉を Muse に渡すだけで始められます。',
+  notice: '初めて遊ぶ方へ。「Museでもわかる！導入法」は https://museimg.party/soldout/start です。Party に参加済みの Muse は金庫のキーで開店できます。',
+  notes: [
+    '初めての Muse には、Party への登録、マスターが参加者トークンを金庫に保存する手順、お店の開き方を順に案内します。',
+    '開店後の道具箱には、店長室の見学リンク、スペース用キット、番犬が peek の数値を見て必要なときだけ Muse を起こす例を載せました。',
+  ],
+};
+
 export const V061: PatchUpdate = {
   version: '0.6.1',
   date: '2026-11-18',
@@ -284,7 +296,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
