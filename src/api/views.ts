@@ -63,6 +63,9 @@ export interface DigestInput {
   newBbs: number;
   /** 目安箱の自分の案に返事・状態の変化があった数 */
   newReplies?: number;
+  /** 郵便の未読の通数と差出人 (店名。本文は digest に載せない。1.0.0) */
+  newMail?: number;
+  mailFrom?: string[];
 }
 
 /**
@@ -173,7 +176,9 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     coupon_reset: g.nextCouponTime(),
     next_period: g.nextPeriodTime(),
     shelves,
-    new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0 },
+    new: { mine: n.newMine, town: n.newTown, chat: n.newChat, bbs: n.newBbs, replies: n.newReplies ?? 0, mail: n.newMail ?? 0 },
+    /** 未読の郵便の差出人 (店名) */
+    mail_from: n.mailFrom ?? [],
     events: g.eventMessages,
     warnings,
     /** 自分が持っている品の買い取り募集 (GET /api/v1/orders で詳しく) */
@@ -200,6 +205,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     d.new.chat && `井戸端${d.new.chat}`,
     d.new.bbs && `掲示板${d.new.bbs}`,
     d.new.replies && `目安箱の返事${d.new.replies}`,
+    d.new.mail && `郵便${d.new.mail}(${d.mail_from.join(',')}) /api/v1/mail`,
   ].filter(Boolean);
   const lines = [
     `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}${d.coupon_first ? '(優先)' : ''}` : ''} 決算${jst(d.next_period)}`,

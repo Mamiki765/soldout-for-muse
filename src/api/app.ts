@@ -29,6 +29,7 @@ import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 import { checkOwnerName, OwnerHub } from './owners.js';
+import { MailBox, mailListData, mailListText, mailThreadData, mailThreadText } from './mail.js';
 
 export interface AppOptions {
   store: Store;
@@ -134,6 +135,8 @@ export class App {
   readonly partyPublicUrl: string;
   readonly basePath: string;
   readonly owners: OwnerHub;
+  /** 店主の郵便箱 (1.0.0) */
+  readonly mail: MailBox;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number; cap: number }>();
@@ -173,6 +176,7 @@ export class App {
     });
     // 0.5.0 より前からある店に som を渡す (開店日の古い順)
     this.owners.migrate(this.world, (id) => this.store.partyOwnerOfShop(id), this.clock());
+    this.mail = new MailBox(this.store);
   }
 
   /**
@@ -671,7 +675,7 @@ export class App {
     if (!readonly) this.notifyUpdate(shopId);
     // 合鍵では、出来事・掲示板を「未読だけ読んで既読にする」読み方をしない (Muse の未読を消さない)
     if (readonly && (p === '/log' || p === '/chat' || p === '/bbs') && q.get('since') === null) q.set('all', '1');
-    if (readonly && ['/suggest', '/tutorial'].includes(p)) throw new HttpError(403, 'これは合鍵では読めません (Muse のトークンで)');
+    if (readonly && (['/suggest', '/tutorial', '/mail'].includes(p) || p.startsWith('/mail/'))) throw new HttpError(403, 'これは合鍵では読めません (Muse のトークンで)');
 
     if (method === 'GET') {
       const { g } = this.game();
@@ -778,7 +782,14 @@ export class App {
         case '/chat':
         case '/bbs':
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
+        case '/mail':
+          return this.mailList(g, dt, q);
+        case '/mail/block': {
+          const list = this.mail.blocks(this.owners.ownerOf(dt.id).som);
+          return { status: 200, text: (list.length ? '受け取りを止めている相手: ' + list.join(' ') : '受け取りを止めている相手はいません') + '\n', json: { blocked: list } };
+        }
       }
+      if (/^\/mail\/\d+$/.test(p)) return this.mailOpen(g, dt, Number(p.slice('/mail/'.length)));
       if (p.startsWith('/owners/')) {
         const ow = this.store.ownerBySom(p.slice('/owners/'.length));
         if (!ow) throw new HttpError(404, 'その som の店主はいません');
@@ -816,7 +827,12 @@ export class App {
           return this.viewLink(shopId, body);
         case '/suggest':
           return this.suggest(shopId, body);
+        case '/mail':
+          return this.mailSend(shopId, body);
+        case '/mail/block':
+          return this.mailBlock(shopId, body);
       }
+      if (/^\/mail\/\d+$/.test(p)) return this.mailReply(shopId, Number(p.slice('/mail/'.length)), body);
     }
     throw new HttpError(404, 'ありません');
   }
@@ -1182,6 +1198,11 @@ export class App {
     if (notice && watch.enabledTypes(watch.alertSetting(dt)).has('update')) {
       d.alerts.push({ type: 'update', level: 'mid', key: `update:${APP_VERSION}`, msg: `${notice} (トークン付きで読むとこの知らせも消えます)` });
     }
+    // 郵便の未読 (1.0.0)。いちばん新しい未読の番号で鍵を作るので、新しい手紙が来るたびに新着になる。peek では既読にしない
+    const mu = this.mailUnread(dt.id);
+    if (mu.newMail && watch.enabledTypes(watch.alertSetting(dt)).has('mail')) {
+      d.alerts.push({ type: 'mail', level: 'mid', key: `mail:${mu.mailLatest}`, msg: `未読の郵便${mu.newMail}通 (差出人: ${mu.mailFrom.join(', ')}) GET /api/v1/mail` });
+    }
     // 管理者として許可した店 (ミュート・トパーズ) にだけ、管理の知らせを足す。ほかの店には出さない
     if (this.adminShops().includes(dt.id) && watch.alertSetting(dt).mode !== 'off') d.alerts.push(...this.adminAlerts(g.now));
     const marks = d.alerts.map((a) => watch.alertMark(a.key));
@@ -1268,7 +1289,16 @@ export class App {
       newChat: countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
       newReplies: this.store.countSuggestionUpdates(dt.id, Number(dt.user[SEEN_SUGGEST] ?? 0)),
       newBbs: countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
+      ...this.mailUnread(dt.id),
     };
+  }
+
+  /** 郵便の未読 (digest の新着と peek の mail で同じものを数える) */
+  private mailUnread(shopId: number): { newMail: number; mailFrom: string[]; mailLatest: number } {
+    const ow = this.store.ownerByShop(shopId);
+    if (!ow) return { newMail: 0, mailFrom: [], mailLatest: 0 };
+    const u = this.mail.unread(ow.som, this.clock());
+    return { newMail: u.count, mailFrom: u.from, mailLatest: u.latest };
   }
 
   /**
@@ -1361,6 +1391,70 @@ export class App {
     if (wait > 0) throw new GameError('連続投稿は出来ません。あと' + wait + '秒お待ち下さい。');
     const id = this.store.addPost({ board, time: g.now, shop_id: dt.id, shopname: dt.shopname, msg }, board === 'bbs' ? this.maxBbs : this.maxChat);
     return { status: 200, text: `OK ${board === 'bbs' ? '掲示板' : '井戸端'}に書き込みました (${id})\n`, json: { ok: true, id } };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 店主の郵便箱 (1.0.0)。送っても持ち時間は減らず、最後の行動 (不在閉店) も変えない
+
+  private mailList(g: Game, dt: Shop, q: URLSearchParams): Reply {
+    const now = this.clock();
+    this.mail.sweep(now);
+    const d = mailListData(g, this.mail, this.store, this.owners.ownerOf(dt.id).som, now, clampNum(q.get('limit'), 1, 100, 20));
+    return { status: 200, text: mailListText(d, v.jst), json: d };
+  }
+
+  /** 会話を開く。本文を返したときに、自分あての手紙を既読にする */
+  private mailOpen(g: Game, dt: Shop, id: number): Reply {
+    const now = this.clock();
+    const som = this.owners.ownerOf(dt.id).som;
+    const t = this.mail.thread(som, id, now);
+    const read = this.mail.markRead(som, t.id, now);
+    const d = mailThreadData(g, this.mail, this.store, som, t, read);
+    return { status: 200, text: mailThreadText(d, v.jst), json: d };
+  }
+
+  private mailSend(shopId: number, body: Record<string, unknown>): Reply {
+    const { g } = this.game();
+    const dt = this.me(g, shopId);
+    const me = this.owners.ownerOf(dt.id);
+    // {"reply":12,"text":...} でも返信できるように
+    if (body.reply !== undefined || body.thread !== undefined) return this.mailReply(shopId, Number(body.reply ?? body.thread), body);
+    const to = this.mail.resolve(g, body.to);
+    this.mail.sweep(g.now);
+    const r = this.mail.send(me, dt.shopname, to, body.subject, body.text ?? body.body, g.now);
+    const shop = to.shop_id !== null ? g.shopById(to.shop_id)?.shopname : undefined;
+    return { status: 201, text: `OK ${shop ?? to.som} (${to.som}) に郵便を送りました (#${r.thread})。返事は GET /api/v1/mail/${r.thread}\n`, json: { ok: true, thread: r.thread, id: r.id, to: to.som } };
+  }
+
+  /** 返信 {"text":...} / 保存 {"keep":true|false} */
+  private mailReply(shopId: number, id: number, body: Record<string, unknown>): Reply {
+    const { g } = this.game();
+    const dt = this.me(g, shopId);
+    const me = this.owners.ownerOf(dt.id);
+    if (!Number.isInteger(id) || id <= 0) throw new GameError('郵便の番号が正しくありません');
+    const text = body.text ?? body.body;
+    if (body.keep !== undefined && text === undefined) {
+      const on = body.keep === true || body.keep === 'true' || body.keep === 1 || body.keep === '1';
+      this.mail.setKeep(me.som, id, on, g.now);
+      return { status: 200, text: `OK 郵便 #${id} を${on ? '保存しました (30日たっても消えません)' : '保存から外しました (最後の手紙から30日で消えます)'}\n`, json: { ok: true, thread: id, kept: on } };
+    }
+    const r = this.mail.reply(me, dt.shopname, id, text, g.now);
+    if (body.keep === true) this.mail.setKeep(me.som, id, true, g.now);
+    return { status: 201, text: `OK 郵便 #${r.thread} に返信しました\n`, json: { ok: true, thread: r.thread, id: r.id, to: r.to } };
+  }
+
+  /** 受け取りを止める {"som":"som0003","block":true|false} (店名でも可) */
+  private mailBlock(shopId: number, body: Record<string, unknown>): Reply {
+    const { g } = this.game();
+    const dt = this.me(g, shopId);
+    const me = this.owners.ownerOf(dt.id);
+    const key = String(body.som ?? body.to ?? '').trim();
+    // 止めるのは閉店中の相手でもできるように、som ならそのまま使う
+    const target = /^som\d+$/i.test(key) ? this.store.ownerBySom(key.toLowerCase()) : this.mail.resolve(g, key);
+    if (!target) throw new GameError(`その店主ID (${key}) の店主はいません`);
+    const on = !(body.block === false || body.block === 'false' || body.block === 0 || body.block === '0');
+    this.mail.block(me.som, target.som, on, g.now);
+    return { status: 200, text: `OK ${target.som} からの郵便を${on ? '受け取らないようにしました' : 'また受け取るようにしました'}\n`, json: { ok: true, som: target.som, blocked: on } };
   }
 
   // ---------------------------------------------------------------------------
