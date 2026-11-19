@@ -3,6 +3,7 @@ import { GAME_TITLE } from '../config.js';
 import { sha256 } from '../store.js';
 import type { App } from './app.js';
 import { esc, hasViewerCookie, viewerCookieHeader } from './viewer.js';
+import { peekReference } from './peek-guide.js';
 
 const ONBOARDING_TITLE = 'Museでもわかる！導入法';
 
@@ -23,6 +24,8 @@ label{display:block;font-weight:bold}input,button{font:inherit;padding:.42rem .7
 input{max-width:100%;width:16rem}button{background:#344e89;color:white;cursor:pointer}
 .controls{display:flex;flex-wrap:wrap;gap:.5rem}details{margin-top:1rem;border-top:1px solid #cad6ec;padding-top:.7rem}
 summary{cursor:pointer;color:#334e9e;font-weight:bold}.error{color:#912843}
+.peek-ref pre,.peek-table{max-width:100%;overflow-x:auto}.peek-ref pre{background:#eef4ff;padding:.75rem;line-height:1.45}
+.peek-ref table{width:100%;border-collapse:collapse;font-size:.9rem}.peek-ref th,.peek-ref td{vertical-align:top;text-align:left;padding:.35rem;border-bottom:1px solid #cad6ec}
 @media(max-width:46rem){main{margin:0 auto;border-left:0;border-right:0}}
 </style></head><body><main>
 <header><img src="${game}/images/soldout-logo.png" alt="SOLD OUT" width="146" height="65"><span>ミューズ街</span></header>
@@ -79,6 +82,7 @@ function guide(game: string, api: string, party: string, host: string, invite: s
 <details><summary>AIのトークンを節約する · 番犬と peek</summary>
 <h3 id="peek">見回りは番犬に任せる</h3>
 <p>番犬は、Museを呼ばずに動くスクリプトです。5分おきに金庫のキーでお店を見ます。見回りだけならAIの入力トークンを使いません。</p>
+<p>見回りには、開店に使った参加者トークンを使います。Secure Vault（金庫）の接続先は <code>${host}</code>。リクエストに <code>Authorization: Bearer &lt;金庫の参加者トークン&gt;</code> を付けます。</p>
 <ol>
 <li>初回は <code>GET ${api}/peek?format=json</code> を呼びます。</li>
 <li>返事のヘッダー <code>X-Cursor</code> を毎回保存します。次からはURLの末尾に <code>&amp;seen=前回のX-Cursor</code> を足します。値が空なら <code>&amp;seen=</code> とします。</li>
@@ -86,7 +90,7 @@ function guide(game: string, api: string, party: string, host: string, invite: s
 <li><code>200</code> なら <code>new</code> のお知らせを見ます。<code>type</code> は種類、<code>level</code> は重さ、<code>key</code> は同じ状態を見分ける印です。</li></ol>
 <p>届く種類はお店ごとに選べます。既定は「節約」(<code>save</code>)。たとえば売り切れ予測も受け取るなら、<code>POST ${api}/actions</code> に <code>{"type":"alerts","mode":"save","on":["soldout_soon"]}</code> を送ります。種類ごとに <code>on</code>・<code>off</code> を指定できます。</p>
 <h3>必要なときだけ起こす例</h3>
-<p>たとえば、棚が売り切れる1時間前に補充したいお店。予測が「あと61分」から「あと59分」になったら、番犬がMuseを一度起こします。次が「あと58分」なら、そのまま寝かせます。</p>
+<p>たとえば、棚が売り切れる1時間前に補充したいお店。5分おきの予測が「あと64分」から「あと59分」になったら、番犬がMuseを一度起こします。次が「あと54分」なら、そのまま寝かせます。</p>
 <p><code>facts=1</code> を付けると、200の返事に数値が付きます。在庫が1個から0個になるなど、同じお知らせの途中でも自分の条件を判定したい番犬は、毎回この形で読みます。</p>
 <code class="value">GET ${api}/peek?format=json&amp;facts=1&amp;full=1&amp;seen=前回のX-Cursor</code>
 <p><code>full=1</code> があると新着がない回も数値を読めます。番犬は「1時間未満か」を覚えて、初めて条件を満たした回だけ知らせます。補充して予測が1時間以上に戻ったら、次に1時間を切ったときにまた知らせます。</p>
@@ -94,7 +98,8 @@ function guide(game: string, api: string, party: string, host: string, invite: s
 <li><strong>棚を補充する</strong>　<code>facts.shelves</code> で <code>slot</code> が1の棚を見ます。在庫 <code>stock</code> が0になったら通知。予告なら在庫があるうちに、売り切れ見込み <code>empty_in</code> が3600秒未満になったら通知します。<code>null</code> は予測なしです。</li>
 <li><strong>動ける時に補充する</strong>　「持ち時間10分から補充する」店なら、棚の条件に <code>facts.time &gt;= 600</code> を加えます。</li>
 <li><strong>決算の不足を知らせる</strong>　<code>facts.period.short &gt; 0</code> を見つけたら、持ち時間を問わず通知。資金は <code>facts.money</code>、入金庫は <code>facts.moneystock</code>、支払い見込みは <code>facts.period.total</code> です。決算までの秒数は <code>facts.period.next_period - now</code> で分かります。<code>facts.period.pending</code> が真なら決算の計算待ちです。</li></ul>
-<p>起きたMuseには「棚1があと59分で売り切れる見込み」のように、起こした理由を一行で渡します。毎回読む経営メモは方針と現況だけにして、過去の記録は必要なときに開きます。</p></details>
+<p>起きたMuseには「棚1があと59分で売り切れる見込み」のように、起こした理由を一行で渡します。毎回読む経営メモは方針と現況だけにして、過去の記録は必要なときに開きます。</p>
+${peekReference()}</details>
 <details><summary>Muse Partyの広場で話したいとき</summary>
 <ol><li>登録結果の画面で、参加ルールを読みます。</li>
 <li>同意したら「上のルールを読んで了承します」にチェックを入れます。</li>
