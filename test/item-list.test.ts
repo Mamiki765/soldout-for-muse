@@ -42,9 +42,9 @@ test('一覧: 入手の列・定義の価格・絞り込み。認証なしで読
   try {
     const { status, text } = await getText(base + '/api/v1/items');
     assert.equal(status, 200);
-    assert.match(text, /^114 固めプリン 薬 2200 70 100 ←26$/m);
+    assert.match(text, /^114 固めプリン 薬 2600 70 100 ←26$/m);
     assert.match(text, /^26 ミノ牛乳 薬 200 50 2000 ←25$/m, '手書きの補足 (ミノタウロス♀の乳搾り) も入手に出る');
-    assert.match(text, /^22 鎧の作り方 本 50000 800 5 ←10,79 市場/m);
+    assert.match(text, /^22 鎧の作り方 本 64000 800 5 ←10,79 市場/m);
     assert.match(text, /^27 七面鳥の丸焼き .* 他/m);
     const json = (await (await fetch(base + '/api/v1/items?format=json')).json()) as { item: number; price: number }[];
     assert.equal(json.length, MAX_ITEM);
@@ -63,14 +63,14 @@ test('詳細: 作り方の逆引き・材料になる先・名前で開く。ト
   try {
     let r = await getText(base + '/api/v1/items/' + encodeURIComponent('固めプリン'));
     assert.equal(r.status, 200, '名前・認証なしで開ける');
-    assert.match(r.text, /^26ミノ牛乳\/6 固めプリンを作成する 1h00m→45m 0 \| ミノタウロス♀x5\(消費しない\),ミノ牛乳x10,砂糖x3 → 固めプリンx2 \| ミノタウロス♀ 酪農家 時間1\/2$/m);
+    assert.match(r.text, /^26ミノ牛乳\/6 固めプリンを作成する 26m→20m 0 \| ミノタウロス♀x5\(消費しない\),ミノ牛乳x10,砂糖x3 → 固めプリンx2 \| ミノタウロス♀ 酪農家 時間1\/2$/m);
     assert.doesNotMatch(r.text, /あなた|今は使えない/);
 
     const d = (await (await fetch(base + `/api/v1/items/${PUDDING}?format=json`, { headers: auth })).json()) as {
       made_by: { item: number; use: number; time: number; time_skilled: number; skill_item: { item: number }; usable: boolean; why?: string }[];
     };
     assert.equal(d.made_by.length, 1);
-    assert.deepEqual([d.made_by[0].item, d.made_by[0].use, d.made_by[0].time, d.made_by[0].time_skilled, d.made_by[0].skill_item.item], [26, 6, 3600, 2700, 25]);
+    assert.deepEqual([d.made_by[0].item, d.made_by[0].use, d.made_by[0].time, d.made_by[0].time_skilled, d.made_by[0].skill_item.item], [26, 6, 1600, 1200, 25]);
     assert.equal(d.made_by[0].usable, false);
     assert.match(d.made_by[0].why!, /ミノ牛乳を持っていません/);
 
@@ -158,7 +158,7 @@ test('観戦画面のアイテム一覧に作り方と材料になる先が出�
     const r = await getText(base + '/view/items');
     assert.equal(r.status, 200);
     assert.match(r.text, /固めプリン/);
-    assert.match(r.text, /ミノ牛乳「固めプリンを作成する」: ミノタウロス♀×5\(消費しない\)、ミノ牛乳×10、砂糖×3 → 固めプリン×2 \(1h00m→45m、熟練はミノタウロス♀、酪農家 時間1\/2\)/);
+    assert.match(r.text, /ミノ牛乳「固めプリンを作成する」: ミノタウロス♀×5\(消費しない\)、ミノ牛乳×10、砂糖×3 → 固めプリン×2 \(26m→20m、熟練はミノタウロス♀、酪農家 時間1\/2\)/);
     assert.match(r.text, /\[アイテム一覧\]/);
   } finally {
     server.close();

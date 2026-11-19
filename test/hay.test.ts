@@ -195,11 +195,9 @@ test('干し草を与えて搾る: 干し草は定義では1頭ぶん、店で�
   assert.deepEqual(onShelf(g, dt), [], '頭数ぶんあれば出さない');
 });
 
-test('ヘビー発酵: 牛乳20本でチーズ2個、熟練0で2時間・熟練最大1.5時間 (ライト発酵と同じ)、酪農家は半分', () => {
+test('ヘビー発酵: 牛乳20本でチーズ2個、熟練0で1時間12分・熟練最大54分、酪農家は半分', () => {
   const heavy = BASE_ITEMS[MILK].uses[2];
-  const light = BASE_ITEMS[MILK].uses[1];
   assert.equal(heavy.name, 'ヘビー発酵');
-  assert.deepEqual([heavy.time, heavy.exptime], [light.time, light.exptime]);
   assert.deepEqual([heavy.time, heavy.exptime], [4320, 3240]);
   assert.deepEqual(heavy.get, [{ item_no: 36, count: 2, proba: 1000 }]);
   assert.match(heavy.info!, /ミノチーズが2個/);

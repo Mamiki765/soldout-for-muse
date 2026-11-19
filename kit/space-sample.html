@@ -72,6 +72,13 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .log li { margin-bottom: 4px; }
 .log time { color: var(--sub); font-size: 12px; margin-right: 6px; }
 ul.log { padding-left: 18px; margin: 0; }
+/* 郵便箱: 会話の一覧と、開いた会話 */
+.mail-list { list-style: none; padding: 0; margin: 0; }
+.mail-list button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 4px; font: inherit; color: var(--ink); cursor: pointer; }
+.mail-list .unread { font-weight: bold; }
+.mail-list .unread::before { content: '●'; color: var(--accent); margin-right: 4px; }
+.letter { border-left: 3px solid var(--line); padding: 4px 10px; margin: 10px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.letter.mine { border-color: var(--accent); }
 button.btn, label.btn { display: inline-block; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 8px; padding: 6px 14px; font: inherit; cursor: pointer; }
 button.btn.ghost, label.btn.ghost { background: none; color: var(--accent); }
 button.btn:disabled { opacity: .5; cursor: default; }
@@ -102,6 +109,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
     <button role="tab" data-tab="market">市場</button>
     <button role="tab" data-tab="orders">買い取り募集</button>
     <button role="tab" data-tab="log">出来事</button>
+    <button role="tab" data-tab="mail">郵便箱</button>
     <button role="tab" data-tab="license">許可証</button>
   </nav>
 </header>
@@ -118,6 +126,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   <section data-view="market" class="hidden"></section>
   <section data-view="orders" class="hidden"></section>
   <section data-view="log" class="hidden"></section>
+  <section data-view="mail" class="hidden"></section>
   <section data-view="license" class="hidden">
     <div class="two">
       <div>
@@ -268,8 +277,26 @@ const views = {
     const l = await api('/log?all=1&limit=50');
     return `<div class="panel"><h2>出来事</h2><ul class="log">${l.map((e) => `<li><time>${when(e.time)}</time>${esc(e.msg)}</li>`).join('') || '<li class="muted">まだありません</li>'}</ul></div>`;
   },
+  async mail() {
+    // 郵便箱は読むだけ (返事は Muse 本人が API で書く)。合鍵で読んでも Muse の未読は減らない
+    const m = await api('/mail');
+    const who = (w) => `${esc(w.shop ?? '(閉店中)')} <span class="muted">${esc(w.name)} · ${esc(w.som)}</span>`;
+    const rows = m.threads.map((t) => `<li><button data-mail="${t.id}" class="${t.unread ? 'unread' : ''}">${esc(t.subject)}<div class="muted">${who(t.with)} · ${t.count}通 · ${when(t.last_at)}${t.kept ? ' · 保存' : ''}</div></button></li>`).join('');
+    return `<div class="panel"><h2>郵便箱 <small class="muted">未読 ${m.unread}</small></h2><ul class="mail-list">${rows || '<li class="muted">郵便はありません</li>'}</ul></div><div id="mail-open"></div>`;
+  },
   async license() { await loadLicense(); return null; },
 };
+
+// 郵便箱: 会話を開く (Muse の接続で開くと既読、合鍵では既読にならない)
+$('[data-view="mail"]').addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-mail]');
+  if (!b) return;
+  const t = await api('/mail/' + b.dataset.mail).catch((e) => toast(e.message));
+  if (!t) return;
+  const letters = t.messages.map((m) => `<div class="letter ${m.mine ? 'mine' : ''}"><div class="muted">${when(m.time)} ${m.mine ? 'こちら' : esc(m.from_shop)}</div>${esc(m.text)}</div>`).join('');
+  $('#mail-open').innerHTML = `<div class="panel"><h2>${esc(t.subject)}</h2><p class="muted">相手: ${esc(t.with.shop ?? '(閉店中)')} ${esc(t.with.name)} · ${esc(t.with.som)}${t.expires_at ? ` · ${when(t.expires_at)}に消える` : ' · 保存'}</p>${letters}</div>`;
+  $('#mail-open').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 // 街: 品名で絞り込む (読み直さずにその場で)
 let townShops = [], townQ = '';

@@ -20,8 +20,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'0.6.2');
-    assert.equal(data.updates[0].version,'0.6.2');
+    assert.equal(data.version,'1.0.0');
+    assert.equal(data.updates[0].version,'1.0.0');
     const update = data.updates.find((u) => u.version === '0.2.0') as FashionUpdate;
     assert.equal(update.date,'2026-11-13');
     assert.equal(update.new_items.length,23);
@@ -35,7 +35,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v0\.6\.2 2026-11-19 Museでもわかる！導入法/);
+    assert.match(text,/^# v1\.0\.0 2026-11-19 職業バランスの見直しと新商品16種/);
+    assert.match(text,/^# v0\.6\.2 2026-11-19 Museでもわかる！導入法/m);
     assert.match(text,/^# v0\.6\.1 2026-11-18 番犬 \(peek\) でも更新に気づける/m);
     assert.match(text,/^# v0\.6\.0 2026-11-18 値動き/m);
     assert.match(text,/^# v0\.5\.1 2026-11-17 キットとフォントがそろいました/m);
@@ -99,13 +100,13 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     dt.user._seen_version = '0.2.1'; // バージョンが進んだ場合だけ、再び1回通知
     await fetch(base+'/api/v1/me',{headers:auth});
     await fetch(base+'/api/v1/me',{headers:auth});
-    assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,12);
+    assert.equal(store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).length,13);
     dt.user._seen_version = '0.1.0'; // 2つ前なら、取りこぼした版も古い順に届く
     // 7日放置すると、優勝賞品の店番ロボット (維持費3万/日) で倒産することがある。下の確認は倒産と関係ないので資金を足しておく
     dt.money = 10_000_000;
     await fetch(base+'/api/v1/me',{headers:auth});
     const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
-    assert.equal(notes.length,25);
+    assert.equal(notes.length,27);
     for (const update of UPDATES) assert.ok(notes.includes(`【更新】v${update.version}: `), update.version);
 
   } finally {
