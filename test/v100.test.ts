@@ -57,15 +57,28 @@ test('飼い葉桶: 持っていると牛乳が頭数×1本増え、10%で1回�
   assert.equal(dt.item[TROUGH - 1], 1);
   assert.doesNotMatch(u.result.function_return!, /壊れ/);
 
-  // r=0: 毎回壊れるが、持っている数より多くは壊れない
+  // r=0: 毎回壊れる。桶2個なら2回目まで上乗せし、3回目は桶が無いので上乗せしない
   ({ g, dt } = fixture(0));
   dt.item[MINO - 1] = 10;
   dt.item[HAY - 1] = 30;
   dt.item[TROUGH - 1] = 2;
   u = useItemAction(g, dt, MINO, FEED, { count: 3 });
-  assert.equal(dt.item[MILK - 1], 150 + 30);
+  assert.equal(dt.item[MILK - 1], 150 + 20);
   assert.equal(dt.item[TROUGH - 1], 0);
   assert.match(u.result.function_return!, /飼い葉桶が2個壊れました/);
+
+  // まとめて搾っても1回ずつ搾っても同じ (桶1個・毎回壊れる)
+  const batch = fixture(0);
+  const single = fixture(0);
+  for (const f of [batch, single]) {
+    f.dt.item[MINO - 1] = 10;
+    f.dt.item[HAY - 1] = 30;
+    f.dt.item[TROUGH - 1] = 1;
+  }
+  useItemAction(batch.g, batch.dt, MINO, FEED, { count: 3 });
+  for (let i = 0; i < 3; i++) useItemAction(single.g, single.dt, MINO, FEED, { count: 1 });
+  assert.equal(batch.dt.item[MILK - 1], 160);
+  assert.equal(single.dt.item[MILK - 1], 160);
 
   // 持っていなければ今までどおり
   ({ g, dt } = fixture(0.2));

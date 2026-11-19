@@ -136,22 +136,29 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const base = Number(u.params[0]);
     const spread = Number(u.params[1]);
     const n = dt.item[25 - 1] * count;
-    // 1.0.0: 飼い葉桶 (131) を持っていると 頭数×1本 多く出る。1回ごとに10%で桶が1個壊れる
-    const trough = dt.item[TROUGH - 1] > 0;
-    const val = base * n + Math.trunc(g.rand(spread * n + 1)) + (trough ? n : 0);
+    // 1.0.0: 飼い葉桶 (131) を持っていると 1回ごとに 頭数×1本 多く出る。1回ごとに10%で桶が1個壊れ、
+    // 桶が無くなったあとの回には上乗せしない (まとめて搾っても1回ずつ搾っても同じになるように)
+    const heads = dt.item[25 - 1];
+    let troughs = dt.item[TROUGH - 1];
+    const spreadRoll = Math.trunc(g.rand(spread * n + 1));
+    let bonus = 0;
+    let broken = 0;
+    for (let i = 0; i < count && troughs > 0; i++) {
+      bonus += heads;
+      if (g.rand(1000) < 100) {
+        troughs--;
+        broken++;
+      }
+    }
+    const val = base * n + spreadRoll + bonus;
     const got = addItemSub(g, dt, 26, val);
     u.result.additem.push({ item_no: 26, count: got });
     u.result.addmsg.push('ミノ牛乳を精製しました');
     let ret = 'ミノ牛乳を' + val + '本精製しました';
     if (got < val) ret += ' (持てる上限で' + (val - got) + '本は捨てました)';
-    if (trough) {
-      let broken = 0;
-      for (let i = 0; i < count; i++) if (g.rand(1000) < 100) broken++;
-      if (broken) {
-        const before = dt.item[TROUGH - 1];
-        itemUseItem(dt, u, TROUGH, broken, g.items[TROUGH].name + 'が壊れました');
-        ret += ' (' + g.items[TROUGH].name + 'が' + (before - dt.item[TROUGH - 1]) + '個壊れました)';
-      }
+    if (broken) {
+      itemUseItem(dt, u, TROUGH, broken, g.items[TROUGH].name + 'が壊れました');
+      ret += ' (' + g.items[TROUGH].name + 'が' + broken + '個壊れました)';
     }
     log(g, 0, dt.id, ret);
     return ret;
