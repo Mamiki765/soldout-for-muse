@@ -161,6 +161,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -220,6 +222,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -317,6 +321,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -430,6 +436,110 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		my $it = $by_no{$ch->{item}} or die "hay: unknown item $ch->{item}";
 		$it->{limit} = $ch->{limit};
 	}
+
+	# 1.0.0 職業バランス (tools/v100.json): E = 既存品の直し (材料・時間・成功率・値段・本のすり切れ率)、
+	# F = 新しい品16品とイベントへの登録。熟練の共有 (下) より前に当てる (ミノ牛乳の品は time を書き、熟練最大は共有で決まる)。
+	open(my $v100_fh, '<:raw', "$FindBin::Bin/v100.json") or die $!;
+	my $v100 = JSON::PP->new->utf8->decode(do { local $/; <$v100_fh> });
+	close $v100_fh;
+	$v100 = $as_bytes->($v100);
+	my $find_use = sub {
+		my ($book, $product) = @_;
+		my @u = grep { @{ $_->{get} } && $_->{get}[0]{item_no} == $product } @{ $by_no{$book}{uses} };
+		die "v1.0.0: recipe $book/$product not found (or not unique)" if @u != 1;
+		return $u[0];
+	};
+	for my $ch (@{ $v100->{recipe_changes} }) {
+		my $u = $find_use->($ch->{book}, $ch->{product});
+		for my $no (keys %{ $ch->{materials} // {} }) {
+			my @l = grep { $_->{item_no} == $no && $_->{proba} > 0 } @{ $u->{use} };
+			die "v1.0.0: material $no not in $ch->{book}/$ch->{product}" if @l != 1;
+			$l[0]{count} = $ch->{materials}{$no};
+		}
+		$u->{exptime} = $ch->{exptime} if defined $ch->{exptime};
+		$u->{time} = $u->{exptime} = $ch->{time} if defined $ch->{time};
+		$u->{get}[0]{proba} = $ch->{proba} if defined $ch->{proba};
+	}
+	for my $no (keys %{ $v100->{price_changes} }) {
+		my $it = $by_no{$no} or die "v1.0.0: unknown item $no";
+		$it->{price} = $v100->{price_changes}{$no};
+	}
+	for my $no (keys %{ $v100->{popular_changes} }) {
+		my $it = $by_no{$no} or die "v1.0.0: unknown item $no";
+		$it->{popular} = $v100->{popular_changes}{$no};
+	}
+	# 本のすり切れ: 値段を上げたぶん率を下げる (値段×率をそろえる)。その本の使い方すべての params[0] を表で置き換える
+	for my $ch (@{ $v100->{field_changes} // [] }) {
+		my $it = $by_no{$ch->{item}} or die "v1.0.0: unknown item $ch->{item}";
+		for my $k (grep { $_ ne 'item' && $_ ne 'note' } keys %$ch) {
+			die "v1.0.0: unknown field $k" if !exists $it->{$k};
+			$it->{$k} = $ch->{$k};
+		}
+	}
+	for my $book (keys %{ $v100->{lostbook_changes} }) {
+		my $map = $v100->{lostbook_changes}{$book};
+		for my $u (@{ $by_no{$book}{uses} }) {
+			next if !defined $u->{func} || ($u->{func} ne 'lostbook' && $u->{func} ne 'lostbooktool');
+			my $old = $u->{params}[0];
+			die "v1.0.0: lostbook $book/$u->{no} rate $old has no new rate" if !defined $map->{$old};
+			$u->{params}[0] = "$map->{$old}";
+		}
+	}
+	for my $spec (@{ $v100->{items} }) {
+		die "v1.0.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		die "v1.0.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+		my $ref = $by_no{$spec->{market_reference}} or die 'unknown market reference';
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		delete $it->{market_reference};
+		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+	# 品そのものの使い方 (タイムシガレットを吸う)。ひな型は転職のススメの使い方
+	for my $spec (@{ $v100->{item_uses} // [] }) {
+		my $it = $by_no{$spec->{item}} or die "v1.0.0: unknown item $spec->{item}";
+		my $u = $copy->($by_no{78}{uses}[0]);
+		$u->{$_} = undef for qw(func func_before local_func_before func_info local_func_info local_func arg argmessage argselect ngmsg needexp);
+		$u->{params} = [undef, undef, undef, undef];
+		$u->{no} = scalar @{ $it->{uses} };
+		@$u{qw(name action scale info okmsg)} = @$spec{qw(name action scale info okmsg)};
+		@$u{qw(time exptime exp money)} = ($spec->{time}, $spec->{time}, 0, 0);
+		$u->{jobs} = [];
+		$u->{get} = [];
+		$u->{use} = $lines->([[$it->{no}, 1]], 1000);
+		push @{ $it->{uses} }, $u;
+	}
+	for my $spec (@{ $v100->{production} }) {
+		my $u = $new_use->($spec);
+		my $name = $by_no{$spec->{product}}{name};
+		$u->{name} = $name . 'を作成する';
+		$u->{info} = $name . 'を作ります';
+		$u->{okmsg} = $name . 'を作りました';
+		$u->{ngmsg} = '作成に失敗しました…';
+		@$u{qw(time exptime exp)} = @$spec{qw(time exptime exp)};
+		$u->{func} = 'lostbook';
+		$u->{params} = ["$spec->{lostbook}", undef, undef, undef];
+		$u->{get} = $lines->([[$spec->{product}, $spec->{get}, $spec->{proba}]], 1000);
+	}
+	my %ev_v100 = map { $_->{code} => $_ } @events;
+	for my $ch (@{ $v100->{event_add_params} }) {
+		my $e = $ev_v100{$ch->{code}} or die "v1.0.0: unknown event $ch->{code}";
+		for my $p (@{ $ch->{params} }) {
+			die "v1.0.0: duplicate event param $ch->{code}/$p->{item_no}/$p->{key}" if grep { $_->{item_no} == $p->{item_no} && $_->{key} eq $p->{key} } @{ $e->{params} };
+		}
+		push @{ $e->{params} }, @{ $params->($ch->{params}) };
+	}
+	for my $ch (@{ $v100->{info_changes} }) {
+		my @u = grep { $_->{name} eq $ch->{use_name} } @{ $by_no{$ch->{item}}{uses} };
+		die "v1.0.0: unknown use $ch->{item}/$ch->{use_name}" if @u != 1;
+		$u[0]{info} = $ch->{info};
+	}
+	$define{version} = $v100->{version};
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。

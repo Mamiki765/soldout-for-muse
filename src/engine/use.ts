@@ -238,6 +238,8 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   // 時間クーポンの残りも使える。持ち時間がマイナス (待ち中) でも、クーポンの分は使える (useTime と同じ扱い)
   const avail = g.usableTime(dt);
   if (usetime > 0 && usetime * count > avail) cap(avail / usetime, '持ち時間が足りません');
+  // 時間が増える使い方 (タイムシガレット) は、持ち時間の上限 (48時間) を超えない本数まで
+  if (usetime < 0) cap((g.config.maxStockTime - (g.now - dt.time)) / -usetime, '持ち時間がいっぱいです (上限' + Math.trunc(g.config.maxStockTime / 3600) + '時間)');
   for (const line of u.use) {
     const itemcount = line.count * (line.proba === 0 ? 1 : count);
     if (dt.item[line.no - 1] < itemcount) cap(line.count > 0 ? dt.item[line.no - 1] / line.count : 0, `${g.items[line.no].name}が足りません`);
@@ -328,7 +330,8 @@ export function useResultMessages(g: Game, dt: Shop, u: RtUse): string[] {
   if (u.result.function_return) out.push(...u.result.function_return.split('<br>').filter(Boolean));
   out.push(`${count}${u.scale}`);
   if (u.money * count) out.push(`費用:￥${u.money * count}`);
-  out.push(`時間:${formatHms(itemUseTime(dt, u) * count)}`);
+  const spent = itemUseTime(dt, u) * count;
+  out.push(spent < 0 ? `持ち時間+${formatHms(-spent)}` : `時間:${formatHms(spent)}`);
   for (const m of u.result.addmsg) if (m) out.push(m);
   if (u.result.additem.length) {
     if (u.result.message.resultok) out.push(u.result.message.resultok);
