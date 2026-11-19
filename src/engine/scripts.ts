@@ -9,6 +9,11 @@ import type { Game, RtItem } from './game.js';
 import type { Shop } from './types.js';
 import { formatHms, type RtUse } from './use.js';
 
+/** 1.0.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
+import { giveJobGift } from './campaign.js';
+
+const TROUGH = 131;
+
 // ---------------------------------------------------------------------------
 // package item の補助関数 (原作 inc/inc-item.cgi)
 
@@ -131,12 +136,30 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const base = Number(u.params[0]);
     const spread = Number(u.params[1]);
     const n = dt.item[25 - 1] * count;
-    const val = base * n + Math.trunc(g.rand(spread * n + 1));
+    // 1.0.0: 飼い葉桶 (131) を持っていると 1回ごとに 頭数×1本 多く出る。1回ごとに10%で桶が1個壊れ、
+    // 桶が無くなったあとの回には上乗せしない (まとめて搾っても1回ずつ搾っても同じになるように)
+    const heads = dt.item[25 - 1];
+    let troughs = dt.item[TROUGH - 1];
+    const spreadRoll = Math.trunc(g.rand(spread * n + 1));
+    let bonus = 0;
+    let broken = 0;
+    for (let i = 0; i < count && troughs > 0; i++) {
+      bonus += heads;
+      if (g.rand(1000) < 100) {
+        troughs--;
+        broken++;
+      }
+    }
+    const val = base * n + spreadRoll + bonus;
     const got = addItemSub(g, dt, 26, val);
     u.result.additem.push({ item_no: 26, count: got });
     u.result.addmsg.push('ミノ牛乳を精製しました');
     let ret = 'ミノ牛乳を' + val + '本精製しました';
     if (got < val) ret += ' (持てる上限で' + (val - got) + '本は捨てました)';
+    if (broken) {
+      itemUseItem(dt, u, TROUGH, broken, g.items[TROUGH].name + 'が壊れました');
+      ret += ' (' + g.items[TROUGH].name + 'が' + broken + '個壊れました)';
+    }
     log(g, 0, dt.id, ret);
     return ret;
   },
@@ -309,6 +332,9 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     if (p4 && p4 !== '_default_') {
       dt.job = p4;
       ret += '職業が「' + (CATALOG.jobTypes[p4] ?? '') + '」になりました';
+      // 1.0.0 の転職キャンペーン (1店1回)
+      const gift = giveJobGift(g, dt, p1);
+      if (gift) ret += '<br>' + gift;
     }
     if (p4 === '_default_') {
       dt.job = '';

@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "0.3.0"
+      "version" : "1.0.0"
    },
    "errors" : [],
    "events" : [
@@ -103,6 +103,18 @@
                "key" : "point",
                "op" : "=",
                "value" : -400
+            },
+            {
+               "item_no" : 116,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 117,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
             }
          ],
          "plustime" : 0,
@@ -161,6 +173,30 @@
                "key" : "point",
                "op" : "=",
                "value" : -400
+            },
+            {
+               "item_no" : 126,
+               "key" : "point",
+               "op" : "=",
+               "value" : 0
+            },
+            {
+               "item_no" : 127,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 128,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 129,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
             }
          ],
          "plustime" : 0,
@@ -219,6 +255,30 @@
                "key" : "point",
                "op" : "=",
                "value" : -400
+            },
+            {
+               "item_no" : 122,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 123,
+               "key" : "point",
+               "op" : "=",
+               "value" : -100
+            },
+            {
+               "item_no" : 124,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 125,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
             }
          ],
          "plustime" : 0,
@@ -271,6 +331,24 @@
                "key" : "point",
                "op" : "=",
                "value" : -400
+            },
+            {
+               "item_no" : 119,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 120,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
+            },
+            {
+               "item_no" : 121,
+               "key" : "point",
+               "op" : "=",
+               "value" : -300
             }
          ],
          "plustime" : 0,
@@ -450,6 +528,18 @@
                "key" : "popular",
                "op" : "/",
                "value" : 2
+            },
+            {
+               "item_no" : 116,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 117,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
             }
          ],
          "plustime" : 86400,
@@ -505,6 +595,30 @@
             },
             {
                "item_no" : 50,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 122,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 123,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 124,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 125,
                "key" : "popular",
                "op" : "/",
                "value" : 2
@@ -566,6 +680,30 @@
                "key" : "popular",
                "op" : "/",
                "value" : 2
+            },
+            {
+               "item_no" : 126,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 127,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 128,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 129,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
             }
          ],
          "plustime" : 86400,
@@ -615,6 +753,24 @@
             },
             {
                "item_no" : 61,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 119,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 120,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 121,
                "key" : "popular",
                "op" : "/",
                "value" : 2
@@ -914,6 +1070,66 @@
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
+            },
+            {
+               "item_no" : 116,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 116,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 122,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 122,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 123,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 123,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 124,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 124,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 128,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 128,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             }
          ],
          "plustime" : 0,
@@ -1041,6 +1257,66 @@
             },
             {
                "item_no" : 75,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 117,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 117,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 121,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 121,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 125,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 125,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 129,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 129,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 130,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 130,
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
@@ -1497,6 +1773,12 @@
                "key" : "popular",
                "op" : "/",
                "value" : 1.5
+            },
+            {
+               "item_no" : 130,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
             }
          ],
          "plustime" : 86400,
@@ -1887,6 +2169,12 @@
                "key" : "point",
                "op" : "=",
                "value" : -200
+            },
+            {
+               "item_no" : 130,
+               "key" : "point",
+               "op" : "=",
+               "value" : -200
             }
          ],
          "plustime" : 0,
@@ -2140,14 +2428,14 @@
       },
       {
          "code" : "book-metalsearch",
-         "cost" : 1000,
+         "cost" : 300,
          "flag" : "",
          "func" : null,
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : null,
          "info" : "各種鉱物の採取ができそうです",
-         "limit" : 1,
+         "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -2521,7 +2809,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 40,
-               "exptime" : 7200,
+               "exptime" : 3600,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -2643,7 +2931,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 50,
-               "exptime" : 14400,
+               "exptime" : 10800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -2687,12 +2975,12 @@
                      "proba" : 1000
                   },
                   {
-                     "count" : 50,
+                     "count" : 30,
                      "item_no" : 3,
                      "proba" : 1000
                   },
                   {
-                     "count" : 10,
+                     "count" : 5,
                      "item_no" : 4,
                      "proba" : 1000
                   }
@@ -2704,7 +2992,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 30,
-               "exptime" : 18000,
+               "exptime" : 10800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -2758,17 +3046,17 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 10,
                      "item_no" : 5,
                      "proba" : 1000
                   },
                   {
-                     "count" : 5,
+                     "count" : 3,
                      "item_no" : 6,
                      "proba" : 1000
                   },
                   {
-                     "count" : 5,
+                     "count" : 2,
                      "item_no" : 7,
                      "proba" : 1000
                   }
@@ -2780,7 +3068,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 10800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -2846,7 +3134,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 10800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -2912,7 +3200,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 10800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -3039,7 +3327,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 30,
-               "exptime" : 10800,
+               "exptime" : 9720,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -3189,14 +3477,14 @@
       },
       {
          "code" : "book-mtsearch",
-         "cost" : 500,
+         "cost" : 300,
          "flag" : "",
          "func" : null,
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : null,
          "info" : "材料調達にはもってこいの山です",
-         "limit" : 1,
+         "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -3801,14 +4089,14 @@
       },
       {
          "code" : "shiire-ken",
-         "cost" : 1000,
+         "cost" : 300,
          "flag" : "",
          "func" : null,
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : null,
          "info" : "剣の市場までの地図",
-         "limit" : 1,
+         "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -4021,7 +4309,7 @@
          "plus" : 1728000,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 15000,
+         "price" : 19600,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -4034,7 +4322,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 2400,
+               "exptime" : 1200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -4064,7 +4352,7 @@
                "no" : 0,
                "okmsg" : "ポーションをたくさん作りました",
                "params" : [
-                  "50",
+                  "38",
                   null,
                   null,
                   null
@@ -4085,7 +4373,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 2400,
+               "exptime" : 1200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -4115,7 +4403,7 @@
                "no" : 1,
                "okmsg" : "ハイポーションを作りました",
                "params" : [
-                  "70",
+                  "54",
                   null,
                   null,
                   null
@@ -4136,7 +4424,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 2400,
+               "exptime" : 1200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -4166,7 +4454,7 @@
                "no" : 2,
                "okmsg" : "エーテルを作りました",
                "params" : [
-                  "70",
+                  "54",
                   null,
                   null,
                   null
@@ -4187,7 +4475,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 2400,
+               "exptime" : 1200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -4217,7 +4505,7 @@
                "no" : 3,
                "okmsg" : "ハイエーテルを作りました",
                "params" : [
-                  "100",
+                  "77",
                   null,
                   null,
                   null
@@ -4268,7 +4556,7 @@
                "no" : 4,
                "okmsg" : "エリ草を作りました",
                "params" : [
-                  "150",
+                  "115",
                   null,
                   null,
                   null
@@ -4324,7 +4612,7 @@
                "no" : 5,
                "okmsg" : "香油を作りました",
                "params" : [
-                  "50",
+                  "38",
                   null,
                   null,
                   null
@@ -4385,7 +4673,7 @@
                "no" : 6,
                "okmsg" : "香水を作りました",
                "params" : [
-                  "30",
+                  "23",
                   "112",
                   "30",
                   null
@@ -4451,7 +4739,7 @@
                "no" : 7,
                "okmsg" : "エリクシルを作りました",
                "params" : [
-                  "30",
+                  "23",
                   "112",
                   "30",
                   null
@@ -4509,7 +4797,7 @@
          "plus" : 1728000,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 25000,
+         "price" : 43000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -4558,7 +4846,7 @@
                "no" : 0,
                "okmsg" : "革の盾を作りました",
                "params" : [
-                  "50",
+                  "29",
                   null,
                   null,
                   null
@@ -4615,7 +4903,7 @@
                "no" : 1,
                "okmsg" : "革の胸当てを作りました",
                "params" : [
-                  "100",
+                  "58",
                   null,
                   null,
                   null
@@ -4666,7 +4954,7 @@
                "no" : 2,
                "okmsg" : "草織り布を作りました",
                "params" : [
-                  "50",
+                  "29",
                   null,
                   null,
                   null
@@ -4727,7 +5015,7 @@
                "no" : 3,
                "okmsg" : "なめし革を作りました",
                "params" : [
-                  "50",
+                  "29",
                   null,
                   null,
                   null
@@ -4788,7 +5076,7 @@
                "no" : 4,
                "okmsg" : "ヒョウ柄ミニスカートを作りました",
                "params" : [
-                  "100",
+                  "58",
                   null,
                   null,
                   null
@@ -4854,7 +5142,7 @@
                "no" : 5,
                "okmsg" : "厚底ブーツを作りました",
                "params" : [
-                  "100",
+                  "58",
                   null,
                   null,
                   null
@@ -4925,7 +5213,7 @@
                "no" : 6,
                "okmsg" : "ルーズソックスを作りました",
                "params" : [
-                  "100",
+                  "58",
                   null,
                   null,
                   null
@@ -4986,7 +5274,7 @@
                "no" : 7,
                "okmsg" : "革のロングコートを作りました",
                "params" : [
-                  "150",
+                  "87",
                   null,
                   null,
                   null
@@ -5039,7 +5327,7 @@
          "plus" : 1728000,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 25000,
+         "price" : 50000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -5088,7 +5376,7 @@
                "no" : 0,
                "okmsg" : "木刀を作りました",
                "params" : [
-                  "50",
+                  "25",
                   null,
                   null,
                   null
@@ -5145,7 +5433,7 @@
                "no" : 1,
                "okmsg" : "木の杖を作りました",
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -5154,7 +5442,7 @@
                "time" : 3600,
                "use" : [
                   {
-                     "count" : 20,
+                     "count" : 12,
                      "item_no" : 3,
                      "proba" : 1000
                   }
@@ -5202,7 +5490,7 @@
                "no" : 2,
                "okmsg" : "木の盾を作りました",
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -5259,7 +5547,7 @@
                "no" : 3,
                "okmsg" : "木の胸当てを作りました",
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -5310,7 +5598,7 @@
                "no" : 4,
                "okmsg" : "製材板を作りました",
                "params" : [
-                  "50",
+                  "25",
                   null,
                   null,
                   null
@@ -5331,7 +5619,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 4800,
+               "exptime" : 2700,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -5361,7 +5649,7 @@
                "no" : 5,
                "okmsg" : "樹脂板を作りました",
                "params" : [
-                  "70",
+                  "35",
                   null,
                   null,
                   null
@@ -5417,7 +5705,7 @@
                "no" : 6,
                "okmsg" : "寄木の髪飾りを作りました",
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -5448,6 +5736,62 @@
                   {
                      "count" : 4,
                      "item_no" : 68,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 3600,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 131,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "飼い葉桶を作ります",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "飼い葉桶を作成する",
+               "needexp" : 200,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "飼い葉桶を作りました",
+               "params" : [
+                  "35",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 91,
                      "proba" : 1000
                   }
                ]
@@ -5533,7 +5877,7 @@
          "plus" : 6912000,
          "point" : 1000,
          "popular" : 259200,
-         "price" : 50000,
+         "price" : 64000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -5576,7 +5920,7 @@
                "no" : 0,
                "okmsg" : "鉄の剣を鍛えました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -5590,7 +5934,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 12,
                      "item_no" : 5,
                      "proba" : 1000
                   }
@@ -5632,7 +5976,7 @@
                "no" : 1,
                "okmsg" : "鋼鉄の剣を鍛えました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -5646,7 +5990,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 40,
+                     "count" : 30,
                      "item_no" : 5,
                      "proba" : 1000
                   }
@@ -5688,7 +6032,7 @@
                "no" : 2,
                "okmsg" : "ミスリルの剣を鍛えました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -5722,7 +6066,7 @@
                   {
                      "count" : 20,
                      "item_no" : 44,
-                     "proba" : 300
+                     "proba" : 400
                   }
                ],
                "info" : "めったに手に入らない、オリハルコンの剣を鍛えてみましょう",
@@ -5744,7 +6088,7 @@
                "no" : 3,
                "okmsg" : "オリハルコンの剣を鍛えました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -5758,7 +6102,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 14,
                      "item_no" : 7,
                      "proba" : 1000
                   }
@@ -5800,7 +6144,7 @@
                "no" : 4,
                "okmsg" : "精鋼板を作りました",
                "params" : [
-                  "70",
+                  "55",
                   null,
                   null,
                   null
@@ -5866,7 +6210,7 @@
                "no" : 5,
                "okmsg" : "ミスリル線を作りました",
                "params" : [
-                  "70",
+                  "55",
                   null,
                   null,
                   null
@@ -5887,6 +6231,133 @@
                   {
                      "count" : 4,
                      "item_no" : 6,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 3600,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 116,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "短剣を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "短剣を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "短剣を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 97,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 2,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 117,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "宝飾の細剣を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "宝飾の細剣を作成する",
+               "needexp" : 500,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "宝飾の細剣を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 98,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 102,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 100,
                      "proba" : 1000
                   }
                ]
@@ -5914,7 +6385,7 @@
          "plus" : 6912000,
          "point" : 1000,
          "popular" : 259200,
-         "price" : 50000,
+         "price" : 64000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -5927,7 +6398,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 20,
-               "exptime" : 3600,
+               "exptime" : 2700,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -5957,7 +6428,7 @@
                "no" : 0,
                "okmsg" : "鉄の盾を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -5971,7 +6442,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 12,
                      "item_no" : 5,
                      "proba" : 1000
                   }
@@ -6013,7 +6484,7 @@
                "no" : 1,
                "okmsg" : "鋼鉄の盾を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6027,7 +6498,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 40,
+                     "count" : 24,
                      "item_no" : 5,
                      "proba" : 1000
                   }
@@ -6069,7 +6540,7 @@
                "no" : 2,
                "okmsg" : "ミスリルの盾を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6103,7 +6574,7 @@
                   {
                      "count" : 20,
                      "item_no" : 50,
-                     "proba" : 300
+                     "proba" : 500
                   }
                ],
                "info" : "めったに手に入らない、オリハルコンの盾を作成してみましょう",
@@ -6125,7 +6596,7 @@
                "no" : 3,
                "okmsg" : "オリハルコンの盾を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6139,8 +6610,257 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 12,
                      "item_no" : 7,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 3600,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 122,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "鋲打ちの革盾を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "鋲打ちの革盾を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "鋲打ちの革盾を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 6,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 5400,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 123,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "木枠の円盾を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "木枠の円盾を作成する",
+               "needexp" : 200,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "木枠の円盾を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 10800,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 99,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 6,
+                     "item_no" : 97,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 124,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "紋章の盾を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "紋章の盾を作成する",
+               "needexp" : 400,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "紋章の盾を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 48,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 102,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 106,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 125,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "魔晶の結界盾を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "魔晶の結界盾を作成する",
+               "needexp" : 500,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "魔晶の結界盾を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 12,
+                     "item_no" : 6,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 118,
                      "proba" : 1000
                   }
                ]
@@ -6168,7 +6888,7 @@
          "plus" : 6912000,
          "point" : 1000,
          "popular" : 259200,
-         "price" : 50000,
+         "price" : 64000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -6211,7 +6931,7 @@
                "no" : 0,
                "okmsg" : "鉄の鎧を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6267,7 +6987,7 @@
                "no" : 1,
                "okmsg" : "鋼鉄の鎧を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6323,7 +7043,7 @@
                "no" : 2,
                "okmsg" : "ミスリルの鎧を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6357,7 +7077,7 @@
                   {
                      "count" : 20,
                      "item_no" : 56,
-                     "proba" : 300
+                     "proba" : 400
                   }
                ],
                "info" : "めったに手に入らない、オリハルコンの鎧を作成してみましょう",
@@ -6379,7 +7099,7 @@
                "no" : 3,
                "okmsg" : "オリハルコンの鎧を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6395,6 +7115,250 @@
                   {
                      "count" : 20,
                      "item_no" : 7,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 3600,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 126,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "綿入れの鎧下を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "綿入れの鎧下を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "綿入れの鎧下を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 7200,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 80,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 96,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 127,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "革の鎧を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "革の鎧を作成する",
+               "needexp" : 200,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "革の鎧を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 101,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 91,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 128,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "鎖帷子を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "鎖帷子を作成する",
+               "needexp" : 300,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "鎖帷子を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 97,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 129,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "ミスリルの鎖帷子を作ります",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ミスリルの鎖帷子を作成する",
+               "needexp" : 500,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "ミスリルの鎖帷子を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 98,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 15,
+                     "item_no" : 6,
                      "proba" : 1000
                   }
                ]
@@ -6422,7 +7386,7 @@
          "plus" : 6912000,
          "point" : 1000,
          "popular" : 259200,
-         "price" : 50000,
+         "price" : 64000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -6465,7 +7429,7 @@
                "no" : 0,
                "okmsg" : "鉄の杖を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6479,7 +7443,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 12,
                      "item_no" : 5,
                      "proba" : 1000
                   },
@@ -6526,7 +7490,7 @@
                "no" : 1,
                "okmsg" : "鋼鉄の杖を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6540,7 +7504,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 40,
+                     "count" : 28,
                      "item_no" : 5,
                      "proba" : 1000
                   },
@@ -6587,7 +7551,7 @@
                "no" : 2,
                "okmsg" : "ミスリルの杖を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6626,7 +7590,7 @@
                   {
                      "count" : 20,
                      "item_no" : 61,
-                     "proba" : 300
+                     "proba" : 400
                   }
                ],
                "info" : "めったに手に入らない、オリハルコンの杖を作成してみましょう",
@@ -6648,7 +7612,7 @@
                "no" : 3,
                "okmsg" : "オリハルコンの杖を作成しました",
                "params" : [
-                  "100",
+                  "78",
                   null,
                   null,
                   null
@@ -6662,13 +7626,262 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 20,
+                     "count" : 14,
                      "item_no" : 7,
                      "proba" : 1000
                   },
                   {
                      "count" : 10,
                      "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 2700,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 5,
+                     "item_no" : 118,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "魔晶を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "魔晶を作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 4,
+               "okmsg" : "魔晶を作りました",
+               "params" : [
+                  "55",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 5400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 119,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "香木の杖を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "香木の杖を作成する",
+               "needexp" : 200,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 5,
+               "okmsg" : "香木の杖を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 15,
+                     "item_no" : 94,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 120,
+                     "proba" : 800
+                  }
+               ],
+               "info" : "霊草の杖を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "霊草の杖を作成する",
+               "needexp" : 300,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 6,
+               "okmsg" : "霊草の杖を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 57,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 10,
+                     "item_no" : 105,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 5,
+                     "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作成する",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 10800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 20,
+                     "item_no" : 121,
+                     "proba" : 600
+                  }
+               ],
+               "info" : "宝珠の杖を作ります",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "宝珠の杖を作成する",
+               "needexp" : 600,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "宝珠の杖を作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 21600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 8,
+                     "item_no" : 98,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 118,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 102,
                      "proba" : 1000
                   }
                ]
@@ -6833,7 +8046,7 @@
                "func_before" : "_local_b2",
                "func_info" : null,
                "get" : [],
-               "info" : "干し草を頭数ぶん食べさせてから乳を搾ります。1回で 頭数×5〜7本 (平均 頭数×6本)。干し草は1回に頭数ぶん要ります。牛は減りません",
+               "info" : "干し草を頭数ぶん食べさせてから乳を搾ります。1回で 頭数×5〜7本 (平均 頭数×6本)。飼い葉桶を持っていると 頭数×1本 多く出ます (1回ごとに10%で桶が1個壊れる)。干し草は1回に頭数ぶん要ります。牛は減りません",
                "jobs" : [
                   {
                      "job" : "cow",
@@ -7005,7 +8218,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 3240,
+               "exptime" : 1800,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -7041,7 +8254,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 4320,
+               "time" : 2400,
                "use" : [
                   {
                      "count" : 5,
@@ -7049,7 +8262,7 @@
                      "proba" : 0
                   },
                   {
-                     "count" : 10,
+                     "count" : 6,
                      "item_no" : 26,
                      "proba" : 1000
                   }
@@ -7315,7 +8528,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 2700,
+               "exptime" : 1200,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -7351,7 +8564,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 3600,
+               "time" : 1600,
                "use" : [
                   {
                      "count" : 5,
@@ -7600,7 +8813,7 @@
          "plus" : 18000,
          "point" : 100,
          "popular" : 600,
-         "price" : 50,
+         "price" : 75,
          "pricebase" : 500,
          "pricehalf" : 1500,
          "scale" : "個",
@@ -7629,7 +8842,7 @@
          "plus" : -3600,
          "point" : 700,
          "popular" : 1800,
-         "price" : 250,
+         "price" : 300,
          "pricebase" : 400,
          "pricehalf" : 1000,
          "scale" : "個",
@@ -7687,7 +8900,7 @@
          "plus" : -3600,
          "point" : 1000,
          "popular" : 4800,
-         "price" : 500,
+         "price" : 750,
          "pricebase" : 200,
          "pricehalf" : 500,
          "scale" : "個",
@@ -7716,7 +8929,7 @@
          "plus" : -3600,
          "point" : 1000,
          "popular" : 14400,
-         "price" : 10000,
+         "price" : 15000,
          "pricebase" : 10,
          "pricehalf" : 20,
          "scale" : "個",
@@ -7819,7 +9032,7 @@
          "param" : null,
          "plus" : 0,
          "point" : 1000,
-         "popular" : 10800,
+         "popular" : 86400,
          "price" : 9000,
          "pricebase" : 0,
          "pricehalf" : 0,
@@ -9576,7 +10789,7 @@
          "plus" : -3600,
          "point" : 900,
          "popular" : 10800,
-         "price" : 1000,
+         "price" : 1100,
          "pricebase" : 50,
          "pricehalf" : 100,
          "scale" : "本",
@@ -9924,7 +11137,7 @@
          "plus" : -3600,
          "point" : 1000,
          "popular" : 10800,
-         "price" : 1200,
+         "price" : 1600,
          "pricebase" : 50,
          "pricehalf" : 100,
          "scale" : "個",
@@ -10011,7 +11224,7 @@
          "plus" : -3600,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 18000,
+         "price" : 20000,
          "pricebase" : 10,
          "pricehalf" : 20,
          "scale" : "個",
@@ -10040,7 +11253,7 @@
          "plus" : -3600,
          "point" : 2000,
          "popular" : 7200,
-         "price" : 300,
+         "price" : 320,
          "pricebase" : 100,
          "pricehalf" : 200,
          "scale" : "本",
@@ -10069,7 +11282,7 @@
          "plus" : -3600,
          "point" : 2000,
          "popular" : 18000,
-         "price" : 1100,
+         "price" : 1300,
          "pricebase" : 50,
          "pricehalf" : 100,
          "scale" : "本",
@@ -10895,7 +12108,7 @@
          "plus" : 1728000,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 40000,
+         "price" : 70000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "冊",
@@ -10908,7 +12121,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 7200,
+               "exptime" : 3600,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -10938,7 +12151,7 @@
                "no" : 0,
                "okmsg" : "鉄のピアスをたくさん作りました",
                "params" : [
-                  "60",
+                  "43",
                   null,
                   null,
                   null
@@ -10962,7 +12175,7 @@
                      "proba" : 1000
                   },
                   {
-                     "count" : 20,
+                     "count" : 10,
                      "item_no" : 88,
                      "proba" : 1000
                   },
@@ -10979,7 +12192,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 10800,
+               "exptime" : 3600,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -10987,7 +12200,7 @@
                   {
                      "count" : 20,
                      "item_no" : 68,
-                     "proba" : 600
+                     "proba" : 800
                   }
                ],
                "info" : "ミスリルの指輪を作成しまくります",
@@ -11009,7 +12222,7 @@
                "no" : 1,
                "okmsg" : "ミスリルの指輪をたくさん作りました",
                "params" : [
-                  "80",
+                  "57",
                   null,
                   null,
                   null
@@ -11045,7 +12258,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 14400,
+               "exptime" : 7200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -11053,7 +12266,7 @@
                   {
                      "count" : 20,
                      "item_no" : 69,
-                     "proba" : 300
+                     "proba" : 600
                   }
                ],
                "info" : "オリハルコンの腕輪を作成しまくります",
@@ -11075,7 +12288,7 @@
                "no" : 2,
                "okmsg" : "オリハルコンの腕輪をたくさん作りました",
                "params" : [
-                  "100",
+                  "71",
                   null,
                   null,
                   null
@@ -11146,7 +12359,7 @@
                "no" : 3,
                "okmsg" : "伝説が今、目の前に！",
                "params" : [
-                  "200",
+                  "143",
                   null,
                   null,
                   null
@@ -11232,7 +12445,7 @@
                "no" : 4,
                "okmsg" : "研磨宝石を作りました",
                "params" : [
-                  "70",
+                  "50",
                   null,
                   null,
                   null
@@ -11298,7 +12511,7 @@
                "no" : 5,
                "okmsg" : "ラメのチョーカーを作りました",
                "params" : [
-                  "100",
+                  "71",
                   null,
                   null,
                   null
@@ -11374,7 +12587,7 @@
                "no" : 6,
                "okmsg" : "宝石のブローチを作りました",
                "params" : [
-                  "150",
+                  "107",
                   null,
                   null,
                   null
@@ -11415,6 +12628,72 @@
                   {
                      "count" : 4,
                      "item_no" : 8,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 10,
+                     "item_no" : 130,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "魔晶のペンダントを作ります",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "魔晶のペンダントを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 7,
+               "okmsg" : "魔晶のペンダントを作りました",
+               "params" : [
+                  "71",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 14400,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 2,
+                     "item_no" : 118,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 98,
                      "proba" : 1000
                   }
                ]
@@ -11529,7 +12808,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 172800,
-         "price" : 50000,
+         "price" : 80000,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "個",
@@ -11558,7 +12837,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 7200,
-         "price" : 1800,
+         "price" : 3850,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -11587,7 +12866,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 14400,
-         "price" : 3600,
+         "price" : 6950,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -11616,7 +12895,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 28800,
-         "price" : 6600,
+         "price" : 11150,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -11645,7 +12924,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 86400,
-         "price" : 18900,
+         "price" : 19400,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -11674,7 +12953,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 259200,
-         "price" : 51750,
+         "price" : 42050,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -11703,7 +12982,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 518400,
-         "price" : 97500,
+         "price" : 76050,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "セット",
@@ -13634,7 +14913,7 @@
          "plus" : 0,
          "point" : 1000,
          "popular" : 7200,
-         "price" : 2200,
+         "price" : 2600,
          "pricebase" : 0,
          "pricehalf" : 0,
          "scale" : "個",
@@ -13671,6 +14950,538 @@
          "type" : 1,
          "uses" : [],
          "wslimit" : 50
+      },
+      {
+         "code" : "dagger",
+         "cost" : 90,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "精鋼板の刃に木の柄をつけた小さな剣。安くて扱いやすい",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "短剣",
+         "no" : 116,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 900,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 4,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "jeweled-rapier",
+         "cost" : 820,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミスリル線を鍛えた細身の剣。柄に研磨宝石をあしらった",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "宝飾の細剣",
+         "no" : 117,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 86400,
+         "price" : 8200,
+         "pricebase" : 20,
+         "pricehalf" : 40,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 4,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "mashou",
+         "cost" : 200,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "魔石を練り固めた結晶。杖や盾、飾りの材料になる",
+         "limit" : 300,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "魔晶",
+         "no" : 118,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 64800,
+         "price" : 7000,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "incense-staff",
+         "cost" : 220,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "香木を削り出し、魔石をはめた杖。ほのかに香る",
+         "limit" : 300,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "香木の杖",
+         "no" : 119,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 21600,
+         "price" : 2200,
+         "pricebase" : 30,
+         "pricehalf" : 60,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 7,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "herb-staff",
+         "cost" : 240,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "木の杖に霊草を巻きつけ、魔石で留めた杖",
+         "limit" : 300,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "霊草の杖",
+         "no" : 120,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 21600,
+         "price" : 2400,
+         "pricebase" : 30,
+         "pricehalf" : 60,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 7,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "orb-staff",
+         "cost" : 950,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミスリル線の枠に魔晶と研磨宝石を抱かせた上等な杖",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "宝珠の杖",
+         "no" : 121,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 129600,
+         "price" : 9500,
+         "pricebase" : 20,
+         "pricehalf" : 40,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 7,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "studded-shield",
+         "cost" : 120,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "なめし革を重ね、鉄の鋲で留めた軽い盾",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "鋲打ちの革盾",
+         "no" : 122,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 10800,
+         "price" : 1200,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 6,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "round-shield",
+         "cost" : 200,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "製材板の円盾を精鋼板の枠で縁どった盾",
+         "limit" : 300,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "木枠の円盾",
+         "no" : 123,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 18000,
+         "price" : 2000,
+         "pricebase" : 30,
+         "pricehalf" : 60,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 6,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "crest-shield",
+         "cost" : 800,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "鋼鉄の盾に紋章を描き、宝石と香油で仕上げた飾り盾",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "紋章の盾",
+         "no" : 124,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 86400,
+         "price" : 8000,
+         "pricebase" : 20,
+         "pricehalf" : 40,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 6,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "ward-shield",
+         "cost" : 880,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミスリルで打った盾に魔晶を埋め、結界を張れるようにした盾",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "魔晶の結界盾",
+         "no" : 125,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 86400,
+         "price" : 8800,
+         "pricebase" : 20,
+         "pricehalf" : 40,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 6,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "gambeson",
+         "cost" : 75,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "草織り布に繊維草の綿を詰めた、鎧の下に着る服",
+         "limit" : 1000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "綿入れの鎧下",
+         "no" : 126,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 7200,
+         "price" : 750,
+         "pricebase" : 50,
+         "pricehalf" : 100,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 5,
+         "uses" : [],
+         "wslimit" : 500
+      },
+      {
+         "code" : "leather-armor",
+         "cost" : 230,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "なめし革を樹脂で固めて仕立てた鎧",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "革の鎧",
+         "no" : 127,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 18000,
+         "price" : 2300,
+         "pricebase" : 30,
+         "pricehalf" : 60,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 5,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "chainmail",
+         "cost" : 340,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "鉄の輪を編みつないだ鎧。重いが動きやすい",
+         "limit" : 300,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "鎖帷子",
+         "no" : 128,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 18000,
+         "price" : 3400,
+         "pricebase" : 30,
+         "pricehalf" : 60,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 5,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "mithril-chainmail",
+         "cost" : 980,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミスリルの輪を編んだ鎖帷子。軽くて丈夫",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ミスリルの鎖帷子",
+         "no" : 129,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 86400,
+         "price" : 9800,
+         "pricebase" : 20,
+         "pricehalf" : 40,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 5,
+         "uses" : [],
+         "wslimit" : 100
+      },
+      {
+         "code" : "mashou-pendant",
+         "cost" : 530,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "魔晶をミスリル線で包んだペンダント",
+         "limit" : 100,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "魔晶のペンダント",
+         "no" : 130,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 43200,
+         "price" : 5300,
+         "pricebase" : 20,
+         "pricehalf" : 30,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
+      },
+      {
+         "code" : "trough",
+         "cost" : 2000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "ミノさんの飼い葉桶。持っていると干し草を与えて搾るとき1頭あたり1本多く出る。1回ごとに10%で壊れる",
+         "limit" : 10,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "飼い葉桶",
+         "no" : 131,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 20000,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "個",
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [],
+         "wslimit" : 1000
+      },
+      {
+         "code" : "time-cigarette",
+         "cost" : 0,
+         "flag" : "smb",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "使うと一瞬で時間が経った気持ちになる煙草。未成年・非喫煙者はココアシガレットになります。1本で持ち時間が30分増える (上限48時間まで)。売れない・譲れない",
+         "limit" : 9999,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "タイムシガレット",
+         "no" : 132,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 0,
+         "price" : 1800,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "本",
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [
+            {
+               "action" : "吸う",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 0,
+               "exptime" : -1800,
+               "func" : null,
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [],
+               "info" : "1本で持ち時間が30分増えます。持ち時間の上限 (48時間) を超える分は吸えません",
+               "jobs" : [],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "吸う",
+               "needexp" : null,
+               "ngmsg" : null,
+               "no" : 0,
+               "okmsg" : "一瞬で時間が経った気持ちになりました",
+               "params" : [
+                  null,
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "本",
+               "time" : -1800,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 132,
+                     "proba" : 1000
+                  }
+               ]
+            }
+         ],
+         "wslimit" : 0
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",
