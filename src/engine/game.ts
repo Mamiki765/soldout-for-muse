@@ -174,6 +174,11 @@ export class Game {
     if (!dt || !dt.status) return 0;
     const tmp = this.now - dt.time;
     if (tmp > this.config.maxStockTime) dt.time = this.now - this.config.maxStockTime;
+    // 時間が増える使い方 (タイムシガレット): 待ち中でも使える。上限は useItem で抑える
+    if (tm < 0) {
+      dt.time += tm;
+      return 0;
+    }
     const coupon = this.couponTime(dt);
     if (tmp < 0 && user && coupon <= 0) throw new GameError('時間待ちでしょ？ (持ち時間が足りません。時間は実際の時間と同じ速さで回復します)');
     const stock = Math.max(0, this.now - dt.time);

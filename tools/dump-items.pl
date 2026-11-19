@@ -161,6 +161,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -220,6 +222,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -317,6 +321,8 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
@@ -463,6 +469,13 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$it->{popular} = $v100->{popular_changes}{$no};
 	}
 	# 本のすり切れ: 値段を上げたぶん率を下げる (値段×率をそろえる)。その本の使い方すべての params[0] を表で置き換える
+	for my $ch (@{ $v100->{field_changes} // [] }) {
+		my $it = $by_no{$ch->{item}} or die "v1.0.0: unknown item $ch->{item}";
+		for my $k (grep { $_ ne 'item' && $_ ne 'note' } keys %$ch) {
+			die "v1.0.0: unknown field $k" if !exists $it->{$k};
+			$it->{$k} = $ch->{$k};
+		}
+	}
 	for my $book (keys %{ $v100->{lostbook_changes} }) {
 		my $map = $v100->{lostbook_changes}{$book};
 		for my $u (@{ $by_no{$book}{uses} }) {
@@ -480,10 +493,26 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		@$it{keys %$spec} = values %$spec;
 		delete $it->{market_reference};
 		@$it{qw(pricebase pricehalf wslimit)} = @$ref{qw(pricebase pricehalf wslimit)};
+		# 市場に戻さない品 (タイムシガレット) は wslimit を自分で指定する
+		$it->{wslimit} = $spec->{wslimit} if defined $spec->{wslimit};
 		$it->{point} = 1000;
 		$it->{uses} = [];
 		push @items, $it;
 		$by_no{$it->{no}} = $it;
+	}
+	# 品そのものの使い方 (タイムシガレットを吸う)。ひな型は転職のススメの使い方
+	for my $spec (@{ $v100->{item_uses} // [] }) {
+		my $it = $by_no{$spec->{item}} or die "v1.0.0: unknown item $spec->{item}";
+		my $u = $copy->($by_no{78}{uses}[0]);
+		$u->{$_} = undef for qw(func func_before local_func_before func_info local_func_info local_func arg argmessage argselect ngmsg needexp);
+		$u->{params} = [undef, undef, undef, undef];
+		$u->{no} = scalar @{ $it->{uses} };
+		@$u{qw(name action scale info okmsg)} = @$spec{qw(name action scale info okmsg)};
+		@$u{qw(time exptime exp money)} = ($spec->{time}, $spec->{time}, 0, 0);
+		$u->{jobs} = [];
+		$u->{get} = [];
+		$u->{use} = $lines->([[$it->{no}, 1]], 1000);
+		push @{ $it->{uses} }, $u;
 	}
 	for my $spec (@{ $v100->{production} }) {
 		my $u = $new_use->($spec);

@@ -8,6 +8,7 @@
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
 //   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
 //   node dist/src/main.js give-hay                 0.6.0 の詫び草: ミノタウロス♀を持つ店に干し草を頭数×10束、一度だけ配る。サーバーを止めて実行
+//   node dist/src/main.js give-time [本数] [名前]  1.0.0: タイムシガレット (1本30分) を全店に配る。既定は既存店への8本 (existing)。名前ごとに一度だけ。サーバーを止めて実行
 // 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
@@ -27,6 +28,7 @@ import { DEFAULT_CONFIG } from './config.js';
 import { Game } from './engine/game.js';
 import { seedWholeStore } from './engine/market.js';
 import { APOLOGY_HAY_PER_HEAD, giveApologyHay } from './engine/apology.js';
+import { EXISTING_SHOP_CIGARETTES, giveShopTime } from './engine/campaign.js';
 import { shownPeople } from './engine/types.js';
 import { APP_VERSION, UPDATES } from './updates.js';
 
@@ -131,6 +133,33 @@ if (cmd === 'set-invite') {
   store.close();
   console.log(`ミノタウロス♀を持つ ${rows.length} 店に干し草を頭数×${APOLOGY_HAY_PER_HEAD}束配りました`);
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cows}頭 → 干し草 ${r.hay}束`);
+} else if (cmd === 'give-time') {
+  // 1.0.0: タイムシガレット (1本30分) を全店に配る。名前ごとに一度だけ。サーバーを止めて実行する。
+  //   give-time                → 既存店への4時間 (8本)。職のある店は転職のお祝いを配布済みにする
+  //   give-time 48 apology     → アップデートのお詫び 24時間 (48本)。名前を変えれば別の配布として配れる
+  const count = Math.trunc(Number(process.argv[3] ?? EXISTING_SHOP_CIGARETTES));
+  const label = process.argv[4] ?? 'existing';
+  if (!(count > 0) || !/^[a-z0-9-]+$/.test(label)) {
+    console.error('使い方: main.js give-time [本数 (既定8)] [名前 (既定 existing、英小文字・数字・-)]');
+    process.exit(1);
+  }
+  const store = new Store(dbPath);
+  const key = `gift_time:1.0.0:${label}`;
+  if (store.getSetting(key)) {
+    console.error(`「${label}」は配り済みです (${store.getSetting(key)})。二重には配りません`);
+    store.close();
+    process.exit(1);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const world = store.loadWorld(now);
+  const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
+  const existing = label === 'existing';
+  const rows = giveShopTime(g, count, existing, existing ? '1.0.0 のお知らせ' : '1.0.0 のお詫び');
+  store.saveWorld(world, g.newLogs, now, DEFAULT_CONFIG.logExpireTime * 2);
+  store.setSetting(key, `${new Date(now * 1000).toISOString()} ${count}本 ${rows.length}店`);
+  store.close();
+  console.log(`${rows.length} 店にタイムシガレットを最大${count}本 (${count / 2}時間) 配りました`);
+  for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
   const app = new App({
@@ -169,6 +198,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-party-invite <mip_…> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-party-invite <mip_…> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay | give-time [本数] [名前]]');
   process.exit(2);
 }

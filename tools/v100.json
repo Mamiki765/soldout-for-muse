@@ -39,6 +39,11 @@
   "71": 3350, "72": 6200, "73": 10150, "74": 18275, "75": 40800, "76": 74550
  },
  "popular_changes": { "36": 86400 },
+ "field_changes": [
+  { "item": 9, "limit": 10, "cost": 300, "note": "転職キャンペーンで地図を7枚配るため (上限1→10、維持費1000→300)" },
+  { "item": 12, "limit": 10, "cost": 300 },
+  { "item": 14, "limit": 10, "cost": 300 }
+ ],
  "lostbook_changes": {
   "15": { "30": 23, "50": 38, "70": 54, "100": 77, "150": 115 },
   "16": { "50": 29, "100": 58, "150": 87 },
@@ -65,7 +70,11 @@
   { "no": 128, "code": "chainmail", "name": "鎖帷子", "info": "鉄の輪を編みつないだ鎧。重いが動きやすい", "scale": "個", "type": 5, "price": 3400, "cost": 340, "popular": 18000, "limit": 300, "plus": -3600, "market_reference": 54 },
   { "no": 129, "code": "mithril-chainmail", "name": "ミスリルの鎖帷子", "info": "ミスリルの輪を編んだ鎖帷子。軽くて丈夫", "scale": "個", "type": 5, "price": 9800, "cost": 980, "popular": 86400, "limit": 100, "plus": -3600, "market_reference": 55 },
   { "no": 130, "code": "mashou-pendant", "name": "魔晶のペンダント", "info": "魔晶をミスリル線で包んだペンダント", "scale": "個", "type": 8, "price": 5300, "cost": 530, "popular": 43200, "limit": 100, "plus": 0, "market_reference": 68 },
-  { "no": 131, "code": "trough", "name": "飼い葉桶", "info": "ミノさんの飼い葉桶。持っていると干し草を与えて搾るとき1頭あたり1本多く出る。1回ごとに10%で壊れる", "scale": "個", "type": 10, "price": 20000, "cost": 2000, "popular": 259200, "limit": 10, "plus": -3600, "market_reference": 57 }
+  { "no": 131, "code": "trough", "name": "飼い葉桶", "info": "ミノさんの飼い葉桶。持っていると干し草を与えて搾るとき1頭あたり1本多く出る。1回ごとに10%で壊れる", "scale": "個", "type": 10, "price": 20000, "cost": 2000, "popular": 259200, "limit": 10, "plus": -3600, "market_reference": 57 },
+  { "no": 132, "code": "time-cigarette", "name": "タイムシガレット", "info": "使うと一瞬で時間が経った気持ちになる煙草。未成年・非喫煙者はココアシガレットになります。1本で持ち時間が30分増える (上限48時間まで)。売れない・譲れない", "scale": "本", "type": 10, "price": 1800, "cost": 0, "popular": 0, "limit": 9999, "plus": 0, "flag": "smb", "wslimit": 0, "market_reference": 57 }
+ ],
+ "item_uses": [
+  { "item": 132, "name": "吸う", "action": "吸う", "scale": "本", "time": -1800, "info": "1本で持ち時間が30分増えます。持ち時間の上限 (48時間) を超える分は吸えません", "okmsg": "一瞬で時間が経った気持ちになりました" }
  ],
  "production": [
   { "book": 20, "job": "weapon", "product": 116, "tools": [18], "materials": [[97, 4], [99, 2]], "time": 7200, "exptime": 3600, "exp": 20, "needexp": null, "lostbook": 78, "get": 20, "proba": 800 },

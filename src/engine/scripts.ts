@@ -10,6 +10,8 @@ import type { Shop } from './types.js';
 import { formatHms, type RtUse } from './use.js';
 
 /** 1.0.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
+import { giveJobGift } from './campaign.js';
+
 const TROUGH = 131;
 
 // ---------------------------------------------------------------------------
@@ -323,6 +325,9 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     if (p4 && p4 !== '_default_') {
       dt.job = p4;
       ret += '職業が「' + (CATALOG.jobTypes[p4] ?? '') + '」になりました';
+      // 1.0.0 の転職キャンペーン (1店1回)
+      const gift = giveJobGift(g, dt, p1);
+      if (gift) ret += '<br>' + gift;
     }
     if (p4 === '_default_') {
       dt.job = '';

@@ -28,7 +28,7 @@ function fixture(r = 0.2) {
 const FEED = BASE_ITEMS[MINO].uses.find((x) => x.name === '干し草を与えて搾る')!.no;
 
 test('1.0.0: 新商品は116〜131の16品で、どれも作り方が1つある', () => {
-  assert.equal(MAX_ITEM, 131);
+  assert.equal(MAX_ITEM, 132);
   assert.deepEqual(V100.new_items!.map((i) => i.item), Array.from({ length: 16 }, (_, i) => 116 + i));
   for (let no = 116; no <= 131; no++) {
     const made = Object.values(BASE_ITEMS).flatMap((it) => it?.uses ?? []).filter((u) => u.get.some((l) => l.item_no === no));
@@ -73,4 +73,72 @@ test('飼い葉桶: 持っていると牛乳が頭数×1本増え、10%で1回�
   dt.item[HAY - 1] = 30;
   useItemAction(g, dt, MINO, FEED, { count: 3 });
   assert.equal(dt.item[MILK - 1], 162);
+});
+
+const CIG = 132;
+const SMOKE = 0;
+
+test('タイムシガレット: 1本で持ち時間+30分、待ち中でも吸え、上限48時間を超える分は吸えない', () => {
+  const it = BASE_ITEMS[CIG];
+  assert.deepEqual([it.name, it.price, it.limit, it.popular, it.cost], ['タイムシガレット', 1800, 9999, 0, 0]);
+  const { g, dt } = fixture();
+  assert.ok(g.itemFlag(CIG, 'noshowcase') && g.itemFlag(CIG, 'nosend') && g.itemFlag(CIG, 'nobuy'), '売れない・譲れない');
+  dt.item[CIG - 1] = 100;
+  // 待ち中 (持ち時間 -1時間) でも吸える
+  dt.time = T0 + 3600;
+  useItemAction(g, dt, CIG, SMOKE, { count: 4 });
+  assert.equal(g.stockTime(dt), 3600);
+  assert.equal(dt.item[CIG - 1], 96);
+  // 上限48時間: あと47時間 = 94本まで
+  const u = useItemAction(g, dt, CIG, SMOKE, { count: 100 });
+  assert.equal(u.result.count, 94);
+  assert.equal(g.stockTime(dt), 48 * 3600);
+  assert.equal(dt.item[CIG - 1], 2);
+  const full = useItemAction(g, dt, CIG, SMOKE, { count: 1 });
+  assert.equal(full.result.count, 0);
+  assert.match(full.result.failReason!, /いっぱい/);
+  assert.equal(dt.item[CIG - 1], 2);
+});
+
+test('転職のお祝い: 職に就くと1店1回だけ道具がもらえる', async () => {
+  const { giveJobGift, giveShopTime, JOB_GIFTS } = await import('../src/engine/campaign.js');
+  // 13の転職先すべてに贈り物があり、1 (7万円) を大きく外れない
+  const change = BASE_ITEMS[78].uses.filter((u) => u.params[3] && u.params[3] !== '_default_');
+  assert.equal(change.length, 13);
+  for (const u of change) {
+    const gift = JOB_GIFTS[Number(u.params[0])];
+    assert.ok(gift, u.name!);
+    const yen = gift.reduce((n, [no, c]) => n + (no === CIG ? 10000 : BASE_ITEMS[no].price) * c, 0);
+    assert.ok(yen >= 64000 && yen <= 90000, `${u.name} ${yen}`);
+  }
+  const { g, dt } = fixture();
+  dt.item[78 - 1] = 2;
+  const toPeddle = change.find((u) => u.params[3] === 'peddle')!.no;
+  const toCow = change.find((u) => u.params[3] === 'cow')!.no;
+  let u = useItemAction(g, dt, 78, toPeddle, { count: 1 });
+  assert.equal(dt.job, 'peddle');
+  assert.equal(dt.item[14 - 1], 7, '剣市への地図7枚 (上限10)');
+  assert.match(u.result.function_return!, /お祝い/);
+  u = useItemAction(g, dt, 78, toCow, { count: 1 });
+  assert.equal(dt.job, 'cow');
+  assert.equal(dt.item[25 - 1], 0, '2回目はもらえない');
+  assert.equal(giveJobGift(g, dt, 25), '');
+
+  // 既存店への8本: 職のある店は配布済みになり、無職の店はあとで就職するともらえる
+  const a = fixture();
+  const b = fixture();
+  b.dt.job = 'weapon';
+  a.g.shops.push(b.dt);
+  const rows = giveShopTime(a.g);
+  assert.equal(a.dt.item[CIG - 1], 8);
+  assert.equal(b.dt.item[CIG - 1], 8);
+  assert.equal(rows.length, 2);
+  assert.equal(giveJobGift(a.g, b.dt, 20), '');
+  assert.match(giveJobGift(a.g, a.dt, 20), /剣の鍛え方×1/);
+  // お詫びの配布は印を付けない
+  const c = fixture();
+  c.dt.job = 'armor';
+  giveShopTime(c.g, 48, false, 'お詫び');
+  assert.equal(c.dt.item[CIG - 1], 48);
+  assert.match(giveJobGift(c.g, c.dt, 21), /盾の作り方×1/);
 });
