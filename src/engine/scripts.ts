@@ -9,7 +9,7 @@ import type { Game, RtItem } from './game.js';
 import type { Shop } from './types.js';
 import { formatHms, type RtUse } from './use.js';
 
-/** 1.0.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
+/** 0.7.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
 import { giveJobGift } from './campaign.js';
 
 const TROUGH = 131;
@@ -136,7 +136,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const base = Number(u.params[0]);
     const spread = Number(u.params[1]);
     const n = dt.item[25 - 1] * count;
-    // 1.0.0: 飼い葉桶 (131) を持っていると 1回ごとに 頭数×1本 多く出る。1回ごとに10%で桶が1個壊れ、
+    // 0.7.0: 飼い葉桶 (131) を持っていると 1回ごとに 頭数×1本 多く出る。1回ごとに10%で桶が1個壊れ、
     // 桶が無くなったあとの回には上乗せしない (まとめて搾っても1回ずつ搾っても同じになるように)
     const heads = dt.item[25 - 1];
     let troughs = dt.item[TROUGH - 1];
@@ -332,7 +332,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     if (p4 && p4 !== '_default_') {
       dt.job = p4;
       ret += '職業が「' + (CATALOG.jobTypes[p4] ?? '') + '」になりました';
-      // 1.0.0 の転職キャンペーン (1店1回)
+      // 0.7.0 の転職キャンペーン (1店1回)
       const gift = giveJobGift(g, dt, p1);
       if (gift) ret += '<br>' + gift;
     }

@@ -49,7 +49,7 @@ export const V020 = {
   recipe_changes: BASE_ITEMS[66].uses.slice(0, 4).map((u, index) => ({
     item: u.get[0].item_no, name: BASE_ITEMS[u.get[0].item_no].name,
     before: materials(oldRecipes[index]),
-    // 0.2.0 の時点のレシピ (1.0.0 で鉄のピアスの鉄鉱石を 20→10 にしたので、今のデータからは作らない)
+    // 0.2.0 の時点のレシピ (0.7.0 で鉄のピアスの鉄鉱石を 20→10 にしたので、今のデータからは作らない)
     after: materials(v020Recipes[index]),
   })),
   recipe_reason: '従来のレシピでは材料費が標準価格を大きく上回り、作るほど赤字になっていたため、材料構成を見直しました。価格・生産個数・成功率と、消費しない工具の条件は変更していません。',
@@ -154,16 +154,16 @@ export const V032: PatchUpdate = {
   ],
 };
 
-/** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
-const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
+/** 0.7.0 で足した16品 (短剣〜飼い葉桶) */
+const NEW_V070 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
-export const V100: PatchUpdate = {
-  version: '1.0.0',
+export const V070: PatchUpdate = {
+  version: '0.7.0',
   date: '2026-11-19',
   title: '職業バランスの見直しと新商品16種',
   summary: '作るほど赤字だった品と薄利の品を直し、どの職業でも自分の本で8種類ほどの品を作れるように新商品を16種類足しました。本は値段が上がったぶん、すり切れにくくなりました。ミノチーズは街の需要を他の品並みにしました。',
   notice: '職業バランスを見直しました。赤字・薄利だった武器・防具・装飾・薬などの材料と値段を直し、新商品16種 (短剣・宝珠の杖・魔晶の結界盾・鎖帷子・魔晶のペンダント・飼い葉桶など) を足しました。本は値段が上がり、すり切れる確率が下がりました (1回あたりの負担はほぼ同じ)。ミノチーズを買う客は減りました。新しい道具タイムシガレット (吸うと持ち時間+30分) と、最初の就職・転職で職の道具がもらえる転職のお祝い (1店1回) を始めました。棚に並べている品の値段は自分で見直してください。詳細は GET /api/v1/updates',
-  new_items: NEW_V100.map((no) => BASE_ITEMS[no]).map((it) => ({ item: it.no, name: it.name, price: it.price, type: it.type })),
+  new_items: NEW_V070.map((no) => BASE_ITEMS[no]).map((it) => ({ item: it.no, name: it.name, price: it.price, type: it.type })),
   notes: [
     '武器・防具: 鉄の剣・盾・杖は鉄塊20→12、鋼鉄の剣30・盾24・杖28 (前は40)。鉄の盾は熟練最大の時間を45分に。鉄の剣1,100円・鉄の鎧1,600円・鉄の杖1,300円に値上げ。',
     'オリハルコン装備: 剣と杖は塊14・成功率40%、盾は塊12・成功率50%、鎧は塊20のまま成功率40%・20,000円。赤字になる回がほとんどなくなりました。',
@@ -338,7 +338,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V070, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

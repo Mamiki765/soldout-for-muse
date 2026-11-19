@@ -1,4 +1,4 @@
-// 1.0.0 の転職キャンペーンと、時間の配布 (タイムシガレット)。
+// 0.7.0 の転職キャンペーンと、時間の配布 (タイムシガレット)。
 // - 転職のススメで職に就いた・転職したとき、1店1回だけ、その職の道具を配る (最初の就職も1回に数える)。
 // - 既存店には give-time (main.ts) でタイムシガレット8本 (4時間) を一度だけ配る。職のある店はそれで配布済みとし、無職の店は就職したときにもらえる。
 // - アップデートのお詫び (12〜48時間ぶん = 24〜96本) も give-time で、名前を変えて別に配る。
@@ -36,7 +36,7 @@ export const JOB_GIFTS: Record<number, [number, number][]> = {
 export function giveJobGift(g: Game, dt: Shop, toolNo: number): string {
   const gift = JOB_GIFTS[toolNo];
   if (!gift || dt.user[JOB_GIFT_KEY]) return '';
-  dt.user[JOB_GIFT_KEY] = '1.0.0';
+  dt.user[JOB_GIFT_KEY] = '0.7.0';
   const got: string[] = [];
   for (const [no, count] of gift) {
     const n = addItemSub(g, dt, no, count);
@@ -58,12 +58,12 @@ export interface TimeGiftRow {
  * markJobGift: 既存店への4時間 (8本) のときは true。職のある店は転職のお祝いも配布済みにする。
  * アップデートのお詫び (12〜48時間ぶん) など、ほかの配布は false。
  */
-export function giveShopTime(g: Game, count = EXISTING_SHOP_CIGARETTES, markJobGift = true, note = '1.0.0 のお知らせ'): TimeGiftRow[] {
+export function giveShopTime(g: Game, count = EXISTING_SHOP_CIGARETTES, markJobGift = true, note = '0.7.0 のお知らせ'): TimeGiftRow[] {
   const rows: TimeGiftRow[] = [];
   for (const dt of g.shops) {
     if (!dt.status) continue;
     const n = addItemSub(g, dt, CIGARETTE, count);
-    if (markJobGift && dt.job) dt.user[JOB_GIFT_KEY] ??= '1.0.0';
+    if (markJobGift && dt.job) dt.user[JOB_GIFT_KEY] ??= '0.7.0';
     if (!(n > 0)) continue;
     g.writeLog(1, dt.id, 0, `${note}: タイムシガレットを${n}本お届けしました (1本で持ち時間が30分増えます。「吸う」で使えます)`);
     rows.push({ shop: dt.id, shopname: dt.shopname, cigarettes: n });

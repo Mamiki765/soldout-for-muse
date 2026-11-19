@@ -119,7 +119,7 @@ function updateResetBefore(g: Game): void {
   const gift = (c: number): Prize => ['ギフト券', [[n('ギフト券'), c]]];
   const top123: Prize[][] = [
     [gift(5), gift(4), gift(3), gift(2), gift(1), ['ロボット', [[n('店番ロボット'), 1]]], ...celebrate],
-    [gift(3), gift(3), gift(2), gift(2), gift(1), ['タイムシガレット', [[n('タイムシガレット'), 16]]], ...celebrate], // 1.0.0: 2位の禁断の書 (15万円) をシガレット16本 (8時間) に
+    [gift(3), gift(3), gift(2), gift(2), gift(1), ['タイムシガレット', [[n('タイムシガレット'), 16]]], ...celebrate], // 0.7.0: 2位の禁断の書 (15万円) をシガレット16本 (8時間) に
     [gift(2), gift(2), gift(2), gift(1), gift(1), ['広告パック', [[n('広告パック'), 1]]], ...celebrate],
     [
       gift(2), gift(1), gift(1),

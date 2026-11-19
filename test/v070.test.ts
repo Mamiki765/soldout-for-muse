@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 1.0.0 職業バランスの見直しと新商品16種のテスト
+// SOLD OUT for Muse — 0.7.0 職業バランスの見直しと新商品16種のテスト
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';
@@ -9,7 +9,7 @@ import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { newWorld } from '../src/engine/types.js';
 import { useItemAction } from '../src/engine/use.js';
-import { V100 } from '../src/updates.js';
+import { V070 } from '../src/updates.js';
 
 const T0 = 1_800_000_000;
 const MINO = 25;
@@ -27,9 +27,9 @@ function fixture(r = 0.2) {
 }
 const FEED = BASE_ITEMS[MINO].uses.find((x) => x.name === '干し草を与えて搾る')!.no;
 
-test('1.0.0: 新商品は116〜131の16品で、どれも作り方が1つある', () => {
+test('0.7.0: 新商品は116〜131の16品で、どれも作り方が1つある', () => {
   assert.equal(MAX_ITEM, 132);
-  assert.deepEqual(V100.new_items!.map((i) => i.item), Array.from({ length: 16 }, (_, i) => 116 + i));
+  assert.deepEqual(V070.new_items!.map((i) => i.item), Array.from({ length: 16 }, (_, i) => 116 + i));
   for (let no = 116; no <= 131; no++) {
     const made = Object.values(BASE_ITEMS).flatMap((it) => it?.uses ?? []).filter((u) => u.get.some((l) => l.item_no === no));
     assert.ok(made.length >= 1, BASE_ITEMS[no].name);
@@ -38,7 +38,7 @@ test('1.0.0: 新商品は116〜131の16品で、どれも作り方が1つある'
   assert.deepEqual([t.name, t.price, t.limit], ['飼い葉桶', 20000, 10]);
 });
 
-test('1.0.0: 剣の鍛え方は6.4万円・すり切れ7.8%', () => {
+test('0.7.0: 剣の鍛え方は6.4万円・すり切れ7.8%', () => {
   const book = BASE_ITEMS[20];
   assert.equal(book.price, 64000);
   const rates = new Set(book.uses.filter((u) => u.func === 'lostbook').map((u) => u.params[0]));

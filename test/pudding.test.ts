@@ -33,7 +33,7 @@ test('固めプリン: 品番114・甘いもの (薬) 枠・市場に自然入�
   const it = BASE_ITEMS[PUDDING];
   assert.equal(it.name, '固めプリン');
   assert.equal(it.type, 3);
-  assert.equal(it.price, 2600, '1.0.0 で 2200→2600');
+  assert.equal(it.price, 2600, '0.7.0 で 2200→2600');
   assert.equal(it.cost, 70);
   assert.equal(it.popular, 7200);
   assert.equal(it.limit, 100);
@@ -47,7 +47,7 @@ test('固めプリン: 本も熟練も要らず、ミノ5頭は減らずに牛�
   const u = recipe();
   assert.ok(!u.needexp);
   assert.deepEqual([u.name, u.action, u.scale], ['固めプリンを作成する', '作る', 'セット'], '「飲む」「本」を引き継がない');
-  assert.deepEqual([u.exp, u.time, u.exptime], [10, 1600, 1200], '熟練はミノタウロス♀と共有。1.0.0 で熟練0は26分40秒、最大で20分');
+  assert.deepEqual([u.exp, u.time, u.exptime], [10, 1600, 1200], '熟練はミノタウロス♀と共有。0.7.0 で熟練0は26分40秒、最大で20分');
   const { g, dt } = fixture();
   dt.item[25 - 1] = 5;
   dt.item[26 - 1] = 30;
@@ -77,7 +77,7 @@ test('固めプリン: ミノが4頭だと作れない・材料ぶんしか作�
   assert.equal(dt.item[PUDDING - 1], 2);
 });
 
-test('固めプリン: 1回26分40秒 (1.0.0)、酪農家は13分20秒', () => {
+test('固めプリン: 1回26分40秒 (0.7.0)、酪農家は13分20秒', () => {
   const u = recipe();
   for (const [job, sec] of [['', 1600], ['cow', 800]] as const) {
     const { g, dt } = fixture();
