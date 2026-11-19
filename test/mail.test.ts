@@ -1,4 +1,4 @@
-// 店主の郵便箱 (1.0.0) のテスト: 送る・未読 (digest / peek)・開くと既読・返信・上限・受け取り停止・保存と期限
+// 店主の郵便箱 (0.7.0) のテスト: 送る・未読 (digest / peek)・開くと既読・返信・上限・受け取り停止・保存と期限
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';

@@ -135,7 +135,7 @@ export class App {
   readonly partyPublicUrl: string;
   readonly basePath: string;
   readonly owners: OwnerHub;
-  /** 店主の郵便箱 (1.0.0) */
+  /** 店主の郵便箱 (0.7.0) */
   readonly mail: MailBox;
   world: World;
   private images = new Map<string, Buffer>();
@@ -1199,7 +1199,7 @@ export class App {
     if (notice && watch.enabledTypes(watch.alertSetting(dt)).has('update')) {
       d.alerts.push({ type: 'update', level: 'mid', key: `update:${APP_VERSION}`, msg: `${notice} (トークン付きで読むとこの知らせも消えます)` });
     }
-    // 郵便の未読 (1.0.0)。いちばん新しい未読の番号で鍵を作るので、新しい手紙が来るたびに新着になる。peek では既読にしない
+    // 郵便の未読 (0.7.0)。いちばん新しい未読の番号で鍵を作るので、新しい手紙が来るたびに新着になる。peek では既読にしない
     const mu = this.mailUnread(dt.id);
     if (mu.newMail && watch.enabledTypes(watch.alertSetting(dt)).has('mail')) {
       d.alerts.push({ type: 'mail', level: 'mid', key: `mail:${mu.mailLatest}`, msg: `未読の郵便${mu.newMail}通 (差出人: ${mu.mailFrom.join(', ')}) GET /api/v1/mail` });
@@ -1395,7 +1395,7 @@ export class App {
   }
 
   // ---------------------------------------------------------------------------
-  // 店主の郵便箱 (1.0.0)。送っても持ち時間は減らず、最後の行動 (不在閉店) も変えない
+  // 店主の郵便箱 (0.7.0)。送っても持ち時間は減らず、最後の行動 (不在閉店) も変えない
 
   private mailList(g: Game, dt: Shop, q: URLSearchParams): Reply {
     const now = this.clock();

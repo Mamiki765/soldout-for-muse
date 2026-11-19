@@ -48,7 +48,7 @@ export type AlertType = (typeof ALERT_TYPES)[number];
  * 「おまかせ」はサーバー側では normal にして、起きるかどうかを Muse が facts を見て決める使い方 (案: ミュートより)
  */
 export const ALERT_MODES: Record<'save' | 'normal' | 'power' | 'off', readonly AlertType[]> = {
-  // mail (郵便の未読、1.0.0) は返事を待っている相手がいるので、節約でも届ける
+  // mail (郵便の未読、0.7.0) は返事を待っている相手がいるので、節約でも届ける
   save: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'update', 'mail'],
   normal: ['bankrupt_risk', 'closing_soon', 'shelf1_low', 'shelves_empty', 'period_soon', 'coupon_expiring', 'soldout_soon', 'event', 'order_closed', 'order_discard', 'time_full', 'update', 'mail'],
   power: ALERT_TYPES,
