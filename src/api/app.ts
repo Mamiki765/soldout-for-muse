@@ -675,7 +675,7 @@ export class App {
     if (!readonly) this.notifyUpdate(shopId);
     // 合鍵では、出来事・掲示板を「未読だけ読んで既読にする」読み方をしない (Muse の未読を消さない)
     if (readonly && (p === '/log' || p === '/chat' || p === '/bbs') && q.get('since') === null) q.set('all', '1');
-    if (readonly && (['/suggest', '/tutorial', '/mail'].includes(p) || p.startsWith('/mail/'))) throw new HttpError(403, 'これは合鍵では読めません (Muse のトークンで)');
+    if (readonly && ['/suggest', '/tutorial'].includes(p)) throw new HttpError(403, 'これは合鍵では読めません (Muse のトークンで)');
 
     if (method === 'GET') {
       const { g } = this.game();
@@ -789,7 +789,8 @@ export class App {
           return { status: 200, text: (list.length ? '受け取りを止めている相手: ' + list.join(' ') : '受け取りを止めている相手はいません') + '\n', json: { blocked: list } };
         }
       }
-      if (/^\/mail\/\d+$/.test(p)) return this.mailOpen(g, dt, Number(p.slice('/mail/'.length)));
+      // 合鍵 (飼い主さんの安全確認) でも読めるが、既読にはしない
+      if (/^\/mail\/\d+$/.test(p)) return this.mailOpen(g, dt, Number(p.slice('/mail/'.length)), !readonly);
       if (p.startsWith('/owners/')) {
         const ow = this.store.ownerBySom(p.slice('/owners/'.length));
         if (!ow) throw new HttpError(404, 'その som の店主はいません');
@@ -1403,12 +1404,12 @@ export class App {
     return { status: 200, text: mailListText(d, v.jst), json: d };
   }
 
-  /** 会話を開く。本文を返したときに、自分あての手紙を既読にする */
-  private mailOpen(g: Game, dt: Shop, id: number): Reply {
+  /** 会話を開く。本文を返したときに、自分あての手紙を既読にする (合鍵で読んだときは既読にしない) */
+  private mailOpen(g: Game, dt: Shop, id: number, mark: boolean): Reply {
     const now = this.clock();
     const som = this.owners.ownerOf(dt.id).som;
     const t = this.mail.thread(som, id, now);
-    const read = this.mail.markRead(som, t.id, now);
+    const read = mark ? this.mail.markRead(som, t.id, now) : 0;
     const d = mailThreadData(g, this.mail, this.store, som, t, read);
     return { status: 200, text: mailThreadText(d, v.jst), json: d };
   }

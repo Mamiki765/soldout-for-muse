@@ -121,7 +121,7 @@ test('郵便: 送る → digest と peek に未読 → 開くと既読 → 返�
   }
 });
 
-test('郵便: 受け取り停止・保存と30日の期限・合鍵では読めない', async () => {
+test('郵便: 受け取り停止・保存と30日の期限・合鍵は読むだけ', async () => {
   let now = 1_800_000_000;
   const { base, server, store } = await start(() => now);
   try {
@@ -173,13 +173,22 @@ test('郵便: 受け取り停止・保存と30日の期限・合鍵では読め�
     assert.equal(r.status, 200);
     assert.equal((await get(b, '/mail')).threads.length, 1);
 
-    // 合鍵 (vk_) では郵便を読めない
+    // 合鍵 (vk_): 飼い主さんの安全確認のため読める。読んでも既読にならず、送れない
+    now += 60;
+    r = await post(a, `/mail/${t2}`, { text: '未読のまま?' });
+    assert.equal(r.status, 201);
     r = await post(b, '/view-link', { fixed: true });
     const url = ((await r.json()) as { url: string }).url;
-    const vk = new URL(url).searchParams.get('key')!;
-    r = await fetch(base + '/api/v1/mail?format=json', { headers: { authorization: 'Bearer ' + vk } });
+    const vk = { authorization: 'Bearer ' + new URL(url).searchParams.get('key')! };
+    assert.equal((await get(vk, '/mail')).unread, 2);
+    const th = await get(vk, `/mail/${t2}`);
+    assert.equal(th.read_now, 0);
+    assert.equal(th.messages.at(-1).text, '未読のまま?');
+    assert.equal((await get(b, '/digest')).new.mail, 2, '合鍵で読んでも Muse の未読は減らない');
+    assert.ok(((await get(b, '/peek')) as Peek).alerts.some((x) => x.type === 'mail'));
+    r = await post(vk, `/mail/${t2}`, { text: '飼い主が書く' });
     assert.equal(r.status, 403);
-    r = await fetch(base + `/api/v1/mail/${t2}?format=json`, { headers: { authorization: 'Bearer ' + vk } });
+    r = await post(vk, '/mail', { to: somA, subject: 'x', text: 'y' });
     assert.equal(r.status, 403);
   } finally {
     server.close();
