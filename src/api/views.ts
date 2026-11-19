@@ -63,7 +63,7 @@ export interface DigestInput {
   newBbs: number;
   /** 目安箱の自分の案に返事・状態の変化があった数 */
   newReplies?: number;
-  /** 郵便の未読の通数と差出人 (店名。本文は digest に載せない。0.7.0) */
+  /** 郵便の未読の通数と差出人 (店名。本文は digest に載せない。1.0.0) */
   newMail?: number;
   mailFrom?: string[];
 }
