@@ -55,7 +55,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.0.0"
+      "version" : "1.0.1"
    },
    "errors" : [],
    "events" : [
@@ -490,9 +490,9 @@
          "code" : "ken-sale",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "剣の需要が通常レベルに戻りました",
+         "endmsg" : "剣の特需が落ち着きました",
          "group" : "7",
-         "info" : "剣の需要が高まっています",
+         "info" : "剣の特需で値段が上がっています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -501,51 +501,93 @@
          "params" : [
             {
                "item_no" : 40,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 41,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 42,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 43,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 44,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 116,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 117,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 40,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 41,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 42,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 43,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 44,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 116,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 117,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "剣の需要が高まっているようです",
+         "startmsg" : "魔物の群れが街道に出没し、剣の特需が起きています",
          "startproba" : 100
       },
       {
@@ -554,9 +596,9 @@
          "code" : "tate-sale",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "盾の需要が通常レベルに戻りました",
+         "endmsg" : "盾の特需が落ち着きました",
          "group" : "8",
-         "info" : "盾の需要が高まっています",
+         "info" : "盾の特需で値段が上がっています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -565,69 +607,129 @@
          "params" : [
             {
                "item_no" : 45,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 46,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 47,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 48,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 49,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 50,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 122,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 123,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 124,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 125,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 45,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 46,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 47,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 48,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 49,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 50,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 122,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 123,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 124,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 125,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "盾の需要が高まっているようです",
+         "startmsg" : "竜の飛来に備えて、盾の特需が起きています",
          "startproba" : 100
       },
       {
@@ -636,9 +738,9 @@
          "code" : "yoroi-sale",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "鎧の需要が通常レベルに戻りました",
+         "endmsg" : "鎧の特需が落ち着きました",
          "group" : "9",
-         "info" : "鎧の需要が高まっています",
+         "info" : "鎧の特需で値段が上がっています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -647,69 +749,129 @@
          "params" : [
             {
                "item_no" : 51,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 52,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 53,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 54,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 55,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 56,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 126,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 127,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 128,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 129,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 51,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 52,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 53,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 54,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 55,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 56,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 126,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 127,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 128,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 129,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "鎧の需要が高まっているようです",
+         "startmsg" : "騎士団の遠征が決まり、鎧の特需が起きています",
          "startproba" : 100
       },
       {
@@ -718,9 +880,9 @@
          "code" : "tue-sale",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "杖の需要が通常レベルに戻りました",
+         "endmsg" : "杖の特需が落ち着きました",
          "group" : "10",
-         "info" : "杖の需要が高まっています",
+         "info" : "杖の特需で値段が上がっています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -729,68 +891,116 @@
          "params" : [
             {
                "item_no" : 57,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 58,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 59,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 60,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 61,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 119,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 120,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 121,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.3
+            },
+            {
+               "item_no" : 57,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 58,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 59,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 60,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 61,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 119,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 120,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             },
             {
                "item_no" : 121,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.3
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "杖の需要が高まっているようです",
+         "startmsg" : "魔法学院の入学の季節で、杖の特需が起きています",
          "startproba" : 100
       },
       {
          "auto_start" : true,
-         "basetime" : 43200,
+         "basetime" : 86400,
          "code" : "priceup-yakusou",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "薬草不足が解消されました",
+         "endmsg" : "流行り病が収まり、薬不足が解消されました",
          "group" : "11",
-         "info" : "薬草不足で関連商品の価格が高騰しています",
+         "info" : "薬不足で薬の値段が上がっています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -868,13 +1078,49 @@
                "key" : "popular",
                "op" : "*",
                "value" : 1.5
+            },
+            {
+               "item_no" : 106,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 108,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 109,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 106,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 108,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 109,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             }
          ],
-         "plustime" : 0,
-         "startfunc" : "stock_le",
-         "startfuncparam" : "1,70",
-         "startmsg" : "薬草が不足しています",
-         "startproba" : 200
+         "plustime" : 43200,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "流行り病で薬が足りなくなっています",
+         "startproba" : 150
       },
       {
          "auto_start" : true,
@@ -1136,7 +1382,7 @@
          "startfunc" : "stock_le",
          "startfuncparam" : "5,70",
          "startmsg" : "鉄が不足しています",
-         "startproba" : 50
+         "startproba" : 63
       },
       {
          "auto_start" : true,
@@ -1326,7 +1572,7 @@
          "startfunc" : "stock_le",
          "startfuncparam" : "6,70",
          "startmsg" : "ミスリルが不足しています",
-         "startproba" : 35
+         "startproba" : 44
       },
       {
          "auto_start" : true,
@@ -1444,7 +1690,7 @@
          "startfunc" : "stock_le",
          "startfuncparam" : "7,70",
          "startmsg" : "オリハルコンが不足しています",
-         "startproba" : 25
+         "startproba" : 31
       },
       {
          "auto_start" : true,
@@ -1512,7 +1758,7 @@
          "startfunc" : null,
          "startfuncparam" : null,
          "startmsg" : "新たに鉄鉱脈が見つかりました",
-         "startproba" : 100
+         "startproba" : 150
       },
       {
          "auto_start" : true,
@@ -1546,7 +1792,7 @@
          "startfunc" : null,
          "startfuncparam" : null,
          "startmsg" : "新たにミスリル鉱脈が見つかりました",
-         "startproba" : 70
+         "startproba" : 105
       },
       {
          "auto_start" : true,
@@ -1580,7 +1826,7 @@
          "startfunc" : null,
          "startfuncparam" : null,
          "startmsg" : "新たにオリハルコン鉱脈が見つかりました",
-         "startproba" : 50
+         "startproba" : 75
       },
       {
          "auto_start" : true,
@@ -1987,9 +2233,9 @@
          "code" : "boom-wood",
          "endfunc" : null,
          "endfuncparam" : null,
-         "endmsg" : "建築ラッシュが落ち着きました",
+         "endmsg" : "城壁の修理が終わりました",
          "group" : "27",
-         "info" : "木材の需要が高まっています",
+         "info" : "木材が値上がりしています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -1998,34 +2244,94 @@
          "params" : [
             {
                "item_no" : 3,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 4,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 91,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 94,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 95,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 99,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 100,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 3,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.5
             },
             {
                "item_no" : 4,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 91,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 94,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 95,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
             },
             {
                "item_no" : 99,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.5
             },
             {
                "item_no" : 100,
                "key" : "popular",
-               "op" : "/",
-               "value" : 2
+               "op" : "*",
+               "value" : 1.5
             }
          ],
          "plustime" : 86400,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "建築ラッシュで木材が求められています",
-         "startproba" : 70
+         "startmsg" : "城壁の修理で木材が求められています",
+         "startproba" : 100
       },
       {
          "auto_start" : true,
@@ -2063,7 +2369,7 @@
          "endfuncparam" : null,
          "endmsg" : "交易船が出港しました",
          "group" : "29",
-         "info" : "砂糖と香辛料の流通量が増えています",
+         "info" : "砂糖・香辛料・霊草・香木の流通量が増えています",
          "local_funcend" : null,
          "local_funcnow" : null,
          "local_funcstart" : null,
@@ -2081,13 +2387,25 @@
                "key" : "plus",
                "op" : "=",
                "value" : 600
+            },
+            {
+               "item_no" : 105,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 600
+            },
+            {
+               "item_no" : 94,
+               "key" : "plus",
+               "op" : "=",
+               "value" : 600
             }
          ],
          "plustime" : 43200,
          "startfunc" : null,
          "startfuncparam" : null,
-         "startmsg" : "交易船が入港しました",
-         "startproba" : 50
+         "startmsg" : "南の国の交易船が入港しました",
+         "startproba" : 100
       },
       {
          "auto_start" : false,
@@ -2182,6 +2500,64 @@
          "startfuncparam" : null,
          "startmsg" : null,
          "startproba" : -1
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 43200,
+         "code" : "priceup-spice",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "海が静まり、交易品の品薄が解消されました",
+         "group" : "29",
+         "info" : "交易品が品薄で値段が上がっています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 103,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 104,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 105,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 103,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 104,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 105,
+               "key" : "popular",
+               "op" : "*",
+               "value" : 1.5
+            }
+         ],
+         "plustime" : 43200,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "海が荒れて交易船が来られなくなりました",
+         "startproba" : 70
       }
    ],
    "functions" : {
@@ -14738,7 +15114,7 @@
          "param" : null,
          "plus" : 0,
          "point" : 1000,
-         "popular" : 172800,
+         "popular" : 86400,
          "price" : 15000,
          "pricebase" : 20,
          "pricehalf" : 30,
@@ -14767,7 +15143,7 @@
          "param" : null,
          "plus" : 0,
          "point" : 1000,
-         "popular" : 259200,
+         "popular" : 129600,
          "price" : 30000,
          "pricebase" : 20,
          "pricehalf" : 30,

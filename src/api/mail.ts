@@ -191,16 +191,19 @@ export class MailBox {
   }
 
   /** 同じ会話に返信する */
-  reply(me: Owner, myShop: string, threadId: number, bodyRaw: unknown, now: number): { thread: number; id: number; to: string } {
+  reply(me: Owner, myShop: string, threadId: number, bodyRaw: unknown, now: number, keep = false): { thread: number; id: number; to: string } {
     const t = this.thread(me.som, threadId, now);
     const to = t.a_som === me.som ? t.b_som : t.a_som;
     const body = this.checkBody(bodyRaw);
     if (this.isBlocked(to, me.som)) throw new GameError('この相手には送れません');
     this.checkLimits(me.som, body, false, now);
+    // 返信と保存はいっしょに確定する (保存が上限で断られたら返信も送らない)
+    if (keep) this.checkKeepRoom(me.som, t.id);
     this.db.exec('BEGIN');
     try {
       const m = this.db.prepare('INSERT INTO mail(thread_id,from_som,to_som,from_shop,time,body) VALUES(?,?,?,?,?,?)').run(t.id, me.som, to, myShop, now, body);
       this.db.prepare('UPDATE mail_threads SET last_at = ? WHERE id = ?').run(now, t.id);
+      if (keep) this.db.prepare('INSERT OR IGNORE INTO mail_keeps(thread_id, som) VALUES(?,?)').run(t.id, me.som);
       this.db.exec('COMMIT');
       return { thread: t.id, id: Number(m.lastInsertRowid), to };
     } catch (e) {
@@ -229,9 +232,14 @@ export class MailBox {
       this.db.prepare('DELETE FROM mail_keeps WHERE thread_id = ? AND som = ?').run(threadId, som);
       return;
     }
+    this.checkKeepRoom(som, threadId);
+    this.db.prepare('INSERT OR IGNORE INTO mail_keeps(thread_id, som) VALUES(?,?)').run(threadId, som);
+  }
+
+  /** 保存の上限 (すでに保存している会話ならそのまま通す) */
+  private checkKeepRoom(som: string, threadId: number): void {
     const n = this.db.prepare('SELECT COUNT(*) AS n FROM mail_keeps WHERE som = ?').get(som) as { n: number };
     if (n.n >= MAIL_KEEP_MAX && !this.keptBy(threadId).includes(som)) throw new GameError(`保存できる会話は${MAIL_KEEP_MAX}件までです。いらないものの保存を外してください`);
-    this.db.prepare('INSERT OR IGNORE INTO mail_keeps(thread_id, som) VALUES(?,?)').run(threadId, som);
   }
 
   /** 自分が入っている会話 (新しい順)。止めた相手からの会話は出さない */

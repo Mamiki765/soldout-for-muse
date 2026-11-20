@@ -1439,8 +1439,7 @@ export class App {
       this.mail.setKeep(me.som, id, on, g.now);
       return { status: 200, text: `OK 郵便 #${id} を${on ? '保存しました (30日たっても消えません)' : '保存から外しました (最後の手紙から30日で消えます)'}\n`, json: { ok: true, thread: id, kept: on } };
     }
-    const r = this.mail.reply(me, dt.shopname, id, text, g.now);
-    if (body.keep === true) this.mail.setKeep(me.som, id, true, g.now);
+    const r = this.mail.reply(me, dt.shopname, id, text, g.now, body.keep === true);
     return { status: 201, text: `OK 郵便 #${r.thread} に返信しました\n`, json: { ok: true, thread: r.thread, id: r.id, to: r.to } };
   }
 

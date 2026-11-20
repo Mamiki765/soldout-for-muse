@@ -99,8 +99,8 @@ test('v0.3.0: 新しい行き先は費用0円、港町・隊商は地図が15%�
 
 test('v0.3.0: 開催中のイベントは新しい品の値を書き換える (エリクシルはポーションブームに乗る)', () => {
   const want: [string, number, 'popular' | 'point' | 'plus', number][] = [
-    ['boom-posyon', 109, 'popular', Math.trunc(259200 / 1.5)], ['boom-posyon', 109, 'point', 2000],
-    ['boom-fashion', 108, 'popular', Math.trunc(172800 / 1.5)],
+    ['boom-posyon', 109, 'popular', Math.trunc(129600 / 1.5)], ['boom-posyon', 109, 'point', 2000],
+    ['boom-fashion', 108, 'popular', Math.trunc(86400 / 1.5)],
     ['boom-milk', 107, 'popular', Math.trunc(10800 / 1.5)], ['boom-milk', 110, 'point', 2000], ['boom-milk', 111, 'popular', Math.trunc(172800 / 1.5)],
     ['boom-book', 112, 'popular', Math.trunc(259200 / 1.5)], ['boom-book', 113, 'popular', Math.trunc(259200 / 1.5)],
     ['plusup-import', 103, 'plus', 600], ['plusup-import', 104, 'plus', 600],

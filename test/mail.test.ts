@@ -190,6 +190,21 @@ test('郵便: 受け取り停止・保存と30日の期限・合鍵は読むだ�
     assert.equal(r.status, 403);
     r = await post(vk, '/mail', { to: somA, subject: 'x', text: 'y' });
     assert.equal(r.status, 403);
+
+    // 保存が上限 (20件) のときに「返信して保存」すると、返信も送らずに断る (1.0.1)
+    now += 60;
+    const count = () => (store.db.prepare('SELECT COUNT(*) AS n FROM mail WHERE thread_id = ?').get(t2) as { n: number }).n;
+    const fill = store.db.prepare('INSERT INTO mail_keeps(thread_id, som) VALUES(?,?)');
+    for (let i = 0; i < 20; i++) fill.run(100000 + i, somA);
+    const before = count();
+    r = await post(a, `/mail/${t2}`, { text: '返信して保存', keep: true });
+    assert.equal(r.status, 409);
+    assert.equal(count(), before, '断られたら返信も届かない');
+    store.db.prepare('DELETE FROM mail_keeps WHERE thread_id >= 100000').run();
+    r = await post(a, `/mail/${t2}`, { text: '返信して保存', keep: true });
+    assert.equal(r.status, 201);
+    assert.equal(count(), before + 1);
+    assert.equal((await get(a, '/mail')).threads.find((t: { id: number }) => t.id === t2).kept, true);
   } finally {
     server.close();
   }

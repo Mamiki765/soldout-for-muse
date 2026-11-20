@@ -177,11 +177,12 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
   }
   // v0.3.0 で変えたイベント (tools/v030.json の event_changes) と追加したイベント以外は原作のまま
   const v030 = JSON.parse(readFileSync('tools/v030.json', 'utf8')) as { event_changes: { code: string }[] };
-  const changed = new Set([...v030.event_changes.map((c) => c.code), ...v100.event_add_params.map((c) => c.code)]);
+  const v101 = JSON.parse(readFileSync('tools/v101.json', 'utf8')) as { event_changes: { code: string }[] };
+  const changed = new Set([...v030.event_changes.map((c) => c.code), ...v100.event_add_params.map((c) => c.code), ...v101.event_changes.map((c) => c.code)]);
   const byCode = (list: unknown[]) => new Map((list as { code: string }[]).map((e) => [e.code, e]));
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
-  assert.deepEqual(current.define, { ...original.define, version: '1.0.0' });
+  assert.deepEqual(current.define, { ...original.define, version: '1.0.1' });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 
