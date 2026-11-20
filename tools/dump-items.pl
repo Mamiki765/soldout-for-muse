@@ -541,6 +541,43 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	}
 	$define{version} = $v100->{version};
 
+	# 1.0.1 イベント込みの職業バランス (tools/v101.json): イベントの確率・文言・効果の書き換え、交易品の品薄の追加、
+	# 香水・エリクシルの popular。
+	open(my $v101_fh, '<:raw', "$FindBin::Bin/v101.json") or die $!;
+	my $v101 = JSON::PP->new->utf8->decode(do { local $/; <$v101_fh> });
+	close $v101_fh;
+	$v101 = $as_bytes->($v101);
+	for my $no (keys %{ $v101->{popular_changes} }) {
+		my $it = $by_no{$no} or die "v1.0.1: unknown item $no";
+		$it->{popular} = $v101->{popular_changes}{$no};
+	}
+	my %ev_v101 = map { $_->{code} => $_ } @events;
+	for my $ch (@{ $v101->{event_changes} }) {
+		my $e = $ev_v101{$ch->{code}} or die "v1.0.1: unknown event $ch->{code}";
+		for my $k (keys %{ $ch->{set} // {} }) {
+			$e->{$k} = $ch->{set}{$k};
+		}
+		$e->{params} = $params->($ch->{replace_params}) if $ch->{replace_params};
+		for my $p (@{ $ch->{add_params} // [] }) {
+			die "v1.0.1: duplicate event param $ch->{code}/$p->{item_no}/$p->{key}" if grep { $_->{item_no} == $p->{item_no} && $_->{key} eq $p->{key} } @{ $e->{params} };
+		}
+		push @{ $e->{params} }, @{ $params->($ch->{add_params}) };
+	}
+	for my $spec (@{ $v101->{events} }) {
+		die "v1.0.1: duplicate event $spec->{code}" if $ev_v101{$spec->{code}};
+		push @events, {
+			code => $spec->{code}, group => "$spec->{group}", startproba => $spec->{startproba},
+			auto_start => ($spec->{auto_start} ? JSON::PP::true : JSON::PP::false),
+			basetime => $spec->{basetime}, plustime => $spec->{plustime},
+			info => $spec->{info}, startmsg => $spec->{startmsg}, endmsg => $spec->{endmsg},
+			startfunc => undef, startfuncparam => undef, endfunc => undef, endfuncparam => undef,
+			nowfunc => undef, nowfuncparam => undef,
+			local_funcstart => undef, local_funcend => undef, local_funcnow => undef,
+			params => $params->($spec->{params}),
+		};
+	}
+	$define{version} = $v101->{version};
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;

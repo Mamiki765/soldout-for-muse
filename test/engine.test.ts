@@ -97,6 +97,8 @@ test('3日間 (決算を2回またぐ) 動かしても値が壊れない', () =>
   const world = newWorld(T0, MAX_ITEM);
   let g = new Game(world, DEFAULT_CONFIG, seededRng(2), T0);
   for (let i = 0; i < 8; i++) openShop(g, { name: 'm' + i, shopname: 'ミューズ' + i + '号店' });
+  // 資金0のままだと、乱数しだいで2回目の決算までに全店が倒産して「決算が行われた」を確かめられない (イベントの数が変わると乱数の流れも変わる)
+  for (const s of world.shops) s.money = 1_000_000;
   let now = T0;
   for (let i = 0; i < 6 * 24 * 3; i++) {
     now += 600;
