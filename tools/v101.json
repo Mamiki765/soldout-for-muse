@@ -1,0 +1,725 @@
+{
+ "note": "1.0.1 イベント込みの職業バランス。soldout/2026-11-21-event-job-balance.md (ラピス案、リカさん了承 2026-11-21): 鉱脈1.5倍・鉱石不足1.25倍、武器防具の需要を特需(値段1.3倍)に、薬不足を毎回起きるように、交易船に霊草・香木と品薄、木材を値上がり型に、香水・エリクシルの popular を半分",
+ "version": "1.0.1",
+ "popular_changes": {
+  "108": 86400,
+  "109": 129600
+ },
+ "event_changes": [
+  {
+   "code": "plusup-tetu",
+   "set": {
+    "startproba": 150
+   }
+  },
+  {
+   "code": "plusup-misuriru",
+   "set": {
+    "startproba": 105
+   }
+  },
+  {
+   "code": "plusup-oriharukon",
+   "set": {
+    "startproba": 75
+   }
+  },
+  {
+   "code": "priceup-tetu",
+   "set": {
+    "startproba": 63
+   }
+  },
+  {
+   "code": "priceup-misuriru",
+   "set": {
+    "startproba": 44
+   }
+  },
+  {
+   "code": "priceup-oriharukon",
+   "set": {
+    "startproba": 31
+   }
+  },
+  {
+   "code": "ken-sale",
+   "set": {
+    "startmsg": "魔物の群れが街道に出没し、剣の特需が起きています",
+    "info": "剣の特需で値段が上がっています",
+    "endmsg": "剣の特需が落ち着きました"
+   },
+   "replace_params": [
+    {
+     "item_no": 40,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 41,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 42,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 43,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 44,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 116,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 117,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 40,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 41,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 42,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 43,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 44,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 116,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 117,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    }
+   ]
+  },
+  {
+   "code": "tate-sale",
+   "set": {
+    "startmsg": "竜の飛来に備えて、盾の特需が起きています",
+    "info": "盾の特需で値段が上がっています",
+    "endmsg": "盾の特需が落ち着きました"
+   },
+   "replace_params": [
+    {
+     "item_no": 45,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 46,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 47,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 48,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 49,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 50,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 122,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 123,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 124,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 125,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 45,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 46,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 47,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 48,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 49,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 50,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 122,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 123,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 124,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 125,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    }
+   ]
+  },
+  {
+   "code": "yoroi-sale",
+   "set": {
+    "startmsg": "騎士団の遠征が決まり、鎧の特需が起きています",
+    "info": "鎧の特需で値段が上がっています",
+    "endmsg": "鎧の特需が落ち着きました"
+   },
+   "replace_params": [
+    {
+     "item_no": 51,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 52,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 53,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 54,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 55,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 56,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 126,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 127,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 128,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 129,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 51,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 52,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 53,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 54,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 55,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 56,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 126,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 127,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 128,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 129,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    }
+   ]
+  },
+  {
+   "code": "tue-sale",
+   "set": {
+    "startmsg": "魔法学院の入学の季節で、杖の特需が起きています",
+    "info": "杖の特需で値段が上がっています",
+    "endmsg": "杖の特需が落ち着きました"
+   },
+   "replace_params": [
+    {
+     "item_no": 57,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 58,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 59,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 60,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 61,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 119,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 120,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 121,
+     "key": "price",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 57,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 58,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 59,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 60,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 61,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 119,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 120,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    },
+    {
+     "item_no": 121,
+     "key": "popular",
+     "op": "*",
+     "value": 1.3
+    }
+   ]
+  },
+  {
+   "code": "priceup-yakusou",
+   "set": {
+    "startproba": 150,
+    "basetime": 86400,
+    "plustime": 43200,
+    "startfunc": null,
+    "startfuncparam": null,
+    "startmsg": "流行り病で薬が足りなくなっています",
+    "info": "薬不足で薬の値段が上がっています",
+    "endmsg": "流行り病が収まり、薬不足が解消されました"
+   },
+   "add_params": [
+    {
+     "item_no": 106,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 108,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 109,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 106,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 108,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 109,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  },
+  {
+   "code": "plusup-import",
+   "set": {
+    "startproba": 100,
+    "startmsg": "南の国の交易船が入港しました",
+    "info": "砂糖・香辛料・霊草・香木の流通量が増えています"
+   },
+   "add_params": [
+    {
+     "item_no": 105,
+     "key": "plus",
+     "op": "=",
+     "value": 600
+    },
+    {
+     "item_no": 94,
+     "key": "plus",
+     "op": "=",
+     "value": 600
+    }
+   ]
+  },
+  {
+   "code": "boom-wood",
+   "set": {
+    "startproba": 100,
+    "startmsg": "城壁の修理で木材が求められています",
+    "info": "木材が値上がりしています",
+    "endmsg": "城壁の修理が終わりました"
+   },
+   "replace_params": [
+    {
+     "item_no": 3,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 4,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 91,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 94,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 95,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 99,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 100,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 3,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 4,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 91,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 94,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 95,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 99,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 100,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  }
+ ],
+ "events": [
+  {
+   "code": "priceup-spice",
+   "group": "29",
+   "startproba": 70,
+   "auto_start": true,
+   "basetime": 43200,
+   "plustime": 43200,
+   "startmsg": "海が荒れて交易船が来られなくなりました",
+   "info": "交易品が品薄で値段が上がっています",
+   "endmsg": "海が静まり、交易品の品薄が解消されました",
+   "params": [
+    {
+     "item_no": 103,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 104,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 105,
+     "key": "price",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 103,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 104,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    },
+    {
+     "item_no": 105,
+     "key": "popular",
+     "op": "*",
+     "value": 1.5
+    }
+   ]
+  }
+ ]
+}
