@@ -82,6 +82,9 @@ export function collectPeriodSales(g: Game, at: number): void {
   for (const dt of g.shops) {
     for (const [k, v] of Object.entries(dt.itemtoday)) sold.set(Number(k), (sold.get(Number(k)) ?? 0) + v);
   }
+  // 今期の途中で改装中に入った店が、それまでに売った分 (1.1.0)
+  for (const [k, v] of Object.entries(g.world.restsold ?? {})) sold.set(Number(k), (sold.get(Number(k)) ?? 0) + v);
+  delete g.world.restsold;
   g.pendingPrices = { at, sold };
 }
 

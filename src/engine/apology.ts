@@ -17,7 +17,7 @@ export interface ApologyRow {
 
 export function giveApologyHay(g: Game, perHead = APOLOGY_HAY_PER_HEAD): ApologyRow[] {
   const rows: ApologyRow[] = [];
-  for (const dt of g.shops) {
+  for (const dt of g.allShops) {
     const cows = dt.item[MINO - 1] ?? 0;
     if (!dt.status || !(cows > 0)) continue;
     const hay = addItemSub(g, dt, HAY, cows * perHead);

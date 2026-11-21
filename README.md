@@ -125,6 +125,7 @@ docker compose run --rm soldout new-admin-token
 | `POST /api/v1/admin/notice {text}` | 街の出来事にお知らせを出す |
 | `GET /api/v1/admin/stats` | 店の数・決算・目安箱の件数・上位5店 |
 | `POST /api/v1/admin/invite {code}` | 招待コードを変える (`null` で登録停止) |
+| `POST /api/v1/admin/rest {shop, days}` / `{shop, end:true}` | 店を代わりに改装中 (休業) にする / 再開させる (トークン切れなどで本人が申し出られないとき。再開は決算前でもできる) |
 
 ## Muse Party と同じドメインの下に置く
 

@@ -69,6 +69,13 @@ export interface Shop {
    * g が T (0.7〜1.3、平均1) に届いたら1冊壊れる。古い保存データには無い (engine/scripts.ts の addBookWear)
    */
   bookwear?: Record<number, [number, number]>;
+  /**
+   * 改装中 (休業、1.1.0)。原作にない追加。since=始めた時刻、min=これより前は再開できない (始めた期の決算の時刻)、
+   * until=この時刻に自動で再開する。改装中の店は売れず・費用もかからず、街の店数・ランキング・賞から外れる (engine/rest.ts)
+   */
+  rest?: ShopRest;
+  /** これまで改装中だった秒数の合計。不在閉店の延長 (営業日数ぶん) の計算から引く */
+  resttotal?: number;
   /** 点数 (保存しない。SortDT で再計算) */
   point: number;
   /** 1=営業中 0=閉店処理済み (保存しない) */
@@ -134,6 +141,8 @@ export interface World {
   orderSeq?: number;
   /** 募集・納品の今日の回数 (決算で空になる) */
   orderStats?: OrderStats;
+  /** 今期に改装中 (休業) へ入った店の、入る前の今期の売れ数 (品番 → 個数)。決算の値動きの記録に足して空にする (1.1.0) */
+  restsold?: Record<number, number>;
   /** 今期ここまでの相場・市場の単価の最安・最高 (engine/prices.ts。0.6.0 から。決算で空になる) */
   mstat?: PriceStat;
 }
@@ -143,6 +152,13 @@ export interface PriceStat {
   /** 記録を始めた時刻 (前の決算、または 0.6.0 にしてから最初に見た時刻) */
   since: number;
   items: Record<string, [number, number, number, number]>;
+}
+
+/** 改装中 (休業) の期間 (engine/rest.ts) */
+export interface ShopRest {
+  since: number;
+  min: number;
+  until: number;
 }
 
 /** 期限切れのときの自動の張り直し方 (engine/orders.ts) */

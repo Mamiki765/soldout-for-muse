@@ -2,6 +2,7 @@
 // 同じ内容を JSON でも返せるよう、まずデータ (オブジェクト) を作り、テキストはそこから作る。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
+import { restInfo } from '../engine/rest.js';
 import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
@@ -162,10 +163,22 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
       if (o.price > w.price) w.price = o.price;
     }
   }
+  // 改装中 (休業) の店は売れず決算もしないので、棚・倒産などの注意は出さず、休みの案内だけにする (1.1.0)
+  const ri = restInfo(dt);
+  if (ri) {
+    warnings.length = 0;
+    warnings.push(
+      g.now < ri.reopen_from
+        ? `改装中 (休業) です。${jst(ri.reopen_from)}の決算が済むと、{"type":"reopen"} かほかの行動で再開できます。${jst(ri.until)}には自動で再開します`
+        : `改装中 (休業) です。{"type":"reopen"} かほかの行動で再開できます。${jst(ri.until)}には自動で再開します`,
+    );
+  }
   return {
     shop: dt.shopname,
     rank: rankNo,
     shops: g.shops.length,
+    /** 改装中 (休業) なら {since, reopen_from, until}、営業中は null (1.1.0) */
+    rest: ri,
     popularity: pct(dt.rank),
     point: dt.point,
     money: dt.money,
@@ -209,7 +222,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     d.new.mail && `郵便${d.new.mail}(${d.mail_from.join(',')}) /api/v1/mail`,
   ].filter(Boolean);
   const lines = [
-    `${d.shop} ${d.rank}位/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}${d.coupon_first ? '(優先)' : ''}` : ''} 決算${jst(d.next_period)}`,
+    `${d.shop} ${d.rest ? '改装中' : d.rank + '位'}/${d.shops} 人気${d.popularity}% 点${d.point} 資金${d.money} 入金庫${d.moneystock} 時間${dur(d.time)}${d.time_full_in ? '' : '(満)'}${d.coupon ? ` 券${dur(d.coupon)}${d.coupon_first ? '(優先)' : ''}` : ''} 決算${jst(d.next_period)}`,
     `棚 ${shelves}`,
   ];
   const tail: string[] = [];
@@ -282,7 +295,9 @@ export function meData(g: Game, dt: Shop) {
     // 観戦画面の店長室にある項目 (スペースで同じ画面を作れるように。0.5.0)
     wins: dt.rankingcount,
     founded_at: dt.foundation,
-    closing_at: dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt),
+    // 改装中は不在閉店の時計が止まっている。再開してから数え始める
+    closing_at: Math.max(dt.lastlogin, dt.rest?.until ?? 0) + g.config.expireTime + g.expireTimeExtend(dt),
+    rest: restInfo(dt),
     tax_paid_today: dt.taxtoday,
     tax_yesterday: dt.taxyesterday,
     exp_total: Math.trunc(Object.values(dt.exp).reduce((a, b) => a + b, 0) / 10),
@@ -293,7 +308,7 @@ export function meData(g: Game, dt: Shop) {
 
 export function meText(d: ReturnType<typeof meData>): string {
   const lines = [
-    `店 id${d.id} ${d.shop} 職業${d.job} ${d.rank}位 人気${d.popularity}% 点${d.point}`,
+    `店 id${d.id} ${d.shop} 職業${d.job} ${d.rest ? `改装中(${jst(d.rest.until)}まで)` : d.rank + '位'} 人気${d.popularity}% 点${d.point}`,
     `資金${d.money} 入金庫${d.moneystock}(今すぐ入金できる最大${d.deposit_max_now}) 時間${dur(d.time)}/${dur(d.time_max)}${d.coupon_max ? ` 券${dur(d.coupon)}/${dur(d.coupon_max)}(${jst(d.coupon_reset)}に満タン、${d.coupon_first ? 'クーポン' : '持ち時間'}から先に使う)` : ''}`,
     `今期 売上${d.sale.today} 支払${d.pay.today} 維持費${d.cost.today}+棚${d.cost.showcase} | 前期 売上${d.sale.yesterday} 支払${d.pay.yesterday} 維持費${d.cost.yesterday} (内訳 /api/v1/costs)`,
     `税 売上税率+${d.tax.sale_rate}% 入金庫税${d.tax.stock_tax}(${d.tax.stock_tax_rate}%) 決算${jst(d.next_period)}`,

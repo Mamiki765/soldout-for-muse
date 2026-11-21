@@ -45,7 +45,7 @@ export function openShop(g: Game, req: OpenShopRequest): Shop {
   const w = g.world;
   const name = req.name ?? '';
   const sname = req.shopname ?? '';
-  if (g.config.maxUser > 0 && g.shops.length >= g.config.maxUser) {
+  if (g.config.maxUser > 0 && g.allShops.length >= g.config.maxUser) {
     throw new GameError('申し訳ありませんが、現在空き店舗がありません。空くのをお待ちください。');
   }
   if (
@@ -64,8 +64,8 @@ export function openShop(g: Game, req: OpenShopRequest): Shop {
   if (name.length > 12 || sjisLength(sname) > 20) {
     throw new GameError('名前(12文字)・店名(全角10文字)の文字数が多いです。');
   }
-  if (g.shops.some((s) => s.name === name)) throw new GameError('既に存在する名前です。-> ' + name);
-  if (g.shops.some((s) => s.shopname === sname)) throw new GameError('既に存在する店名です。-> ' + sname);
+  if (g.allShops.some((s) => s.name === name)) throw new GameError('既に存在する名前です。-> ' + name);
+  if (g.allShops.some((s) => s.shopname === sname)) throw new GameError('既に存在する店名です。-> ' + sname);
 
   if (!g.shops.length) w.lasttime = g.now;
   const dt = newShop(w.nextid, g.maxItem);
@@ -128,6 +128,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     dts = g.shopById(req.from);
     if (!dts) throw new GameError('その店は見つかりません (店終いしたかもしれません)');
     if (dts === dt) throw new GameError('自分の店から買う気ですか？');
+    if (dts.rest) throw new GameError(dts.shopname + 'は改装中でお休みです');
     showcase = dts.showcase.slice(0, dts.showcasecount);
     prices = dts.price.slice(0, dts.showcasecount);
     const s = dts;
@@ -332,7 +333,7 @@ export function renameShop(g: Game, dt: Shop, newName: string): string {
   if (sjisLength(newName) < 4) throw new GameError('店名が短すぎます。');
   if (/^[\s　]+$/.test(newName)) throw new GameError('名前・店名が空白になっているか、使用不可文字が使用されています。');
   if (dt.money < 200000) throw new GameError('資金が足りません。');
-  if (g.shops.some((s) => s.shopname === newName)) throw new GameError('既に存在する店名です。-> ' + newName);
+  if (g.allShops.some((s) => s.shopname === newName)) throw new GameError('既に存在する店名です。-> ' + newName);
   g.writeLog(1, 0, 0, dt.shopname + 'が「' + newName + '」へ改名しました。');
   dt.shopname = newName;
   dt.money -= 200000;

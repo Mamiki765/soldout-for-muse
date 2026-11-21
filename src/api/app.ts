@@ -20,6 +20,7 @@ import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engin
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
 import * as tut from '../engine/tutorial.js';
+import * as rest from '../engine/rest.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
 import * as v from './views.js';
 import { TIPS } from '../tips.js';
@@ -312,6 +313,21 @@ export class App {
       this.save(g);
       if (!g.shopById(shopId)) this.onShopClosed(shopId);
       return r;
+    } catch (e) {
+      this.world = snapshot;
+      throw e;
+    }
+  }
+
+  /** 管理の操作を1件実行する (店の行動ではないので lastlogin は動かさない)。失敗したら元に戻す */
+  private runAdmin(fn: (g: Game) => void): void {
+    this.game();
+    const snapshot = structuredClone(this.world);
+    const g = new Game(this.world, this.config, this.rng, this.clock());
+    try {
+      fn(g);
+      g.sortShops();
+      this.save(g);
     } catch (e) {
       this.world = snapshot;
       throw e;
@@ -745,7 +761,9 @@ export class App {
           return this.readLog(dt, q);
         case '/town': {
           // 店の一覧 (ランキングと他店を合体し、店主とアイコンを付けたもの。スペースの「店」画面用。0.5.0)
-          const d = { people: shownPeople(this.world), events: g.eventMessages, base: this.owners.o.assetsBaseUrl + '/', shops: this.owners.townData(g), period: this.world.periodLog };
+          // resting: 改装中 (休業) の店。順位の外 (1.1.0)
+          const resting = g.allShops.filter((x) => x.status && x.rest).map((x) => ({ id: x.id, shop: x.shopname, until: x.rest!.until }));
+          const d = { people: shownPeople(this.world), events: g.eventMessages, base: this.owners.o.assetsBaseUrl + '/', shops: this.owners.townData(g), resting, period: this.world.periodLog };
           return { status: 200, text: townText(d), json: d };
         }
         case '/profile': {
@@ -962,7 +980,10 @@ export class App {
         const msg = this.runAction(shopId, (g, dt) => {
           const before = dt.item.slice();
           const jobBefore = dt.job;
-          const m = this.doAction(g, dt, type, a);
+          // 改装中 (休業) なら、再開できる時刻を過ぎていれば再開してから行う (1.1.0)
+          const resolved = ACTION_ALIASES[type] ?? type;
+          const woke = KNOWN_ACTIONS.has(resolved) ? rest.restGuard(g, dt, resolved) : [];
+          const m = [...woke, ...this.doAction(g, dt, type, a)];
           // 手引き: 成功した行動を記録して次の段へ (棚に並べた・使って何か得た・転職した)
           tut.onTutorialAction(g, dt, ACTION_ALIASES[type] ?? type, before, jobBefore);
           results.push({ ok: true, type, msg: m });
@@ -1165,6 +1186,11 @@ export class App {
         this.owners.onRenamed(dt.id, g.now);
         return [r];
       }
+      case 'rest':
+        // 改装中 (休業) に入る (1.1.0)。今期の維持費を払い、最長30日休む
+        return rest.startRest(g, dt, Math.trunc(n('days', rest.REST_MAX_DAYS)));
+      case 'reopen':
+        return [rest.endRest(g, dt)];
       case 'close':
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];
@@ -1172,7 +1198,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename rest reopen close。くわしくは GET /api/v1/help',
         );
       }
     }
@@ -1567,6 +1593,25 @@ export class App {
         json: { ok: true, shop_id: shopId, token, party },
       };
     }
+    if (method === 'POST' && p === '/rest') {
+      // 店を代わりに改装中 (休業) にする・再開する (1.1.0)。トークン切れなどで本人が申し出られないとき用
+      const body = await this.body(req);
+      const shopId = Number(body.shop);
+      if (!Number.isInteger(shopId) || !this.world.shops.some((x) => x.id === shopId && x.status)) throw new HttpError(404, 'その店はありません (shop に営業中の店idを入れてください)');
+      const end = body.end === true || body.end === 'true' || body.end === 1;
+      const days = body.days === undefined ? rest.REST_MAX_DAYS : Number(body.days);
+      let msgs: string[] = [];
+      try {
+        this.runAdmin((g) => {
+          const dt = g.shopById(shopId)!;
+          msgs = end ? [rest.endRest(g, dt, g.now, true)] : rest.startRest(g, dt, Math.trunc(days), '管理人の手続きで');
+        });
+      } catch (e) {
+        if (e instanceof GameError) throw new HttpError(400, e.message);
+        throw e;
+      }
+      return { status: 200, text: 'OK ' + msgs.join('\n') + '\n', json: { ok: true, msg: msgs } };
+    }
     if (method === 'GET' && p === '/stats') {
       const { g } = this.game();
       const counts = this.store.countSuggestionsByStatus();
@@ -1717,6 +1762,9 @@ const ACTION_ALIASES: Record<string, string> = {
   display: 'shelf',
 };
 
+/** doAction が受け付ける行動 (改装中の確認は、知らない行動には行わない。知らない行動の案内を先に出すため) */
+const KNOWN_ACTIONS: ReadonlySet<string> = new Set(['buy', 'shelf', 'showcase', 'use', 'shelves', 'deposit', 'trash', 'order', 'deliver', 'cancel_order', 'renew_order', 'comment', 'coupon', 'alerts', 'tutorial', 'rename', 'rest', 'reopen', 'close']);
+
 /** 別名にはしないが、送られがちな名前への案内 */
 /** renew の値。日本語の名前でも受ける */
 function renewIn(v: unknown): string | undefined {
@@ -1741,6 +1789,11 @@ const ACTION_HINTS: Record<string, string> = {
   relist: '期限切れの募集の延長・再掲は、order に renew (extend / repost / forever) を付けるか、出した後なら renew_order です',
   repeat_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"repost","repeat":3})',
   extend_order: '期限切れの募集の延長・再掲は renew_order です (例 {"type":"renew_order","order":5,"renew":"extend"})',
+  vacation: 'しばらく休むのは rest です (例 {"type":"rest","days":30})。再開は reopen',
+  pause: 'しばらく休むのは rest です (例 {"type":"rest","days":30})。再開は reopen',
+  sleep: 'しばらく休むのは rest です (例 {"type":"rest","days":30})。再開は reopen',
+  resume: '改装からの再開は reopen です',
+  wake: '改装からの再開は reopen です',
 };
 
 /** 確認の返事。true / "true" / 1 / "yes" / "ok" / "はい" などを「はい」とみなす */
@@ -1800,8 +1853,9 @@ function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
 }
 
 /** GET /api/v1/town の文字版 */
-function townText(d: { people: number; events: string[]; shops: { rank: number; som: string | null; owner_name: string; shop: string; job: string; point: number; popularity: number; icon: string | null }[] }): string {
+function townText(d: { people: number; events: string[]; shops: { rank: number; som: string | null; owner_name: string; shop: string; job: string; point: number; popularity: number; icon: string | null }[]; resting?: { id: number; shop: string; until: number }[] }): string {
   const lines = [`人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''), '# 順位 som 店主名 店名 職業 点 人気% アイコン'];
   for (const s of d.shops) lines.push(`${s.rank} ${s.som ?? '-'} ${s.owner_name} ${s.shop} ${s.job || '-'} ${s.point} ${s.popularity} ${s.icon ?? '-'}`);
+  if (d.resting?.length) lines.push('改装中: ' + d.resting.map((r) => `${r.shop}(${v.jst(r.until)}まで)`).join(' / '));
   return lines.join('\n') + '\n';
 }

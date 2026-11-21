@@ -145,7 +145,7 @@ test('転職のお祝い: 職に就くと1店1回だけ道具がもらえる', a
   const a = fixture();
   const b = fixture();
   b.dt.job = 'weapon';
-  a.g.shops.push(b.dt);
+  a.g.allShops.push(b.dt); // g.shops は営業中の店の写し (1.1.0) なので、元の一覧に足す
   const rows = giveShopTime(a.g);
   assert.equal(a.dt.item[CIG - 1], 8);
   assert.equal(b.dt.item[CIG - 1], 8);
