@@ -85,7 +85,8 @@ export function getWholeStore(g: Game): WholeStoreCase[] {
     let price = item.price;
     if (item.pricehalf) {
       // 1.0.2: 原作は最大50店 ($MAX_USER) の街を前提に pricebase/pricehalf を決めている。
-      // 在庫の上限と湧く量は店が増えるほど大きくなるので、50店ごとに pricebase/pricehalf も伸ばす (107店なら3倍)
+      // 在庫の上限と湧く量は店が増えるほど大きくなるので、pricebase/pricehalf も 店数÷50 倍に伸ばす
+      // (1.0.4 から段差なしの比例。115店なら2.3倍。50店までは1倍で原作どおり)
       const k = g.marketUsers() / g.config.marketUserBase;
       price = Math.trunc(price / ((stock - item.pricebase * k) / (item.pricehalf * k) + 1));
       if (price <= 0 && item.price) price = 1;
