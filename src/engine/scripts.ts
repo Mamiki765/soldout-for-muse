@@ -53,10 +53,19 @@ function capRank(dt: Shop): void {
 export const BOOK_LIFE_MIN = 0.7;
 export const BOOK_LIFE_MAX = 1.3;
 
-/** 本・地図・牛・桶の傷みの表示 (0〜99%)。寿命はゆらぐので、平均の寿命を100%とした割合 */
-export function bookWearPct(dt: Shop, itemno: number): number | undefined {
+/**
+ * 本・地図・牛・桶の耐久の表示 (100〜0%)。新品が100%、寿命のいちばん短い場合 (BOOK_LIFE_MIN) に届くと0%。
+ * 0%になるまでは壊れず、0%のあとはいつ壊れてもおかしくない (寿命の幅そのものは見せない。リカさん案)
+ */
+export function bookDurability(dt: Shop, itemno: number): number | undefined {
   const w = dt.bookwear?.[itemno];
-  return w ? Math.min(99, Math.trunc(w[0] * 100)) : undefined;
+  return w ? Math.min(100, Math.max(0, Math.ceil((1 - w[0] / BOOK_LIFE_MIN) * 100 - 1e-9))) : undefined;
+}
+
+/** 結果に出す1行「薬調合入門の耐久: 46%」。0%なら「いつ壊れてもおかしくない」を添える */
+function durabilityLine(g: Game, dt: Shop, itemno: number, label: string, zero: string): string {
+  const d = bookDurability(dt, itemno) ?? 100;
+  return `${g.items[itemno].name}の${label}: ${d}%` + (d === 0 ? ` (${zero})` : '');
 }
 
 /**
@@ -75,12 +84,12 @@ function wearStep(g: Game, dt: Shop, itemno: number, wear: number): boolean {
   return true;
 }
 
-/** 本・地図を wear だけ傷め、寿命に届いたら1冊破棄する。結果に傷みの%を出す */
+/** 本・地図を wear だけ傷め、寿命に届いたら1冊破棄する。結果に耐久の%を出す */
 function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number): string {
   if (!(wear > 0) || !(dt.item[itemno - 1] > 0)) return '';
   const name = g.items[itemno].name;
   if (wearStep(g, dt, itemno, wear)) itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
-  return `${name}の傷み: ${bookWearPct(dt, itemno)}%`;
+  return durabilityLine(g, dt, itemno, '耐久', 'いつ壊れてもおかしくない');
 }
 
 const ROBOT = (): number => itemNoByName('店番ロボット');
@@ -161,7 +170,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     }
     const ret = 'ミノ牛乳を' + val + '本精製しました';
     log(g, 0, dt.id, ret);
-    return heads > 0 ? `${ret}<br>${g.items[25].name}の老い: ${bookWearPct(dt, 25)}%` : ret;
+    return heads > 0 ? `${ret}<br>${durabilityLine(g, dt, 25, '寿命', 'いつ天に召されてもおかしくない')}` : ret;
   },
 
   // 干し草を与えて搾る (目安箱 #7、0.6.0 で追加。原作に無い使い方)。干し草は前処理 mino:_local_b2 で頭数ぶん×回数を消費済み。
@@ -197,7 +206,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       ret += ' (' + g.items[TROUGH].name + 'が' + broken + '個壊れました)';
     }
     log(g, 0, dt.id, ret);
-    return hadTrough ? `${ret}<br>${g.items[TROUGH].name}の傷み: ${bookWearPct(dt, TROUGH)}%` : ret;
+    return hadTrough ? `${ret}<br>${durabilityLine(g, dt, TROUGH, '耐久', 'いつ壊れてもおかしくない')}` : ret;
   },
 
   // ミノ牛乳 飲む

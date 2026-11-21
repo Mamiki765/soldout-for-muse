@@ -57,7 +57,7 @@ test('飼い葉桶: 持っていると牛乳が頭数×1本増え、1回ごと�
   assert.equal(dt.item[TROUGH - 1], 1);
   assert.doesNotMatch(u.result.function_return!, /壊れ/);
 
-  assert.match(u.result.function_return!, /飼い葉桶の傷み: 30%/);
+  assert.match(u.result.function_return!, /飼い葉桶の耐久: 58%/);
 
   // 傷みがたまりきっている: 毎回壊れる。桶2個なら2回目まで上乗せし、3回目は桶が無いので上乗せしない
   ({ g, dt } = fixture(0));

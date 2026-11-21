@@ -36,7 +36,7 @@ function brew(g: Game, dt: ReturnType<typeof fixture>['dt'], name: string): bool
   return dt.item[BOOK - 1] < before;
 }
 
-test('1.0.3: 本の傷みは1回ごとに今の確率ぶん、寿命 0.7〜1.3 に届くまで壊れず、平均の冊数は今と同じ', () => {
+test('1.0.3: 本の耐久は1回ごとに今の確率ぶん、寿命 0.7〜1.3 に届くまで壊れず、平均の冊数は今と同じ', () => {
   for (const [name, p] of [['ポーションを作成する', 0.038], ['エリ草を作成する', 0.115]] as const) {
     const { g, dt } = fixture(name.length);
     const n = 4000;
@@ -71,7 +71,7 @@ test('1.0.3: 同じ本で重さの違う品を混ぜても、それぞれの確�
   assert.ok(Math.abs(lost / expect - 1) < 0.05, `${lost} 冊 (期待 ${expect})`);
 });
 
-test('1.0.3: 傷みは作った結果と me の倉庫 (wear%) に出る。0冊にしても傷みは残る', () => {
+test('1.0.3: 耐久は作った結果と me の倉庫 (durability%) に出る。0%で「いつ壊れてもおかしくない」。0冊にしても戻らない', () => {
   const { g, dt } = fixture(1);
   dt.bookwear = { [BOOK]: [0.5, 1.2] };
   const u = BASE_ITEMS[BOOK].uses.find((x) => x.name === 'ポーションを作成する')!;
@@ -81,14 +81,23 @@ test('1.0.3: 傷みは作った結果と me の倉庫 (wear%) に出る。0冊�
   enterShop(g, dt, true);
   const r = useItemAction(g, dt, BOOK, u.no, { count: 1 });
   const msgs = useResultMessages(g, dt, r);
-  assert.ok(msgs.includes('薬調合入門の傷み: 53%'), msgs.join('\n'));
+  // 傷み 0.5+0.038=0.538、0.7 で耐久0 → 100×(1-0.538/0.7) を切り上げて 24%
+  assert.ok(msgs.includes('薬調合入門の耐久: 24%'), msgs.join('\n'));
   const row = meData(g, dt).stock.find((s) => s.item === BOOK)!;
-  assert.equal(row.wear, 53);
+  assert.equal(row.durability, 24);
+  // 0.7 を越えたら 0% (寿命1.2なのでまだ壊れない)
+  dt.bookwear[BOOK] = [0.69, 1.2];
+  dt.time = g.now - 48 * 3600;
+  for (const l of u.use) if (l.item_no !== BOOK) dt.item[l.item_no - 1] = l.count;
+  const before = dt.item[BOOK - 1];
+  const r2 = useItemAction(g, dt, BOOK, u.no, { count: 1 });
+  assert.equal(dt.item[BOOK - 1], before);
+  assert.ok(useResultMessages(g, dt, r2).includes('薬調合入門の耐久: 0% (いつ壊れてもおかしくない)'));
   dt.item[BOOK - 1] = 0;
-  assert.equal(meData(g, dt).stock.find((s) => s.item === BOOK)?.wear, 53);
-  // 使ったことのない本には wear を出さない
+  assert.equal(meData(g, dt).stock.find((s) => s.item === BOOK)?.durability, 0);
+  // 使ったことのない本には durability を出さない
   dt.item[itemNoByName('剣の鍛え方') - 1] = 1;
-  assert.equal(meData(g, dt).stock.find((s) => s.item === itemNoByName('剣の鍛え方'))!.wear, undefined);
+  assert.equal(meData(g, dt).stock.find((s) => s.item === itemNoByName('剣の鍛え方'))!.durability, undefined);
 });
 
 test('1.0.3: 牛 (乳を搾る) も耐久値制。平均の頭数は原作どおり、たまった老いでは何頭でも、頭数までしか減らない', () => {
@@ -110,5 +119,5 @@ test('1.0.3: 牛 (乳を搾る) も耐久値制。平均の頭数は原作どお
   dt.bookwear![MINO] = [2.0 - 0.001, 0.7];
   const r = useItemAction(g, dt, MINO, 0, { count: 1 });
   assert.equal(dt.item[MINO - 1], 8);
-  assert.match(useResultMessages(g, dt, r).join('\n'), /ミノタウロス♀の老い: \d+%/);
+  assert.match(useResultMessages(g, dt, r).join('\n'), /ミノタウロス♀の寿命: \d+%/);
 });
