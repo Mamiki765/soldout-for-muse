@@ -92,6 +92,20 @@ test('休む前に今期売った数は、決算の値動きの記録に残る',
   assert.equal(world.restsold, undefined, '数えたら空にする');
 });
 
+test('全店が休んでいても、決算で値動きの記録は書く', () => {
+  const { world, a, b, c } = setup();
+  let g = game(world, T0);
+  g.shopById(a.id)!.itemtoday[HERB] = 100;
+  for (const s of [a, b, c]) startRest(g, g.shopById(s.id)!, 30);
+  assert.equal(g.shops.length, 0);
+  g = game(world, T0 + 2 * DEFAULT_CONFIG.oneDayTime);
+  turn(g);
+  const row = g.newPriceRows.find((r) => r.item === HERB);
+  assert.ok(row, '薬草の行がある');
+  assert.equal(row!.sold, 100);
+  assert.equal(world.restsold, undefined);
+});
+
 test('ギルド無所属ペナルティがある街では、それも払えないと休めない (店を倒産させない)', () => {
   const { world, a } = setup();
   const g = new Game(world, { ...DEFAULT_CONFIG, guildUnattachPenalty: 100 }, seededRng(3), T0);

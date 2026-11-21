@@ -217,7 +217,8 @@ export function turnProc(g: Game): void {
     sweepOrders(g, temptimenow + timespan);
 
     // 決算処理
-    if (dateupdate && g.shops.length) turnPeriod(g, temptimenow + timespan);
+    // 全店が改装中 (休業) でも、街の決算 (値動きの記録など) は行う。店ごとの決算と賞は営業中の店だけ (1.1.0)
+    if (dateupdate && g.allShops.some((s) => s.status)) turnPeriod(g, temptimenow + timespan);
 
     // 市場商品数のUP/DOWN処理
     for (let cnt = 1; cnt <= g.maxItem; cnt++) {
