@@ -46,8 +46,8 @@ test('1.0.0: 剣の鍛え方は6.4万円・すり切れ7.8%', () => {
   assert.ok(!rates.has('100'));
 });
 
-test('飼い葉桶: 持っていると牛乳が頭数×1本増え、10%で1回ごとに1個すり減る', () => {
-  // r=0.2: 壊れない (200 >= 100)
+test('飼い葉桶: 持っていると牛乳が頭数×1本増え、1回ごとに10%傷んで寿命で1個すり減る (1.1.0)', () => {
+  // 新しい桶: 3回で30%しか傷まないので壊れない (寿命は70%以上)
   let { g, dt } = fixture(0.2);
   dt.item[MINO - 1] = 10;
   dt.item[HAY - 1] = 30;
@@ -57,11 +57,14 @@ test('飼い葉桶: 持っていると牛乳が頭数×1本増え、10%で1回�
   assert.equal(dt.item[TROUGH - 1], 1);
   assert.doesNotMatch(u.result.function_return!, /壊れ/);
 
-  // r=0: 毎回壊れる。桶2個なら2回目まで上乗せし、3回目は桶が無いので上乗せしない
+  assert.match(u.result.function_return!, /飼い葉桶の耐久: 58%/);
+
+  // 傷みがたまりきっている: 毎回壊れる。桶2個なら2回目まで上乗せし、3回目は桶が無いので上乗せしない
   ({ g, dt } = fixture(0));
   dt.item[MINO - 1] = 10;
   dt.item[HAY - 1] = 30;
   dt.item[TROUGH - 1] = 2;
+  dt.bookwear = { [TROUGH]: [10, 0.7] };
   u = useItemAction(g, dt, MINO, FEED, { count: 3 });
   assert.equal(dt.item[MILK - 1], 150 + 20);
   assert.equal(dt.item[TROUGH - 1], 0);
@@ -74,6 +77,7 @@ test('飼い葉桶: 持っていると牛乳が頭数×1本増え、10%で1回�
     f.dt.item[MINO - 1] = 10;
     f.dt.item[HAY - 1] = 30;
     f.dt.item[TROUGH - 1] = 1;
+    f.dt.bookwear = { [TROUGH]: [10, 0.7] };
   }
   useItemAction(batch.g, batch.dt, MINO, FEED, { count: 3 });
   for (let i = 0; i < 3; i++) useItemAction(single.g, single.dt, MINO, FEED, { count: 1 });
