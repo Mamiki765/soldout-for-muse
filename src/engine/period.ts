@@ -118,7 +118,10 @@ export function settleShop(g: Game, dt: Shop, at: number, rankNo: number): void 
 /** 決算で引かれる額 (維持費・棚・入金庫の税)。倒産しないかの確認用 */
 export function periodCharge(g: Game, dt: Shop): number {
   const [taxtoday] = g.taxToday(dt);
-  return Math.trunc(dt.costtoday) + (CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0) + taxtoday;
+  const cfg = g.config;
+  // ギルド無所属ペナルティ (設定があるときだけ。settleShop と同じく今期の売上から)
+  const guild = dt.guild === '' && cfg.guildUnattachPenalty ? Math.trunc((dt.saletoday * cfg.guildUnattachPenalty) / 1000) : 0;
+  return Math.trunc(dt.costtoday) + (CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0) + taxtoday + guild;
 }
 
 type Prize = [string, [number, number][]];

@@ -16,6 +16,7 @@ import { seededRng } from '../src/engine/rng.js';
 import { turn } from '../src/engine/turn.js';
 import { newWorld, type Shop, type World } from '../src/engine/types.js';
 import { closingAt, peekData } from '../src/engine/watch.js';
+import { collectPeriodSales } from '../src/engine/prices.js';
 import { digestData, digestText } from '../src/api/views.js';
 import { newToken, sha256, Store } from '../src/store.js';
 
@@ -77,6 +78,31 @@ test('日数は1〜30、払えない店は休めない', () => {
   me.moneystock = 0;
   me.costtoday = 5000;
   assert.throws(() => startRest(g, me, 5), /払えないので/);
+  assert.equal(me.rest, undefined);
+});
+
+test('休む前に今期売った数は、決算の値動きの記録に残る', () => {
+  const { world, a, b } = setup();
+  const g = game(world, T0);
+  g.shopById(a.id)!.itemtoday[HERB] = 100;
+  g.shopById(b.id)!.itemtoday[HERB] = 20;
+  startRest(g, g.shopById(a.id)!, 5);
+  collectPeriodSales(g, g.now);
+  assert.equal(g.pendingPrices!.sold.get(HERB), 120);
+  assert.equal(world.restsold, undefined, '数えたら空にする');
+});
+
+test('ギルド無所属ペナルティがある街では、それも払えないと休めない (店を倒産させない)', () => {
+  const { world, a } = setup();
+  const g = new Game(world, { ...DEFAULT_CONFIG, guildUnattachPenalty: 100 }, seededRng(3), T0);
+  const me = g.shopById(a.id)!;
+  me.money = 1000;
+  me.moneystock = 0;
+  me.saletoday = 100_000;
+  me.showcasecount = 1;
+  me.costtoday = 0;
+  assert.throws(() => startRest(g, me, 5), /払えないので/);
+  assert.equal(me.status, 1);
   assert.equal(me.rest, undefined);
 });
 

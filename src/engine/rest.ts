@@ -34,6 +34,9 @@ export function startRest(g: Game, dt: Shop, days: number, by = ''): string[] {
   }
   const msgs: string[] = [];
   for (const o of orders(g).filter((x) => x.shop === dt.id)) msgs.push(cancelOrder(g, dt, o.id));
+  // 今期ここまでの売れ数は、街の値動きの記録 (決算で書く) に残す。settleShop で店の記録は前期へ移るため
+  const rs = (g.world.restsold ??= {});
+  for (const [k, v] of Object.entries(dt.itemtoday)) rs[Number(k)] = (rs[Number(k)] ?? 0) + v;
   const rankNo = g.shopIndex(dt.id) + 1;
   settleShop(g, dt, g.now, rankNo);
   const min = g.nextPeriodTime();

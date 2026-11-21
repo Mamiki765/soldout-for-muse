@@ -141,6 +141,8 @@ export interface World {
   orderSeq?: number;
   /** 募集・納品の今日の回数 (決算で空になる) */
   orderStats?: OrderStats;
+  /** 今期に改装中 (休業) へ入った店の、入る前の今期の売れ数 (品番 → 個数)。決算の値動きの記録に足して空にする (1.1.0) */
+  restsold?: Record<number, number>;
   /** 今期ここまでの相場・市場の単価の最安・最高 (engine/prices.ts。0.6.0 から。決算で空になる) */
   mstat?: PriceStat;
 }
