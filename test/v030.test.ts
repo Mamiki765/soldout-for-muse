@@ -60,37 +60,41 @@ test('v0.3.0: 調香の手引き・乳菓のレシピがないと香水・エリ
   }
 });
 
-test('v0.3.0: 調香の手引き・乳菓のレシピは1セットごとに3%ですり切れ、1回の実行で減るのは最大1冊', () => {
+test('v0.3.0/1.0.3: 調香の手引き・乳菓のレシピは1回の実行で 1-(1-3%)^セット数 傷み、寿命に届くと1冊だけ減る', () => {
   const uses = productionUses.filter(({ u }) => u.func === 'lostbooktool');
   assert.equal(uses.length, 4);
   for (const { book, u } of uses) {
     const tool = Number(u.params[1]);
-    for (const [rand, lost] of [[0.029, true], [0.03, false]] as const) {
-      const { g, dt } = fixture(rand);
+    const wear = 1 - (1 - 0.03) ** 5;
+    for (const lost of [true, false]) {
+      const { g, dt } = fixture(0.5);
       dt.job = u.jobs[0].job;
       dt.item[book - 1] = 1;
       dt.exp[book] = u.needexp ?? 0;
       for (const l of u.use) dt.item[l.item_no - 1] = l.proba === 0 ? l.count + (l.item_no === tool ? 2 : 0) : l.count * 5;
+      dt.bookwear = { [tool]: [lost ? 1 - wear + 0.001 : 1 - wear - 0.001, 1] };
       const r = useItemAction(g, dt, book, u.no, { count: 5 });
       assert.equal(r.result.count, 5, u.name!);
-      assert.equal(dt.item[tool - 1], lost ? 2 : 3, `${u.name} rand=${rand} 道具の本`);
+      assert.equal(dt.item[tool - 1], lost ? 2 : 3, `${u.name} 道具の本`);
+      assert.ok(Math.abs(dt.bookwear[tool][0] - (lost ? 0.001 : 1 - 0.001)) < 1e-9, `${u.name} 持ち越し`);
     }
   }
 });
 
-test('v0.3.0: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ですり切れる', () => {
+test('v0.3.0/1.0.3: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ずつ傷む', () => {
   for (const spec of v030.gathering) {
     const u = BASE_ITEMS[spec.book].uses.find((x) => x.name === spec.name)!;
     assert.equal(u.money, 0, spec.name);
     const wear = spec.name === '霊草の谷を探す' ? 100 : 150;
     assert.equal(Number(u.params[0]), wear, spec.name);
-    for (const [rand, lost] of [[(wear - 1) / 1000, true], [wear / 1000, false]] as const) {
-      const { g, dt } = fixture(rand);
+    for (const lost of [true, false]) {
+      const { g, dt } = fixture(0.5);
       dt.job = u.jobs[0].job;
       dt.item[spec.book - 1] = 2;
       dt.exp[spec.book] = u.needexp!;
+      dt.bookwear = { [spec.book]: [lost ? 1 - wear / 1000 + 0.001 : 1 - wear / 1000 - 0.001, 1] };
       useItemAction(g, dt, spec.book, u.no, { count: 1 });
-      assert.equal(dt.item[spec.book - 1], lost ? 1 : 2, `${spec.name} rand=${rand}`);
+      assert.equal(dt.item[spec.book - 1], lost ? 1 : 2, `${spec.name}`);
     }
   }
   const old = BASE_ITEMS[14].uses.find((x) => x.name === '剣の市場へ仕入に行く')!;

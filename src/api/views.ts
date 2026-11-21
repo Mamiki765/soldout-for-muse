@@ -7,6 +7,7 @@ import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
+import { bookWearPct } from '../engine/scripts.js';
 import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { shelfNoticeOn, tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
@@ -238,7 +239,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
 
 export function meData(g: Game, dt: Shop) {
   getMarketStatus(g);
-  const stock: { item: number; name: string; count: number; limit: number; today: number; yesterday: number; exp: number; market: number; std: number; cost: number; balance: number; shelves: number[] }[] = [];
+  const stock: { item: number; name: string; count: number; limit: number; today: number; yesterday: number; exp: number; market: number; std: number; cost: number; balance: number; shelves: number[]; wear?: number }[] = [];
   for (let no = 1; no <= g.maxItem; no++) {
     const c = dt.item[no - 1];
     const today = dt.itemtoday[no] ?? 0;
@@ -249,7 +250,9 @@ export function meData(g: Game, dt: Shop) {
     // std=標準価格 cost=維持費(1個24時間) balance=需要供給 (110以上で飽和・90以下で不足) shelves=並べている棚 (観戦画面の倉庫と同じ項目。0.5.0)
     const shelves: number[] = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(k + 1);
-    stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves });
+    // wear=本・地図の傷み% (平均の寿命=100%。使ったことのある本だけ。1.0.3)
+    const wear = bookWearPct(dt, no);
+    stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves, ...(wear !== undefined ? { wear } : {}) });
   }
   stock.sort((a, b) => g.items[a.item].sort - g.items[b.item].sort);
   const [tax, taxrate] = g.taxToday(dt);

@@ -49,6 +49,36 @@ function capRank(dt: Shop): void {
   if (dt.rank > 10000) dt.rank = 10000;
 }
 
+/** 本の寿命 (傷みの平均を1とした割合) の幅。1.0.3 */
+export const BOOK_LIFE_MIN = 0.7;
+export const BOOK_LIFE_MAX = 1.3;
+
+/** 本・地図の傷みの表示 (0〜99%)。寿命はゆらぐので、平均の寿命を100%とした割合 */
+export function bookWearPct(dt: Shop, itemno: number): number | undefined {
+  const w = dt.bookwear?.[itemno];
+  return w ? Math.min(99, Math.trunc(w[0] * 100)) : undefined;
+}
+
+/**
+ * 本・地図を wear (平均の寿命=1) だけ傷める。寿命に届いたら1冊破棄して、超えた分は次の1冊に持ち越す。
+ * 冊数が0になっても傷みは残す (売って買い直しても新品にならない)。
+ */
+function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number): string {
+  if (!(wear > 0)) return '';
+  dt.bookwear ??= {};
+  const newLife = (): number => BOOK_LIFE_MIN + g.rand(BOOK_LIFE_MAX - BOOK_LIFE_MIN);
+  const w = (dt.bookwear[itemno] ??= [0, newLife()]);
+  w[0] += wear;
+  const name = g.items[itemno].name;
+  if (w[0] >= w[1] && dt.item[itemno - 1] > 0) {
+    w[0] = Math.max(0, w[0] - w[1]);
+    w[1] = newLife();
+    itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
+    return `${name}の傷み: ${bookWearPct(dt, itemno)}% (次の1冊)`;
+  }
+  return `${name}の傷み: ${bookWearPct(dt, itemno)}%`;
+}
+
 const ROBOT = (): number => itemNoByName('店番ロボット');
 /** 干し草 (0.6.0) */
 const HAY = 115;
@@ -68,28 +98,22 @@ export type UseFunc = (g: Game, dt: Shop, u: RtUse, c: UseFuncContext) => string
 /** キーは "関数名" (共通関数, @@FUNCITEM) または "商品コード:関数名" (その商品専用の _local_) */
 export const USE_FUNCS: Record<string, UseFunc> = {
   // ★本or地図がボロボロになって破棄するという処理
+  // 1.0.3: 原作は毎回 rand(1000)<param1 で壊れていたが、運の偏りで続けて壊れることがあったので耐久値制にした。
+  // 1回ごとに param1/1000 だけ傷み、寿命 (0.7〜1.3、平均1) に届いたら壊れる。長い目で見た壊れる冊数は原作と同じ。
   lostbook(g, dt, u) {
     const itemno = u.itemno;
-    if (g.rand(1000) < Number(u.params[0])) {
-      itemUseItem(dt, u, itemno, 1, g.items[itemno].name + 'が読めない程ボロボロになりましたので破棄しました');
-    }
-    return '';
+    return addBookWear(g, dt, u, itemno, Number(u.params[0]) / 1000);
   },
 
   // v0.3.0: 置き場の本のすり切れ (lostbook と同じ) に加え、道具の本 params[1] が1セットごとに params[2]/1000 ですり切れる。
   // 1回の実行で減るのは最大1冊 (まとめて作っても、持っている冊数で作れるセット数が縛られない)
+  // 1.0.3: 道具の本も耐久値制。1回の実行で傷むのは、原作の「1回で1冊減る確率」1-(1-p)^セット数 と同じ量
   lostbooktool(g, dt, u, { count }) {
-    USE_FUNCS.lostbook(g, dt, u, { dts: undefined, count });
+    const lines = [USE_FUNCS.lostbook(g, dt, u, { dts: undefined, count })];
     const tool = Number(u.params[1]);
-    const proba = Number(u.params[2]);
-    if (!tool || !(dt.item[tool - 1] > 0)) return '';
-    for (let i = 0; i < count; i++) {
-      if (g.rand(1000) < proba) {
-        itemUseItem(dt, u, tool, 1, g.items[tool].name + 'が読めない程ボロボロになりましたので破棄しました');
-        break;
-      }
-    }
-    return '';
+    const proba = Number(u.params[2]) / 1000;
+    if (tool && dt.item[tool - 1] > 0) lines.push(addBookWear(g, dt, u, tool, 1 - (1 - proba) ** count));
+    return lines.filter(Boolean).join('<br>');
   },
 
   // ★人気アップ(汎用) param1 アップポイント / param2 最近の出来事用コメント
