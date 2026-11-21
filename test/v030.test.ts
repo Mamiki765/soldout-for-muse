@@ -60,7 +60,7 @@ test('v0.3.0: 調香の手引き・乳菓のレシピがないと香水・エリ
   }
 });
 
-test('v0.3.0/1.0.3: 調香の手引き・乳菓のレシピは1回の実行で 1-(1-3%)^セット数 傷み、寿命に届くと1冊だけ減る', () => {
+test('v0.3.0/1.1.0: 調香の手引き・乳菓のレシピは1回の実行で 1-(1-3%)^セット数 傷み、寿命に届くと1冊だけ減る', () => {
   const uses = productionUses.filter(({ u }) => u.func === 'lostbooktool');
   assert.equal(uses.length, 4);
   for (const { book, u } of uses) {
@@ -81,7 +81,7 @@ test('v0.3.0/1.0.3: 調香の手引き・乳菓のレシピは1回の実行で 1
   }
 });
 
-test('v0.3.0/1.0.3: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ずつ傷む', () => {
+test('v0.3.0/1.1.0: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ずつ傷む', () => {
   for (const spec of v030.gathering) {
     const u = BASE_ITEMS[spec.book].uses.find((x) => x.name === spec.name)!;
     assert.equal(u.money, 0, spec.name);

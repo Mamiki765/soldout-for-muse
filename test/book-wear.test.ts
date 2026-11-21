@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 1.0.3 本・地図の耐久値制 (すり切れの天井と床) のテスト
+// SOLD OUT for Muse — 1.1.0 本・地図の耐久値制 (すり切れの天井と床) のテスト
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';
@@ -36,7 +36,7 @@ function brew(g: Game, dt: ReturnType<typeof fixture>['dt'], name: string): bool
   return dt.item[BOOK - 1] < before;
 }
 
-test('1.0.3: 本の耐久は1回ごとに今の確率ぶん、寿命 0.7〜1.3 に届くまで壊れず、平均の冊数は今と同じ', () => {
+test('1.1.0: 本の耐久は1回ごとに今の確率ぶん、寿命 0.7〜1.3 に届くまで壊れず、平均の冊数は今と同じ', () => {
   for (const [name, p] of [['ポーションを作成する', 0.038], ['エリ草を作成する', 0.115]] as const) {
     const { g, dt } = fixture(name.length);
     const n = 4000;
@@ -57,7 +57,7 @@ test('1.0.3: 本の耐久は1回ごとに今の確率ぶん、寿命 0.7〜1.3 �
   }
 });
 
-test('1.0.3: 同じ本で重さの違う品を混ぜても、それぞれの確率の合計どおりに壊れる', () => {
+test('1.1.0: 同じ本で重さの違う品を混ぜても、それぞれの確率の合計どおりに壊れる', () => {
   const { g, dt } = fixture(7);
   const mix = ['ポーションを作成する', 'エーテルを作成する', 'ハイエーテルを作成する', 'エリ草を作成する'];
   const wear = (n: string) => Number(BASE_ITEMS[BOOK].uses.find((x) => x.name === n)!.params[0]) / 1000;
@@ -71,7 +71,7 @@ test('1.0.3: 同じ本で重さの違う品を混ぜても、それぞれの確�
   assert.ok(Math.abs(lost / expect - 1) < 0.05, `${lost} 冊 (期待 ${expect})`);
 });
 
-test('1.0.3: 耐久は作った結果と me の倉庫 (durability%) に出る。0%で「いつ壊れてもおかしくない」。0冊にしても戻らない', () => {
+test('1.1.0: 耐久は作った結果と me の倉庫 (durability%) に出る。0%で「いつ壊れてもおかしくない」。0冊にしても戻らない', () => {
   const { g, dt } = fixture(1);
   dt.bookwear = { [BOOK]: [0.5, 1.2] };
   const u = BASE_ITEMS[BOOK].uses.find((x) => x.name === 'ポーションを作成する')!;
@@ -100,7 +100,7 @@ test('1.0.3: 耐久は作った結果と me の倉庫 (durability%) に出る。
   assert.equal(meData(g, dt).stock.find((s) => s.item === itemNoByName('剣の鍛え方'))!.durability, undefined);
 });
 
-test('1.0.3: 牛 (乳を搾る) も耐久値制。平均の頭数は原作どおり、たまった老いでは何頭でも、頭数までしか減らない', () => {
+test('1.1.0: 牛 (乳を搾る) も耐久値制。平均の頭数は原作どおり、たまった老いでは何頭でも、頭数までしか減らない', () => {
   const MINO = 25;
   const { g, dt } = fixture(3);
   // 原作: 1回ごとに 1/1000 で1頭。20回×1500ぶん = 期待30頭
