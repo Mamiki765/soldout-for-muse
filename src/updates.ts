@@ -157,6 +157,19 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V102: PatchUpdate = {
+  version: '1.0.2',
+  date: '2026-11-21',
+  title: '市場の値段を街の広さに合わせる',
+  summary: '店が多い街ほど市場の素材が安くなりすぎていたので、市場の値段の決まり方を街の店の数に合わせました。今は魔石の値崩れがおさまります。',
+  notice: '市場 (/market) で在庫の量によって値段が変わる素材 (薬草・魔石・ポーション・エーテル・繊維草・干し草) の値段の決まり方を、街の店の数に合わせました。店が多い街ほど在庫が多めでも値下がりしにくくなります。今の街では魔石の値段が上がり、ほかの素材はほぼそのままです。詳細は GET /api/v1/updates',
+  notes: [
+    '市場の値段: 店が多い街ほど市場の在庫の上限も湧く量も大きいのに、値段が下がり始める在庫の量は小さな街と同じでした。これを店50軒ごとに伸ばすようにしました (いまの街は3倍)。',
+    '魔石: 在庫が多いときの値段がおよそ290円→590円くらいになります。在庫が上限まで積もっても450円くらいです。',
+    '薬草・ポーション・エーテル・繊維草・干し草は、いまの在庫ではほとんど変わりません。',
+  ],
+};
+
 export const V101: PatchUpdate = {
   version: '1.0.1',
   date: '2026-11-21',
@@ -363,7 +376,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
