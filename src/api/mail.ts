@@ -124,7 +124,7 @@ export class MailBox {
       if (!open(ow)) throw new GameError(`${key} の店主は今お店を開いていません`);
       return ow;
     }
-    const shop = g.shops.find((s) => s.shopname === key);
+    const shop = g.allShops.find((s) => s.shopname === key);
     if (shop) {
       const ow = this.store.ownerByShop(shop.id);
       if (ow) return ow;

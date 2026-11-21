@@ -430,7 +430,9 @@ export class OwnerHub {
             id: dt.id,
             shopname: dt.shopname,
             job: jobName(dt) || '不定',
+            // 改装中 (休業) は 0 (順位なし)。resting に再開の時刻 (1.1.0)
             rank: g.shopIndex(dt.id) + 1,
+            resting: dt.rest ? { until: dt.rest.until } : null,
             point: dt.point,
             popularity: pct(dt.rank),
             comment: dt.comment,

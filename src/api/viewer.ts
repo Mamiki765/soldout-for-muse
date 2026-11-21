@@ -15,6 +15,7 @@ import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
+import { closingAt } from '../engine/watch.js';
 import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -323,6 +324,9 @@ function topPage(app: App, g: Game): string {
     main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
+  // 改装中 (休業) の店は順位の外。名前だけ並べる (1.1.0)
+  const resting = g.allShops.filter((x) => x.status && x.rest);
+  if (resting.length) main += `<small>改装中のお店 (${resting.length}店): ${resting.map((x) => raw(x.shopname)).join(' / ')}</small>`;
   const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));
   return s + `<div class="top"><div class="main">${main}</div><div class="side">${side}</div></div>`;
 }
@@ -334,7 +338,7 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
   const d = app.owners.ownerDetail(g, ow);
   let s = `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${avatar(app, ow, som, 'l')}<div><b style="font-size:20px">${esc(d.owner_name)}</b> <small>${esc(d.som)}</small><br>`;
   s += d.shop
-    ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 RANK ${d.shop.rank} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
+    ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 ${d.shop.resting ? `改装中 (${jst(d.shop.resting.until)}まで)` : `RANK ${d.shop.rank}`} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
     : '閉店中<br>';
   s += `許可年月日 ${esc(d.licensed_on)}</div></div>`;
   if (d.card) {
@@ -422,7 +426,8 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const job = jobName(dt) || '不定';
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
-  s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
+  if (dt.rest) s += `改装中 (休業): ${jst(dt.rest.until)}に自動で再開<br>`;
+  s += '未入店自動閉店期限:' + jst(closingAt(g, dt)) + '<br><table>';
   const ow = app.store.ownerByShop(dt.id);
   s += `<tr>${td('店主', ow ? `${esc(ow.display_name)} <small>${ow.som}</small>` : esc(dt.name))}${td('店名', raw(dt.shopname))}</tr>`;
   s += `<tr>${td('RANK', String(g.shopIndex(dt.id) + 1))}${td('TOP', dt.rankingcount + '回')}</tr>`;

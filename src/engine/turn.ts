@@ -10,6 +10,7 @@ import { checkWholeStore, getMarketStatus } from './market.js';
 import { sweepOrders } from './orders.js';
 import { closePeriodPrices, observePrices } from './prices.js';
 import { turnPeriod } from './period.js';
+import { wakeRested } from './rest.js';
 import { EVENT_FUNCS, EVENT_NOW_FUNCS, TURN_FUNCS } from './scripts.js';
 
 /**
@@ -305,6 +306,10 @@ export function turnProc(g: Game): void {
   }
   // 今期の相場・市場の単価の最安・最高を更新する (0.6.0)
   observePrices(g);
+
+  // 期限の来た改装中 (休業) の店を再開する (1.1.0)。売上・決算の計算が済んでから再開するので、
+  // 期限から今までの分は休んだまま (間が空いても、休んでいた店がまとめて売れたり決算したりしないように)
+  wakeRested(g);
 
   // 経営者不在処理
   for (const dt of g.shops) {
