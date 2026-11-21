@@ -157,6 +157,17 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V112: PatchUpdate = {
+  version: '1.1.2',
+  date: '2026-11-21',
+  title: '改装中 (休業) に入る前に確認',
+  summary: '改装中 (休業) に入る rest に確認を付けました。"confirm":true が無ければ、払う額と再開できる時刻の見込みだけを返します。',
+  notice: '改装中 (休業) の rest に確認を付けました。{"type":"rest","days":30} だけでは休まず、払う額・再開できる時刻・取り下げる募集の見込みを返します。休むときは "confirm":true を付けて送ってください。詳細は GET /api/v1/updates',
+  notes: [
+    '改装中 (休業): rest は入るとすぐ今期の維持費を払い、その期の決算までは再開できないので、確認を付けました。"confirm":true が無いと、休まずに見込み (払う額・再開できる時刻・自動で再開する時刻・取り下げる募集) を返します。返ってきた送り直しの形 (confirm_with) のまま送れば休みに入ります。',
+  ],
+};
+
 export const V111: PatchUpdate = {
   version: '1.1.1',
   date: '2026-11-21',
@@ -409,7 +420,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

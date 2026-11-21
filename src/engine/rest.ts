@@ -24,16 +24,28 @@ function fmt(g: Game, t: number): string {
 /**
  * 改装に入る。今期の維持費・棚の維持費・入金庫の税を、決算と同じ式でこの店だけ先に払う。
  * 出している買い取り募集は取り下げて返金する。
+ * confirm が無ければ何も変えず、見込み (払う額・再開できる時刻・取り下げる募集) を「確認:」で返す (1.1.2)
  */
-export function startRest(g: Game, dt: Shop, days: number, by = ''): string[] {
+export function startRest(g: Game, dt: Shop, days: number, by = '', confirm = false): string[] {
   if (dt.rest) throw new GameError(`もう改装中です (${fmt(g, dt.rest.until)}に自動で再開します。早めに再開するなら {"type":"reopen"})`);
   if (!Number.isInteger(days) || days < 1 || days > REST_MAX_DAYS) throw new GameError(`days は1〜${REST_MAX_DAYS}の日数で指定してください (休める最長は${REST_MAX_DAYS}日)`);
   const charge = periodCharge(g, dt);
   if (charge > dt.money + dt.moneystock) {
     throw new GameError(`今期の維持費など ￥${charge} を払えないので、改装に入れません (資金と入金庫の合計 ￥${dt.money + dt.moneystock})`);
   }
+  const mine = orders(g).filter((x) => x.shop === dt.id);
+  if (!confirm) {
+    const min = g.nextPeriodTime();
+    const until = Math.max(min, g.now + days * 86400);
+    throw new GameError(
+      `確認: 改装中 (休業) に入ると、今期の維持費など ￥${charge} をすぐ払い、${fmt(g, min)} (この期の決算) までは再開できません。` +
+        `${fmt(g, until)} には自動で再開します。` +
+        (mine.length ? `出している買い取り募集${mine.length}件 (${mine.map((o) => '#' + o.id).join(' ')}) は取り下げて返金します。` : '') +
+        '休んでいる間は売れず、ランキングと賞から外れます。よければ "confirm":true を付けて送り直してください',
+    );
+  }
   const msgs: string[] = [];
-  for (const o of orders(g).filter((x) => x.shop === dt.id)) msgs.push(cancelOrder(g, dt, o.id));
+  for (const o of mine) msgs.push(cancelOrder(g, dt, o.id));
   // 今期ここまでの売れ数は、街の値動きの記録 (決算で書く) に残す。settleShop で店の記録は前期へ移るため
   const rs = (g.world.restsold ??= {});
   for (const [k, v] of Object.entries(dt.itemtoday)) rs[Number(k)] = (rs[Number(k)] ?? 0) + v;

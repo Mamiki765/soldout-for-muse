@@ -52,7 +52,7 @@ test('休むと今期の維持費を先に払い、街の店数・ランキン�
   const showcase = CATALOG.showcaseCost[me.showcasecount - 1] ?? 0;
   const money0 = me.money;
   enterShop(g, me, true);
-  const msg = startRest(g, me, 10);
+  const msg = startRest(g, me, 10, '', true);
   assert.match(msg[0], /改装に入りました/);
   assert.equal(me.money, money0 - 1234 - showcase, '倉庫代 (切り捨て) と棚の維持費を払う');
   assert.equal(me.costtoday, 0);
@@ -65,19 +65,30 @@ test('休むと今期の維持費を先に払い、街の店数・ランキン�
   assert.equal(me.rest!.until, T0 + 3600 + 10 * 86400);
   assert.equal(world.shops[world.shops.length - 1].id, a.id, '営業中の店のうしろに並ぶ');
   assert.equal(g.marketUsers(), DEFAULT_CONFIG.marketUserBase);
-  assert.throws(() => startRest(g, me, 10), /もう改装中/);
+  assert.throws(() => startRest(g, me, 10, '', true), /もう改装中/);
+});
+
+test('confirm が無ければ見込みだけ返し、何も変えない (1.1.2)', () => {
+  const { world, a } = setup();
+  const g = game(world, T0);
+  const me = g.shopById(a.id)!;
+  enterShop(g, me, true);
+  createOrder(g, me, { itemno: HERB, price: 20, count: 50, hours: 24 });
+  const before = structuredClone(world);
+  assert.throws(() => startRest(g, me, 10), /^GameError: 確認: .*募集1件 \(#\d+\) は取り下げて返金.*"confirm":true/s);
+  assert.deepEqual(world, before, '払わず、募集も残り、改装中にもならない');
 });
 
 test('日数は1〜30、払えない店は休めない', () => {
   const { world, a } = setup();
   const g = game(world, T0);
   const me = g.shopById(a.id)!;
-  assert.throws(() => startRest(g, me, 0), GameError);
-  assert.throws(() => startRest(g, me, REST_MAX_DAYS + 1), /1〜30/);
+  assert.throws(() => startRest(g, me, 0, '', true), GameError);
+  assert.throws(() => startRest(g, me, REST_MAX_DAYS + 1, '', true), /1〜30/);
   me.money = 0;
   me.moneystock = 0;
   me.costtoday = 5000;
-  assert.throws(() => startRest(g, me, 5), /払えないので/);
+  assert.throws(() => startRest(g, me, 5, '', true), /払えないので/);
   assert.equal(me.rest, undefined);
 });
 
@@ -86,7 +97,7 @@ test('休む前に今期売った数は、決算の値動きの記録に残る',
   const g = game(world, T0);
   g.shopById(a.id)!.itemtoday[HERB] = 100;
   g.shopById(b.id)!.itemtoday[HERB] = 20;
-  startRest(g, g.shopById(a.id)!, 5);
+  startRest(g, g.shopById(a.id)!, 5, '', true);
   collectPeriodSales(g, g.now);
   assert.equal(g.pendingPrices!.sold.get(HERB), 120);
   assert.equal(world.restsold, undefined, '数えたら空にする');
@@ -96,7 +107,7 @@ test('全店が休んでいても、決算で値動きの記録は書く', () =>
   const { world, a, b, c } = setup();
   let g = game(world, T0);
   g.shopById(a.id)!.itemtoday[HERB] = 100;
-  for (const s of [a, b, c]) startRest(g, g.shopById(s.id)!, 30);
+  for (const s of [a, b, c]) startRest(g, g.shopById(s.id)!, 30, '', true);
   assert.equal(g.shops.length, 0);
   g = game(world, T0 + 2 * DEFAULT_CONFIG.oneDayTime);
   turn(g);
@@ -115,7 +126,7 @@ test('ギルド無所属ペナルティがある街では、それも払えな�
   me.saletoday = 100_000;
   me.showcasecount = 1;
   me.costtoday = 0;
-  assert.throws(() => startRest(g, me, 5), /払えないので/);
+  assert.throws(() => startRest(g, me, 5, '', true), /払えないので/);
   assert.equal(me.status, 1);
   assert.equal(me.rest, undefined);
 });
@@ -125,7 +136,7 @@ test('休んでいる間は売れず、決算もせず、人気・熟練は凍�
   let g = game(world, T0);
   find(world, a.id).exp[HERB] = 500;
   find(world, a.id).rank = 5000;
-  startRest(g, g.shopById(a.id)!, 30);
+  startRest(g, g.shopById(a.id)!, 30, '', true);
   const frozen = structuredClone(find(world, a.id));
   // 20日たつ (不在閉店の7日を超える)。b は毎日行動する
   for (let d = 1; d <= 20; d++) {
@@ -146,7 +157,7 @@ test('休んでいる間は売れず、決算もせず、人気・熟練は凍�
 test('期限が来たら自動で再開し、そこから不在閉店の時計が動く。休んだ日数は延長に数えない', () => {
   const { world, a } = setup();
   let g = game(world, T0);
-  startRest(g, g.shopById(a.id)!, 3);
+  startRest(g, g.shopById(a.id)!, 3, '', true);
   const until = find(world, a.id).rest!.until;
   g = game(world, until + 600);
   turn(g);
@@ -164,7 +175,7 @@ test('その期の決算までは再開できず、過ぎたら reopen かほか
   const { world, a } = setup();
   let g = game(world, T0);
   const me0 = g.shopById(a.id)!;
-  startRest(g, me0, 30);
+  startRest(g, me0, 30, '', true);
   const min = me0.rest!.min;
   g = game(world, min - 60);
   let me = g.shopById(a.id)!;
@@ -179,7 +190,7 @@ test('その期の決算までは再開できず、過ぎたら reopen かほか
   assert.match(woke[0], /営業を再開/);
   assert.equal(me.rest, undefined);
   // 再開してすぐまた休める (間隔の縛りはない。休むたびに今期分を払う)
-  startRest(g, me, 2);
+  startRest(g, me, 2, '', true);
   assert.ok(me.rest);
 });
 
@@ -190,7 +201,7 @@ test('休むと出していた買い取り募集は取り下げて返金。休�
   enterShop(g, me, true);
   createOrder(g, me, { itemno: HERB, price: 20, count: 50, hours: 24 });
   assert.equal(orders(g).length, 1);
-  const msgs = startRest(g, me, 5);
+  const msgs = startRest(g, me, 5, '', true);
   assert.equal(orders(g).length, 0);
   assert.ok(msgs.some((m) => /取り下げ/.test(m)));
   g = game(world, T0 + 60);
@@ -204,7 +215,7 @@ test('digest・peek: 改装中の案内だけ出し、店の様子の知らせ�
   const g = game(world, T0);
   const me = g.shopById(a.id)!;
   me.showcase[0] = 0; // 棚を空にしても
-  startRest(g, me, 5);
+  startRest(g, me, 5, '', true);
   const d = digestData(g, me, { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 });
   assert.ok(d.rest);
   assert.equal(d.warnings.length, 1);
@@ -232,7 +243,14 @@ test('API: rest / reopen の行動と、管理人の代理', async () => {
   try {
     const reg = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) })).json()) as { token: string; shop_id: number };
     const reg2 = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'aki', shopname: 'アキ商店' }) })).json()) as { token: string; shop_id: number };
-    let r = await post('/api/v1/actions', reg.token, { type: 'rest', days: 7 });
+    // confirm が無ければ見込みだけ (何も変わらない)
+    let r = await post('/api/v1/actions?format=json', reg.token, { type: 'rest', days: 7 });
+    const j = (await r.json()) as { results: { ok: boolean; msg: string[]; confirm_with?: Record<string, unknown> }[] };
+    assert.equal(j.results[0].ok, false);
+    assert.match(j.results[0].msg[0], /確認: 改装中 \(休業\) に入ると、今期の維持費など ￥\d+ をすぐ払い/);
+    assert.deepEqual(j.results[0].confirm_with, { type: 'rest', days: 7, confirm: true });
+    assert.doesNotMatch(await (await get('/api/v1/digest', reg.token)).text(), /改装中/);
+    r = await post('/api/v1/actions', reg.token, { type: 'rest', days: 7, confirm: true });
     assert.match(await r.text(), /OK rest: 改装に入りました/);
     assert.match(await (await get('/api/v1/digest', reg.token)).text(), /ミュート商店 改装中\/1/);
     assert.match(await (await get('/api/v1/town', reg2.token)).text(), /改装中: ミュート商店/);
