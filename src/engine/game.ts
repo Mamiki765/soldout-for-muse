@@ -317,13 +317,15 @@ export class Game {
     return Math.trunc(this.timeSendItem * mul);
   }
 
-  /** 原作 GetExpireTimeExtend */
-  /** 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50, 100, 150… と、店数が収まる50の倍数 */
+  /**
+   * 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50店までは50、それを超えたら店数そのもの。
+   * 1.0.4: 50の倍数への切り上げをやめた (150→151店で湧く量が約17%、値段の倍率が3→4に跳ねていたため)
+   */
   marketUsers(): number {
-    const step = this.config.marketUserBase;
-    return Math.max(1, Math.ceil(this.shops.length / step)) * step;
+    return Math.max(this.config.marketUserBase, this.shops.length);
   }
 
+  /** 原作 GetExpireTimeExtend */
   expireTimeExtend(dt: Shop): number {
     let ex = Math.trunc((dt.lastlogin - dt.foundation) / 86400) * this.config.expireExTime;
     if (ex > this.config.expireMaxTime) ex = this.config.expireMaxTime;
