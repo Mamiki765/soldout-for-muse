@@ -174,7 +174,8 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   },
 
   // 干し草を与えて搾る (目安箱 #7、0.6.0 で追加。原作に無い使い方)。干し草は前処理 mino:_local_b2 で頭数ぶん×回数を消費済み。
-  // 1回で 頭数×params[0] 〜 頭数×(params[0]+params[1]) 本 (5〜7、平均6)。牛は減らない
+  // 1回で 頭数×params[0] 〜 頭数×(params[0]+params[1]) 本 (5〜7、平均6)。
+  // 1.1.1: 牛は「乳を搾る」と同じく1回ごとに 1/1000 だけ老い、寿命に届くごとに1頭天に召される (前は減らなかった)
   'mino:_local_2'(g, dt, u, { count }) {
     const base = Number(u.params[0]);
     const spread = Number(u.params[1]);
@@ -205,8 +206,17 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       itemUseItem(dt, u, TROUGH, broken, g.items[TROUGH].name + 'が壊れました');
       ret += ' (' + g.items[TROUGH].name + 'が' + broken + '個壊れました)';
     }
+    let died = 0;
+    if (heads > 0 && wearStep(g, dt, 25, (1 / 1000) * count)) {
+      died = 1;
+      while (died < heads && wearStep(g, dt, 25, 0)) died++;
+    }
+    if (died) itemUseItem(dt, u, 25, died, g.items[25].name + 'が寿命で天に召されました');
     log(g, 0, dt.id, ret);
-    return hadTrough ? `${ret}<br>${durabilityLine(g, dt, TROUGH, '耐久', 'いつ壊れてもおかしくない')}` : ret;
+    const lines = [ret];
+    if (heads > 0) lines.push(durabilityLine(g, dt, 25, '寿命', 'いつ天に召されてもおかしくない'));
+    if (hadTrough) lines.push(durabilityLine(g, dt, TROUGH, '耐久', 'いつ壊れてもおかしくない'));
+    return lines.join('<br>');
   },
 
   // ミノ牛乳 飲む

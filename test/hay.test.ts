@@ -84,7 +84,7 @@ test('牧草地で草を刈る: 熟練0でも行けて、山師は熟練0で2時
   assert.equal(dt.exp[MOUNTAIN], 10);
 });
 
-test('干し草を与えて搾る: 頭数ぶんの干し草を使い、牛乳が頭数×5〜7本、牛は減らない', () => {
+test('干し草を与えて搾る: 頭数ぶんの干し草を使い、牛乳が頭数×5〜7本', () => {
   const { g, dt } = fixture();
   dt.item[MINO - 1] = 10;
   dt.item[HAY - 1] = 35;
@@ -92,12 +92,25 @@ test('干し草を与えて搾る: 頭数ぶんの干し草を使い、牛乳が
   const u = useItemAction(g, dt, MINO, FEED, { count: 3 });
   assert.equal(u.result.count, 3);
   assert.equal(dt.item[HAY - 1], 5, '10頭×3回=30束');
-  assert.equal(dt.item[MINO - 1], 10, '過労死なし');
+  assert.equal(dt.item[MINO - 1], 10, '寿命 (0.7以上) にはまだ届かない');
   // 5×10×3 + trunc(0.2×(2×10×3+1)) = 150 + 12
   assert.equal(dt.item[MILK - 1], 162);
   assert.match(u.result.function_return!, /ミノ牛乳を162本精製しました/);
   assert.equal(dt.time - before, 7200 * 3, '熟練0・酪農家でないので2時間×3');
   assert.equal(dt.exp[MINO], 30, '1回ごとにミノタウロス♀の熟練+1%');
+});
+
+test('干し草を与えて搾る (1.1.1): 牛は乳を搾ると同じく1回 1/1000 老い、寿命に届くと天に召される', () => {
+  const { g, dt } = fixture();
+  dt.item[MINO - 1] = 10;
+  dt.item[HAY - 1] = 40;
+  useItemAction(g, dt, MINO, FEED, { count: 3 });
+  assert.ok(Math.abs(dt.bookwear![MINO][0] - 0.003) < 1e-9, '3回で0.003');
+  assert.equal(dt.item[MINO - 1], 10);
+  dt.bookwear![MINO] = [0.7 - 0.0005, 0.7];
+  const u = useItemAction(g, dt, MINO, FEED, { count: 1 });
+  assert.equal(dt.item[MINO - 1], 9, '寿命に届いて1頭');
+  assert.match(u.result.function_return!, /ミノタウロス♀の寿命: /);
 });
 
 test('干し草を与えて搾る: 牛乳は頭数×5が最低、頭数×7が最高', () => {
