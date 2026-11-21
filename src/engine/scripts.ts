@@ -49,7 +49,7 @@ function capRank(dt: Shop): void {
   if (dt.rank > 10000) dt.rank = 10000;
 }
 
-/** 本の寿命 (傷みの平均を1とした割合) の幅。1.0.3 */
+/** 本の寿命 (傷みの平均を1とした割合) の幅。1.1.0 */
 export const BOOK_LIFE_MIN = 0.7;
 export const BOOK_LIFE_MAX = 1.3;
 
@@ -111,7 +111,7 @@ export type UseFunc = (g: Game, dt: Shop, u: RtUse, c: UseFuncContext) => string
 /** キーは "関数名" (共通関数, @@FUNCITEM) または "商品コード:関数名" (その商品専用の _local_) */
 export const USE_FUNCS: Record<string, UseFunc> = {
   // ★本or地図がボロボロになって破棄するという処理
-  // 1.0.3: 原作は毎回 rand(1000)<param1 で壊れていたが、運の偏りで続けて壊れることがあったので耐久値制にした。
+  // 1.1.0: 原作は毎回 rand(1000)<param1 で壊れていたが、運の偏りで続けて壊れることがあったので耐久値制にした。
   // 1回ごとに param1/1000 だけ傷み、寿命 (0.7〜1.3、平均1) に届いたら壊れる。長い目で見た壊れる冊数は原作と同じ。
   lostbook(g, dt, u) {
     const itemno = u.itemno;
@@ -120,7 +120,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
 
   // v0.3.0: 置き場の本のすり切れ (lostbook と同じ) に加え、道具の本 params[1] が1セットごとに params[2]/1000 ですり切れる。
   // 1回の実行で減るのは最大1冊 (まとめて作っても、持っている冊数で作れるセット数が縛られない)
-  // 1.0.3: 道具の本も耐久値制。1回の実行で傷むのは、原作の「1回で1冊減る確率」1-(1-p)^セット数 と同じ量
+  // 1.1.0: 道具の本も耐久値制。1回の実行で傷むのは、原作の「1回で1冊減る確率」1-(1-p)^セット数 と同じ量
   lostbooktool(g, dt, u, { count }) {
     const lines = [USE_FUNCS.lostbook(g, dt, u, { dts: undefined, count })];
     const tool = Number(u.params[1]);
@@ -156,7 +156,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     val *= dt.item[25 - 1];
     val = Math.trunc(g.rand(val)) + 1;
     itemAddItem(g, dt, u, 26, val, 'ミノ牛乳を精製しました');
-    // 1.0.3: 原作は1回ごとに p1*p1/1000 で1頭ずつ天に召されていた。本と同じ耐久値制にして、
+    // 1.1.0: 原作は1回ごとに p1*p1/1000 で1頭ずつ天に召されていた。本と同じ耐久値制にして、
     // 搾るたびに p1*p1/1000×回数 だけ老い、寿命 (0.7〜1.3) に届くごとに1頭。平均の頭数は原作と同じ
     const useproba = p1 * p1;
     const heads = dt.item[25 - 1];
@@ -186,7 +186,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const spreadRoll = Math.trunc(g.rand(spread * n + 1));
     let bonus = 0;
     let broken = 0;
-    // 1.0.3: 桶も耐久値制。1回ごとに10%傷み、寿命 (0.7〜1.3) に届いたら1個壊れる。平均の個数は今までと同じ
+    // 1.1.0: 桶も耐久値制。1回ごとに10%傷み、寿命 (0.7〜1.3) に届いたら1個壊れる。平均の個数は今までと同じ
     const hadTrough = troughs > 0;
     for (let i = 0; i < count && troughs > 0; i++) {
       bonus += heads;

@@ -157,8 +157,8 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
-export const V103: PatchUpdate = {
-  version: '1.0.3',
+export const V110: PatchUpdate = {
+  version: '1.1.0',
   date: '2026-11-21',
   title: '本・地図・牛・桶に耐久',
   summary: '本・地図・ミノタウロス♀・飼い葉桶に耐久が付き、続けて壊れる (天に召される) ことがなくなりました。平均して減る数は今までと同じです。',
@@ -393,7 +393,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V103, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

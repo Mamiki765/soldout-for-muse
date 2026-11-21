@@ -65,7 +65,7 @@ export interface Shop {
   /** 決算で引いた維持費の明細。新しい順に COST_REPORT_KEEP 件まで */
   costreports?: CostReport[];
   /**
-   * 本・地図の傷み (1.0.3)。品番 → [傷み g, 寿命 T]。1回使うごとに今の壊れる確率ぶん g が増え、
+   * 本・地図の傷み (1.1.0)。品番 → [傷み g, 寿命 T]。1回使うごとに今の壊れる確率ぶん g が増え、
    * g が T (0.7〜1.3、平均1) に届いたら1冊壊れる。古い保存データには無い (engine/scripts.ts の addBookWear)
    */
   bookwear?: Record<number, [number, number]>;
