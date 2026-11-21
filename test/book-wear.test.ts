@@ -90,3 +90,25 @@ test('1.0.3: 傷みは作った結果と me の倉庫 (wear%) に出る。0冊�
   dt.item[itemNoByName('剣の鍛え方') - 1] = 1;
   assert.equal(meData(g, dt).stock.find((s) => s.item === itemNoByName('剣の鍛え方'))!.wear, undefined);
 });
+
+test('1.0.3: 牛 (乳を搾る) も耐久値制。平均の頭数は原作どおり、たまった老いでは何頭でも、頭数までしか減らない', () => {
+  const MINO = 25;
+  const { g, dt } = fixture(3);
+  // 原作: 1回ごとに 1/1000 で1頭。20回×1500ぶん = 期待30頭
+  let died = 0;
+  for (let i = 0; i < 1500; i++) {
+    dt.item[MINO - 1] = 10;
+    dt.time = g.now - 48 * 3600;
+    const r = useItemAction(g, dt, MINO, 0, { count: 20 });
+    assert.equal(r.result.count, 20);
+    died += 10 - dt.item[MINO - 1];
+  }
+  assert.ok(Math.abs(died / 30 - 1) < 0.1, `${died} 頭 (期待30)`);
+  // 老いが 2.0 たまっている → 寿命0.7で1頭、残り1.3は次の寿命 (1.3未満) にも届くのでもう1頭、そこで止まる
+  dt.item[MINO - 1] = 10;
+  dt.time = g.now - 48 * 3600;
+  dt.bookwear![MINO] = [2.0 - 0.001, 0.7];
+  const r = useItemAction(g, dt, MINO, 0, { count: 1 });
+  assert.equal(dt.item[MINO - 1], 8);
+  assert.match(useResultMessages(g, dt, r).join('\n'), /ミノタウロス♀の老い: \d+%/);
+});

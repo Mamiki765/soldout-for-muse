@@ -53,29 +53,33 @@ function capRank(dt: Shop): void {
 export const BOOK_LIFE_MIN = 0.7;
 export const BOOK_LIFE_MAX = 1.3;
 
-/** 本・地図の傷みの表示 (0〜99%)。寿命はゆらぐので、平均の寿命を100%とした割合 */
+/** 本・地図・牛・桶の傷みの表示 (0〜99%)。寿命はゆらぐので、平均の寿命を100%とした割合 */
 export function bookWearPct(dt: Shop, itemno: number): number | undefined {
   const w = dt.bookwear?.[itemno];
   return w ? Math.min(99, Math.trunc(w[0] * 100)) : undefined;
 }
 
 /**
- * 本・地図を wear (平均の寿命=1) だけ傷める。寿命に届いたら1冊破棄して、超えた分は次の1冊に持ち越す。
- * 冊数が0になっても傷みは残す (売って買い直しても新品にならない)。
+ * 耐久値を wear (平均の寿命=1) だけ減らし、寿命に届いたら true (超えた分は次の1個に持ち越す)。
+ * 品物は減らさない (呼び出し側で減らす)。持っている数が0になっても傷みは残す (売って買い直しても新品にならない)。
+ * wear=0 で呼ぶと、たまった傷みでもう1個壊れるかだけを見る。
  */
-function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number): string {
-  if (!(wear > 0)) return '';
+function wearStep(g: Game, dt: Shop, itemno: number, wear: number): boolean {
   dt.bookwear ??= {};
   const newLife = (): number => BOOK_LIFE_MIN + g.rand(BOOK_LIFE_MAX - BOOK_LIFE_MIN);
   const w = (dt.bookwear[itemno] ??= [0, newLife()]);
   w[0] += wear;
+  if (w[0] < w[1]) return false;
+  w[0] = Math.max(0, w[0] - w[1]);
+  w[1] = newLife();
+  return true;
+}
+
+/** 本・地図を wear だけ傷め、寿命に届いたら1冊破棄する。結果に傷みの%を出す */
+function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number): string {
+  if (!(wear > 0) || !(dt.item[itemno - 1] > 0)) return '';
   const name = g.items[itemno].name;
-  if (w[0] >= w[1] && dt.item[itemno - 1] > 0) {
-    w[0] = Math.max(0, w[0] - w[1]);
-    w[1] = newLife();
-    itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
-    return `${name}の傷み: ${bookWearPct(dt, itemno)}% (次の1冊)`;
-  }
+  if (wearStep(g, dt, itemno, wear)) itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
   return `${name}の傷み: ${bookWearPct(dt, itemno)}%`;
 }
 
@@ -143,15 +147,21 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     val *= dt.item[25 - 1];
     val = Math.trunc(g.rand(val)) + 1;
     itemAddItem(g, dt, u, 26, val, 'ミノ牛乳を精製しました');
+    // 1.0.3: 原作は1回ごとに p1*p1/1000 で1頭ずつ天に召されていた。本と同じ耐久値制にして、
+    // 搾るたびに p1*p1/1000×回数 だけ老い、寿命 (0.7〜1.3) に届くごとに1頭。平均の頭数は原作と同じ
     const useproba = p1 * p1;
+    const heads = dt.item[25 - 1];
     let usecount = 0;
-    for (let i = 0; i < count; i++) if (g.rand(1000) < useproba) usecount++;
+    if (heads > 0 && wearStep(g, dt, 25, (useproba / 1000) * count)) {
+      usecount = 1;
+      while (usecount < heads && wearStep(g, dt, 25, 0)) usecount++;
+    }
     if (usecount) {
       itemUseItem(dt, u, 25, usecount, g.items[25].name + 'が' + (p1 === 1 ? '寿命' : '過労') + 'で天に召されました');
     }
     const ret = 'ミノ牛乳を' + val + '本精製しました';
     log(g, 0, dt.id, ret);
-    return ret;
+    return heads > 0 ? `${ret}<br>${g.items[25].name}の老い: ${bookWearPct(dt, 25)}%` : ret;
   },
 
   // 干し草を与えて搾る (目安箱 #7、0.6.0 で追加。原作に無い使い方)。干し草は前処理 mino:_local_b2 で頭数ぶん×回数を消費済み。
@@ -167,9 +177,11 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     const spreadRoll = Math.trunc(g.rand(spread * n + 1));
     let bonus = 0;
     let broken = 0;
+    // 1.0.3: 桶も耐久値制。1回ごとに10%傷み、寿命 (0.7〜1.3) に届いたら1個壊れる。平均の個数は今までと同じ
+    const hadTrough = troughs > 0;
     for (let i = 0; i < count && troughs > 0; i++) {
       bonus += heads;
-      if (g.rand(1000) < 100) {
+      if (wearStep(g, dt, TROUGH, 0.1)) {
         troughs--;
         broken++;
       }
@@ -185,7 +197,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       ret += ' (' + g.items[TROUGH].name + 'が' + broken + '個壊れました)';
     }
     log(g, 0, dt.id, ret);
-    return ret;
+    return hadTrough ? `${ret}<br>${g.items[TROUGH].name}の傷み: ${bookWearPct(dt, TROUGH)}%` : ret;
   },
 
   // ミノ牛乳 飲む
