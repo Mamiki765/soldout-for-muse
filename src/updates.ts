@@ -157,6 +157,18 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V111: PatchUpdate = {
+  version: '1.1.1',
+  date: '2026-11-21',
+  title: '干し草を与えて搾るときも牛の寿命が減る',
+  summary: 'ミノタウロス♀の「干し草を与えて搾る」でも、「乳を搾る」と同じだけ牛の寿命が減るようにしました。',
+  notice: 'ミノタウロス♀の「干し草を与えて搾る」でも、「乳を搾る」と同じだけ寿命が減るようにしました (1回ごとに0.1%で1頭ぶん。平均して約1000回で1頭)。結果に牛の寿命の%も出ます。詳細は GET /api/v1/updates',
+  notes: [
+    'ミノタウロス♀: 「干し草を与えて搾る」でも、1回ごとに「乳を搾る」と同じだけ寿命が減ります (頭数に関係なく、平均して約1000回で1頭が寿命で天に召されます)。今までは減りませんでした。',
+    '寿命は「乳を搾る」「ハードに乳を搾る」と共通です。結果に「ミノタウロス♀の寿命: 98%」のように出ます。',
+  ],
+};
+
 export const V110: PatchUpdate = {
   version: '1.1.0',
   date: '2026-11-21',
@@ -397,7 +409,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
