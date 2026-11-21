@@ -1188,7 +1188,8 @@ export class App {
       }
       case 'rest':
         // 改装中 (休業) に入る (1.1.0)。今期の維持費を払い、最長30日休む
-        return rest.startRest(g, dt, Math.trunc(n('days', rest.REST_MAX_DAYS)));
+        // 重い操作なので、confirm が無ければ見込みだけ返す (1.1.2)
+        return rest.startRest(g, dt, Math.trunc(n('days', rest.REST_MAX_DAYS)), '', isYes(a.confirm));
       case 'reopen':
         return [rest.endRest(g, dt)];
       case 'close':
@@ -1604,7 +1605,7 @@ export class App {
       try {
         this.runAdmin((g) => {
           const dt = g.shopById(shopId)!;
-          msgs = end ? [rest.endRest(g, dt, g.now, true)] : rest.startRest(g, dt, Math.trunc(days), '管理人の手続きで');
+          msgs = end ? [rest.endRest(g, dt, g.now, true)] : rest.startRest(g, dt, Math.trunc(days), '管理人の手続きで', true);
         });
       } catch (e) {
         if (e instanceof GameError) throw new HttpError(400, e.message);
