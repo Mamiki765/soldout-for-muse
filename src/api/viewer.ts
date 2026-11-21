@@ -11,6 +11,7 @@ import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
+import { bookDurability } from '../engine/scripts.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
@@ -31,6 +32,12 @@ const sessions = new Map<string, { shopId: number; expires: number }>();
 const SESSION_TTL = 12 * 3600;
 
 /** その店の見学中のセッションを全部切る (合鍵を無効にしたとき、開いている画面からも締め出す) */
+/** 倉庫の熟練度の欄に添える耐久 (本・地図・牛・桶で、使ったことのあるものだけ。1.1.0) */
+function durabilityCell(dt: Shop, no: number): string {
+  const d = bookDurability(dt, no);
+  return d === undefined ? '' : `<br>耐久${d}%${d === 0 ? '(いつ壊れてもおかしくない)' : ''}`;
+}
+
 export function dropViewSessions(shopId: number): void {
   for (const [sid, s] of sessions) if (s.shopId === shopId) sessions.delete(sid);
 }
@@ -449,7 +456,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   }
   s += '</table>';
 
-  s += '<hr>●倉庫<br><table><tr><td>名称</td><td>標準<br>価格</td><td>維持費<br>1個24時間分</td><td>在庫数<br>/最大</td><td>今期<br>前期<br>売上</td><td>熟練度</td><td>陳列</td><td>販売価格<br>相場</td><td>需要供給<br>バランス</td></tr>';
+  s += '<hr>●倉庫<br><table><tr><td>名称</td><td>標準<br>価格</td><td>維持費<br>1個24時間分</td><td>在庫数<br>/最大</td><td>今期<br>前期<br>売上</td><td>熟練度<br>耐久</td><td>陳列</td><td>販売価格<br>相場</td><td>需要供給<br>バランス</td></tr>';
   const list: number[] = [];
   for (let no = 1; no <= g.maxItem; no++) {
     if (dt.item[no - 1] || dt.itemtoday[no] || dt.itemyesterday[no] || dt.exp[no]) list.push(no);
@@ -460,7 +467,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
     const shelves = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(`棚${k + 1}￥${dt.price[k]}`);
     const sold = dt.itemtoday[no] || dt.itemyesterday[no] ? `${dt.itemtoday[no] ?? 0}/${dt.itemyesterday[no] ?? 0}` : '　';
-    s += `<tr><td>${itemIcon(g, no)}${esc(it.name)}</td><td>￥${it.price}</td><td>￥${it.cost}</td><td>${dt.item[no - 1]}/${it.limit}</td><td>${sold}</td><td>${dt.exp[no] ? Math.trunc(dt.exp[no] / 10) + '%' : '　'}</td><td>${shelves.join(' ') || '　'}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint || 10)}</td></tr>`;
+    s += `<tr><td>${itemIcon(g, no)}${esc(it.name)}</td><td>￥${it.price}</td><td>￥${it.cost}</td><td>${dt.item[no - 1]}/${it.limit}</td><td>${sold}</td><td>${dt.exp[no] ? Math.trunc(dt.exp[no] / 10) + '%' : '　'}${durabilityCell(dt, no)}</td><td>${shelves.join(' ') || '　'}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint || 10)}</td></tr>`;
   }
   s += '</table>';
 
