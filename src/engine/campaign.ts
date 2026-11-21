@@ -60,7 +60,8 @@ export interface TimeGiftRow {
  */
 export function giveShopTime(g: Game, count = EXISTING_SHOP_CIGARETTES, markJobGift = true, note = '1.0.0 のお知らせ'): TimeGiftRow[] {
   const rows: TimeGiftRow[] = [];
-  for (const dt of g.shops) {
+  // 改装中 (休業) の店にも届ける
+  for (const dt of g.allShops) {
     if (!dt.status) continue;
     const n = addItemSub(g, dt, CIGARETTE, count);
     if (markJobGift && dt.job) dt.user[JOB_GIFT_KEY] ??= '1.0.0';

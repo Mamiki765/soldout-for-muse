@@ -233,16 +233,16 @@ test('v0.3.0: 革細工入門・木工細工入門の原作レシピは道具屋
   }
 });
 
-test('開店数に上限なし・市場の入荷式は 50, 100, 150… (案: リカさんより)', () => {
+test('開店数に上限なし・市場の入荷式は50店までは50、それを超えたら店数そのもの (1.0.4)', () => {
   const world = newWorld(T0, MAX_ITEM);
   const g = new Game(world, DEFAULT_CONFIG, seededRng(9), T0);
   for (let i = 0; i < 35; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
   assert.equal(g.marketUsers(), 50, '50店までは原作既定の50');
   for (let i = 35; i < 51; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
-  assert.equal(g.marketUsers(), 100, '51店から100');
-  for (let i = 51; i < 120; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
-  assert.equal(world.shops.length, 120, '100店を超えても開店できる');
-  assert.equal(g.marketUsers(), 150);
+  assert.equal(g.marketUsers(), 51, '51店なら51 (50の倍数に切り上げない)');
+  for (let i = 51; i < 151; i++) openShop(g, { name: 's' + i, shopname: '店舗' + i + '号店' });
+  assert.equal(world.shops.length, 151, '100店を超えても開店できる');
+  assert.equal(g.marketUsers(), 151, '150→151店で段差がない');
 });
 
 test('人口は内部の1/10 (原作 int($DTpeople/10)) で表示する', async () => {

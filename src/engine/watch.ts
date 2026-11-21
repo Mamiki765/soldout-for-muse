@@ -178,7 +178,8 @@ export const ORDER_CLOSED_WORDS = ['を集め終わりました', 'を期限切�
 
 /** 最後の行動からの不在閉店の時刻 (原作 turn.cgi 末尾) */
 export function closingAt(g: Game, dt: Shop): number {
-  return dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt);
+  // 改装中 (休業) は時計が止まっていて、再開した時刻から数え始める (1.1.0)
+  return Math.max(dt.lastlogin, dt.rest?.until ?? 0) + g.config.expireTime + g.expireTimeExtend(dt);
 }
 
 export interface PeekShelf {
@@ -206,6 +207,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   const on = enabledTypes(setting);
   const alerts: Alert[] = [];
   const add = (a: Alert) => {
+    // 改装中 (休業) の店は売れず決算もしないので、店の様子の知らせは出さない (1.1.0)。郵便・更新は別に出る
+    if (dt.rest) return;
     if (a.type !== 'admin' && on.has(a.type)) alerts.push(a);
   };
 
@@ -326,6 +329,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     // 次の週はクーポンが満タンから始まる
     if (g.config.couponTime >= WATCH_RULES.couponLeft) timed.push(couponReset + 7 * 86400 - WATCH_RULES.couponSoon);
   }
+  // 改装中は、自動で再開する時刻まで鳴らない
+  if (dt.rest) timed.splice(0, timed.length, dt.rest.until);
   const nextTimed = timed.filter((t) => t > now).sort((a, b) => a - b)[0] ?? null;
 
   return {
@@ -346,6 +351,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
       coupon,
       coupon_reset: couponReset,
       closing_at: closeAt,
+      /** 改装中 (休業) なら {since, reopen_from, until}。営業中は null (1.1.0) */
+      rest: dt.rest ? { since: dt.rest.since, reopen_from: dt.rest.min, until: dt.rest.until } : null,
       /** pending: 決算の時刻を過ぎたが、まだ計算していない (この見込みは過ぎたほうの決算のもの) */
       period: { ...est, pending: periodPending },
       shelves,

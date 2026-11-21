@@ -110,18 +110,27 @@ export class Game {
     return this.rng.next() * n;
   }
 
-  /** 営業中の店 (@DT) */
+  /**
+   * 営業中の店 (@DT)。改装中 (休業) の店は入らない (1.1.0)。
+   * 売上・人口・市場・決算・ランキング・賞はすべてこの一覧で回るので、改装中の店はそこから自然に外れる
+   */
   get shops(): Shop[] {
+    return this.world.shops.filter((s) => !s.rest);
+  }
+
+  /** 改装中も含めた全部の店 (名前の重複確認・配布など) */
+  get allShops(): Shop[] {
     return this.world.shops;
   }
 
+  /** 店を id で探す。改装中の店も返す (店主の認証・郵便などは休業中も使えるように) */
   shopById(id: number): Shop | undefined {
     return this.world.shops.find((s) => s.id === id && s.status);
   }
 
-  /** 店の順位 (0 始まり)。原作の $id2idx{$id} */
+  /** 店の順位 (0 始まり)。原作の $id2idx{$id}。改装中の店は -1 (順位なし) */
   shopIndex(id: number): number {
-    return this.world.shops.findIndex((s) => s.id === id);
+    return this.shops.findIndex((s) => s.id === id);
   }
 
   /** 原作 WriteLog($mode,$from,$to,$msg) (最近の出来事) */
@@ -141,7 +150,11 @@ export class Game {
 
   /** 原作 SortDT: 閉店した店を除き、前期順位のある店を先に、点数の高い順に並べる */
   sortShops(): void {
-    const shops = this.world.shops.filter((s) => s.status);
+    const all = this.world.shops.filter((s) => s.status);
+    const shops = all.filter((s) => !s.rest);
+    // 改装中の店は 0点で、営業中の店のうしろに休み始めた順で並べる (1.1.0)
+    const resting = all.filter((s) => s.rest).sort((a, b) => (a.rest?.since ?? 0) - (b.rest?.since ?? 0));
+    for (const s of resting) s.point = 0;
     for (const s of shops) s.point = this.getPoint(s);
     // Perl の sort は安定ソート (5.8 以降は mergesort)
     shops.sort((a, b) => {
@@ -150,7 +163,7 @@ export class Game {
       if (na !== nb) return na - nb;
       return b.point - a.point;
     });
-    this.world.shops = shops;
+    this.world.shops = [...shops, ...resting];
   }
 
   /** 原作 CloseShop。郵便の処理はこの移植では未実装 */
@@ -317,15 +330,18 @@ export class Game {
     return Math.trunc(this.timeSendItem * mul);
   }
 
-  /** 原作 GetExpireTimeExtend */
-  /** 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50, 100, 150… と、店数が収まる50の倍数 */
+  /**
+   * 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50店までは50、それを超えたら店数そのもの。
+   * 1.0.4: 50の倍数への切り上げをやめた (150→151店で湧く量が約17%、値段の倍率が3→4に跳ねていたため)
+   */
   marketUsers(): number {
-    const step = this.config.marketUserBase;
-    return Math.max(1, Math.ceil(this.shops.length / step)) * step;
+    return Math.max(this.config.marketUserBase, this.shops.length);
   }
 
+  /** 原作 GetExpireTimeExtend */
   expireTimeExtend(dt: Shop): number {
-    let ex = Math.trunc((dt.lastlogin - dt.foundation) / 86400) * this.config.expireExTime;
+    // 改装中 (休業) だった日数は営業日数に数えない (1.1.0)
+    let ex = Math.trunc((dt.lastlogin - dt.foundation - (dt.resttotal ?? 0)) / 86400) * this.config.expireExTime;
     if (ex > this.config.expireMaxTime) ex = this.config.expireMaxTime;
     return ex;
   }

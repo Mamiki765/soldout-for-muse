@@ -11,10 +11,12 @@ import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
+import { bookDurability } from '../engine/scripts.js';
 import { sha256, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
+import { closingAt } from '../engine/watch.js';
 import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 
@@ -31,6 +33,12 @@ const sessions = new Map<string, { shopId: number; expires: number }>();
 const SESSION_TTL = 12 * 3600;
 
 /** その店の見学中のセッションを全部切る (合鍵を無効にしたとき、開いている画面からも締め出す) */
+/** 倉庫の熟練度の欄に添える耐久 (本・地図・牛・桶で、使ったことのあるものだけ。1.1.0) */
+function durabilityCell(dt: Shop, no: number): string {
+  const d = bookDurability(dt, no);
+  return d === undefined ? '' : `<br>耐久${d}%${d === 0 ? '(いつ壊れてもおかしくない)' : ''}`;
+}
+
 export function dropViewSessions(shopId: number): void {
   for (const [sid, s] of sessions) if (s.shopId === shopId) sessions.delete(sid);
 }
@@ -323,6 +331,9 @@ function topPage(app: App, g: Game): string {
     main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
+  // 改装中 (休業) の店は順位の外。名前だけ並べる (1.1.0)
+  const resting = g.allShops.filter((x) => x.status && x.rest);
+  if (resting.length) main += `<small>改装中のお店 (${resting.length}店): ${resting.map((x) => raw(x.shopname)).join(' / ')}</small>`;
   const side = '●最近の出来事 <a href="/view/log">[すべて]</a><br>' + logTable(app.store.readLogs(0, { limit: 15, scope: 'town' }));
   return s + `<div class="top"><div class="main">${main}</div><div class="side">${side}</div></div>`;
 }
@@ -334,7 +345,7 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
   const d = app.owners.ownerDetail(g, ow);
   let s = `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${avatar(app, ow, som, 'l')}<div><b style="font-size:20px">${esc(d.owner_name)}</b> <small>${esc(d.som)}</small><br>`;
   s += d.shop
-    ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 RANK ${d.shop.rank} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
+    ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 ${d.shop.resting ? `改装中 (${jst(d.shop.resting.until)}まで)` : `RANK ${d.shop.rank}`} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
     : '閉店中<br>';
   s += `許可年月日 ${esc(d.licensed_on)}</div></div>`;
   if (d.card) {
@@ -422,7 +433,8 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   const job = jobName(dt) || '不定';
   const td = (a: string, b: string) => `<td>${a}</td><td>${b}</td>`;
   let s = '●店舗情報<hr>';
-  s += '未入店自動閉店期限:' + jst(dt.lastlogin + g.config.expireTime + g.expireTimeExtend(dt)) + '<br><table>';
+  if (dt.rest) s += `改装中 (休業): ${jst(dt.rest.until)}に自動で再開<br>`;
+  s += '未入店自動閉店期限:' + jst(closingAt(g, dt)) + '<br><table>';
   const ow = app.store.ownerByShop(dt.id);
   s += `<tr>${td('店主', ow ? `${esc(ow.display_name)} <small>${ow.som}</small>` : esc(dt.name))}${td('店名', raw(dt.shopname))}</tr>`;
   s += `<tr>${td('RANK', String(g.shopIndex(dt.id) + 1))}${td('TOP', dt.rankingcount + '回')}</tr>`;
@@ -449,7 +461,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   }
   s += '</table>';
 
-  s += '<hr>●倉庫<br><table><tr><td>名称</td><td>標準<br>価格</td><td>維持費<br>1個24時間分</td><td>在庫数<br>/最大</td><td>今期<br>前期<br>売上</td><td>熟練度</td><td>陳列</td><td>販売価格<br>相場</td><td>需要供給<br>バランス</td></tr>';
+  s += '<hr>●倉庫<br><table><tr><td>名称</td><td>標準<br>価格</td><td>維持費<br>1個24時間分</td><td>在庫数<br>/最大</td><td>今期<br>前期<br>売上</td><td>熟練度<br>耐久</td><td>陳列</td><td>販売価格<br>相場</td><td>需要供給<br>バランス</td></tr>';
   const list: number[] = [];
   for (let no = 1; no <= g.maxItem; no++) {
     if (dt.item[no - 1] || dt.itemtoday[no] || dt.itemyesterday[no] || dt.exp[no]) list.push(no);
@@ -460,7 +472,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
     const shelves = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(`棚${k + 1}￥${dt.price[k]}`);
     const sold = dt.itemtoday[no] || dt.itemyesterday[no] ? `${dt.itemtoday[no] ?? 0}/${dt.itemyesterday[no] ?? 0}` : '　';
-    s += `<tr><td>${itemIcon(g, no)}${esc(it.name)}</td><td>￥${it.price}</td><td>￥${it.cost}</td><td>${dt.item[no - 1]}/${it.limit}</td><td>${sold}</td><td>${dt.exp[no] ? Math.trunc(dt.exp[no] / 10) + '%' : '　'}</td><td>${shelves.join(' ') || '　'}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint || 10)}</td></tr>`;
+    s += `<tr><td>${itemIcon(g, no)}${esc(it.name)}</td><td>￥${it.price}</td><td>￥${it.cost}</td><td>${dt.item[no - 1]}/${it.limit}</td><td>${sold}</td><td>${dt.exp[no] ? Math.trunc(dt.exp[no] / 10) + '%' : '　'}${durabilityCell(dt, no)}</td><td>${shelves.join(' ') || '　'}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint || 10)}</td></tr>`;
   }
   s += '</table>';
 

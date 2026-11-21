@@ -30,80 +30,98 @@ export function turnPeriod(g: Game, at: number = g.now): void {
 
   updateResetBefore(g);
 
-  const cfg = g.config;
   let dtcount = 0;
   for (const dt of g.shops) {
     dtcount++;
-    dt.rankingyesterday = dtcount;
-    dt.pointyesterday = dt.point;
-
-    const [taxtoday] = g.taxToday(dt);
-    dt.profitstock = Math.trunc(
-      (dt.profitstock * cfg.profitDayCount + dt.saletoday - dt.paytoday) / (cfg.profitDayCount + 1),
-    );
-    // 手引き5「決算をまたいでみよう」: 売上のある状態で決算を越えたら、その場で記録する (前期の売上は次の決算で上書きされるため)
-    onTutorialPeriod(dt);
-    dt.saleyesterday = dt.saletoday;
-    dt.saletoday = 0;
-    dt.payyesterday = dt.paytoday;
-    dt.paytoday = 0;
-    dt.itemyesterday = dt.itemtoday;
-    dt.itemtoday = {};
-    dt.taxyesterday = taxtoday + dt.taxtoday;
-    dt.taxtoday = 0;
-
-    for (let cnt = 1; cnt <= g.maxItem; cnt++) {
-      if (dt.item[cnt - 1] > g.items[cnt].limit) dt.item[cnt - 1] = g.items[cnt].limit;
-      dt.item[cnt - 1] = Math.trunc(dt.item[cnt - 1]);
-    }
-
-    // 維持費
-    let cost = Math.trunc(dt.costtoday);
-    const showcaseCost = CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
-    cost += showcaseCost;
-    // 引く額の明細を残す (原作にない追加。合計は cost と同じ)
-    recordCostReport(dt, at, showcaseCost, taxtoday);
-    dt.money -= cost;
-    dt.paytoday += cost;
-    // 入金庫の残高にかかる税
-    dt.money -= taxtoday;
-
-    // ギルドはこの移植では未実装。無所属ペナルティだけ設定があれば適用する
-    if (dt.guild === '' && cfg.guildUnattachPenalty) {
-      const money = Math.trunc((dt.saleyesterday * cfg.guildUnattachPenalty) / 1000);
-      dt.money -= money;
-      g.writeLog(2, 0, 0, dt.shopname + 'がギルド無所属ペナルティを受けました。-\\' + money);
-    }
-
-    if (dt.money < 0) {
-      dt.moneystock += dt.money;
-      dt.money = 0;
-    }
-    if (dt.moneystock < 0) {
-      dt.money += dt.moneystock;
-      dt.moneystock = 0;
-    }
-    if (dt.money < 0) {
-      g.closeShop(dt.id, '資金不足倒産');
-      g.writeLog(1, 0, 0, dt.shopname + 'が資金不足により倒産しました');
-    }
-
-    dt.costyesterday = cost;
-    dt.costtoday = 0;
-    resetTracking(dt);
-
-    // 熟練度の自然減少
-    for (const key of Object.keys(dt.exp)) {
-      const k = Number(key);
-      if (cfg.expDownRate) dt.exp[k] -= Math.trunc((dt.exp[k] * cfg.expDownRate) / 1000);
-      dt.exp[k] -= cfg.expDownPoint;
-      if (dt.exp[k] <= 0) delete dt.exp[k];
-    }
+    settleShop(g, dt, at, dtcount);
   }
 
   g.sortShops();
   updateResetAfter(g);
   g.periodMode = false;
+}
+
+
+/**
+ * 1店ぶんの決算 (原作 TurnPeriod のループの中身)。改装中 (休業) に入るときも、この店だけこれを行う (engine/rest.ts)。
+ * rankNo: 前期の順位として残す番号 (1 始まり)
+ */
+export function settleShop(g: Game, dt: Shop, at: number, rankNo: number): void {
+  const cfg = g.config;
+  dt.rankingyesterday = rankNo;
+  dt.pointyesterday = dt.point;
+
+  const [taxtoday] = g.taxToday(dt);
+  dt.profitstock = Math.trunc(
+    (dt.profitstock * cfg.profitDayCount + dt.saletoday - dt.paytoday) / (cfg.profitDayCount + 1),
+  );
+  // 手引き5「決算をまたいでみよう」: 売上のある状態で決算を越えたら、その場で記録する (前期の売上は次の決算で上書きされるため)
+  onTutorialPeriod(dt);
+  dt.saleyesterday = dt.saletoday;
+  dt.saletoday = 0;
+  dt.payyesterday = dt.paytoday;
+  dt.paytoday = 0;
+  dt.itemyesterday = dt.itemtoday;
+  dt.itemtoday = {};
+  dt.taxyesterday = taxtoday + dt.taxtoday;
+  dt.taxtoday = 0;
+
+  for (let cnt = 1; cnt <= g.maxItem; cnt++) {
+    if (dt.item[cnt - 1] > g.items[cnt].limit) dt.item[cnt - 1] = g.items[cnt].limit;
+    dt.item[cnt - 1] = Math.trunc(dt.item[cnt - 1]);
+  }
+
+  // 維持費
+  let cost = Math.trunc(dt.costtoday);
+  const showcaseCost = CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0;
+  cost += showcaseCost;
+  // 引く額の明細を残す (原作にない追加。合計は cost と同じ)
+  recordCostReport(dt, at, showcaseCost, taxtoday);
+  dt.money -= cost;
+  dt.paytoday += cost;
+  // 入金庫の残高にかかる税
+  dt.money -= taxtoday;
+
+  // ギルドはこの移植では未実装。無所属ペナルティだけ設定があれば適用する
+  if (dt.guild === '' && cfg.guildUnattachPenalty) {
+    const money = Math.trunc((dt.saleyesterday * cfg.guildUnattachPenalty) / 1000);
+    dt.money -= money;
+    g.writeLog(2, 0, 0, dt.shopname + 'がギルド無所属ペナルティを受けました。-\\' + money);
+  }
+
+  if (dt.money < 0) {
+    dt.moneystock += dt.money;
+    dt.money = 0;
+  }
+  if (dt.moneystock < 0) {
+    dt.money += dt.moneystock;
+    dt.moneystock = 0;
+  }
+  if (dt.money < 0) {
+    g.closeShop(dt.id, '資金不足倒産');
+    g.writeLog(1, 0, 0, dt.shopname + 'が資金不足により倒産しました');
+  }
+
+  dt.costyesterday = cost;
+  dt.costtoday = 0;
+  resetTracking(dt);
+
+  // 熟練度の自然減少
+  for (const key of Object.keys(dt.exp)) {
+    const k = Number(key);
+    if (cfg.expDownRate) dt.exp[k] -= Math.trunc((dt.exp[k] * cfg.expDownRate) / 1000);
+    dt.exp[k] -= cfg.expDownPoint;
+    if (dt.exp[k] <= 0) delete dt.exp[k];
+  }
+}
+
+/** 決算で引かれる額 (維持費・棚・入金庫の税)。倒産しないかの確認用 */
+export function periodCharge(g: Game, dt: Shop): number {
+  const [taxtoday] = g.taxToday(dt);
+  const cfg = g.config;
+  // ギルド無所属ペナルティ (設定があるときだけ。settleShop と同じく今期の売上から)
+  const guild = dt.guild === '' && cfg.guildUnattachPenalty ? Math.trunc((dt.saletoday * cfg.guildUnattachPenalty) / 1000) : 0;
+  return Math.trunc(dt.costtoday) + (CATALOG.showcaseCost[dt.showcasecount - 1] ?? 0) + taxtoday + guild;
 }
 
 type Prize = [string, [number, number][]];

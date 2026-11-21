@@ -238,7 +238,7 @@ const views = {
     $('#me-av').innerHTML = avatar(me.icon, me.som, me.owner_name, 's');
     $('#title').innerHTML = `${esc(me.shop)} <small>${esc(me.owner_name)} · ${esc(me.som ?? '')}</small>`;
     const shelves = me.shelves.map((s) => `<tr><td>${s.slot}</td><td>${s.item ? esc(s.name) : '<span class="muted">空き</span>'}</td><td class="n">${s.item ? yen(s.price) : ''}</td><td class="n">${s.item ? s.stock : ''}</td></tr>`).join('');
-    const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp) : ''}</td></tr>`).join('');
+    const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp) : ''}</td><td class="n">${x.durability === undefined ? '' : x.durability === 0 ? '<span class="warn" title="いつ壊れてもおかしくない">0%</span>' : pct(x.durability)}</td></tr>`).join('');
     return `
       ${dg.warnings.length ? `<div class="panel warn">${dg.warnings.map(esc).join('<br>')}</div>` : ''}
       <div class="panel"><h2>お店</h2><div class="stats">
@@ -252,7 +252,7 @@ const views = {
         <div class="stat"><span>決算の勝ち</span><b>${me.wins}回</b></div>
       </div>${dg.tutorial?.step ? `<p class="muted">手引き ${dg.tutorial.step.no}/${dg.tutorial.step.total}: ${esc(dg.tutorial.step.title)}</p>` : ''}</div>
       <div class="two"><div class="panel scroll"><h2>陳列棚</h2><table><tr><th>#</th><th>品</th><th class="n">値段</th><th class="n">在庫</th></tr>${shelves}</table></div>
-      <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th></tr>${stock || '<tr><td colspan="5" class="muted">空</td></tr>'}</table></div></div>`;
+      <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th><th class="n">耐久</th></tr>${stock || '<tr><td colspan="6" class="muted">空</td></tr>'}</table></div></div>`;
   },
   async town() {
     // 街で見たいのは「どの店が何を売っているか」。棚の品・値段・在庫をカードの主役にし、アイコンと店主は見出しに

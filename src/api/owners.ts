@@ -430,7 +430,9 @@ export class OwnerHub {
             id: dt.id,
             shopname: dt.shopname,
             job: jobName(dt) || '不定',
+            // 改装中 (休業) は 0 (順位なし)。resting に再開の時刻 (1.1.0)
             rank: g.shopIndex(dt.id) + 1,
+            resting: dt.rest ? { until: dt.rest.until } : null,
             point: dt.point,
             popularity: pct(dt.rank),
             comment: dt.comment,
@@ -507,7 +509,7 @@ export class OwnerHub {
 }
 
 /** キットの zip の名前 (版を入れて不変にする) */
-export const KIT_ZIP = 'soldout-kit-1.0.0.zip';
+export const KIT_ZIP = 'soldout-kit-1.1.0.zip';
 
 /** 名前の決まり (Party と同じ: 1〜20字、空白と @ # / \ < > は不可) */
 export function checkOwnerName(name: unknown): string {
