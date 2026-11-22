@@ -107,10 +107,12 @@ ${body}
 </body></html>`;
 }
 
-function menuBar(g: Game, inShop: boolean, partyUrl: string): string {
+function menuBar(app: App, g: Game, inShop: boolean): string {
   const next = g.nextPeriodTime();
-  const party = partyUrl ? ` <a href="${esc(partyUrl)}">[Muse Party]</a>` : '';
-  return `${GAME_TITLE}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  const period = app.store.townPeriod(g.now);
+  const title = period ? 'SOLD OUT ' + period.label : GAME_TITLE;
+  const party = app.partyPublicUrl ? ` <a href="${esc(app.partyPublicUrl)}">[Muse Party]</a>` : '';
+  return `${esc(title)}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -190,7 +192,7 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
   const g = app.viewerGame();
   const inShop = shopId !== undefined && !!g.shopById(shopId);
   if (inShop) app.notifyUpdate(shopId!);
-  const menu = menuBar(g, inShop, app.partyPublicUrl);
+  const menu = menuBar(app, g, inShop);
   const path = url.pathname.replace(/\/+$/, '') || '/';
   let title = '';
   let body = '';
@@ -276,7 +278,7 @@ function updateNotice(basePath: string): string {
 function updatesPage(): string {
   return '<h2>更新履歴</h2>' + UPDATES.map((u) => isPatch(u) ? `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
-<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>${u.new_items?.length ? `<h4>新規アイテム${u.new_items.length}種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>` : ''}</article>` : `<article>
+${u.notes.length ? `<ul>${u.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}${u.new_items?.length ? `<h4>新規アイテム${u.new_items.length}種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>` : ''}</article>` : `<article>
 <h3>v${esc(u.version)} — ${esc(u.title)} (${esc(u.date)})</h3><p>${esc(u.summary)}</p>
 <h4>新規アイテム23種</h4><table><tr><th>品番</th><th>名前</th><th>標準価格</th></tr>
 ${u.new_items.map((it) => `<tr><td>${it.item}</td><td>${esc(it.name)}</td><td>${it.price.toLocaleString('ja-JP')}円</td></tr>`).join('')}</table>

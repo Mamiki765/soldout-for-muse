@@ -417,7 +417,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     dt.itemtoday[o.item] = (dt.itemtoday[o.item] ?? 0) + num;
     dt.moneystock += amount - tax;
     dt.saletoday += amount;
-    dt.taxtoday += tax;
+    g.recordSaleTax(dt, tax);
     // 棚の「売り切れで人気が下がる」は掛けない (意図的)。納品は棚を使わないので売り切れ放置が起きない。
     // 人気・点数への効き過ぎは、1期に応じられる件数 (fillsPerDay) で抑える (リカさん判断 2026-11-14)
     // 買い手: 預り金から払う (時間は募集のときに払い済み)。品は締めるまで募集の中で預かる

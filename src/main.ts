@@ -4,12 +4,15 @@
 //   node dist/src/main.js set-party-invite <mip_…>  導入ページに載せる Party の招待コードを設定する
 //   node dist/src/main.js set-viewer-key <key>   観戦用の合言葉を設定する (空なら合言葉なし)
 //   node dist/src/main.js new-admin-token        管理用トークン (sa_...) を作り直す
+//   node dist/src/main.js tax-totals [som]       累計納税の記録開始時刻と店主別の累計を確認する
+//   node dist/src/main.js town-calendar [Unix秒] 街暦を確認する。引数ありで第1期の開始を設定する
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
 //   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
 //   node dist/src/main.js give-hay                 0.6.0 の詫び草: ミノタウロス♀を持つ店に干し草を頭数×10束、一度だけ配る。サーバーを止めて実行
 //   node dist/src/main.js give-time [本数] [名前]  1.0.0: タイムシガレット (1本30分) を全店に配る。既定は既存店への8本 (existing)。名前ごとに一度だけ。サーバーを止めて実行
-// 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
+// 環境変数: DB_PATH (data/soldout.sqlite), TOWN_EPOCH (未設定時に保存する第1期の開始Unix秒),
+//           TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
 //           BASE_PATH (別サイトの下に置くときの頭。例 /soldout),
@@ -57,6 +60,30 @@ if (cmd === 'set-invite') {
   setViewerKey({ store }, arg);
   store.close();
   console.log(arg ? '観戦用の合言葉を設定しました' : '観戦用の合言葉を消しました (誰でも観戦できます)');
+} else if (cmd === 'tax-totals') {
+  const store = new Store(dbPath);
+  try {
+    const started_at = store.taxTrackingStartedAt();
+    const totals = arg ? store.ownerTaxTotals(arg) : undefined;
+    if (arg && !totals) throw new Error(`店主 ${arg} が見つかりません`);
+    console.log(JSON.stringify(totals
+      ? { started_at, som: arg, sales: String(totals.sales), deposit: String(totals.deposit), total: String(totals.total) }
+      : { started_at }));
+  } finally {
+    store.close();
+  }
+} else if (cmd === 'town-calendar') {
+  const store = new Store(dbPath);
+  try {
+    if (arg !== undefined) {
+      if (!/^\d+$/.test(arg)) throw new Error('第1期の開始には決算境界のUnix秒を指定してください');
+      store.setTownEpoch(Number(arg));
+    }
+    const period = store.townPeriod(Math.floor(Date.now() / 1000));
+    console.log(JSON.stringify({ epoch: store.townEpoch(), period }));
+  } finally {
+    store.close();
+  }
 } else if (cmd === 'new-admin-token') {
   const store = new Store(dbPath);
   const token = newToken('sa_');
@@ -162,6 +189,13 @@ if (cmd === 'set-invite') {
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
+  if (env.TOWN_EPOCH) {
+    const configured = Number(env.TOWN_EPOCH);
+    store.setTownEpoch(configured, true);
+    const saved = store.townEpoch();
+    if (saved === null) throw new Error('保存済みの街暦の起点が無効です。town-calendar で確認・設定してください');
+    if (saved !== configured) console.warn(`街暦は保存済みの起点 ${saved} を使います (TOWN_EPOCH=${configured})`);
+  }
   const app = new App({
     store,
     publicUrl: env.PUBLIC_URL ?? '',
@@ -198,6 +232,6 @@ if (cmd === 'set-invite') {
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 } else {
-  console.error('使い方: main.js [serve | set-invite <code> | set-party-invite <mip_…> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay | give-time [本数] [名前]]');
+  console.error('使い方: main.js [serve | set-invite <code> | set-party-invite <mip_…> | set-viewer-key <key> | new-admin-token | admin-grant <店> | admin-revoke <店> | seed-market [時間] | give-hay | give-time [本数] [名前] | tax-totals [som] | town-calendar [Unix秒]]');
   process.exit(2);
 }

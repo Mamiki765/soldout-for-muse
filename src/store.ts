@@ -5,8 +5,12 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes } from 'node:crypto';
 import { MAX_ITEM } from './data/catalog.js';
+import { DEFAULT_CONFIG } from './config.js';
 import { newWorld, type LogEntry, type World } from './engine/types.js';
 import type { PeriodPriceRow } from './engine/prices.js';
+import { isTownEpoch, townPeriodAt } from './town-calendar.js';
+
+const TOWN_EPOCH_SETTING = 'town_epoch';
 
 export interface StoredLog extends LogEntry {
   id: number;
@@ -130,6 +134,11 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS owners_shop ON owners(shop_id);
       CREATE INDEX IF NOT EXISTS owners_rev ON owners(rev);
+      CREATE TABLE IF NOT EXISTS owner_tax_totals (
+        som TEXT PRIMARY KEY REFERENCES owners(som),
+        sales INTEGER NOT NULL CHECK (typeof(sales) = 'integer'),
+        deposit INTEGER NOT NULL CHECK (typeof(deposit) = 'integer')
+      );
       CREATE TABLE IF NOT EXISTS assets (
         seq INTEGER PRIMARY KEY, file TEXT NOT NULL UNIQUE, som TEXT NOT NULL, kind TEXT NOT NULL,
         w INTEGER NOT NULL, h INTEGER NOT NULL, bytes INTEGER NOT NULL, created_at INTEGER NOT NULL,
@@ -157,6 +166,56 @@ export class Store {
   setSetting(key: string, value: string | undefined): void {
     if (value === undefined) this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
     else this.db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, value);
+  }
+
+  townEpoch(): number | null {
+    const start = Number(this.getSetting(TOWN_EPOCH_SETTING));
+    return isTownEpoch(start, DEFAULT_CONFIG) ? start : null;
+  }
+
+  setTownEpoch(start: number, onlyIfUnset = false): void {
+    if (!isTownEpoch(start, DEFAULT_CONFIG)) throw new Error('第1期の開始には決算境界のUnix秒を指定してください');
+    if (onlyIfUnset) {
+      this.db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING')
+        .run(TOWN_EPOCH_SETTING, String(start));
+    } else {
+      this.setSetting(TOWN_EPOCH_SETTING, String(start));
+    }
+  }
+
+  townPeriod(now: number): ReturnType<typeof townPeriodAt> {
+    return townPeriodAt(this.townEpoch(), now, DEFAULT_CONFIG);
+  }
+
+  taxTrackingStartedAt(): number | null {
+    const row = this.db.prepare("SELECT json_extract(json, '$.taxTrackingStartedAt') AS started FROM world WHERE id = 1")
+      .get() as { started: number | null } | undefined;
+    return row?.started ?? null;
+  }
+
+  /** 街の保存と同じトランザクション (saveWorld の extra) で、閉店の後処理より前に呼ぶ */
+  addTaxTotals(deltas: ReadonlyMap<number, { sales: bigint; deposit: bigint }>): void {
+    const add = this.db.prepare(`
+      INSERT INTO owner_tax_totals (som, sales, deposit)
+      SELECT som, ?, ? FROM owners WHERE shop_id = ?
+      ON CONFLICT(som) DO UPDATE SET sales = sales + excluded.sales, deposit = deposit + excluded.deposit
+    `);
+    for (const [shopId, { sales, deposit }] of deltas) {
+      if (add.run(sales, deposit, shopId).changes !== 1) {
+        throw new Error(`納税を記録する店主を特定できません (店id: ${shopId})`);
+      }
+    }
+  }
+
+  /** 既知のsomなら、納税履歴のない店主や閉店済みの店主も取得できる */
+  ownerTaxTotals(som: string): { sales: bigint; deposit: bigint; total: bigint } | undefined {
+    const get = this.db.prepare(`
+      SELECT COALESCE(t.sales, 0) AS sales, COALESCE(t.deposit, 0) AS deposit
+      FROM owners o LEFT JOIN owner_tax_totals t ON t.som = o.som WHERE o.som = ?
+    `);
+    get.setReadBigInts(true);
+    const row = get.get(som) as { sales: bigint; deposit: bigint } | undefined;
+    return row && { ...row, total: row.sales + row.deposit };
   }
 
   loadWorld(now: number): World {
