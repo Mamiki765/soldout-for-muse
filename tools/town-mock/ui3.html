@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI案3 一覧と地図</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  .layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); height: calc(100vh - var(--hdr, 53px)); }
+  .listp { border-right: 1px solid var(--line); overflow: auto; padding: 12px; background: var(--bg); }
+  .mapp { overflow: auto; background: #9bae80; position: relative; }
+  .mapp .top-map { margin: 16px; }
+  .tools { display: flex; gap: 6px; margin-bottom: 8px; }
+  .tools select, .tools input { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-width: 0; }
+  .tools input { flex: 1; }
+  .st h3 { font-size: 13px; margin: 12px 0 4px; color: var(--dim); }
+  .row { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 5px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; border: 1px solid transparent; }
+  .row:hover { background: var(--panel); border-color: var(--line); }
+  .row.sel { background: var(--panel); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .row .no { color: var(--dim); font-size: 11px; text-align: right; }
+  .row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .nm small { color: var(--dim); margin-left: 4px; }
+  .row.dim .nm { color: var(--dim); }
+  .row .tg { font-size: 10px; border-radius: 4px; padding: 0 5px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap; }
+  .side-label { font-size: 11px; color: var(--dim); margin: 6px 0 2px 8px; }
+  .picked { margin-bottom: 10px; }
+  .tabs { display: none; }
+  .lot.hover::after { content: ""; position: absolute; inset: 0; border: 3px dashed #fff; z-index: 4; }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+    .tabs { display: flex; position: sticky; top: var(--hdr, 92px); z-index: 15; background: var(--panel); border-bottom: 1px solid var(--line); }
+    .tabs button { flex: 1; border: 0; background: none; padding: 10px; font: inherit; color: var(--dim); border-bottom: 3px solid transparent; }
+    .tabs button.on { color: var(--ink); border-color: var(--accent); }
+    body.tab-map .listp, body.tab-list .mapp { display: none; }
+    .mapp { height: calc(100vh - 140px); }
+    .listp { border-right: 0; }
+  }
+</style>
+</head>
+<body class="tab-list">
+<header class="bar">
+  <h1><a href="index.html">P0</a> ／ UI案3 一覧と地図の二画面</h1>
+  <span id="ctl"></span>
+  <button class="btn primary" id="from-card">許可証の住所を押す</button>
+</header>
+<div class="tabs"><button data-t="list" class="on">一覧</button><button data-t="map">地図</button></div>
+<div class="layout">
+  <div class="listp" id="listp"></div>
+  <div class="mapp" id="mapp"></div>
+</div>
+<script src="../../public/town/town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
+<script src="../../public/town/tiles.js"></script>
+<script src="common.js"></script>
+<script>
+Tiles.withAssets(() => {
+  const { T, params, getTown, setParam, shopCard, renderTop, lotInfo, esc } = Mock;
+  const p = params();
+  const town = getTown(p);
+  Mock.controls(p);
+  const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
+  const listp = document.getElementById('listp'), mapp = document.getElementById('mapp');
+  let cur = town.districts[0].id, sel = null, q = '';
+  document.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => tab(b.dataset.t)));
+  function tab(t) {
+    document.body.className = 'tab-' + t;
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+    if (t === 'map') scrollToLot(sel);
+  }
+  const d = () => town.districts.find((x) => x.id === cur);
+
+  function row(l) {
+    const info = lotInfo(town, l);
+    const you = info.shop?.som === town.fixture.you;
+    const tg = you ? 'あなた' : info.type === 'resting' ? '休業' : info.type === 'held' ? '空き家' : info.shop?.isNew ? '新' : info.type === 'npc' ? 'NPC' : l.kind === 'public' ? '目印' : l.size;
+    const name = l.kind === 'public' ? '◆ ' + l.publicName : info.type === 'npc' ? 'NPCの家' : info.type === 'held' ? '（閉店した店）' : info.shop.shop;
+    const hit = q && !(name + ' ' + (info.shop?.som ?? '') + ' ' + l.number).includes(q);
+    if (hit) return '';
+    return `<div class="row ${l.id === sel ? 'sel' : ''} ${l.kind === 'public' || info.type === 'npc' ? 'dim' : ''}" data-lot="${l.id}"><span class="no">${l.kind === 'public' ? '' : l.number}</span><span class="nm">${esc(name)}<small>${esc(info.shop && info.type !== 'held' ? info.shop.job : '')}</small></span><span class="tg">${tg}</span></div>`;
+  }
+  function drawList() {
+    const dd = d();
+    let h = `<div class="picked" id="picked"></div>
+      <div class="tools"><select id="dsel">${town.districts.map((x) => `<option value="${x.id}" ${x.id === cur ? 'selected' : ''}>${esc(T.districtLabel(x))}</option>`).join('')}</select><input id="q" placeholder="店名・番地" value="${esc(q)}"></div>`;
+    for (const ai of [0, 1]) {
+      h += `<div class="st"><h3>${esc(dd.alleys[ai].name)}</h3>`;
+      for (const r of [ai * 2, ai * 2 + 1]) {
+        h += `<div class="side-label">${r % 2 === 0 ? '北側（奇数）' : '南側（偶数）'} 西→東</div>`;
+        h += dd.lots.filter((l) => l.row === r).filter((l, i, a) => !(l.kind === 'public' && i > 0 && a[i - 1].kind === 'public' && a[i - 1].publicKind === l.publicKind)).map(row).join('');
+      }
+      h += '</div>';
+    }
+    listp.innerHTML = h;
+    listp.querySelector('#dsel').onchange = (e) => { cur = e.target.value; sel = null; drawAll(); };
+    const qi = listp.querySelector('#q');
+    qi.oninput = (e) => { q = e.target.value.trim(); drawList(); const n = listp.querySelector('#q'); n.focus(); n.setSelectionRange(q.length, q.length); };
+    listp.querySelectorAll('.row').forEach((r) => {
+      r.onclick = () => select(Number(r.dataset.lot));
+      r.onmouseenter = () => mapp.querySelector(`.lot[data-lot="${r.dataset.lot}"]`)?.classList.add('hover');
+      r.onmouseleave = () => mapp.querySelector(`.lot[data-lot="${r.dataset.lot}"]`)?.classList.remove('hover');
+    });
+    drawPicked();
+  }
+  function drawPicked() {
+    const el = listp.querySelector('#picked');
+    if (!sel) { el.innerHTML = '<p class="note">一覧の行か、地図の区画を押すと、ここに札が出る。一覧に指を乗せると地図の区画が光る。</p>'; return; }
+    el.innerHTML = shopCard(town, town.lots.get(sel), { compact: true, neighbors: true });
+    Mock.wireCard(el, town, town.lots.get(sel), (id) => select(id));
+  }
+  function drawMap() {
+    mapp.innerHTML = '';
+    // 選んだ地区と、そのまわりの地区も地続きで描く (隣とつながっている感じ)
+    const dd = d();
+    const near = town.districts.filter((x) => Math.abs(x.gx - dd.gx) <= 1 && Math.abs(x.gy - dd.gy) <= 1);
+    const map = renderTop(town, { districts: near, scale: 14, highlight: sel, labels: true });
+    map.querySelectorAll('.lot').forEach((el) => { if (town.lots.get(Number(el.dataset.lot)).district !== cur) el.style.background = 'rgba(40,50,40,.32)'; });
+    mapp.appendChild(map);
+    map.onclick = (e) => {
+      const l = e.target.closest('.lot');
+      if (!l) return;
+      const lot = town.lots.get(Number(l.dataset.lot));
+      if (lot.district !== cur) { cur = lot.district; }
+      select(lot.id, false);
+    };
+  }
+  function scrollToLot(id) {
+    const el = id && mapp.querySelector(`.lot[data-lot="${id}"]`);
+    if (el) el.scrollIntoView({ block: 'center', inline: 'center' });
+    else { const c = mapp.querySelector('.top-map'); if (c) { mapp.scrollLeft = (c.scrollWidth - mapp.clientWidth) / 2; mapp.scrollTop = (c.scrollHeight - mapp.clientHeight) / 2; } }
+  }
+  function drawAll() { drawList(); drawMap(); scrollToLot(sel); }
+  function select(id, scroll = true) {
+    sel = id;
+    cur = town.lots.get(id).district;
+    drawAll();
+    if (scroll) listp.querySelector('.row.sel')?.scrollIntoView({ block: 'nearest' });
+    listp.scrollTop = 0;
+  }
+  document.getElementById('from-card').onclick = () => select(youLot().id);
+  drawAll();
+  select(youLot().id);
+});
+</script>
+</body>
+</html>

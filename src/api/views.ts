@@ -206,6 +206,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     price_moves: priceMoves(g, dt, prev),
     version: APP_VERSION,
     update,
+    /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
+    town: [] as string[],
   };
 }
 
@@ -243,6 +245,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
   if (shelfLine) lines.push(shelfLine);
+  lines.push(...d.town);
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
 }

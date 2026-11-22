@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>許可証の見本</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  main { padding: 12px 16px 32px; max-width: 1280px; margin: 0 auto; }
+  section.mock { margin: 22px 0 30px; }
+  section.mock h2 { font-size: 16px; margin: 0 0 2px; }
+  section.mock .why { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
+  .pair { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+  .pair figure { margin: 0; }
+  .pair figcaption { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  /* 証書の共通 */
+  .lic { --w: 640px; width: var(--w); max-width: calc(100vw - 32px); position: relative; background: #fbf5e6; color: #2b2112; border-radius: calc(var(--w) * .018);
+    box-shadow: 0 0 0 calc(var(--w) * .006) #b0894a inset, 0 0 0 calc(var(--w) * .014) #fbf5e6 inset, 0 0 0 calc(var(--w) * .017) #b0894a inset, 0 6px 18px rgba(0,0,0,.15);
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; overflow: hidden; }
+  .lic.phone { --w: 340px; }
+  .win { position: absolute; border-radius: calc(var(--w) * .02); background: #e9dfc9; overflow: hidden; display: grid; place-items: center; }
+  .win .img { display: grid; place-items: center; color: #fff; font-family: sans-serif; font-size: calc(var(--w) * .024); text-align: center; background: repeating-linear-gradient(45deg, #7a8fb0 0 10px, #6d82a4 10px 20px); }
+  .win.r34 .img { height: 100%; aspect-ratio: 3 / 4; max-width: 100%; }
+  .win.r11 .img { width: 100%; aspect-ratio: 1 / 1; max-height: 100%; }
+  .win.r11.tall .img { width: 100%; }
+  .win.none .img { width: 100%; height: 100%; background: none; color: #8b7a5a; border: 2px dashed #c9b48a; border-radius: inherit; }
+  .t-title { letter-spacing: .3em; font-weight: 700; }
+  .t-shop { font-weight: 800; line-height: 1.15; }
+  .t-owner { line-height: 1.2; }
+  .t-addr { font-family: sans-serif; font-weight: 700; color: #3f6fa0; line-height: 1.25; }
+  .t-addr::before { content: "⌖ "; }
+  .t-small { font-family: sans-serif; color: #5a4a2e; line-height: 1.4; }
+  .t-small b { font-weight: 600; color: #2b2112; }
+  .crest { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; background: #3f6fa0; color: #fff; font-size: .9em; margin-right: .3em; vertical-align: middle;
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.2) 0 3px, transparent 3px 7px); }
+  /* A 横長 */
+  .lic.A { aspect-ratio: 3 / 2; }
+  .lic.A .win { left: 4%; top: 6%; width: 38%; height: 88%; }
+  .lic.A .info { position: absolute; left: 46%; right: 5%; top: 8%; bottom: 6%; display: flex; flex-direction: column; gap: calc(var(--w) * .012); }
+  .lic.A .t-title { font-size: calc(var(--w) * .028); color: #8b6b3a; }
+  .lic.A .t-shop { font-size: calc(var(--w) * .062); }
+  .lic.A .t-owner { font-size: calc(var(--w) * .036); }
+  .lic.A .t-addr { font-size: calc(var(--w) * .034); padding: .3em .5em; background: rgba(63,111,160,.08); border-radius: .4em; }
+  .lic.A .t-small { font-size: calc(var(--w) * .022); margin-top: auto; display: grid; grid-template-columns: auto 1fr; gap: 0 1em; }
+  /* B 縦長 */
+  .lic.B { --w: 420px; aspect-ratio: 2 / 3; }
+  .lic.B.phone { --w: 300px; }
+  .lic.B .win { left: 7%; right: 7%; top: 5%; height: 58%; }
+  .lic.B .info { position: absolute; left: 7%; right: 7%; top: 66%; bottom: 4%; display: flex; flex-direction: column; gap: calc(var(--w) * .012); }
+  .lic.B .t-shop { font-size: calc(var(--w) * .075); }
+  .lic.B .t-owner { font-size: calc(var(--w) * .045); }
+  .lic.B .t-addr { font-size: calc(var(--w) * .045); }
+  .lic.B .t-small { font-size: calc(var(--w) * .03); margin-top: auto; }
+  .lic.B .t-title { position: absolute; top: 1.2%; left: 0; right: 0; text-align: center; font-size: calc(var(--w) * .03); color: #8b6b3a; }
+  /* C 正方形 */
+  .lic.C { --w: 460px; aspect-ratio: 1 / 1; }
+  .lic.C.phone { --w: 320px; }
+  .lic.C .win { inset: 4%; border-radius: calc(var(--w) * .03); }
+  .lic.C .band { position: absolute; left: 4%; right: 4%; bottom: 4%; padding: 3% 4%; background: linear-gradient(transparent, rgba(30,22,10,.82) 30%); color: #fff; border-radius: 0 0 calc(var(--w) * .03) calc(var(--w) * .03); }
+  .lic.C .t-shop { font-size: calc(var(--w) * .07); }
+  .lic.C .t-owner { font-size: calc(var(--w) * .04); }
+  .lic.C .t-addr { font-size: calc(var(--w) * .042); color: #bfe0ff; }
+  .lic.C .t-small { font-size: calc(var(--w) * .028); color: #e9dfc9; }
+  .lic.C .t-small b { color: #fff; }
+  .lic.C .seal { position: absolute; right: 7%; top: 7%; width: 18%; aspect-ratio: 1; border-radius: 50%; background: #b5523b; color: #fff; display: grid; place-items: center; font-size: calc(var(--w) * .03); font-family: sans-serif; transform: rotate(-12deg); }
+  /* D 旧許可証のまま */
+  .old { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .old img { width: min(560px, calc(100vw - 32px)); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+  .old .addr-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; max-width: 320px; }
+  .old .addr-card .t-addr { font-size: 16px; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1><a href="index.html">P0</a> ／ 許可証の見本</h1>
+  <span class="lbl">立ち絵</span><span class="seg" id="seg-r"><button data-v="r34">3:4</button><button data-v="r11">1:1</button><button data-v="none">未提出</button></span>
+</header>
+<main id="main"></main>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const r = q.get('r') || 'r34';
+  document.querySelectorAll('#seg-r button').forEach((b) => b.classList.toggle('on', b.dataset.v === r));
+  document.getElementById('seg-r').onclick = (e) => { if (e.target.dataset.v) { q.set('r', e.target.dataset.v); location.search = q.toString(); } };
+  const V = { shop: 'こもれび堂', owner: 'ダミー店主A', addr: '1区1丁目1番地', som: 'som9001', job: '本屋', on: '2026-11-07', free: 'Muse Party：ダミー' };
+  const img = r === 'none' ? '立ち絵の領域<br>（未提出でも許可証は作れる）' : `立ち絵の領域<br>${r === 'r34' ? '3:4' : '1:1'}<br><small>contain（全身が切れない）</small>`;
+  const win = (extra) => `<div class="win ${r} ${extra || ''}"><div class="img">${img}</div></div>`;
+  const small = (keys) => keys.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');
+  const A = (cls) => `<div class="lic A ${cls}">${win()}<div class="info"><div class="t-title">出店許可証</div><div class="t-shop">${V.shop}</div><div class="t-owner">店主 ${V.owner}</div><div class="t-addr">${V.addr}</div>
+      <div class="t-small">${small([['許可番号', V.som], ['職業', `<span class="crest">本</span>${V.job}`], ['許可年月日', V.on], ['自由欄', V.free]])}</div></div></div>`;
+  const B = (cls) => `<div class="lic B ${cls}"><div class="t-title">出店許可証</div>${win('tall')}<div class="info"><div class="t-shop">${V.shop}</div><div class="t-owner">店主 ${V.owner}</div><div class="t-addr">${V.addr}</div>
+      <div class="t-small"><span class="crest">本</span>${V.job} ・ ${V.som} ・ ${V.on}<br>${V.free}</div></div></div>`;
+  const C = (cls) => `<div class="lic C ${cls}">${win()}<div class="seal">許可</div><div class="band"><div class="t-shop">${V.shop}</div><div class="t-owner">店主 ${V.owner}</div><div class="t-addr">${V.addr}</div>
+      <div class="t-small"><span class="crest">本</span><b>${V.job}</b> ・ ${V.som} ・ ${V.on}</div></div></div>`;
+  const pair = (f) => `<div class="pair"><figure>${f('')}<figcaption>PC で見たとき（幅の目安）</figcaption></figure><figure>${f('phone')}<figcaption>スマホのふつうの表示</figcaption></figure></div>`;
+  document.getElementById('main').innerHTML = `
+    <p class="note">枠・飾りは仮。見るところは「スマホのふつうの表示で、誰の店か・どこにあるかが読めるか」と「3:4 と 1:1 の絵がどちらも切れずに入るか」。上の切り替えで立ち絵の比率を変えられる。通り名は「自由欄」1つにまとめた形（設計書 第2版 §8.2 の案）。</p>
+    <section class="mock"><h2>A 今の横長を生かす（第一候補）</h2><p class="why">今の license-03 と同じ 3:2。窓を広げて、店名・店主名・住所を大きく。許可番号・職業（紋章は仮の丸）・許可年月日・自由欄は下に小さく。</p>${pair(A)}</section>
+    <section class="mock"><h2>B 縦長</h2><p class="why">立ち絵が主役。スマホの縦画面で一番大きく見える。横長の画面（スペースの一覧など）では場所を取る。</p>${pair(B)}</section>
+    <section class="mock"><h2>C 正方形</h2><p class="why">絵の上に帯を重ねる。SNS やチェキに並べやすい。3:4 の全身絵だと左右に余白が出る。</p>${pair(C)}</section>
+    <section class="mock"><h2>D 描き直していない店（旧許可証のまま）</h2><p class="why">全員の描き直しを待たずに街を開くための形。スペース側で、今の許可証の横に住所と地図へのリンクを出す。</p>
+      <div class="old"><img src="../../kit/frames/frame-license-03.webp" alt="今の許可証の枠 license-03"><div class="addr-card"><div class="t-small" style="font-size:12px">今の住所</div><div class="t-addr">${V.addr}</div><p class="note">地図で見る → ／ 向かいは あかね商店</p></div></div></section>`;
+})();
+</script>
+</body>
+</html>

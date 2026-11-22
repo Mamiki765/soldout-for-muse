@@ -68,6 +68,8 @@ export class Game {
   readonly newPriceRows: PeriodPriceRow[] = [];
   /** 決算で数えた今期の売れ数。同じ区間の市場在庫の増減のあとで1行にする (engine/prices.ts) */
   pendingPrices: { at: number; sold: Map<number, number> } | undefined;
+  /** 街の保存と同じトランザクションで書くもの (街の地図の引っ越し・色など。1.2.0) */
+  readonly pendingWrites: (() => void)[] = [];
 
   constructor(world: World, config: GameConfig, rng: Rng, now: number) {
     this.world = world;

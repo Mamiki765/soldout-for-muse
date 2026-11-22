@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>マップチップとチャンク</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  main { padding: 16px; max-width: 1200px; margin: 0 auto; }
+  h2 { font-size: 17px; margin: 26px 0 8px; }
+  .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
+  .names { display: flex; gap: 8px; font-size: 10px; color: var(--dim); }
+  .names span { width: 40px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pals { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .pal { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 12px; text-align: center; }
+  .pal canvas { display: block; margin: 0 auto 4px; }
+  .chunk { overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; max-height: 70vh; }
+  .bridges { display: flex; flex-wrap: wrap; gap: 12px; }
+  .bridges figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .bridges figcaption { font-size: 12px; color: var(--dim); text-align: center; }
+  table.list td { text-align: left; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow: auto; font-size: 11px; max-height: 360px; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; background: var(--panel); font-size: 13px; min-width: 640px; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: right; }
+  th { background: var(--bg); }
+  td:first-child, th:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<header class="bar"><h1><a href="index.html">P0</a> ／ マップチップと Muse に渡すチャンク</h1><span id="ctl"></span></header>
+<main>
+  <p>人間向けの地図（UI案1〜3）も、ここにある<b>同じチャンク</b>から描いている。チャンクは配信の単位で、地形の境目ではない。どのチャンクも「自分の地区＋西と北の大通り」だけを持つので、隣と同じマスを2回描かない。川と並木は列ごとに決まり、地区をまたいで街の外まで続く。Muse には地区ごとのチャンク（地面と小物のマス目・建物・区画）と共通のマップチップ（tileset）を渡し、各自のスペースで同じ街を描ける。地図は <a href="../../kit/town/tileset-v1.json">共通マニフェスト</a> を使って PNG を描画します。</p>
+
+  <h2>地面と小物（番号つき）</h2>
+  <div class="sheet"><canvas id="sheet"></canvas><div class="names" id="gn"></div><div class="names" id="dn" style="margin-top:4px"></div></div>
+
+  <h2>外観のプリセット</h2>
+  <p class="note">プリセットは屋根・壁・ドア・縁の4色。店主はプリセットを選び、屋根と入口の色を上書きできる。北向きLでは入口の庇と裏口の扉が同じ色になる（UI案2の札で試せる）。家の大きさは棚の数で決まる：S 1〜4棚（64px）／M 5〜7棚（128px）／L 8棚（192px）。区画はどの店も 192px 四方。</p>
+  <div class="pals" id="pals"></div>
+
+  <h2>橋（32px のまま）</h2>
+  <p class="note">川は 64px（2マス）。橋は川幅ぴったりで終わらせず、両岸の陸へ1マス（32px）ずつ延ばすので長さ 128px。幅は道に合わせる：大通りの橋は 96px（3マス）、路地・中央通りの橋は 64px（2マス）。陸側の1マスは石の橋台、川の上は板張り、左右の端に欄干。</p>
+  <div class="bridges"><figure><canvas id="br1"></canvas><figcaption>大通りの橋</figcaption></figure><figure><canvas id="br2"></canvas><figcaption>中央通りの橋</figcaption></figure></div>
+
+  <h2>PNG 素材の構成</h2>
+  <div class="wrap"><table class="list">
+    <tr><th>まとまり</th><th>チップ</th><th>数</th><th>メモ</th></tr>
+    <tr><td>地面</td><td>草地・芝・大通り（石畳）・歩道・路地（土）・広場（石畳）・小道・花壇・畑・並木（生け垣）</td><td>10</td><td>草地と路地は2〜3種のゆらぎがあると単調にならない</td></tr>
+    <tr><td>川</td><td>水面と岸の接続</td><td>16組</td><td>北・南・西・東の接続に応じて岸を選ぶ</td></tr>
+    <tr><td>橋（大通り 3マス幅）</td><td>欄干左・床・欄干右 × 橋台（北）・川の上・橋台（南）</td><td>9</td><td>川の上は2マスとも同じ「川の上」チップをくり返す</td></tr>
+    <tr><td>橋（路地 2マス幅）</td><td>欄干左・欄干右 × 橋台（北）・川の上・橋台（南）</td><td>6</td><td>床だけの列が無い形</td></tr>
+    <tr><td>小物</td><td>木・植え込み・ガス灯・ベンチ・鉢・街路樹・郵便受け・木箱・かかし・葦・花</td><td>11</td><td>1マス。地面の上に重ねる（透過）</td></tr>
+    <tr><td>店兼家</td><td>S（2×2）・M（4×4）・L（6×6）× 戸口 上／下</td><td>6</td><td>屋根・入口・壁・縁の色は部位マスクで合成。改装中の足場は重ね絵</td></tr>
+    <tr><td>NPC の家</td><td>S・M × 戸口 上／下</td><td>4</td><td>住居用の配色で同じ原寸素材を使う</td></tr>
+    <tr><td>中央の公共施設</td><td>街役場（10×4）・ギルド会館（10×4）・市場の大屋根（10×4、地区8列の場合は16×4）・屋台（2×2）・掲示板（4×2）・大きな樹（6×5）・噴水（4×4）・船着き場（4×3）・東屋（3×3）</td><td>9</td><td>大きい1枚絵。チャンクの objects に位置と大きさが入る</td></tr>
+    <tr><td>地区の目印</td><td>ガス灯・水車・船着き場・橋のたもと・古井戸・花時計・柳・水門・銀杏・鐘楼・星見台・風見鶏・鍛冶場・苔むした石・りんごの木・風車</td><td>16</td><td>2×2。地区名と1対1</td></tr>
+  </table></div>
+
+  <h2>地区名の候補（地形と目印に結び付ける）</h2>
+  <p class="note">地区名は「街の中の位置」で決まる。川の列の地区は水辺の目印、並木の列の地区は丘や木の目印から順に使う。地区が増えても、前からある地区の名前・目印・住所は変わらない。一巡したら「〜二丁目」。</p>
+  <div class="wrap"><table class="list" id="names"></table></div>
+
+  <h2>中央地区の2案</h2>
+  <div class="wrap"><table class="list">
+    <tr><th></th><th>公共施設だけ（?center=public）</th><th>管理人の店を入れる（?center=admin）</th></tr>
+    <tr><td>東のチャンク</td><td colspan="2">どちらの案でも中央は横に2チャンク。東は大きな公園（池・東屋・小道）と将来の施設の予定地。予定地は空き地にせず、花壇・遊歩道・石畳の小広場・緑地の4つの見た目にする（チャンクの lots に <code>plan: "reserved_for_facility"</code>）。西と東のあいだの大通りは石畳の中央軸（両端に並木とガス灯、川の上は橋）</td></tr>
+    <tr><td>西の中身</td><td>街役場・ギルド会館・大きな樹・噴水広場・掲示板・中央市場（大屋根と屋台）・船着き場・公園・花壇</td><td>左と同じで、掲示板の1区画を管理人の店（som0002）に</td></tr>
+    <tr><td>よいところ</td><td>どの店も同じ扱い。「中心は街のもの」がはっきりする。中央に住所を持つ店が無いので、引っ越し・閉店・猶予の例外が要らない</td><td>街の顔に「中の人の店」があり、お知らせ・イベントの起点にしやすい。初めて来た Muse の目印になる</td></tr>
+    <tr><td>気になるところ</td><td>中央が少し静か（店先の看板が無い）</td><td>1店だけ特別な区画になる（ずっと予約、ほかの店は入れない、閉店しても空けない）。不公平に見えないか</td></tr>
+    <tr><td>実装の手間</td><td>少ない（中央は公共の区画だけ）</td><td>予約区画の扱い（配置・引っ越し・閉店の対象外）を足す</td></tr>
+  </table></div>
+
+  <h2>チャンク1つ（中央地区）を、そのまま 32px で</h2>
+  <div class="chunk"><canvas id="one"></canvas></div>
+
+  <h2>チャンクの大きさの比べ</h2>
+  <div class="wrap"><table id="cmp"></table></div>
+  <p class="note">地区（チャンク）は「路地2本×両側」。6×4区画なら1地区24区画、8×4区画なら32区画。新しい地区は、NPC の家が店の区画の15%を切りそうなときに開く（空きを残す）。</p>
+
+  <h2>JSON（API案 GET /town/chunks/{id}）</h2>
+  <p class="note" id="jsz"></p>
+  <pre id="json"></pre>
+</main>
+<script src="../../public/town/town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
+<script src="../../public/town/tiles.js"></script>
+<script src="common.js"></script>
+<script>
+Tiles.withAssets(() => {
+  const { T, params, getTown, esc } = Mock;
+  const p = params();
+  Mock.controls(p);
+  const town = getTown(p);
+  // 一覧表
+  const S = 40;
+  const cv = document.getElementById('sheet');
+  cv.width = Math.max(Object.keys(T.GROUND).length, Object.keys(T.DECO).length) * (S + 8);
+  cv.height = S * 2 + 24;
+  const names = Tiles.sheet(cv.getContext('2d'), S);
+  document.getElementById('gn').innerHTML = names.ground.map((n) => `<span title="${n}">${T.GROUND[n]} ${n}</span>`).join('');
+  document.getElementById('dn').innerHTML = names.deco.map((n) => `<span title="${n}">${T.DECO[n]} ${n}</span>`).join('');
+  // プリセット
+  document.getElementById('pals').innerHTML = T.PALETTES.map((pl, i) => `<div class="pal"><canvas data-i="${i}" width="230" height="114"></canvas>${esc(pl.name)}</div>`).join('');
+  document.querySelectorAll('.pals canvas').forEach((c) => {
+    const g = c.getContext('2d'), pl = T.PALETTES[Number(c.dataset.i)];
+    g.fillStyle = '#aab98d'; g.fillRect(0, 0, c.width, c.height);
+    Tiles.building(g, { kind: 'shop', x: 0.3, y: 0.5, w: 2, h: 2, palette: pl, door: 'down' }, 16, 0, 0);
+    Tiles.building(g, { kind: 'shop', x: 3, y: 0.5, w: 4, h: 4, palette: pl, door: 'down' }, 16, 0, 0);
+  });
+  // チャンク1つ
+  const ch = T.chunkData(town, town.districts[0]);
+  const one = document.getElementById('one');
+  one.width = ch.size[0] * 32; one.height = ch.size[1] * 32;
+  Tiles.paint(one.getContext('2d'), [ch], 32, ch.origin[0], ch.origin[1], ch.size[0], ch.size[1]);
+  // 橋の切り抜き (まわりのチャンクごと描いてから切る)
+  const all = T.chunksFor(town, [town.districts[0]]);
+  const bb = T.bounds(town, [town.districts[0]]);
+  const big = document.createElement('canvas');
+  big.width = bb.w * 32; big.height = bb.h * 32;
+  Tiles.paint(big.getContext('2d'), all, 32, bb.x, bb.y, bb.w, bb.h);
+  const crop = (id, b) => {
+    const cv = document.getElementById(id), m = 3;
+    cv.width = (b.w + 2 * m) * 32; cv.height = (b.h + 2 * m) * 32;
+    cv.getContext('2d').drawImage(big, (b.x - m - bb.x) * 32, (b.y - m - bb.y) * 32, cv.width, cv.height, 0, 0, cv.width, cv.height);
+  };
+  const brs = all.flatMap((c) => c.bridges);
+  crop('br1', brs.find((b) => b.road === 'avenue'));
+  crop('br2', brs.find((b) => b.road === 'street'));
+  // 地区名
+  const pts = [];
+  for (let i = 0; i < 17; i++) {
+    const a = T.districtIdentity(i, 'a'), b2 = T.districtIdentity(i, 'b');
+    const t2 = T.demoTown ? null : null;
+    pts.push(`<tr><td>${i === 0 ? '中央（西）' : i === 1 ? '中央（東）' : i - 1 + '番目'}</td><td>${esc(a.name)}</td><td>${esc(b2.name)}</td><td>${esc(a.landmark.name)}</td></tr>`);
+  }
+  document.getElementById('names').innerHTML = '<tr><th>開く順</th><th>案A（和の横丁）</th><th>案B（カタカナまじり）</th><th>目印</th></tr>' + pts.join('');
+  // 比べ
+  const rows = [];
+  for (const shops of [121, 200]) for (const cols of [6, 8]) {
+    const t = T.demoTown({ avenue: p.avenue, alley: p.alley, cols, grow: shops === 200 ? 79 : 0, fixture: true });
+    const b = T.bounds(t);
+    const lots = [...t.lots.values()].filter((l) => l.kind === 'shop');
+    const c0 = T.chunkData(t, t.districts[1]);
+    rows.push(`<tr><td>${shops}店・${cols}×4区画</td><td>${t.districts.length}</td><td>${c0.size[0]}×${c0.size[1]}</td><td>${b.w * 32}×${b.h * 32}</td><td>${lots.filter((l) => l.state === 'vacant').length}／${lots.length}</td><td>${(JSON.stringify(c0).length / 1024).toFixed(1)}KB</td></tr>`);
+  }
+  document.getElementById('cmp').innerHTML = `<tr><th>店数・地区の幅</th><th>地区の数</th><th>1チャンク（チップ）</th><th>街ぜんぶ（px）</th><th>NPCの家／店の区画</th><th>1チャンクの JSON（地区）</th></tr>` + rows.join('');
+  // JSON (配列は1行にまとめて見せる)
+  const txt = JSON.stringify(ch, (k, v) => ((k === 'ground' || k === 'deco') ? `[${v.length} 個: 横 ${ch.size[0]} × 縦 ${ch.size[1]}、行ごと]` : v), 1);
+  document.getElementById('jsz').textContent = `この地区は ${ch.size[0]}×${ch.size[1]} チップ、JSON は約 ${(JSON.stringify(ch).length / 1024).toFixed(1)}KB（ground と deco は番号の配列。下では省略）。`;
+  document.getElementById('json').textContent = txt;
+});
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@ function fixture(r = 0.2) {
 const FEED = BASE_ITEMS[MINO].uses.find((x) => x.name === '干し草を与えて搾る')!.no;
 
 test('1.0.0: 新商品は116〜131の16品で、どれも作り方が1つある', () => {
-  assert.equal(MAX_ITEM, 132);
+  assert.ok(MAX_ITEM >= 132);
   assert.deepEqual(V100.new_items!.map((i) => i.item), Array.from({ length: 16 }, (_, i) => 116 + i));
   for (let no = 116; no <= 131; no++) {
     const made = Object.values(BASE_ITEMS).flatMap((it) => it?.uses ?? []).filter((u) => u.get.some((l) => l.item_no === no));
