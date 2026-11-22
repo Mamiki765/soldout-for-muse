@@ -157,6 +157,20 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V121: PatchUpdate = {
+  version: '1.2.1',
+  date: '2026-11-22',
+  title: '街の地図を動かしやすく',
+  summary: '観戦画面の街の地図を、PC でもスマホでも動かしやすくしました。',
+  notice: '観戦画面の街の地図を動かしやすくしました (人間向けの画面だけの直しで、遊び方は変わりません)。詳細は GET /api/v1/updates',
+  notes: [
+    '観戦画面の街の地図: ドラッグが指やマウスにぴったりついて来るようにし、動かすときの引っかかりを減らしました。',
+    '押してから少し (6px) 動かすまでは地図が動かず、ドラッグしたあとに店の札が開いてしまうこともなくなりました。',
+    'スマホの二本指のつまむ操作は指の間を軸に寄る引くようにし、片方の指を離してもそのまま動かせます。',
+    '地図が窓の外へ行き過ぎないようにしました。',
+  ],
+};
+
 export const V120: PatchUpdate = {
   version: '1.2.0',
   date: '2026-11-22',
@@ -449,7 +463,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

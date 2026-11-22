@@ -52,7 +52,7 @@
     el.style.height = H * s + 'px';
     el.style.setProperty('--chip', s + 'px');
     // canvas は大きすぎないように (一辺 8192px まで)
-    const cap = Math.min(8192 / W, 8192 / H);
+    const cap = Math.min(4096 / W, 4096 / H); // 大きすぎる canvas はスマホで重く、動かすたびに引っかかる
     const density = Math.min(cap, s * o.res);
     const cv = document.createElement('canvas');
     cv.className = 'tiles';
@@ -120,10 +120,15 @@
     const map = renderTop(town, { scale: BASE, labels: true, res: 2 });
     win.prepend(map);
     let zoom = 1, tx = 0, ty = 0, sel = null;
+    // 動かすだけなら transform だけを変える (地名の大きさの変数は寄る引くときだけ。変えると地図の中の全部の札の描き直しになる)
+    let lastZoom = 0;
     const apply = () => {
-      map.style.transform = `translate(${tx}px,${ty}px) scale(${zoom})`;
-      map.classList.toggle('show-dlabels', zoom < 0.55);
-      map.style.setProperty('--lz', String(Math.min(4, 0.9 / zoom)));
+      map.style.transform = `translate3d(${tx}px,${ty}px,0) scale(${zoom})`;
+      if (zoom !== lastZoom) {
+        lastZoom = zoom;
+        map.classList.toggle('show-dlabels', zoom < 0.55);
+        map.style.setProperty('--lz', String(Math.min(4, 0.9 / zoom)));
+      }
       place();
     };
     const centerOn = (x, y, z) => { if (z) zoom = z; tx = win.clientWidth / 2 - x * zoom; ty = win.clientHeight / 2 - y * zoom; apply(); };
@@ -195,36 +200,77 @@
     };
     host.querySelector('#town-go').onclick = find;
     host.querySelector('#town-q').onkeydown = (e) => { if (e.key === 'Enter') find(); };
-    // ドラッグ・ホイール・ピンチ
-    let drag = null, moved = 0, downLot = null;
+    // ドラッグ・ホイール・ピンチ (1.2.1 で作り直し)
+    // ・指やマウスの本数が変わるたびに、その時点の位置を起点に取り直す (ピンチのあと1本で動かしても跳ばない)
+    // ・ピンチは2本の指の中心を軸に寄る引く、中心が動けば一緒に動く
+    // ・押してから 8px 以上動いたらドラッグ扱いで、離しても札は開かない
+    // ・描き直しは 1フレームに1回、地図は窓の外へ行き過ぎない
+    let g = null, moved = 0, downLot = null, frame = 0;
     const pts = new Map();
-    const dist = () => { const [p1, p2] = [...pts.values()]; return Math.hypot(p1.x - p2.x, p1.y - p2.y); };
-    const zoomAt = (cx, cy, f) => { const nz = Math.max(0.12, Math.min(2.2, zoom * f)); tx = cx - ((cx - tx) * nz) / zoom; ty = cy - ((cy - ty) * nz) / zoom; zoom = nz; apply(); };
+    const center = () => { let x = 0, y = 0; for (const p of pts.values()) { x += p.x; y += p.y; } return { x: x / pts.size, y: y / pts.size }; };
+    const spread = () => { const [p1, p2] = [...pts.values()]; return p2 ? Math.hypot(p1.x - p2.x, p1.y - p2.y) : 0; };
+    const local = (p) => { const r = win.getBoundingClientRect(); return { x: p.x - r.left, y: p.y - r.top }; };
+    const anchor = () => { g = pts.size ? { c: center(), d: spread(), tx, ty, z: zoom } : null; };
+    const clamp = () => {
+      // 地図の端が窓の内側に少なくとも 80px 残るように
+      const mw = b.w * BASE * zoom, mh = b.h * BASE * zoom, k = 80;
+      tx = Math.min(win.clientWidth - k, Math.max(k - mw, tx));
+      ty = Math.min(win.clientHeight - k, Math.max(k - mh, ty));
+    };
+    const later = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; clamp(); apply(); }); };
+    const zoomAt = (cx, cy, f) => { const nz = Math.max(0.12, Math.min(2.2, zoom * f)); tx = cx - ((cx - tx) * nz) / zoom; ty = cy - ((cy - ty) * nz) / zoom; zoom = nz; later(); };
     win.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.town-card,.zb')) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       // 押した区画は pointerdown で覚える (capture のあとの click は窓に向くため)
-      downLot = e.target.closest('.top-map > .lot');
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      drag = { x: e.clientX, y: e.clientY, tx, ty, d: pts.size === 2 ? dist() : 0, z: zoom };
-      moved = 0;
-      win.setPointerCapture(e.pointerId);
+      if (!pts.size) { downLot = e.target.closest('.top-map > .lot'); moved = 0; }
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+      if (pts.size >= 2) moved = Infinity; // つまんだら、離したあとに札は開かない
+      anchor();
+      try { win.setPointerCapture(e.pointerId); } catch { /* 合成のイベントなど */ }
+      win.classList.add('grabbing');
+      e.preventDefault();
     });
     win.addEventListener('pointermove', (e) => {
-      if (!drag || !pts.has(e.pointerId)) return;
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (pts.size === 2 && drag.d) { zoomAt(win.clientWidth / 2, win.clientHeight / 2, (drag.z * dist()) / drag.d / zoom); return; }
-      moved += Math.abs(e.movementX) + Math.abs(e.movementY);
-      tx = drag.tx + e.clientX - drag.x;
-      ty = drag.ty + e.clientY - drag.y;
-      apply();
+      const p = pts.get(e.pointerId);
+      if (!g || !p) return;
+      p.x = e.clientX;
+      p.y = e.clientY;
+      moved = Math.max(moved, Math.hypot(p.x - p.sx, p.y - p.sy));
+      // 1本のときは 6px 動くまでは動かさない (押しただけで地図が揺れない)。越えたら押した所から指について来る
+      if (pts.size === 1 && moved < 6) return;
+      const c = center();
+      if (pts.size >= 2 && g.d > 0) {
+        // 起点のときの中心の下にあった地図の点を、今の中心の下へ
+        const nz = Math.max(0.12, Math.min(2.2, (g.z * spread()) / g.d));
+        const c0 = local(g.c), c1 = local(c);
+        tx = c1.x - ((c0.x - g.tx) * nz) / g.z;
+        ty = c1.y - ((c0.y - g.ty) * nz) / g.z;
+        zoom = nz;
+      } else {
+        tx = g.tx + c.x - g.c.x;
+        ty = g.ty + c.y - g.c.y;
+      }
+      later();
     });
-    const up = (e) => { pts.delete(e.pointerId); if (!pts.size) drag = null; };
+    const up = (e) => {
+      if (!pts.delete(e.pointerId)) return;
+      anchor();
+      if (!pts.size) win.classList.remove('grabbing');
+    };
     win.addEventListener('pointerup', up);
     win.addEventListener('pointercancel', up);
-    win.addEventListener('wheel', (e) => { e.preventDefault(); const r = win.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+    win.addEventListener('lostpointercapture', up);
+    // ホイール: マウスの位置を軸に寄る引く (トラックパッドのつまむ操作は ctrl 付きで届くので、量に合わせてなめらかに)
+    win.addEventListener('wheel', (e) => {
+      if (e.target.closest('.town-card') || e.deltaY === 0) return;
+      e.preventDefault();
+      const l = local({ x: e.clientX, y: e.clientY });
+      zoomAt(l.x, l.y, e.ctrlKey ? Math.exp(-e.deltaY * 0.01) : e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    }, { passive: false });
     host.querySelector('#town-zin').onclick = () => zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1.3);
     host.querySelector('#town-zout').onclick = () => zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1 / 1.3);
-    win.addEventListener('click', (e) => { if (moved > 6 || e.target.closest('.town-card,.zb')) return; const l = downLot || e.target.closest('.top-map > .lot'); if (l) show(Number(l.dataset.lot)); });
+    win.addEventListener('click', (e) => { if (moved >= 6 || e.target.closest('.town-card,.zb')) return; const l = downLot || e.target.closest('.top-map > .lot'); if (l) show(Number(l.dataset.lot)); });
     addEventListener('resize', place);
     // 開いたとき: ?lot= (区画) か ?at= (住所) ならその店、?d= ならその地区 (0 = 中央)、なければ全景 (スマホは中央)
     const at = (q.get('lot') && town.lots.get(Number(q.get('lot')))) || (q.get('at') && T.lotByAddress(town, q.get('at')));
