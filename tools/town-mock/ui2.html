@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI案2 全画面の地図</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  body { overflow: hidden; }
+  .stage { position: fixed; inset: var(--hdr, 53px) 0 0 0; overflow: hidden; background: #6f9d55; touch-action: none; cursor: grab; }
+  .stage.drag { cursor: grabbing; }
+  .stage .top-map { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .chips { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; gap: 6px; overflow-x: auto; z-index: 10; pointer-events: none; }
+  .chips button { pointer-events: auto; flex: 0 0 auto; border: 0; border-radius: 99px; padding: 5px 12px; background: rgba(255,255,255,.92); color: #1d2433; font: inherit; font-size: 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .chips button.on { background: #3f6fa0; color: #fff; }
+  .nav { position: absolute; right: 12px; bottom: 12px; z-index: 10; background: rgba(255,255,255,.9); border-radius: 10px; padding: 6px; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+  .nav .mm { position: relative; overflow: hidden; cursor: pointer; }
+  .nav .mm .top-map { position: absolute; left: 0; top: 0; }
+  .nav .mm .lot { pointer-events: none; }
+  .nav .mm .sign { display: none; }
+  .nav .vr { position: absolute; border: 2px solid #ff5a36; pointer-events: none; }
+  .nav .zb { display: flex; gap: 4px; margin-top: 6px; }
+  .nav .zb button { flex: 1; border: 1px solid #ccc; background: #fff; border-radius: 6px; font-size: 16px; cursor: pointer; }
+  .pop { position: absolute; z-index: 15; width: 380px; max-width: calc(100vw - 24px); filter: drop-shadow(0 8px 18px rgba(0,0,0,.3)); display: none; }
+  .pop.open { display: block; }
+  .pop .x { position: absolute; right: 8px; top: 8px; z-index: 2; border: 0; background: var(--bg); border-radius: 50%; width: 26px; height: 26px; cursor: pointer; color: var(--ink); }
+  .pop .card .portrait { flex-basis: 96px; }
+  .pop .grow { background: var(--panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; padding: 6px 12px; font-size: 12px; margin-top: -8px; padding-top: 12px; }
+  .pop .grow button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 0 8px; cursor: pointer; }
+  .pop .grow button.on { background: var(--accent); color: #fff; }
+  .help { position: absolute; left: 12px; bottom: 12px; z-index: 10; background: rgba(255,255,255,.9); color: #1d2433; border-radius: 10px; padding: 6px 10px; font-size: 12px; max-width: 300px; }
+  @media (max-width: 760px) {
+    .pop { left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; }
+    .nav { top: 52px; bottom: auto; }
+    .nav .mm { display: none; }
+    .help { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1><a href="index.html">P0</a> ／ UI案2 全画面の地図＋浮かぶ札</h1>
+  <span class="lbl">店数</span><span class="seg" id="seg-shops"><button data-v="121">121</button><button data-v="200">200</button></span>
+  <span class="lbl">大通り</span><span class="seg" id="seg-av"><button data-v="2">64px</button><button data-v="1">32px</button></span>
+  <button class="btn primary" id="from-card">許可証の住所を押す</button>
+</header>
+<div class="stage" id="stage">
+  <div class="chips" id="chips"></div>
+  <div class="pop" id="pop"></div>
+  <div class="nav"><div class="mm" id="mm"></div><div class="zb"><button id="zout">－</button><button id="zin">＋</button></div></div>
+  <div class="help">ドラッグで動かす・ホイール（スマホは二本指）で寄る引く。店を押すと、その場に札が浮かぶ。右下の小さな地図を押すとそこへ飛ぶ。</div>
+</div>
+<script src="town-gen.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  const { T, params, getTown, setParam, shopCard, renderTop, lotInfo, esc } = Mock;
+  const p = params();
+  const town = getTown(p);
+  const mark = (id, v) => document.querySelectorAll('#' + id + ' button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(v)));
+  mark('seg-shops', p.shops); mark('seg-av', p.avenue);
+  document.getElementById('seg-shops').onclick = (e) => e.target.dataset.v && setParam('shops', e.target.dataset.v);
+  document.getElementById('seg-av').onclick = (e) => e.target.dataset.v && setParam('avenue', e.target.dataset.v);
+  const stage = document.getElementById('stage'), pop = document.getElementById('pop'), mm = document.getElementById('mm');
+  const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
+  const BASE = 16; // 地図は 1チップ 16px で作って、拡大縮小は transform で
+  const b = T.bounds(town);
+  let zoom = 1, tx = 0, ty = 0, selected = null, sizeOverride = null;
+  let map;
+  function build() {
+    map?.remove();
+    map = renderTop(town, { scale: BASE, highlight: selected, sizeOverride, labels: true });
+    stage.prepend(map);
+    apply();
+  }
+  function apply() {
+    map.style.transform = `translate(${tx}px, ${ty}px) scale(${zoom})`;
+    map.classList.toggle('show-dlabels', zoom < 0.55);
+    drawNav();
+    placePop();
+  }
+  const lotCenter = (l) => ({ x: (l.x - b.x + l.w / 2) * BASE, y: (l.y - b.y + l.h / 2) * BASE });
+  function centerOn(x, y, z) {
+    if (z) zoom = z;
+    tx = stage.clientWidth / 2 - x * zoom;
+    ty = stage.clientHeight / 2 - y * zoom;
+    apply();
+  }
+  // 小さな地図
+  const MM = 180 / (b.w * BASE);
+  function drawNav() {
+    if (!mm.firstChild) {
+      const small = renderTop(town, { scale: BASE * MM, labels: false });
+      mm.style.width = b.w * BASE * MM + 'px';
+      mm.style.height = b.h * BASE * MM + 'px';
+      mm.appendChild(small);
+      const vr = document.createElement('div');
+      vr.className = 'vr';
+      mm.appendChild(vr);
+    }
+    const vr = mm.querySelector('.vr');
+    vr.style.left = (-tx / zoom) * MM + 'px';
+    vr.style.top = (-ty / zoom) * MM + 'px';
+    vr.style.width = (stage.clientWidth / zoom) * MM + 'px';
+    vr.style.height = (stage.clientHeight / zoom) * MM + 'px';
+  }
+  mm.onclick = (e) => { const r = mm.getBoundingClientRect(); centerOn((e.clientX - r.left) / MM, (e.clientY - r.top) / MM); };
+  // 地区のチップ
+  document.getElementById('chips').innerHTML = `<button data-all="1">全景</button>` + town.districts.map((d) => `<button data-d="${d.id}">${esc(d.name)}・${esc(d.landmark.name)}</button>`).join('');
+  document.getElementById('chips').onclick = (e) => {
+    const bt = e.target.closest('button');
+    if (!bt) return;
+    if (bt.dataset.all) { const z = Math.min(stage.clientWidth / (b.w * BASE), stage.clientHeight / (b.h * BASE)) * 0.95; centerOn((b.w * BASE) / 2, (b.h * BASE) / 2, z); return; }
+    const d = town.districts.find((x) => x.id === bt.dataset.d);
+    centerOn((d.x0 - b.x + d.w / 2) * BASE, (d.y0 - b.y + d.h / 2) * BASE, 1);
+    document.querySelectorAll('#chips button').forEach((x) => x.classList.toggle('on', x === bt));
+  };
+  // ドラッグ・ホイール・ピンチ
+  let drag = null, moved = 0;
+  const pts = new Map();
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.pop,.nav,.chips')) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    drag = { x: e.clientX, y: e.clientY, tx, ty, d: pts.size === 2 ? dist() : 0, z: zoom };
+    moved = 0;
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add('drag');
+  });
+  const dist = () => { const [a, c] = [...pts.values()]; return Math.hypot(a.x - c.x, a.y - c.y); };
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag || !pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2 && drag.d) { zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, (drag.z * dist()) / drag.d / zoom); return; }
+    moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+    tx = drag.tx + e.clientX - drag.x; ty = drag.ty + e.clientY - drag.y;
+    apply();
+  });
+  const up = (e) => { pts.delete(e.pointerId); if (!pts.size) { drag = null; stage.classList.remove('drag'); } };
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  function zoomAt(cx, cy, f) {
+    const nz = Math.max(0.15, Math.min(2.2, zoom * f));
+    tx = cx - ((cx - tx) * nz) / zoom; ty = cy - ((cy - ty) * nz) / zoom; zoom = nz;
+    apply();
+  }
+  stage.addEventListener('wheel', (e) => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+  document.getElementById('zin').onclick = () => zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, 1.3);
+  document.getElementById('zout').onclick = () => zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, 1 / 1.3);
+  // 店を押す
+  stage.addEventListener('click', (e) => {
+    if (moved > 6) return;
+    const l = e.target.closest('.top-map > .lot');
+    if (!l || e.target.closest('.nav')) return;
+    select(Number(l.dataset.lot), false);
+  });
+  function select(id, center = true) {
+    selected = id; sizeOverride = null;
+    build();
+    const lot = town.lots.get(id);
+    if (center) { const c = lotCenter(lot); centerOn(c.x, c.y, Math.max(zoom, 0.9)); }
+    showPop();
+  }
+  function showPop() {
+    const lot = town.lots.get(selected);
+    const info = lotInfo(town, lot);
+    const can = info.type === 'open' || info.type === 'resting';
+    const cur = sizeOverride?.size ?? lot.size;
+    pop.innerHTML = `<button class="x" id="px">×</button>${shopCard(town, lot, { compact: true })}${can ? `<div class="grow">増築の見え方 ${['S', 'M', 'L'].map((s) => `<button data-v="${s}" class="${cur === s ? 'on' : ''}">${s}</button>`).join(' ')}</div>` : ''}`;
+    pop.classList.add('open');
+    pop.querySelector('#px').onclick = () => { pop.classList.remove('open'); selected = null; build(); };
+    pop.querySelectorAll('button.go').forEach((bt) => (bt.onclick = () => select(Number(bt.dataset.lot))));
+    pop.querySelectorAll('.grow button').forEach((bt) => (bt.onclick = () => { sizeOverride = { lot: selected, size: bt.dataset.v }; build(); showPop(); }));
+    placePop();
+  }
+  function placePop() {
+    if (!selected || !pop.classList.contains('open')) return;
+    const c = lotCenter(town.lots.get(selected));
+    const x = tx + c.x * zoom, y = ty + c.y * zoom;
+    const right = x + 110 * zoom + pop.offsetWidth < stage.clientWidth;
+    pop.style.left = Math.max(8, right ? x + 110 * zoom : x - 110 * zoom - pop.offsetWidth) + 'px';
+    pop.style.top = Math.max(48, Math.min(stage.clientHeight - pop.offsetHeight - 8, y - pop.offsetHeight / 2)) + 'px';
+  }
+  document.getElementById('from-card').onclick = () => select(youLot().id);
+  build();
+  const c = lotCenter(youLot());
+  centerOn(c.x, c.y, 1);
+})();
+</script>
+</body>
+</html>

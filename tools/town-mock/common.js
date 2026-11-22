@@ -155,5 +155,16 @@
     return `${garden}${trees}<div class="${cls}" style="${style}"><div class="roof"></div></div>${sign}`;
   }
 
+  // 見出しの高さ (スマホで折り返す) を CSS の --hdr に
+  function hdr() {
+    const h = document.querySelector('header.bar');
+    if (h) document.documentElement.style.setProperty('--hdr', h.offsetHeight + 'px');
+  }
+  if (typeof document !== 'undefined') {
+    addEventListener('DOMContentLoaded', hdr);
+    addEventListener('resize', hdr);
+    setTimeout(hdr, 0);
+  }
+
   root.Mock = { T, params, getTown, setParam, esc, lotInfo, shopCard, renderTop, SIZE_NAME, ROOF, WALL };
 })(globalThis);
