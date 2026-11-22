@@ -177,6 +177,13 @@ test('売上税の3経路を記録し、休業の精算と閉店・Party再出�
   assert.equal(BigInt(seller().taxyesterday), sales + 1234n + deposit);
   const totals = { sales, deposit, total: sales + deposit };
   assert.deepEqual(store.ownerTaxTotals(som), totals);
+  for (const path of ['me', 'digest', 'peek?full=1']) {
+    const res = await fetch(base + path, { headers: { authorization: 'Bearer seller', accept: 'application/json' } });
+    assert.equal(res.status, 200);
+    const publicData = await res.text();
+    assert.doesNotMatch(publicData, /taxTrackingStartedAt|owner_tax_totals|累計納税/);
+    assert.ok(!publicData.includes(String(totals.total)));
+  }
 
   now = g.nextPeriodTime();
   app.viewerGame();

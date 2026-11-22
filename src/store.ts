@@ -173,9 +173,14 @@ export class Store {
     return isTownEpoch(start, DEFAULT_CONFIG) ? start : null;
   }
 
-  setTownEpoch(start: number): void {
+  setTownEpoch(start: number, onlyIfUnset = false): void {
     if (!isTownEpoch(start, DEFAULT_CONFIG)) throw new Error('第1期の開始には決算境界のUnix秒を指定してください');
-    this.setSetting(TOWN_EPOCH_SETTING, String(start));
+    if (onlyIfUnset) {
+      this.db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING')
+        .run(TOWN_EPOCH_SETTING, String(start));
+    } else {
+      this.setSetting(TOWN_EPOCH_SETTING, String(start));
+    }
   }
 
   townPeriod(now: number): ReturnType<typeof townPeriodAt> {

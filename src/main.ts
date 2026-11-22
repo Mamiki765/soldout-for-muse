@@ -11,7 +11,8 @@
 //   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
 //   node dist/src/main.js give-hay                 0.6.0 の詫び草: ミノタウロス♀を持つ店に干し草を頭数×10束、一度だけ配る。サーバーを止めて実行
 //   node dist/src/main.js give-time [本数] [名前]  1.0.0: タイムシガレット (1本30分) を全店に配る。既定は既存店への8本 (existing)。名前ごとに一度だけ。サーバーを止めて実行
-// 環境変数: DB_PATH (data/soldout.sqlite), TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
+// 環境変数: DB_PATH (data/soldout.sqlite), TOWN_EPOCH (未設定時に保存する第1期の開始Unix秒),
+//           TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
 //           BASE_PATH (別サイトの下に置くときの頭。例 /soldout),
@@ -188,6 +189,13 @@ if (cmd === 'set-invite') {
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
 } else if (cmd === 'serve') {
   const store = new Store(dbPath);
+  if (env.TOWN_EPOCH) {
+    const configured = Number(env.TOWN_EPOCH);
+    store.setTownEpoch(configured, true);
+    const saved = store.townEpoch();
+    if (saved === null) throw new Error('保存済みの街暦の起点が無効です。town-calendar で確認・設定してください');
+    if (saved !== configured) console.warn(`街暦は保存済みの起点 ${saved} を使います (TOWN_EPOCH=${configured})`);
+  }
   const app = new App({
     store,
     publicUrl: env.PUBLIC_URL ?? '',
