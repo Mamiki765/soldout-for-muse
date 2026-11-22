@@ -80,7 +80,7 @@
   function drawList() {
     const dd = d();
     let h = `<div class="picked" id="picked"></div>
-      <div class="tools"><select id="dsel">${town.districts.map((x) => `<option value="${x.id}" ${x.id === cur ? 'selected' : ''}>${esc(x.name)}（${esc(x.landmark.name)}）</option>`).join('')}</select><input id="q" placeholder="店名・番地" value="${esc(q)}"></div>`;
+      <div class="tools"><select id="dsel">${town.districts.map((x) => `<option value="${x.id}" ${x.id === cur ? 'selected' : ''}>${esc(T.districtLabel(x))}</option>`).join('')}</select><input id="q" placeholder="店名・番地" value="${esc(q)}"></div>`;
     for (const ai of [0, 1]) {
       h += `<div class="st"><h3>${esc(dd.alleys[ai].name)}</h3>`;
       for (const r of [ai * 2, ai * 2 + 1]) {

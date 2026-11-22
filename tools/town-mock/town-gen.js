@@ -251,7 +251,7 @@
         });
       }
     }
-    return { id, index, name, gx, gy, x0, y0, w: INNER_W, h: INNER_H, cols: COLS, alleys, strip, landmark, lots, center };
+    return { id, index, no: center ? 0 : index - 1, name, gx, gy, x0, y0, w: INNER_W, h: INNER_H, cols: COLS, alleys, strip, landmark, lots, center };
   }
 
   /** 区画の左隣・右隣・向かい・目印。路地に立って店を見たときの左右 */
@@ -505,11 +505,17 @@
     return { roof: h % 6, wall: (h >>> 3) % 4, shape: (h >>> 6) % 3, tree: (h >>> 9) % 4 };
   }
 
+  /**
+   * 住所 (許可証に刻む形)。区の番号・丁目・番地だけで、名前は入れない (名前が変わっても住所は変わらない)。
+   * 区 = 住む地区が開いた順の番号 (中央の2チャンクは数えず「中央」)。丁目 = 一の路地が1丁目、二の路地が2丁目。
+   */
   function addressText(town, lot) {
     const d = town.districts.find((x) => x.id === lot.district);
-    const a = d.alleys[lot.row < 2 ? 0 : 1];
-    return `${d.name} ${a.name} ${lot.number}番`;
+    const chome = lot.row < 2 ? 1 : 2;
+    return `${d.center ? '中央' : d.no + '区'}${chome}丁目${lot.number}番地`;
   }
+  /** 地区の呼び方: 「7区（銀杏坂）」。名前は通称で任意 (変わってもよい) */
+  const districtLabel = (d) => (d.center ? d.name : `${d.no}区（${d.name}）`);
 
   /** Muse に渡す形 (API 案 GET /lots/{id} の neighbors) */
   function neighborsJson(town, lotId) {
@@ -1098,6 +1104,6 @@
     FIXTURE,
     CHIP, MOD, LOT, COLS, ROWS, STRIP, HOME, SHELF_COST, sizeOfShelves,
     mulberry32, hash2, spiral, layoutDistrict, createTown, openDistrict, placeInitial, addShop, closeShop, expireHolds,
-    npcLook, addressText, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
+    npcLook, addressText, districtLabel, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -110,7 +110,7 @@
   }
   mm.onclick = (e) => { const r = mm.getBoundingClientRect(); centerOn((e.clientX - r.left) / MM, (e.clientY - r.top) / MM); };
   // 地区のチップ
-  document.getElementById('chips').innerHTML = `<button data-all="1">全景</button>` + town.districts.map((d) => `<button data-d="${d.id}">${esc(d.name)}・${esc(d.landmark.name)}</button>`).join('');
+  document.getElementById('chips').innerHTML = `<button data-all="1">全景</button>` + town.districts.map((d) => `<button data-d="${d.id}">${esc(T.districtLabel(d))}</button>`).join('');
   document.getElementById('chips').onclick = (e) => {
     const bt = e.target.closest('button');
     if (!bt) return;

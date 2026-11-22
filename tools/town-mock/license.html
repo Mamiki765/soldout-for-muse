@@ -82,7 +82,7 @@
   const r = q.get('r') || 'r34';
   document.querySelectorAll('#seg-r button').forEach((b) => b.classList.toggle('on', b.dataset.v === r));
   document.getElementById('seg-r').onclick = (e) => { if (e.target.dataset.v) { q.set('r', e.target.dataset.v); location.search = q.toString(); } };
-  const V = { shop: 'こもれび堂', owner: 'ダミー店主A', addr: '中央地区 噴水通り 1番', som: 'som9001', job: '本屋', on: '2026-11-07', free: 'Muse Party：ダミー' };
+  const V = { shop: 'こもれび堂', owner: 'ダミー店主A', addr: '1区1丁目1番地', som: 'som9001', job: '本屋', on: '2026-11-07', free: 'Muse Party：ダミー' };
   const img = r === 'none' ? '立ち絵の領域<br>（未提出でも許可証は作れる）' : `立ち絵の領域<br>${r === 'r34' ? '3:4' : '1:1'}<br><small>contain（全身が切れない）</small>`;
   const win = (extra) => `<div class="win ${r} ${extra || ''}"><div class="img">${img}</div></div>`;
   const small = (keys) => keys.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');

@@ -72,6 +72,7 @@
         <h3>${esc(info.title)}</h3>
         <div class="sub">${esc(info.sub)}${info.shop?.job && info.type !== 'held' ? ' ・ ' + esc(info.shop.job) : ''}</div>
         <div class="addr"><span class="lb">住所</span> ${esc(addr)}</div>
+        <div class="sub"><span class="lb">地区</span> ${esc(T.districtLabel(town.districts.find((x) => x.id === lot.district)))} <span class="dim">・${esc(town.districts.find((x) => x.id === lot.district).alleys[lot.row < 2 ? 0 : 1].name)}（名前は通称）</span></div>
         ${live ? `<div class="sz"><span class="lb">店構え</span> ${SIZE_NAME[lot.size]} <span class="dim">棚${info.shop.shelves}・維持費 ${upkeep(info.shop.shelves)}／決算</span></div>
         <div class="sz"><span class="lb">外観</span> <i class="sw" style="background:${look.roof}"></i>${esc(look.name)} <span class="dim">屋根 <i class="sw" style="background:${look.roof}"></i> ドア <i class="sw" style="background:${look.door}"></i></span></div>` : ''}
         ${nb ? `<ul class="nb">${nbRow('left', '左隣')}${nbRow('right', '右隣')}${nbRow('front', '向かい')}</ul>` : ''}
@@ -190,13 +191,13 @@
         lab.className = 'dlabel' + (d.center ? ' center' : '');
         lab.style.left = px(d.x0 + d.w / 2, x1);
         lab.style.top = px(d.y0 + d.h / 2, y1);
-        lab.innerHTML = `<b>${esc(d.name)}</b><span>${esc(d.landmark.name)}</span>`;
+        lab.innerHTML = `<b>${esc(T.districtLabel(d))}</b><span>${esc(d.landmark.name)}</span>`;
         // 寄ったときも見える地名の札 (北の大通りの上)
         const plate = document.createElement('div');
         plate.className = 'dplate' + (d.center ? ' center' : '');
         plate.style.left = px(d.x0 + d.w / 2, x1);
         plate.style.top = px(d.y0 - town.opts.avenue / 2, y1);
-        plate.textContent = d.name;
+        plate.textContent = T.districtLabel(d);
         el.appendChild(plate);
         el.appendChild(lab);
       }
