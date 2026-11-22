@@ -64,7 +64,8 @@
   <h2>中央地区の2案</h2>
   <div class="wrap"><table class="list">
     <tr><th></th><th>公共施設だけ（?center=public）</th><th>管理人の店を入れる（?center=admin）</th></tr>
-    <tr><td>中身</td><td>街役場・ギルド会館・大きな樹・噴水広場・掲示板・中央市場（大屋根と屋台）・船着き場・公園・花壇</td><td>左と同じで、掲示板の1区画を管理人の店（som0002）に</td></tr>
+    <tr><td>東のチャンク</td><td colspan="2">どちらの案でも中央は横に2チャンク。東は大きな公園（池・東屋・小道）と将来の施設の予定地。予定地は空き地にせず、花壇・遊歩道・石畳の小広場・緑地の4つの見た目にする（チャンクの lots に <code>plan: "reserved_for_facility"</code>）。西と東のあいだの大通りは石畳の中央軸（両端に並木とガス灯、川の上は橋）</td></tr>
+    <tr><td>西の中身</td><td>街役場・ギルド会館・大きな樹・噴水広場・掲示板・中央市場（大屋根と屋台）・船着き場・公園・花壇</td><td>左と同じで、掲示板の1区画を管理人の店（som0002）に</td></tr>
     <tr><td>よいところ</td><td>どの店も同じ扱い。「中心は街のもの」がはっきりする。中央に住所を持つ店が無いので、引っ越し・閉店・猶予の例外が要らない</td><td>街の顔に「中の人の店」があり、お知らせ・イベントの起点にしやすい。初めて来た Muse の目印になる</td></tr>
     <tr><td>気になるところ</td><td>中央が少し静か（店先の看板が無い）</td><td>1店だけ特別な区画になる（ずっと予約、ほかの店は入れない、閉店しても空けない）。不公平に見えないか</td></tr>
     <tr><td>実装の手間</td><td>少ない（中央は公共の区画だけ）</td><td>予約区画の扱い（配置・引っ越し・閉店の対象外）を足す</td></tr>
@@ -130,7 +131,7 @@
   for (let i = 0; i < 17; i++) {
     const a = T.districtIdentity(i, 'a'), b2 = T.districtIdentity(i, 'b');
     const t2 = T.demoTown ? null : null;
-    pts.push(`<tr><td>${i === 0 ? '中央' : i + '番目'}</td><td>${esc(a.name)}</td><td>${esc(b2.name)}</td><td>${esc(a.landmark.name)}</td></tr>`);
+    pts.push(`<tr><td>${i === 0 ? '中央（西）' : i === 1 ? '中央（東）' : i - 1 + '番目'}</td><td>${esc(a.name)}</td><td>${esc(b2.name)}</td><td>${esc(a.landmark.name)}</td></tr>`);
   }
   document.getElementById('names').innerHTML = '<tr><th>開く順</th><th>案A（和の横丁）</th><th>案B（カタカナまじり）</th><th>目印</th></tr>' + pts.join('');
   // 比べ

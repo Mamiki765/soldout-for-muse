@@ -42,6 +42,24 @@
   }
 
   // ---- 地区の並び (中央から渦巻き。新しい地区は必ず前の地区のどれかと辺で接する) ----
+  /**
+   * 地区を置く順番。中央は横に2マス (0,0)(1,0)。そのまわりを「中央の2マスを囲む輪」で時計回りに広げる。
+   * 新しい地区は必ず前に置いた地区のどれかと辺で接する。
+   */
+  function townCells(n) {
+    const out = [[0, 0], [1, 0]];
+    for (let k = 1; out.length < n; k++) {
+      const x1 = -k, x2 = 1 + k, y1 = -k, y2 = k;
+      const ring = [];
+      for (let y = 0; y <= y2; y++) ring.push([x2, y]); // 東の辺 (真ん中から下へ)
+      for (let x = x2 - 1; x >= x1; x--) ring.push([x, y2]); // 南の辺
+      for (let y = y2 - 1; y >= y1; y--) ring.push([x1, y]); // 西の辺
+      for (let x = x1 + 1; x <= x2; x++) ring.push([x, y1]); // 北の辺
+      for (let y = y1 + 1; y < 0; y++) ring.push([x2, y]); // 東の辺の残り
+      for (const c of ring) if (out.length < n) out.push(c);
+    }
+    return out.slice(0, n);
+  }
   function spiral(n) {
     const out = [[0, 0]];
     let x = 0, y = 0, step = 1;
@@ -66,6 +84,7 @@
   // 地区が増えても、前からある地区の名前・目印・住所は変わらない。
   // 川の列 (gy が偶数) は水辺の目印、並木の列 (gy が奇数) は丘・木の目印から順に使う。
   const CENTER_NAME = { a: '中央広場', b: 'ミューズ中央' };
+  const CENTER_EAST_NAME = { a: '中央公園', b: 'セントラルパーク' };
   const WATER_MARKS = [
     { key: 'lamp', name: 'ガス灯の角', a: '灯火横丁', b: 'ランタン小路' },
     { key: 'mill', name: '水車小屋', a: '水車河岸', b: 'ミルサイド' },
@@ -91,11 +110,12 @@
   function districtIdentity(index, names) {
     const set = names === 'b' ? 'b' : 'a';
     if (index === 0) return { name: CENTER_NAME[set], landmark: { kind: 'fountain', name: '噴水広場' } };
-    const pts = spiral(index + 1);
+    if (index === 1) return { name: CENTER_EAST_NAME[set], landmark: { kind: 'bigpark', name: '中央公園' } };
+    const pts = townCells(index + 1);
     const water = (g) => ((g % 2) + 2) % 2 === 0;
     const mine = water(pts[index][1]);
     let k = 0;
-    for (let i = 1; i < index; i++) if (water(pts[i][1]) === mine) k++;
+    for (let i = 2; i < index; i++) if (water(pts[i][1]) === mine) k++;
     const pool = mine ? WATER_MARKS : GROVE_MARKS;
     const lm = pool[k % pool.length];
     const round = Math.floor(k / pool.length);
@@ -136,7 +156,26 @@
     put(2, COLS - 1, 'park'); put(3, COLS - 1, 'garden');
     return m;
   }
-  const PUBLIC_NAMES = { hall: '街役場', guild: 'ギルド会館', tree: '大きな樹', fountain: '噴水広場', board: '掲示板', market: '中央市場', pier: '船着き場', park: '小さな公園', garden: '花壇の庭' };
+  /**
+   * 中央の東: 大きな公園と、将来の施設の予定地。予定地は空き地にせず、花壇・遊歩道・石畳・緑地として見せる。
+   * 予定地はあとで施設 (区画いくつかまとめ) に置き換えられる。
+   */
+  function centerEastPlan(COLS) {
+    const m = new Map();
+    const parkW = COLS - 2;
+    const pairs = Math.floor(COLS / 2);
+    for (let c = 0; c < COLS; c++) {
+      for (const r of [0, 1]) m.set(r + ',' + c, c < parkW ? 'bigpark' : 'plot');
+      for (const r of [2, 3]) {
+        const p = Math.floor(c / 2);
+        m.set(r + ',' + c, r === 3 && p === pairs - 1 ? 'park' : 'plot');
+      }
+    }
+    return m;
+  }
+  const PLOT_LOOKS = ['flower', 'walk', 'stone', 'green'];
+  const PLOT_NAMES = { flower: '予定地（花壇）', walk: '予定地（遊歩道）', stone: '予定地（石畳の小広場）', green: '予定地（緑地）' };
+  const PUBLIC_NAMES = { bigpark: '中央公園', hall: '街役場', guild: 'ギルド会館', tree: '大きな樹', fountain: '噴水広場', board: '掲示板', market: '中央市場', pier: '船着き場', park: '小さな公園', garden: '花壇の庭' };
 
   /**
    * 地区を1つ作る。形は (街の種, 地区の位置 index) だけで決まる。
@@ -149,22 +188,28 @@
     const id = 'd' + String(index + 1).padStart(2, '0');
     const who = districtIdentity(index, opts.names);
     const name = who.name;
-    const center = index === 0;
+    const center = index === 0 ? 'west' : index === 1 ? 'east' : false;
     const alleys = [
-      { id: id + '-a', name: center ? '噴水通り' : '一の路地', y: g.alleyY[0], x: x0, w: INNER_W, h: ALLEY },
-      { id: id + '-b', name: center ? '市場通り' : '二の路地', y: g.alleyY[1], x: x0, w: INNER_W, h: ALLEY },
+      { id: id + '-a', name: center === 'west' ? '噴水通り' : center === 'east' ? '公園通り' : '一の路地', y: g.alleyY[0], x: x0, w: INNER_W, h: ALLEY },
+      { id: id + '-b', name: center === 'west' ? '市場通り' : center === 'east' ? '花通り' : '二の路地', y: g.alleyY[1], x: x0, w: INNER_W, h: ALLEY },
     ];
     // 中央は南北にも通りが抜ける (大通り → 噴水 → 橋 → 市場 → 大通り)
-    if (center) alleys.push({ id: id + '-c', name: '中央通り', x: g.ns.x, y: y0, w: g.ns.w, h: INNER_H, ns: true });
+    if (center === 'west') alleys.push({ id: id + '-c', name: '中央通り', x: g.ns.x, y: y0, w: g.ns.w, h: INNER_H, ns: true });
     const strip = { y: g.stripY, x: x0, w: INNER_W, h: STRIP, kind: g.stripKind };
 
     const pub = new Map(); // 'row,col' -> {kind,name}
     let landmark = who.landmark;
-    if (center) {
+    if (center === 'west') {
       for (const [k, kind] of centerPlan(COLS, opts.center)) if (kind !== 'admin') pub.set(k, { kind, name: PUBLIC_NAMES[kind] });
+    } else if (center === 'east') {
+      for (const [k, kind] of centerEastPlan(COLS)) {
+        const [rr, cc] = k.split(',').map(Number);
+        const look = PLOT_LOOKS[(rr * 3 + Math.floor(cc / 2)) % PLOT_LOOKS.length];
+        pub.set(k, kind === 'plot' ? { kind, look, name: PLOT_NAMES[look] } : { kind, name: PUBLIC_NAMES[kind] });
+      }
     } else {
       // 目印は路地の端に1つ、公園を1つ。一番地区 (見本の通り) は二の路地側に寄せる
-      const rows = index === 1 ? [2, 3] : [0, 1, 2, 3];
+      const rows = index === 2 ? [2, 3] : [0, 1, 2, 3];
       const rr = rows[Math.floor(r() * rows.length)];
       const cc = r() < 0.5 ? 0 : COLS - 1;
       pub.set(rr + ',' + cc, { kind: landmark.kind, name: landmark.name });
@@ -192,6 +237,7 @@
           kind: p ? 'public' : 'shop',
           publicKind: p?.kind,
           publicName: p?.name,
+          look: p?.look,
           street: alleys[alley].id,
           // 番地: 路地の上側が奇数、下側が偶数。向かいは ±1
           number: upper ? 2 * col + 1 : 2 * col + 2,
@@ -201,7 +247,7 @@
           size: 'S',
           since: 0,
           // 中央の管理人の区画は、ほかの店の配置に使わない
-          reserved: center && !p ? 'admin' : null,
+          reserved: center === 'west' && !p ? 'admin' : null,
         });
       }
     }
@@ -252,7 +298,7 @@
   }
   function openDistrict(town) {
     const i = town.districts.length;
-    const [gx, gy] = spiral(i + 1)[i];
+    const [gx, gy] = townCells(i + 1)[i];
     const d = layoutDistrict(i, gx, gy, town.opts);
     buildLinks(d);
     town.districts.push(d);
@@ -645,7 +691,7 @@
     [1, -1, 'ひだまり雑貨', '防具屋(盾)', 1, 'new'],
   ];
   function applyFixture(town) {
-    const d = town.districts[1];
+    const d = town.districts[2];
     const C = d.cols;
     const at = (row, col) => d.lots[row * C + (col < 0 ? C + col : col)];
     const evict = [];
@@ -735,12 +781,14 @@
     const d = town.grid.get(gx + ',' + gy);
     return !!d && d.alleys.some((a) => x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h);
   }
-  /** 表示する範囲: 地区と、そのまわり1マスの「街の外」 */
+  /** 表示する範囲: 地区を囲む長方形と、そのまわり1マスの「街の外」 */
   function viewCells(town, districts) {
-    const out = new Map();
-    for (const d of districts ?? town.districts)
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) out.set(d.gx + dx + ',' + (d.gy + dy), [d.gx + dx, d.gy + dy]);
-    return [...out.values()];
+    // 地区を囲む長方形＋まわり1マス (川や並木が途中で切れて見えないように、長方形で埋める)
+    const ds = districts ?? town.districts;
+    const xs = ds.map((d) => d.gx), ys = ds.map((d) => d.gy);
+    const out = [];
+    for (let gy = Math.min(...ys) - 1; gy <= Math.max(...ys) + 1; gy++) for (let gx = Math.min(...xs) - 1; gx <= Math.max(...xs) + 1; gx++) out.push([gx, gy]);
+    return out;
   }
   function chunksFor(town, districts, opt) {
     return viewCells(town, districts).map(([gx, gy]) => chunkAt(town, gx, gy, opt));
@@ -806,6 +854,16 @@
         if ((x - g.x0) % 3 === 1) { if (a) set(deco, x, Y, k % 2 ? DECO.street_tree : DECO.lamp); if (b) set(deco, x, Y + A - 1, k % 2 ? DECO.lamp : DECO.street_tree); k++; }
       }
     }
+    // 4b. 中央の西と東のあいだの大通りは「広場の中央軸」: 石畳にして、両端に並木とガス灯 (歩道の段差は付けない)
+    if (d?.center === 'east' && roadW) {
+      for (let y = g.y0; y < g.y0 + g.h; y++) for (let x = X; x < X + A; x++) { set(ground, x, y, GROUND.plaza); set(deco, x, y, DECO.none); }
+      for (let y = g.y0 + 1; y < g.y0 + g.h; y += 3) {
+        if (y >= g.stripY - 1 && y <= g.stripY + STRIP) continue;
+        if (interiorRoad(town, X - 1, y) || interiorRoad(town, X + A, y)) continue;
+        set(deco, X, y, (y - g.y0) % 6 === 1 ? DECO.street_tree : DECO.lamp);
+        set(deco, X + A - 1, y, (y - g.y0) % 6 === 1 ? DECO.street_tree : DECO.lamp);
+      }
+    }
     // 5. 橋: 大通り (と中央通り) が川を渡る所。川幅より両岸へ1マスずつ長い
     const bridge = (x, w, road) => {
       box(ground, x, g.stripY - 1, w, STRIP + 2, GROUND.bridge);
@@ -813,7 +871,7 @@
       bridges.push({ x, y: g.stripY - 1, w, h: STRIP + 2, axis: 'ns', road, water: [g.stripY, g.stripY + STRIP] });
     };
     if (water && roadW) bridge(X, A, 'avenue');
-    if (water && d?.center) bridge(g.ns.x, g.ns.w, 'street');
+    if (water && d?.center === 'west') bridge(g.ns.x, g.ns.w, 'street');
 
     function countryside() {
       // 街の外: 野原に木・花、川辺に葦、並木の列は林、畑と農家を1つ
@@ -842,7 +900,7 @@
       for (const l of d.lots) {
         if (l.kind !== 'public') continue;
         const half = d.center && l.col >= d.cols / 2 ? 'e' : 'w';
-        const key = l.publicKind === 'fountain' ? 'fountain' : `${l.publicKind}:${l.row}:${d.center ? half : l.col}`;
+        const key = l.publicKind === 'plot' ? 'plot:' + l.id : l.publicKind === 'fountain' || l.publicKind === 'bigpark' ? l.publicKind : `${l.publicKind}:${l.row}:${d.center ? half : l.col}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(l);
       }
@@ -853,6 +911,8 @@
     function publicPlace(d, key, ls, b) {
       const l = ls[0], kind = l.publicKind, up = l.front === 'down';
       const front = (bb, h) => (up ? bb.y + bb.h - 1 - (h ?? 0) : bb.y + (h ?? 0));
+      if (kind === 'bigpark') return bigPark(d, l, b);
+      if (kind === 'plot') return plot(l);
       if (kind === 'fountain') {
         box(ground, b.x, b.y, b.w, b.h, GROUND.plaza);
         objects.push({ kind: 'fountain', x: b.x + b.w / 2 - 2, y: b.y + b.h / 2 - 2, w: 4, h: 4, name: l.publicName });
@@ -899,6 +959,56 @@
       }
       objects.push({ kind: 'landmark', sub: kind, x: l.x + 2, y: l.y + 2, w: 2, h: 2, name: l.publicName });
       set(deco, l.x, l.y, DECO.tree); set(deco, l.x + 5, l.y, DECO.tree); set(deco, l.x + 1, front(l), DECO.bench);
+    }
+
+    /** 中央公園: 芝に池・東屋・小道・並木。中を通る路地は石畳の遊歩道に */
+    function bigPark(d, l, b) {
+      const hs = hash2(opts.seed, l.id * 7);
+      box(ground, b.x, b.y, b.w, b.h, GROUND.lawn);
+      const al = d.alleys[0];
+      box(ground, b.x, al.y, b.w, al.h, GROUND.plaza);
+      // 小道 (南北に2本)
+      for (const px of [b.x + 5, b.x + b.w - 6]) for (let y = b.y; y < b.y + b.h; y++) if (get(ground, px, y) === GROUND.lawn) set(ground, px, y, GROUND.path);
+      // 池 (北側)
+      const pw = 6, ph = 3, pxx = b.x + Math.floor((b.w - pw) / 2), pyy = b.y + 1;
+      box(ground, pxx, pyy, pw, ph, GROUND.canal);
+      for (let x = pxx - 1; x <= pxx + pw; x += 2) { set(deco, x, pyy - 1, DECO.reed); set(deco, x, pyy + ph, DECO.flowers); }
+      // 東屋 (南側)
+      objects.push({ kind: 'facility', sub: 'gazebo', x: b.x + b.w / 2 - 1.5, y: al.y + al.h + 1, w: 3, h: 3, name: '東屋' });
+      // 木と花 (小道・池・東屋の上は避ける)
+      for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
+        if (get(ground, x, y) !== GROUND.lawn) continue;
+        if (x >= b.x + b.w / 2 - 2.5 && x < b.x + b.w / 2 + 2.5 && y >= al.y + al.h && y < al.y + al.h + 5) continue;
+        const h = hash2(hs, y * 977 + x);
+        if (h % 100 < 16) set(deco, x, y, DECO.tree);
+        else if (h % 100 < 22) set(deco, x, y, DECO.flowers);
+        else if (h % 100 < 25) set(deco, x, y, DECO.bush);
+      }
+      for (let x = b.x + 2; x < b.x + b.w - 1; x += 4) { set(deco, x, al.y - 1, DECO.bench); set(deco, x + 2, al.y + al.h, DECO.lamp); }
+    }
+    /** 予定地: 空き地にせず、花壇・遊歩道・石畳・緑地のどれかに見せる (あとで施設に置き換える) */
+    function plot(l) {
+      const up = l.front === 'down';
+      const fy = up ? l.y + l.h - 1 : l.y;
+      box(ground, l.x, l.y, l.w, l.h, GROUND.lawn);
+      if (l.look === 'flower') {
+        for (let y = l.y + 1; y < l.y + l.h - 1; y += 2) for (let x = l.x + 1; x < l.x + l.w - 1; x++) set(ground, x, y, GROUND.flowerbed);
+        for (let y = l.y; y < l.y + l.h; y++) set(ground, l.x + 3, y, GROUND.path);
+        set(deco, l.x, l.y, DECO.tree); set(deco, l.x + 5, l.y + 5, DECO.tree);
+      } else if (l.look === 'walk') {
+        for (let i = 1; i < 5; i++) { set(ground, l.x + i, l.y + 1, GROUND.path); set(ground, l.x + i, l.y + 4, GROUND.path); set(ground, l.x + 1, l.y + i, GROUND.path); set(ground, l.x + 4, l.y + i, GROUND.path); }
+        set(ground, l.x + 2, fy, GROUND.path);
+        for (const [x, y] of [[0, 0], [5, 0], [0, 5], [5, 5]]) set(deco, l.x + x, l.y + y, DECO.tree);
+        set(deco, l.x + 2, l.y + 2, DECO.bush); set(deco, l.x + 3, l.y + 3, DECO.flowers); set(deco, l.x + 2, l.y + 3, DECO.bench);
+      } else if (l.look === 'stone') {
+        box(ground, l.x, l.y, l.w, l.h, GROUND.plaza);
+        for (const [x, y] of [[0, 0], [5, 0], [0, 5], [5, 5]]) set(deco, l.x + x, l.y + y, DECO.pot);
+        set(deco, l.x + 2, l.y + 2, DECO.tree); set(deco, l.x + 1, l.y + 3, DECO.bench); set(deco, l.x + 4, l.y + 3, DECO.bench);
+      } else {
+        const h = hash2(opts.seed, l.id);
+        for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) { const v = hash2(h, y * 31 + x) % 100; if (v < 18) set(deco, x, y, DECO.tree); else if (v < 26) set(deco, x, y, DECO.bush); }
+        set(ground, l.x + 2, fy, GROUND.path); set(deco, l.x + 2, fy, DECO.none);
+      }
     }
 
     function homeLot(d, l) {
@@ -962,6 +1072,7 @@
       v: 2,
       id: chunkId(town, gx, gy),
       kind: d ? (d.center ? 'center' : 'district') : 'outskirts',
+      part: d?.center || null,
       grid: [gx, gy],
       name: d?.name ?? null,
       origin: [X, Y],
@@ -976,7 +1087,7 @@
       objects,
       bridges,
       streets: d ? d.alleys.map((a) => ({ id: a.id, name: a.name, x: a.x, y: a.y, w: a.w, h: a.h })) : [],
-      lots: d ? d.lots.map((l) => ({ id: l.id, x: l.x, y: l.y, w: l.w, h: l.h, kind: l.kind, public: l.publicKind ?? null, street: l.street, number: l.number, state: l.state, som: l.holder && l.state === 'occupied' ? l.holder : null })) : [],
+      lots: d ? d.lots.map((l) => ({ id: l.id, x: l.x, y: l.y, w: l.w, h: l.h, kind: l.kind, public: l.publicKind ?? null, plan: l.publicKind === 'plot' ? 'reserved_for_facility' : null, street: l.street, number: l.number, state: l.state, som: l.holder && l.state === 'occupied' ? l.holder : null })) : [],
     };
   }
   /** 地区のチャンク (前の版の呼び方) */

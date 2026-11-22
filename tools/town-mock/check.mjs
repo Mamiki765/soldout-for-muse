@@ -195,8 +195,13 @@ for (const opt of [{}, { cols: 8 }, { avenue: 2, alley: 1 }, { center: 'admin' }
   ok(noBridge === 0 && nb > 0, `${label} 道と川が交わる所はすべて橋 (橋 ${nb})`);
   ok(short === 0, `${label} 橋は両岸の陸へ1マスずつ延びる (川 64px → 橋 128px)`);
   // 中央地区
-  const center = g.districts[0];
-  const shopsIn = center.lots.filter((l) => l.kind === 'shop');
+  const center = g.districts[0], east = g.districts[1];
+  const shopsIn = [...center.lots, ...east.lots].filter((l) => l.kind === 'shop');
+  ok(center.gx === 0 && center.gy === 0 && east.gx === 1 && east.gy === 0 && east.center === 'east', `${label} 中央は横に2チャンク (西=公共施設、東=公園と予定地)`);
+  ok(east.lots.some((l) => l.publicKind === 'plot') && east.lots.every((l) => l.kind === 'public'), `${label} 中央の東は公園と予定地だけ (予定地 ${east.lots.filter((l) => l.publicKind === 'plot').length} 区画)`);
+  // 中央の2チャンクのあいだは石畳の中央軸 (大通りの段差・歩道なし、川の上は橋)
+  const ax = owner.get(east.x0 - 1 + ',' + (east.y0 + 2));
+  ok(at(east.x0 - 1, east.y0 + 2) === T.GROUND.plaza, `${label} 中央の2チャンクのあいだは石畳の中央軸`);
   ok(opt.center === 'admin' ? shopsIn.length === 1 && shopsIn[0].holder === 'som0002' : shopsIn.length === 0, `${label} 中央地区の店: ${opt.center === 'admin' ? '管理人の店 (som0002) だけ' : 'なし (公共施設だけ)'}`);
   // 空き家は前の持ち主を外に出さない
   const leak = cs.some((c) => c.buildings.some((b) => b.kind === 'held' && b.som) || c.lots.some((l) => l.state === 'held' && l.som));

@@ -247,6 +247,13 @@
       circle(c, '#f4d24d', x + w * 0.62, y + h * 0.6, s * 0.12); circle(c, '#f4d24d', x + w * 0.3, y + h * 0.66, s * 0.1);
       return;
     }
+    if (o.sub === 'gazebo') {
+      circle(c, 'rgba(0,0,0,.2)', x + w / 2 + 3, y + h / 2 + 3, w * 0.5);
+      c.fillStyle = '#d9cfb8'; c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283 + 0.39; c.lineTo(x + w / 2 + Math.cos(a) * w * 0.5, y + h / 2 + Math.sin(a) * h * 0.5); } c.closePath(); c.fill();
+      c.fillStyle = '#5b8c3e'; c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283 + 0.39; c.lineTo(x + w / 2 + Math.cos(a) * w * 0.42, y + h / 2 + Math.sin(a) * h * 0.42); } c.closePath(); c.fill();
+      circle(c, '#d9b23a', x + w / 2, y + h / 2, s * 0.18);
+      return;
+    }
     if (o.sub === 'board') {
       shadow(); c.fillStyle = '#7b5a36'; c.fillRect(x, y + h * 0.25, w, h * 0.5);
       for (let i = 0; i < 5; i++) { c.fillStyle = ['#fff8e6', '#ffe0e6', '#e6f0ff'][i % 3]; c.fillRect(x + s * 0.3 + i * (w - s * 0.6) / 5, y + h * 0.32, (w - s * 0.6) / 6, h * 0.34); }

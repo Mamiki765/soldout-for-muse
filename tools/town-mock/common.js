@@ -30,7 +30,7 @@
 
   // ---- 区画の中身の説明 ----
   function lotInfo(town, lot) {
-    if (lot.kind === 'public') return { type: 'public', title: lot.publicName, sub: town.districts.find((d) => d.id === lot.district)?.center ? '中央の公共施設（店は入らない）' : '地区の目印' };
+    if (lot.kind === 'public') return { type: 'public', title: lot.publicName, sub: lot.publicKind === 'plot' ? '将来の公共施設の予定地（今は花壇・遊歩道・石畳・緑地）' : town.districts.find((d) => d.id === lot.district)?.center ? '中央の公共施設（店は入らない）' : '地区の目印' };
     if (lot.state === 'vacant') return { type: 'npc', title: 'NPCの家', sub: '空き区画（新しい店が入れる）' };
     const s = town.shops.get(lot.holder);
     if (lot.state === 'held') return { type: 'held', title: '空き家', sub: '閉店した店の区画（猶予中。期限が過ぎたらNPCの家に戻る）', shop: s };
@@ -177,7 +177,7 @@
           const b = bld.get(l.id), up = l.front === 'down';
           const txt = info.type === 'held' ? '空き家' : info.type === 'resting' ? '休業' : s >= 10 ? esc(info.shop.shop) : '';
           div.innerHTML = `<div class="sign ${up ? 'down' : 'up'}">${txt}</div>`;
-        } else if (o.signs && l.kind === 'public' && !['fountain', 'park', 'garden', 'market'].includes(l.publicKind) && s >= 10 && !(d.center && l.col % 2 === 1 && ['hall', 'guild', 'tree'].includes(l.publicKind))) {
+        } else if (o.signs && l.kind === 'public' && !['fountain', 'park', 'garden', 'market', 'plot', 'bigpark'].includes(l.publicKind) && s >= 10 && !(d.center && l.col % 2 === 1 && ['hall', 'guild', 'tree'].includes(l.publicKind))) {
           div.innerHTML = `<div class="sign pub up">${esc(l.publicName)}</div>`;
         } else if (o.signs && l.publicKind === 'market' && l.row === 2 && (l.col === 1 || l.col === d.cols - 2) && s >= 10) {
           div.innerHTML = `<div class="sign pub up">${esc(l.publicName)}</div>`;
