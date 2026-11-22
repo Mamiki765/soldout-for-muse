@@ -12,11 +12,13 @@
       avenue: q.get('avenue') === '2' ? 2 : 3, // 大通り 3チップ (96px) が既定
       alley: q.get('alley') === '1' ? 1 : 2, // 路地 2チップ (64px) が既定
       cols: q.get('cols') === '8' ? 8 : 6, // 1列の区画 6 (地区 = 24区画) が既定
+      center: q.get('center') === 'admin' ? 'admin' : 'public', // 中央: 公共施設だけ / 管理人の店を入れる
+      names: q.get('names') === 'b' ? 'b' : 'a', // 地区名の候補 A / B
       ui: q.get('ui') || '',
     };
   }
   function getTown(p) {
-    return T.demoTown({ avenue: p.avenue, alley: p.alley, cols: p.cols, grow: p.shops === 200 ? 79 : 0, fixture: true });
+    return T.demoTown({ avenue: p.avenue, alley: p.alley, cols: p.cols, center: p.center, names: p.names, grow: p.shops === 200 ? 79 : 0, fixture: true });
   }
   function setParam(k, v) {
     const q = new URLSearchParams(location.search);
@@ -28,7 +30,7 @@
 
   // ---- 区画の中身の説明 ----
   function lotInfo(town, lot) {
-    if (lot.kind === 'public') return { type: 'public', title: lot.publicName, sub: '公共の場所' };
+    if (lot.kind === 'public') return { type: 'public', title: lot.publicName, sub: town.districts.find((d) => d.id === lot.district)?.center ? '中央の公共施設（店は入らない）' : '地区の目印' };
     if (lot.state === 'vacant') return { type: 'npc', title: 'NPCの家', sub: '空き区画（新しい店が入れる）' };
     const s = town.shops.get(lot.holder);
     if (lot.state === 'held') return { type: 'held', title: '空き家', sub: '閉店した店の区画（猶予中。期限が過ぎたらNPCの家に戻る）', shop: s };
@@ -50,7 +52,7 @@
     const addr = T.addressText(town, lot);
     const badge = { resting: '<span class="badge rest">改装中（休業）</span>', held: '<span class="badge held">空き家</span>', npc: '<span class="badge npc">NPCの家</span>', public: '<span class="badge pub">目印</span>' }[info.type] || '';
     const isNew = info.shop?.isNew ? '<span class="badge new">新しく入った店</span>' : '';
-    const you = town.fixture && info.shop?.som === town.fixture.you ? '<span class="badge you">あなたの店</span>' : '';
+    const you = (town.fixture && info.shop?.som === town.fixture.you ? '<span class="badge you">あなたの店</span>' : '') + (info.shop?.admin ? '<span class="badge pub">管理人</span>' : '');
     const portrait = info.type === 'open' || info.type === 'resting'
       ? `<div class="portrait" style="--h:${info.shop.hue}"><span>立ち絵の領域<br><small>3:4</small></span></div>`
       : '';
@@ -107,7 +109,8 @@
     if (!host) return;
     const seg = (k, label, opts) => `<span class="lbl">${label}</span><span class="seg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(p[k]) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</span>`;
     host.outerHTML = calendarBadge() + `<button class="btn ctl-tg" type="button">切り替え</button><span class="ctlbox">` + seg('shops', '店数', [[121, '121'], [200, '200']]) + seg('avenue', '大通り', [[3, '96px'], [2, '64px']]) +
-      seg('alley', '路地', [[2, '64px'], [1, '32px']]) + seg('cols', '地区', [[6, '6×4区画'], [8, '8×4区画']]) + '</span>';
+      seg('alley', '路地', [[2, '64px'], [1, '32px']]) + seg('cols', '地区', [[6, '6×4区画'], [8, '8×4区画']]) +
+      seg('center', '中央', [['public', '公共だけ'], ['admin', '＋管理人の店']]) + seg('names', '地名', [['a', '案A'], ['b', '案B']]) + '</span>';
     document.querySelector('header.bar .ctl-tg').onclick = () => { document.querySelector('header.bar').classList.toggle('ctl-open'); hdr(); };
     document.querySelectorAll('header.bar .seg[data-k]').forEach((el) => (el.onclick = (e) => e.target.dataset.v && setParam(el.dataset.k, e.target.dataset.v)));
     hdr();
@@ -140,12 +143,8 @@
    */
   function renderTop(town, opt) {
     const o = { districts: town.districts, scale: 16, labels: true, highlight: null, sizeOverride: null, res: 1, signs: true, ...opt };
-    const A = town.opts.avenue;
-    let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
-    for (const d of o.districts) {
-      x1 = Math.min(x1, d.x0 - A); y1 = Math.min(y1, d.y0 - A);
-      x2 = Math.max(x2, d.x0 + d.w + A); y2 = Math.max(y2, d.y0 + d.h + A);
-    }
+    const bb = T.bounds(town, o.districts);
+    const x1 = bb.x, y1 = bb.y, x2 = bb.x + bb.w, y2 = bb.y + bb.h;
     const s = o.scale, W = x2 - x1, H = y2 - y1;
     const el = document.createElement('div');
     el.className = 'top-map';
@@ -158,7 +157,7 @@
     cv.className = 'tiles';
     cv.width = Math.round(W * s * res); cv.height = Math.round(H * s * res);
     cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
-    const chunks = o.districts.map((d) => T.chunkData(town, d, { sizeOverride: o.sizeOverride }));
+    const chunks = T.chunksFor(town, o.districts, { sizeOverride: o.sizeOverride });
     root.Tiles.paint(cv.getContext('2d'), chunks, s * res, x1, y1, W, H);
     el.appendChild(cv);
     const px = (v, base) => (v - base) * s + 'px';
@@ -178,7 +177,9 @@
           const b = bld.get(l.id), up = l.front === 'down';
           const txt = info.type === 'held' ? '空き家' : info.type === 'resting' ? '休業' : s >= 10 ? esc(info.shop.shop) : '';
           div.innerHTML = `<div class="sign ${up ? 'down' : 'up'}">${txt}</div>`;
-        } else if (o.signs && l.kind === 'public' && l.publicKind !== 'fountain' && l.publicKind !== 'park' && s >= 10) {
+        } else if (o.signs && l.kind === 'public' && !['fountain', 'park', 'garden', 'market'].includes(l.publicKind) && s >= 10 && !(d.center && l.col % 2 === 1 && ['hall', 'guild', 'tree'].includes(l.publicKind))) {
+          div.innerHTML = `<div class="sign pub up">${esc(l.publicName)}</div>`;
+        } else if (o.signs && l.publicKind === 'market' && l.row === 2 && (l.col === 1 || l.col === d.cols - 2) && s >= 10) {
           div.innerHTML = `<div class="sign pub up">${esc(l.publicName)}</div>`;
         }
         el.appendChild(div);
@@ -186,9 +187,17 @@
       if (o.labels) {
         const lab = document.createElement('div');
         lab.className = 'dlabel';
+        lab.className = 'dlabel' + (d.center ? ' center' : '');
         lab.style.left = px(d.x0 + d.w / 2, x1);
         lab.style.top = px(d.y0 + d.h / 2, y1);
         lab.innerHTML = `<b>${esc(d.name)}</b><span>${esc(d.landmark.name)}</span>`;
+        // 寄ったときも見える地名の札 (北の大通りの上)
+        const plate = document.createElement('div');
+        plate.className = 'dplate' + (d.center ? ' center' : '');
+        plate.style.left = px(d.x0 + d.w / 2, x1);
+        plate.style.top = px(d.y0 - town.opts.avenue / 2, y1);
+        plate.textContent = d.name;
+        el.appendChild(plate);
         el.appendChild(lab);
       }
     }

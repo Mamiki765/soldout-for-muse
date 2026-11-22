@@ -58,7 +58,7 @@ button.btn.primary { background: var(--accent); border-color: var(--accent); col
 .lot.t-resting .sign { background: #e9b949; }
 .lot.t-held .sign { background: #ddd; }
 .lot.is-new .sign { border-color: #4f9a5a; box-shadow: 0 0 0 2px rgba(79,154,90,.5); }
-.dlabel { transform: translate(-50%, -50%); pointer-events: none; text-align: center; background: rgba(255,255,255,.88); color: #1d2433; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; z-index: 5; }
+.dlabel { transform: translate(-50%, -50%) scale(var(--lz, 1)); pointer-events: none; text-align: center; background: rgba(255,255,255,.88); color: #1d2433; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; z-index: 5; }
 .dlabel b { display: block; font-size: 13px; }
 .dlabel span { font-size: 11px; color: #555; }
 .show-dlabels .dlabel { display: block; }
@@ -88,3 +88,9 @@ header.bar .ctl-tg { display: none; padding: 3px 10px; font-size: 12px; }
   header.bar .ctlbox { display: none; }
   header.bar.ctl-open .ctlbox { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; width: 100%; }
 }
+
+/* 地名の札 (北の大通りの上)。引いたときは地区の真ん中に大きく */
+.dplate { transform: translate(-50%, -50%); pointer-events: none; background: #5c4126; color: #fff8e6; border: 2px solid #d9b23a; border-radius: 6px; padding: 1px 10px; font-size: max(10px, calc(var(--chip) * .55)); white-space: nowrap; z-index: 5; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+.dplate.center { background: #7a3328; }
+.show-dlabels .dplate { display: none; }
+.dlabel.center b { color: #7a3328; }

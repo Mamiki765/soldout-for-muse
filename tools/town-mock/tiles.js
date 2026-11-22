@@ -9,7 +9,8 @@
   const hh = (x, y) => T.hash2(x * 92821 + 7, y * 68917 + 3);
 
   // ---- 地面 (1チップ) ----
-  function ground(c, code, x, y, s, gx, gy) {
+  function ground(c, code, x, y, s, gx, gy, nb) {
+    nb = nb || (() => code);
     const h = hh(gx, gy);
     const rect = (col, a, b, w, hgt) => { c.fillStyle = col; c.fillRect(x + a * s, y + b * s, w * s, hgt * s); };
     switch (code) {
@@ -38,12 +39,31 @@
         rect('#e3d4b2', 0, 0, 1, 1);
         if (h % 5 === 0) rect('#d6c59f', ((h >>> 3) % 5) / 6, ((h >>> 6) % 5) / 6, 0.18, 0.1);
         break;
-      case G.canal:
+      case G.canal: {
+        // 川: 岸 (陸と接する辺) に石積み。上下の岸は隣のマスを見て決める (チップの「岸・上」「岸・下」)
+        const wet = (v) => v === G.canal || v === G.bridge;
         rect('#5fa6d2', 0, 0, 1, 1);
         rect('#86c1e3', ((h >>> 2) % 4) / 5, 0.3, 0.3, 0.06);
         rect('#86c1e3', ((h >>> 5) % 4) / 5 + 0.1, 0.65, 0.25, 0.06);
-        rect('#9a8f78', 0, 0, 1, 0.08); rect('#9a8f78', 0, 0.92, 1, 0.08);
+        if (!wet(nb(0, -1))) { rect('#a39880', 0, 0, 1, 0.2); rect('#8a7f68', 0, 0.2, 1, 0.05); }
+        if (!wet(nb(0, 1))) { rect('#8a7f68', 0, 0.75, 1, 0.05); rect('#a39880', 0, 0.8, 1, 0.2); }
+        if (!wet(nb(-1, 0))) rect('#a39880', 0, 0, 0.15, 1);
+        if (!wet(nb(1, 0))) rect('#a39880', 0.85, 0, 0.15, 1);
         break;
+      }
+      case G.bridge: {
+        // 橋: 川の上は板張り、両端 (陸へ延びた1マス) は石の橋台。左右の端に欄干
+        const overWater = nb(0, 0, 'water');
+        rect(overWater ? '#b08a58' : '#c4b89c', 0, 0, 1, 1);
+        if (overWater) { c.fillStyle = 'rgba(0,0,0,.12)'; for (let k = 1; k < 4; k++) c.fillRect(x, y + (k * s) / 4, s, Math.max(1, s / 24)); }
+        else { c.fillStyle = 'rgba(0,0,0,.08)'; c.fillRect(x + s / 2, y, 1, s); }
+        const rail = '#6e4e2a';
+        if (nb(-1, 0) !== G.bridge) { rect(rail, 0, 0, 0.14, 1); if (!overWater) rect('#8a7f68', 0, 0, 0.14, 1); }
+        if (nb(1, 0) !== G.bridge) { rect(rail, 0.86, 0, 0.14, 1); if (!overWater) rect('#8a7f68', 0.86, 0, 0.14, 1); }
+        if (nb(0, -1) !== G.bridge) rect('rgba(0,0,0,.15)', 0, 0, 1, 0.06);
+        if (nb(0, 1) !== G.bridge) rect('rgba(0,0,0,.15)', 0, 0.94, 1, 0.06);
+        break;
+      }
       case G.hedge:
         rect('#8fc06a', 0, 0, 1, 1);
         c.fillStyle = '#3f7a30'; c.beginPath(); c.arc(x + s / 2, y + s / 2, s * 0.5, 0, 7); c.fill();
@@ -117,6 +137,16 @@
         c.strokeRect(x + s * 0.2, y + s * 0.2, s * 0.6, s * 0.6);
         c.beginPath(); c.moveTo(x + s * 0.2, y + s * 0.2); c.lineTo(x + s * 0.8, y + s * 0.8); c.stroke();
         break;
+      case D.reed:
+        c.strokeStyle = '#5d8a3a'; c.lineWidth = Math.max(1, s / 16);
+        for (const f of [0.25, 0.45, 0.65]) { c.beginPath(); c.moveTo(x + s * f, y + s * 0.9); c.lineTo(x + s * (f + 0.08), y + s * 0.2); c.stroke(); }
+        circle(c, '#7a5a3c', x + s * 0.53, y + s * 0.22, s * 0.06);
+        break;
+      case D.flowers: {
+        const cols = ['#f4d24d', '#e86a7a', '#ffffff', '#b07ad6'];
+        for (let i = 0; i < 5; i++) circle(c, cols[(i + Math.floor(x + y)) % 4], x + s * (0.2 + ((i * 37) % 60) / 100), y + s * (0.2 + ((i * 53) % 60) / 100), s * 0.07);
+        break;
+      }
       case D.scarecrow:
         c.fillStyle = '#7b5a36'; c.fillRect(cx - s * 0.04, y + s * 0.1, s * 0.08, s * 0.8); c.fillRect(x + s * 0.15, cy - s * 0.04, s * 0.7, s * 0.08);
         circle(c, '#d9b65a', cx, y + s * 0.3, s * 0.16);
@@ -178,34 +208,109 @@
       circle(c, '#e9f6fd', cx, cy, w * 0.05);
       return;
     }
+    if (o.kind === 'facility') return facility(c, o, x, y, w, h, s);
     // 目印 (仮の絵)
-    const col = { clock: '#8a6a4a', bridge: '#9a8f78', well: '#7d7468', board: '#7b5a36', ginkgo: '#d9b23a', bench: '#7b5a36', lamp: '#3a3a3a', pier: '#7b5a36' }[o.sub] || '#7b5a36';
+    const col = { clock: '#8a6a4a', bridge: '#9a8f78', well: '#7d7468', board: '#7b5a36', ginkgo: '#d9b23a', bench: '#7b5a36', lamp: '#3a3a3a', pier: '#7b5a36', mill: '#8a6a4a', bell: '#9a8f78', star: '#4a5a8a', vane: '#7b5a36', anvil: '#555b66', stone: '#7d8a6a', flower: '#e8e1d2' }[o.sub] || '#7b5a36';
+    if (o.sub === 'flower') { circle(c, '#4f9640', cx, cy, w * 0.5); for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283; circle(c, ['#f4d24d', '#e86a7a', '#fff', '#b07ad6'][i % 4], cx + Math.cos(a) * w * 0.36, cy + Math.sin(a) * w * 0.36, w * 0.08); } c.fillStyle = '#333'; c.fillRect(cx - 1, cy - w * 0.25, 2, w * 0.25); return; }
+    if (o.sub === 'stone') { circle(c, 'rgba(0,0,0,.2)', cx + 3, cy + 3, w * 0.42); circle(c, '#8c9384', cx, cy, w * 0.42); circle(c, '#6f9a4a', cx - w * 0.1, cy - w * 0.12, w * 0.2); return; }
+    if (o.sub === 'mill') { c.fillStyle = '#8a6a4a'; c.fillRect(x, y, w, h); c.strokeStyle = '#5c4126'; c.lineWidth = Math.max(2, s / 6); for (let i = 0; i < 4; i++) { const a = i * 1.571 + 0.4; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * w * 0.7, cy + Math.sin(a) * w * 0.7); c.stroke(); } circle(c, '#5c4126', cx, cy, w * 0.12); return; }
     if (o.sub === 'ginkgo') { circle(c, 'rgba(0,0,0,.18)', cx + 4, cy + 4, w * 0.6); circle(c, '#d9b23a', cx, cy, w * 0.6); circle(c, '#f0cf55', cx - w * 0.15, cy - w * 0.15, w * 0.3); return; }
     if (o.sub === 'well') { circle(c, '#7d7468', cx, cy, w * 0.45); circle(c, '#3d5a6b', cx, cy, w * 0.3); return; }
-    if (o.sub === 'pier') { c.fillStyle = '#5fa6d2'; c.fillRect(x - s, y - s, w + 2 * s, h + 2 * s); }
+    if (o.sub === 'pier') { c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x + 3, y + 3, w, h); c.fillStyle = '#b08a58'; c.fillRect(x, y, w, h); c.fillStyle = 'rgba(0,0,0,.15)'; for (let k = 1; k < 4; k++) c.fillRect(x, y + (k * h) / 4, w, 1); circle(c, '#6e4e2a', x + 3, y + 3, s * 0.12); circle(c, '#6e4e2a', x + w - 3, y + 3, s * 0.12); c.strokeStyle = '#d9c9a8'; c.lineWidth = 2; c.beginPath(); c.arc(x + w * 0.7, y + h * 0.7, s * 0.3, 0, 6.3); c.stroke(); return; }
     c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x + 4, y + 4, w, h);
     c.fillStyle = col; c.fillRect(x, y, w, h);
     c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(x, y, w, h / 2);
     if (o.sub === 'clock') { circle(c, '#fff8e6', cx, cy, w * 0.3); c.fillStyle = '#333'; c.fillRect(cx - 1, cy - w * 0.22, 2, w * 0.22); c.fillRect(cx, cy - 1, w * 0.16, 2); }
     if (o.sub === 'lamp') circle(c, '#ffe27a', cx, cy, w * 0.22);
+    if (o.sub === 'bell') { circle(c, '#d9b23a', cx, cy, w * 0.25); circle(c, '#a5801e', cx, cy, w * 0.1); }
+    if (o.sub === 'star') { circle(c, '#c8d4ef', cx, cy, w * 0.34); circle(c, '#4a5a8a', cx + w * 0.08, cy - w * 0.08, w * 0.12); }
+    if (o.sub === 'vane') { c.fillStyle = '#d9b23a'; c.fillRect(cx - w * 0.3, cy - 1, w * 0.6, 3); c.fillRect(cx - 1, cy - w * 0.3, 3, w * 0.6); }
+    if (o.sub === 'anvil') { c.fillStyle = '#2f343c'; c.fillRect(cx - w * 0.25, cy - w * 0.12, w * 0.5, w * 0.24); circle(c, '#ff8a3d', cx + w * 0.3, cy + w * 0.25, w * 0.08); }
+  }
+
+  /** 中央の公共施設 (仮の絵)。屋根の形で見分ける */
+  function facility(c, o, x, y, w, h, s) {
+    const down = o.door !== 'up';
+    const shadow = () => { c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(x + s * 0.25, y + s * 0.25, w, h); };
+    const roof = (col, ridge) => {
+      c.fillStyle = col; c.fillRect(x, y, w, h);
+      c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(x, y, w, h / 2);
+      c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x, y + h / 2 - 1, w, Math.max(2, s / 12));
+      if (ridge) { c.fillStyle = 'rgba(0,0,0,.08)'; for (let k = 1; k < o.w * 2; k++) c.fillRect(x + (k * s) / 2, y, 1, h); }
+    };
+    const door = (col) => { c.fillStyle = col; c.fillRect(x + w / 2 - s * 0.6, down ? y + h - s * 0.35 : y, s * 1.2, s * 0.35); };
+    if (o.sub === 'bigtree') {
+      circle(c, 'rgba(0,0,0,.2)', x + w / 2 + s * 0.4, y + h / 2 + s * 0.4, Math.min(w, h) * 0.55);
+      circle(c, '#2f6b28', x + w / 2, y + h / 2, Math.min(w, h) * 0.55);
+      circle(c, '#3d8a33', x + w * 0.4, y + h * 0.42, Math.min(w, h) * 0.36);
+      circle(c, '#5aa647', x + w * 0.36, y + h * 0.36, Math.min(w, h) * 0.16);
+      circle(c, '#f4d24d', x + w * 0.62, y + h * 0.6, s * 0.12); circle(c, '#f4d24d', x + w * 0.3, y + h * 0.66, s * 0.1);
+      return;
+    }
+    if (o.sub === 'board') {
+      shadow(); c.fillStyle = '#7b5a36'; c.fillRect(x, y + h * 0.25, w, h * 0.5);
+      for (let i = 0; i < 5; i++) { c.fillStyle = ['#fff8e6', '#ffe0e6', '#e6f0ff'][i % 3]; c.fillRect(x + s * 0.3 + i * (w - s * 0.6) / 5, y + h * 0.32, (w - s * 0.6) / 6, h * 0.34); }
+      return;
+    }
+    shadow();
+    if (o.sub === 'hall') {
+      roof('#a3473a', true); door('#5a3a24');
+      const tx = x + w / 2 - s, ty = y + h / 2 - s; // 時計塔
+      c.fillStyle = '#e9dcc8'; c.fillRect(tx, ty, s * 2, s * 2); c.fillStyle = '#7a3328'; c.fillRect(tx + s * 0.2, ty + s * 0.2, s * 1.6, s * 1.6);
+      circle(c, '#fff8e6', tx + s, ty + s, s * 0.6); c.fillStyle = '#333'; c.fillRect(tx + s - 1, ty + s * 0.5, 2, s * 0.5); c.fillRect(tx + s, ty + s - 1, s * 0.35, 2);
+      return;
+    }
+    if (o.sub === 'guild') {
+      roof('#3f5f8f', true); door('#2a3350');
+      for (const f of [0.18, 0.5, 0.82]) { c.fillStyle = '#c8402f'; c.fillRect(x + w * f - s * 0.25, down ? y + h - s * 1.1 : y + s * 0.2, s * 0.5, s * 0.9); c.fillStyle = '#f4d24d'; c.fillRect(x + w * f - s * 0.1, down ? y + h - s * 0.9 : y + s * 0.4, s * 0.2, s * 0.2); }
+      return;
+    }
+    if (o.sub === 'market') {
+      roof('#c08a1e', true); door('#7a4e1c');
+      c.fillStyle = 'rgba(255,255,255,.35)'; for (let k = 0; k < o.w; k += 2) c.fillRect(x + k * s + s * 0.2, y + s * 0.3, s * 0.6, h - s * 0.6);
+      return;
+    }
+    if (o.sub === 'stalls') {
+      const cols = ['#c8402f', '#3f6fa0', '#5b8c3e', '#c08a1e', '#8b5a9e'];
+      c.fillStyle = 'rgba(0,0,0,0)';
+      let i = 0;
+      for (let yy = 0; yy + 2 <= o.h; yy += 2.5) for (let xx = 0; xx + 2 <= o.w; xx += 2.5) {
+        const sx = x + xx * s, sy = y + yy * s, col = cols[i++ % cols.length];
+        c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(sx + 3, sy + 3, s * 2, s * 2);
+        for (let k = 0; k < 4; k++) { c.fillStyle = k % 2 ? '#fff8e6' : col; c.fillRect(sx + (k * s) / 2, sy, s / 2, s * 2); }
+      }
+      return;
+    }
+    roof('#7b5a36', true);
   }
 
   /**
-   * チャンク (TownGen.chunkData の返り値) をいくつか、1枚の canvas に描く。
-   * 大通りは隣の地区と重なるので、先に大通りを敷き、各チャンクは大通り以外のマスだけ描く。
+   * チャンクをいくつか、1枚の canvas に描く。チャンクは重ならない (どのマスも持ち主は1つ) ので、そのまま並べて描く。
+   * 岸と橋の欄干は隣のマスを見て決める (隣のチャンクのマスも見る)。
    * @param {CanvasRenderingContext2D} c
-   * @param {object[]} chunks
+   * @param {object[]} chunks TownGen.chunkAt / chunksFor の返り値
    * @param {number} s 1チップの px
    * @param {number} ox 描き始めのチップ座標 (左上)
    */
   function paint(c, chunks, s, ox, oy, wChips, hChips) {
-    // 街の外は野原。大通りを先に全部敷いてから、各チャンクの大通り以外を描く (重なった大通りで歩道が消えないように)
-    for (let y = 0; y < hChips; y++) for (let x = 0; x < wChips; x++) ground(c, G.grass, x * s, y * s, s, x + ox, y + oy);
-    for (const pass of [0, 1]) for (const ch of chunks) {
+    const byPos = new Map(chunks.map((ch) => [ch.origin[0] + ',' + ch.origin[1], ch]));
+    const [CW, CH] = chunks[0].size;
+    const at = (x, y) => {
+      const cx = chunks[0].origin[0] + Math.floor((x - chunks[0].origin[0]) / CW) * CW;
+      const cy = chunks[0].origin[1] + Math.floor((y - chunks[0].origin[1]) / CH) * CH;
+      const ch = byPos.get(cx + ',' + cy);
+      return ch ? ch.ground[(y - cy) * CW + (x - cx)] : G.grass;
+    };
+    // 橋の下が川か (チャンクの bridges の water の範囲)
+    const overWater = new Set();
+    for (const ch of chunks) for (const b of ch.bridges || []) for (let y = b.water[0]; y < b.water[1]; y++) for (let x = b.x; x < b.x + b.w; x++) overWater.add(x + ',' + y);
+    c.fillStyle = '#8fc06a'; c.fillRect(0, 0, wChips * s, hChips * s);
+    for (const ch of chunks) {
       const [X, Y] = ch.origin, [W, H] = ch.size;
       for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
-        const g = ch.ground[j * W + i];
-        if ((g === G.avenue) === (pass === 0)) ground(c, g, (X + i - ox) * s, (Y + j - oy) * s, s, X + i, Y + j);
+        const gx = X + i, gy = Y + j;
+        const nb = (dx, dy, q) => (q === 'water' ? overWater.has(gx + ',' + gy) : at(gx + dx, gy + dy));
+        ground(c, ch.ground[j * W + i], (gx - ox) * s, (gy - oy) * s, s, gx, gy, nb);
       }
     }
     for (const ch of chunks) for (const o of ch.objects) object(c, o, s, ox, oy);

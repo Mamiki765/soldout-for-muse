@@ -79,6 +79,7 @@
   function apply() {
     map.style.transform = `translate(${tx}px, ${ty}px) scale(${zoom})`;
     map.classList.toggle('show-dlabels', zoom < 0.55);
+    map.style.setProperty('--lz', String(Math.min(4, 0.9 / zoom)));
     drawNav();
     placePop();
   }
