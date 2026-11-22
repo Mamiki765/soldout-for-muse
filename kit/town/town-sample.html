@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>街の地図の見本</title>
+<style>
+body { margin: 0; padding: 12px 16px; background: #efe4cc; color: #2b2112; font: 14px/1.6 "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+form { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 8px; }
+input { font: inherit; padding: 2px 6px; }
+#wrap { display: inline-block; max-width: 100%; overflow: auto; border: 2px solid #8b6b3a; border-radius: 6px; background: #c9bfa9; max-height: 80vh; }
+canvas { display: block; image-rendering: pixelated; }
+#msg { color: #7a3328; }
+</style>
+</head>
+<body>
+<!--
+  SOLD OUT for Muse — 街の地図をお店のスペースで描く見本 (キット 1.2.0)。
+  GET /api/v1/town/map のマス目 (チャンク) を、このフォルダの絵 (tiles-v1.png ほか) で描きます。
+  地図の組み立ては town-gen.js、描画は tiles.js (どちらも観戦画面と同じもの)。読むのは合鍵 vk_… で。
+  This program is free software under the GNU GPL v2 or later. See LICENSE.
+-->
+<form id="f">
+  <label>サーバー <input id="base" size="28" placeholder="https://example/soldout"></label>
+  <label>合鍵 <input id="key" size="20" placeholder="vk_…" type="password"></label>
+  <label>区 <input id="d" size="3" placeholder="自分"></label>
+  <label>大きさ <input id="s" size="3" value="16"></label>
+  <button>描く</button> <span id="msg"></span>
+</form>
+<div id="wrap"><canvas id="cv" width="1" height="1"></canvas></div>
+<script>window.TOWN_ART_DIR = './';</script>
+<script src="town-gen.js"></script>
+<script src="tileset-v1.js"></script>
+<script src="tiles.js"></script>
+<script>
+// 地図の JSON は区ごとに変わったときだけ取り直せば十分です (店の出入り・色・引っ越しで変わる)
+document.getElementById('f').onsubmit = async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const base = document.getElementById('base').value.replace(/\/+$/, '');
+  const d = document.getElementById('d').value.trim();
+  const s = Number(document.getElementById('s').value) || 16; // 1チップ (32px) を何 px で描くか
+  msg.textContent = '読んでいます…';
+  try {
+    const r = await fetch(`${base}/api/v1/town/map?format=json${d ? '&district=' + encodeURIComponent(d) : ''}`, {
+      headers: { authorization: 'Bearer ' + document.getElementById('key').value.trim(), accept: 'application/json' },
+    });
+    if (!r.ok) throw new Error(r.status + ' ' + (await r.text()));
+    const map = await r.json();
+    await Tiles.ready;
+    // bounds (チップ単位) の範囲を1枚に描く。チャンクはまとめて渡すと、道や川が境目でつながる
+    const { x, y, w, h } = map.bounds;
+    const cv = document.getElementById('cv');
+    cv.width = w * s;
+    cv.height = h * s;
+    Tiles.paint(cv.getContext('2d'), map.chunks, s, x, y, w, h);
+    msg.textContent = map.districts.map((x) => (x.no ? x.no + '区' : '中央') + (x.name ? ' ' + x.name : '')).join(' / ');
+  } catch (err) {
+    msg.textContent = '描けませんでした: ' + err.message;
+  }
+};
+</script>
+</body>
+</html>

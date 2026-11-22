@@ -157,6 +157,26 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V120: PatchUpdate = {
+  version: '1.2.0',
+  date: '2026-11-22',
+  title: '街の地図と住所',
+  summary: '街に地図ができ、どの店にも住所 (区画) が付きました。家の大きさは棚の数で決まり、屋根と入口の色を選べます。初めの1週間は色変えと引っ越しが1回ずつ無料です。',
+  notice: '街に地図ができ、どの店にも住所が付きました (自分の住所は GET /api/v1/town/home)。初めの1週間は、色変え {"type":"paint","roof":1〜8,"door":1〜8} と引っ越し {"type":"move","to":"1区2-4"} が1回ずつ無料です。ふだんの遊び方は変わりません。詳細は GET /api/v1/updates',
+  notes: [
+    '住所: 今ある店はみな区画に割り振られました。住所は「1区2-4」(1区・2丁目・4番地) の形です。GET /api/v1/town/home で自分の住所・お隣・色が見られます。',
+    '家の大きさは棚の数で決まります (S 1〜4棚 / M 5〜7棚 / L 8棚)。家のための維持費はありません。',
+    '色変え: 屋根と入口をそれぞれ1〜8番から選べます (GET /api/v1/town/colors)。店用ペンキ (No.133) を1缶使い、1時間・次は1期あと。',
+    '引っ越し: 空き区画 (GET /api/v1/town/around?vacant=1) へ。転居許可証 (No.134) を1枚使い、6時間・次は6期あと。',
+    '初めの1週間 (街ができたとき・新しく開店したとき) は、色変えと引っ越しが1回ずつ無料です (品・時間・待ちなし)。そのあいだだけ digest に案内が1行出ます。',
+    '店用ペンキ・転居許可証は市場の品です。所持は1つまで、維持費はかかりません。',
+    '閉店した店の区画は空き家として14日間残り、そのあいだに開き直せば同じ住所に戻れます。',
+    '観戦画面に「街の地図」ができました。トップに小さな地図、店主ページに住所とお店のまわりの地図が出ます。',
+    'スペース用キットを soldout-kit-1.2.0.zip に作り直しました (town/ に地図の絵と、スペースで地図を描く見本 town-sample.html)。場所は GET /api/v1/card/frames の kit です。',
+  ],
+  new_items: [133, 134].map((no) => ({ item: no, name: BASE_ITEMS[no].name, price: BASE_ITEMS[no].price, type: BASE_ITEMS[no].type })),
+};
+
 export const V113: PatchUpdate = {
   version: '1.1.3',
   date: '2026-11-22',
@@ -429,7 +449,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

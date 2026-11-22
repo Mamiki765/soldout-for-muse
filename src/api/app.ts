@@ -31,6 +31,8 @@ import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './pa
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
 import { checkOwnerName, OwnerHub } from './owners.js';
 import { MailBox, mailListData, mailListText, mailThreadData, mailThreadText } from './mail.js';
+import { MOVE_ITEM, MOVE_TIME, PAINT_ITEM, PAINT_TIME, TownService, type ShopInfo } from '../town/town.js';
+import * as tv from './town-view.js';
 
 export interface AppOptions {
   store: Store;
@@ -138,6 +140,8 @@ export class App {
   readonly owners: OwnerHub;
   /** 店主の郵便箱 (1.0.0) */
   readonly mail: MailBox;
+  /** 街の地図と住所 (1.2.0) */
+  readonly town: TownService;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number; cap: number }>();
@@ -178,6 +182,36 @@ export class App {
     // 0.5.0 より前からある店に som を渡す (開店日の古い順)
     this.owners.migrate(this.world, (id) => this.store.partyOwnerOfShop(id), this.clock());
     this.mail = new MailBox(this.store);
+    this.town = new TownService(this.store, this.config.oneDayTime);
+    this.initTown();
+  }
+
+  /**
+   * 街の地図を初めて作る (1.2.0)。今いる店を区画に割り振り、ペンキ・転居許可証を市場に並べる。
+   * もう街があれば、猶予の切れた空き家を片付けるだけ
+   */
+  private initTown(): void {
+    const now = this.clock();
+    if (this.town.districts) {
+      this.town.expire(now);
+      return;
+    }
+    const soms = this.world.shops.filter((s) => s.status).map((s) => this.store.ownerByShop(s.id)?.som).filter((x): x is string => !!x);
+    this.town.init(soms, now);
+    const ws = this.world.wholestore;
+    const cap = Math.max(1, this.world.shops.filter((s) => s.status).length);
+    for (const no of [PAINT_ITEM, MOVE_ITEM]) if (no <= MAX_ITEM && !(ws[no - 1] > 0)) ws[no - 1] = cap;
+    this.persist([], now);
+  }
+
+  /** 街の地図に描く店の様子 (som から)。閉店中の店主は undefined */
+  townInfo(g: Game): (som: string) => ShopInfo | undefined {
+    return (som) => {
+      const ow = this.store.ownerBySom(som);
+      const dt = ow?.shop_id != null ? g.allShops.find((s) => s.id === ow.shop_id && s.status) : undefined;
+      if (!ow || !dt) return undefined;
+      return { shelves: dt.showcasecount, resting: !!dt.rest, shop: dt.shopname, owner: ow.display_name, job: v.jobName(dt) };
+    };
   }
 
   /**
@@ -263,9 +297,11 @@ export class App {
   private save(g: Game): void {
     // 値動きと税額は街と一緒に確定する。閉店・倒産のsomを切り離す前に書く。
     const rows = g.newPriceRows;
-    this.persist(g.newLogs, g.now, rows.length || g.newTaxes.size ? () => {
+    const writes = g.pendingWrites.splice(0);
+    this.persist(g.newLogs, g.now, rows.length || g.newTaxes.size || writes.length ? () => {
       if (rows.length) this.store.addPriceRows(rows, PRICE_HISTORY_KEEP);
       if (g.newTaxes.size) this.store.addTaxTotals(g.newTaxes);
+      for (const w of writes) w();
     } : undefined);
     if (rows.length) this.prevPrices = undefined;
     rows.length = 0;
@@ -353,6 +389,9 @@ export class App {
   }
 
   private onShopClosed(shopId: number): void {
+    // 住所は空き家として猶予を残す (店主の行から店を外す前に som を読む)
+    const som = this.store.ownerByShop(shopId)?.som;
+    if (som) this.town.onClosed(som, this.clock());
     this.owners.onClosed(shopId, this.clock());
     this.store.deleteTokensOf(shopId);
     this.store.deleteViewKeysOf(shopId);
@@ -631,6 +670,13 @@ export class App {
     }
 
     // ---- 人間向け (観戦・見学) ----
+    // 街の地図の部品と色の見本 (誰の情報も含まないので、観戦の合言葉なしで読める。1.2.0)
+    if (method === 'GET' && (path.startsWith('/view/town/static/') || path.startsWith('/view/kit/town/'))) {
+      const f = await tv.townStatic(path);
+      if (!f) throw new HttpError(404, 'ありません');
+      return { status: 200, binary: f, headers: { 'cache-control': 'public, max-age=86400' } };
+    }
+    if (method === 'GET' && path === '/view/town/colors') return { status: 200, html: tv.colorsPage(this.town.gen, GAME_TITLE) };
     if (method === 'GET' && (path === '/' || path === '/updates' || path.startsWith('/view') || path.startsWith('/images/'))) {
       if (path.startsWith('/images/')) return this.image(path);
       return renderViewer(this, req, url);
@@ -695,6 +741,11 @@ export class App {
       return { status: 200, text: JSON.stringify(d, null, 1) + '\n', json: d };
     }
 
+    // 店の色の見本 (誰でも読める。1.2.0)
+    if (method === 'GET' && p === '/town/colors') {
+      const d = tv.colorsData(this.town.gen, this.publicUrl);
+      return { status: 200, text: tv.colorsText(d), json: d };
+    }
     if (p.startsWith('/admin/')) return this.admin(req, method, p.slice('/admin'.length), q);
     // 保管庫の接続確認などが「自分は誰か」を聞いたとき、管理用トークンにも 200 で答える
     if (method === 'GET' && p === '/me' && this.isAdminToken(this.bearer(req))) {
@@ -723,6 +774,8 @@ export class App {
           const ow = this.store.ownerByShop(dt.id);
           const card = ow && this.owners.cardData(g, ow);
           if (card?.stale) d.warnings.push('許可証の絵が古い (店主名・店名・職業のどれかが変わった)。描き直すとよい GET /api/v1/profile/card/draft');
+          // 街の地図 (1.2.0): 住所はふだん出さない。無料の引っ越し・色変えが残っている間だけ案内する
+          if (ow) d.town = tv.digestTownLines(this.town, ow.som, this.publicUrl, g.now);
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
@@ -783,6 +836,31 @@ export class App {
           const resting = g.allShops.filter((x) => x.status && x.rest).map((x) => ({ id: x.id, shop: x.shopname, until: x.rest!.until }));
           const d = { people: shownPeople(this.world), events: g.eventMessages, base: this.owners.o.assetsBaseUrl + '/', shops: this.owners.townData(g), resting, period: this.world.periodLog };
           return { status: 200, text: townText(d), json: d };
+        }
+        case '/town/home': {
+          // 自分の住所・色・無料の券 (1.2.0)
+          const som = this.owners.ownerOf(dt.id).som;
+          const d = this.town.homeData(this.town.build(this.townInfo(g), g.now), som, g.now);
+          if (!d) throw new HttpError(404, 'まだ街に住所がありません (少し待ってからもう一度)');
+          return { status: 200, text: tv.homeText(d), json: d };
+        }
+        case '/town/around': {
+          // まわり: 同じ通りの両側 (既定) か地区ぜんぶ (?scope=district)。?vacant=1 で街ぜんぶの空き区画
+          const town = this.town.build(this.townInfo(g), g.now);
+          if (q.get('vacant') === '1') {
+            const d = { districts: this.town.vacancies(town) };
+            return { status: 200, text: tv.vacantText(d), json: d };
+          }
+          const d = this.town.around(town, this.owners.ownerOf(dt.id).som, q.get('scope') === 'district' ? 'district' : 'street');
+          if (!d) throw new HttpError(404, 'まだ街に住所がありません (少し待ってからもう一度)');
+          return { status: 200, text: tv.aroundText(d), json: d };
+        }
+        case '/town/map': {
+          // 地図のマス目 (スペースで地図を描く用。重いので必要なときだけ)。?district=1 (区の番号、中央は 0)。既定は自分の地区
+          const town = this.town.build(this.townInfo(g), g.now);
+          const d = tv.mapData(this.town, town, this.owners.ownerOf(dt.id).som, q.get('district'));
+          if (!d) throw new HttpError(404, 'その区はまだありません');
+          return { status: 200, text: JSON.stringify(d) + '\n', json: d };
         }
         case '/profile': {
           const ow = this.owners.ownerOf(dt.id);
@@ -918,7 +996,8 @@ export class App {
     // 店とトークンは1回の保存で一緒に確定させる (片方だけ残らないように。監査 A03)
     const shop = this.openAndSave(g, { name: String(body.name ?? ''), shopname: String(body.shopname ?? '') }, (id) => {
       this.store.addToken(id, token, g.now);
-      this.owners.onOpen(g.shopById(id)!, undefined, undefined, g.now);
+      const ow = this.owners.onOpen(g.shopById(id)!, undefined, undefined, g.now);
+      this.town.onOpen(ow.som, g.now);
     });
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
@@ -959,7 +1038,8 @@ export class App {
       if (had !== undefined) this.store.unlinkPartyShop(had);
       this.store.linkPartyOwner(who.ownerId, id, g.now);
       // 店主の som は人ごと。建て直しでも同じ som を引き継ぐ
-      this.owners.onOpen(g.shopById(id)!, who.ownerId, who.name, g.now);
+      const ow = this.owners.onOpen(g.shopById(id)!, who.ownerId, who.name, g.now);
+      this.town.onOpen(ow.som, g.now);
     });
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
@@ -1210,6 +1290,39 @@ export class App {
         return rest.startRest(g, dt, Math.trunc(n('days', rest.REST_MAX_DAYS)), '', isYes(a.confirm));
       case 'reopen':
         return [rest.endRest(g, dt)];
+      case 'paint': {
+        // 店の色を塗り替える (1.2.0)。初めの1週間は1回だけ無料、そのあとは店用ペンキ1缶・1時間・次は1期あと
+        const som = this.owners.ownerOf(dt.id).som;
+        const color = (k: string): number | null => (a[k] === undefined || a[k] === null || a[k] === '' ? null : Math.trunc(n(k)));
+        const p = this.town.checkPaint(som, color('roof'), color('door'), g.now);
+        if (!p.free) {
+          if (!(dt.item[PAINT_ITEM - 1] > 0)) throw new GameError('店用ペンキを持っていません (市場で買えます。{"type":"buy","item":"店用ペンキ","count":1})');
+          g.useTime(PAINT_TIME);
+          dt.item[PAINT_ITEM - 1]--;
+        }
+        g.pendingWrites.push(() => this.town.writePaint(som, p.roof, p.door, p.free, g.now));
+        const R = this.town.gen.ROOFS[p.roof - 1].name, D = this.town.gen.DOORS[p.door - 1].name;
+        g.writeLog(0, dt.id, 0, `お店を塗り替えました (屋根 ${p.roof} ${R}・入口 ${p.door} ${D})`);
+        return [`お店を塗り替えました: 屋根 ${p.roof} ${R}・入口 ${p.door} ${D}${p.free ? ' (無料の1回を使いました)' : ' (店用ペンキ1缶・1時間)'}`];
+      }
+      case 'move': {
+        // 別の空き区画へ引っ越す (1.2.0)。初めの1週間は1回だけ無料、そのあとは転居許可証1枚・6時間・次は6期あと
+        const som = this.owners.ownerOf(dt.id).som;
+        const to = s('to').trim();
+        if (!to) throw new GameError('to に引っ越し先の住所を書いてください (例 {"type":"move","to":"1区2-4"}。空きは GET /api/v1/town/around?scope=district)');
+        const m = this.town.checkMove(som, to, g.now);
+        if (!m.free) {
+          if (!(dt.item[MOVE_ITEM - 1] > 0)) throw new GameError('転居許可証を持っていません (市場で買えます。{"type":"buy","item":"転居許可証","count":1})');
+          g.useTime(MOVE_TIME);
+          dt.item[MOVE_ITEM - 1]--;
+        }
+        g.pendingWrites.push(() => this.town.writeMove(som, m.lot.id, m.free, g.now));
+        const town = this.town.build();
+        const addr = this.town.gen.addressForms(town, m.lot);
+        g.writeLog(0, dt.id, 0, `${addr.short} (${addr.heading}) へ引っ越しました`);
+        g.writeLog(0, 0, 0, `${dt.shopname}が${addr.short}へ引っ越したようです`);
+        return [`${addr.short} (${addr.long}・${addr.heading}) へ引っ越しました${m.free ? ' (無料の1回を使いました)' : ' (転居許可証1枚・6時間)'}`];
+      }
       case 'close':
         if (s('confirm') !== 'closeshop') throw new GameError('店じまいしたい場合は confirm に closeshop と入れてください。');
         return [act.closeOwnShop(g, dt)];
@@ -1217,7 +1330,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename rest reopen close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename paint move rest reopen close。くわしくは GET /api/v1/help',
         );
       }
     }

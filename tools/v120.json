@@ -1,0 +1,8 @@
+{
+ "note": "1.2.0 街の地図: ふだんの色変えと引っ越しの品 (ラピス案、リカさん了承 2026-11-22)。所持上限1・維持費0・値段は固定 (pricehalf 0)・売れ行きは極大 (棚に出してもほぼ売れない)。使い方は品の use ではなく行動 paint / move (src/town/town.ts)",
+ "version": "1.2.0",
+ "items": [
+  { "no": 133, "code": "shop-paint", "name": "店用ペンキ", "info": "お店の屋根と入口の色を塗り替えるペンキ。{\"type\":\"paint\",\"roof\":1〜8,\"door\":1〜8} で使う (空けた方は今の色のまま)。使うと1時間かかり、次に塗れるのは1期あと。色の見本は GET /api/v1/town/colors", "scale": "缶", "type": 10, "price": 50000, "cost": 0, "popular": 864000000, "limit": 1, "plus": 600, "flag": "", "pricebase": 0, "pricehalf": 0, "wslimit": 1 },
+  { "no": 134, "code": "move-permit", "name": "転居許可証", "info": "街の別の空き区画へお店ごと引っ越すための許可証。{\"type\":\"move\",\"to\":\"1区2-4\"} で使う。使うと6時間かかり、次に引っ越せるのは6期あと。空き区画は GET /api/v1/town/around?scope=district", "scale": "枚", "type": 10, "price": 200000, "cost": 0, "popular": 864000000, "limit": 1, "plus": 600, "flag": "", "pricebase": 0, "pricehalf": 0, "wslimit": 1 }
+ ]
+}

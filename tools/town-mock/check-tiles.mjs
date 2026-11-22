@@ -31,7 +31,7 @@ const frame = (key, w, h) => {
   if (w !== undefined) assert.deepEqual(frames.get(key).slice(2), [w, h], key);
 };
 const colors = (group) => manifest.colors[group].map(({ tones }) => tones[group === 'roof' ? 2 : 1]);
-runInNewContext(readFileSync(new URL('town-gen.js', import.meta.url), 'utf8'), scope);
+runInNewContext(readFileSync(new URL('../../public/town/town-gen.js', import.meta.url), 'utf8'), scope);
 const T = scope.TownGen;
 assert.deepEqual([...T.ROOF_COLORS].sort(), colors('roof').sort());
 assert.deepEqual([...T.DOOR_COLORS].sort(), colors('door').sort());

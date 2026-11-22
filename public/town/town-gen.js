@@ -781,6 +781,62 @@
     const base = PALETTES[lk.palette ?? (shop ? Math.floor(shop.hue / 45) % PALETTES.length : 0)];
     return { ...base, ...(lk.roof ? { roof: lk.roof } : {}), ...(lk.door ? { door: lk.door } : {}) };
   }
+  /**
+   * 本番の外観 (1.2.0)。屋根と入口は別々に 1〜8 番から選ぶ。番号の順はキット kit/town/tileset-v1.json の colors と同じ。
+   * 選んでいなければ som から決まるプリセット (PALETTES) の色。壁と縁はプリセットのまま。
+   */
+  const ROOFS = [
+    { name: '赤瓦', hex: '#a36550' }, { name: '藍', hex: '#4f6682' }, { name: '葡萄', hex: '#7b5971' }, { name: '苔', hex: '#617852' },
+    { name: '山吹', hex: '#a17a46' }, { name: '墨', hex: '#535762' }, { name: '灰桜', hex: '#a87582' }, { name: '浅葱', hex: '#4d8380' },
+  ];
+  const DOORS = [
+    { name: '樫', hex: '#694f40' }, { name: '深緑', hex: '#496b55' }, { name: '渋赤', hex: '#824d47' }, { name: '紺', hex: '#3f536c' },
+    { name: '生成り', hex: '#d8c7a8' }, { name: '焦茶', hex: '#5a4026' }, { name: '葡萄', hex: '#4e3358' }, { name: '墨', hex: '#2c2a27' },
+  ];
+  /** プリセットごとの屋根・入口の番号 (PALETTES と同じ並び) */
+  const PRESET_NOS = [[1, 1], [2, 4], [4, 6], [3, 7], [5, 5], [7, 3], [6, 8], [8, 2]];
+  const somNo = (som) => Number(String(som).replace(/\D/g, '')) || 0;
+  /** som の既定のプリセット番号 (0〜7) */
+  const presetOf = (som) => hash2(20261122, somNo(som)) % PALETTES.length;
+  /** 店の色の番号 (選んでいなければ既定)。roof/door は 1〜8 か null */
+  function homeColors(som, roof, door) {
+    const [r, d] = PRESET_NOS[presetOf(som)];
+    return { roof: roof || r, door: door || d };
+  }
+  /** 店の外観 (描画用。lookOf が読む形) */
+  function homeLook(som, roof, door) {
+    const c = homeColors(som, roof, door);
+    return { palette: presetOf(som), roof: ROOFS[c.roof - 1].hex, door: DOORS[c.door - 1].hex };
+  }
+
+  /**
+   * 保存してある街を組み立て直す (本番。サーバーとブラウザで同じ形)。
+   * homes: [{ som, lot, state: 'occupied'|'held', shelves, roof, door, resting, hold_until, shop, owner, job }]
+   */
+  function restoreTown(opts, districts, homes) {
+    const town = createTown(opts);
+    for (let i = 0; i < districts; i++) openDistrict(town);
+    for (const h of homes) {
+      const lot = town.lots.get(h.lot);
+      if (!lot || lot.kind !== 'shop') continue;
+      const size = sizeOfShelves(h.shelves || 1);
+      const shop = { ...h, som: h.som, lot: lot.id, size, look: homeLook(h.som, h.roof, h.door), resting: !!h.resting, wishes: [] };
+      town.shops.set(h.som, shop);
+      lot.state = h.state === 'held' ? 'held' : 'occupied';
+      lot.holder = h.som;
+      lot.size = size;
+      if (h.state === 'held') lot.holdUntil = h.hold_until;
+    }
+    return town;
+  }
+  /** 住所の短い形 ("1区2-4") から区画を探す。中央・公共・無い番地は null */
+  function lotByAddress(town, text) {
+    const m = /^\s*第?(\d+)区\s*(\d)(?:丁目|-)\s*(\d+)(?:番地?)?\s*$/.exec(String(text ?? ''));
+    if (!m) return null;
+    const d = town.districts.find((x) => !x.center && x.no === Number(m[1]));
+    return d?.lots.find((l) => l.kind === 'shop' && (l.row < 2 ? 1 : 2) === Number(m[2]) && l.number === Number(m[3])) ?? null;
+  }
+
   /** 屋根と入口を個別に変えるときの色。 */
   const ROOF_COLORS = PALETTES.map((p) => p.roof);
   const DOOR_COLORS = PALETTES.map((p) => p.door);
@@ -1121,6 +1177,7 @@
     FIXTURE,
     CHIP, MOD, LOT, COLS, ROWS, STRIP, HOME, SHELF_COST, sizeOfShelves,
     mulberry32, hash2, spiral, layoutDistrict, createTown, openDistrict, placeInitial, addShop, closeShop, expireHolds,
+    ROOFS, DOORS, PRESET_NOS, presetOf, homeColors, homeLook, restoreTown, lotByAddress,
     npcLook, addressText, addressForms, districtLabel, MUSE_NAMES, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

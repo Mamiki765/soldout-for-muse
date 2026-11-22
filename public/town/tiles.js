@@ -7,7 +7,8 @@
   const G = T.GROUND;
   const D = T.DECO;
   const frames = new Map();
-  const artDir = new URL('../../kit/town/', document.currentScript.src);
+  // 絵の置き場。見本 (tools/town-mock) はリポジトリの kit/town、本番の観戦画面は TOWN_ART_DIR で渡す
+  const artDir = new URL(root.TOWN_ART_DIR || '../../kit/town/', document.currentScript.src);
   const ready = Promise.all(Object.values(A.atlases).map((atlas) => new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve();

@@ -212,7 +212,7 @@
         lab.className = 'dlabel' + (d.center ? ' center' : '');
         lab.style.left = px(d.x0 + d.w / 2, x1);
         lab.style.top = px(d.y0 + d.h / 2, y1);
-        lab.innerHTML = `<b>${esc(T.districtLabel(d))}</b><span>${esc(d.landmark.name)}</span>`;
+        lab.innerHTML = `<b>${esc(T.districtLabel(d))}</b>${d.center ? `<span>${esc(d.landmark.name)}</span>` : ''}`; // 目印の名前は中央だけ
         // 寄ったときも見える地名の札 (北の大通りの上)
         const plate = document.createElement('div');
         plate.className = 'dplate' + (d.center ? ' center' : '');

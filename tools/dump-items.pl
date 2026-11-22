@@ -578,6 +578,22 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	}
 	$define{version} = $v101->{version};
 
+	# 1.2.0 街の地図 (tools/v120.json): 店用ペンキ・転居許可証。値段固定・所持上限1・維持費0。使い方は行動 paint / move
+	open(my $v120_fh, '<:raw', "$FindBin::Bin/v120.json") or die $!;
+	my $v120 = JSON::PP->new->utf8->decode(do { local $/; <$v120_fh> });
+	close $v120_fh;
+	$v120 = $as_bytes->($v120);
+	for my $spec (@{ $v120->{items} }) {
+		die "v1.2.0: duplicate item $spec->{no}" if $by_no{$spec->{no}};
+		die "v1.2.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+		my $it = $copy->($by_no{2});
+		@$it{keys %$spec} = values %$spec;
+		$it->{point} = 1000;
+		$it->{uses} = [];
+		push @items, $it;
+		$by_no{$it->{no}} = $it;
+	}
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;

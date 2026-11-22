@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const here = dirname(fileURLToPath(import.meta.url));
 const ctx = { globalThis: {} };
 ctx.globalThis = ctx;
-vm.runInNewContext(readFileSync(join(here, 'town-gen.js'), 'utf8'), ctx);
+vm.runInNewContext(readFileSync(join(here, '../../public/town/town-gen.js'), 'utf8'), ctx);
 const T = ctx.TownGen;
 
 let fails = 0;
