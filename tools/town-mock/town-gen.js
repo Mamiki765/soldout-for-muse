@@ -105,9 +105,9 @@
     { key: 'orchard', name: 'りんごの木', a: '林檎坂', b: 'オーチャード' },
     { key: 'windmill', name: '風車', a: '風車ヶ丘', b: 'ミルヒル' },
   ];
-  /** 地区名 (ミュート案 2026-11-22、24区ぶん)。区の番号で決まる。25区から先は名前なし (「第25区」だけ) */
+  /** 地区名 (ミュート案 2026-11-22、24区ぶん。18区と19区は川のある地区に「太鼓橋」が来るよう入れ替え)。区の番号で決まる。25区から先は名前なし (「第25区」だけ) */
   const MUSE_NAMES = ['灯火横丁', '銀杏坂', '鐘の辻', '星見ヶ丘', '風見坂', '水車河岸', '鍛冶屋町', '苔石町', '林檎坂', '風車ヶ丘',
-    '硝子町', '染布坂', '薬師小路', '機織町', '月見台', '藤の辻', '鏡池小路', '猫待坂', '太鼓橋', '香炉坂', '窯場町', '雨読横丁', '翡翠台', '鈴蘭小路'];
+    '硝子町', '染布坂', '薬師小路', '機織町', '月見台', '藤の辻', '鏡池小路', '太鼓橋', '猫待坂', '香炉坂', '窯場町', '雨読横丁', '翡翠台', '鈴蘭小路'];
   const ord = (n) => ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][n - 1] ?? String(n);
   /** 位置 index の地区の名前と目印。同じ地形の列で何番目かで決まる (index だけで決まる) */
   function districtIdentity(index, names) {
@@ -595,12 +595,11 @@
   }
   /** 地図に描く範囲 (地区とまわり1マスの「街の外」、チップ単位)。districts を渡すとその範囲だけ */
   function bounds(town, districts) {
-    let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
-    for (const [gx, gy] of viewCells(town, districts)) {
-      const g = geom(town.opts, gx, gy);
-      x1 = Math.min(x1, g.x0 - g.A); y1 = Math.min(y1, g.y0 - g.A);
-      x2 = Math.max(x2, g.x0 + g.w); y2 = Math.max(y2, g.y0 + g.h);
-    }
+    const ds = districts ?? town.districts;
+    const xs = ds.map((d) => d.gx), ys = ds.map((d) => d.gy);
+    const lo = geom(town.opts, Math.min(...xs), Math.min(...ys)), hi = geom(town.opts, Math.max(...xs) + 1, Math.max(...ys) + 1);
+    // 西と北は自分の大通りから、東と南は外側の大通りの端まで
+    const x1 = lo.x0 - lo.A, y1 = lo.y0 - lo.A, x2 = hi.x0, y2 = hi.y0;
     return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
   }
 
@@ -805,11 +804,12 @@
   }
   /** 表示する範囲: 地区を囲む長方形と、そのまわり1マスの「街の外」 */
   function viewCells(town, districts) {
-    // 地区を囲む長方形＋まわり1マス (川や並木が途中で切れて見えないように、長方形で埋める)
+    // 地区を囲む長方形だけ (店の無い外まわりは描かない。リカさん 2026-11-22)。長方形の中の地区の無いマスは「街の外」チャンク。
+    // 東と南の端の大通りは隣のチャンクの持ち分なので、東・南に1マスぶん取る (描くのは bounds で大通りまで)
     const ds = districts ?? town.districts;
     const xs = ds.map((d) => d.gx), ys = ds.map((d) => d.gy);
     const out = [];
-    for (let gy = Math.min(...ys) - 1; gy <= Math.max(...ys) + 1; gy++) for (let gx = Math.min(...xs) - 1; gx <= Math.max(...xs) + 1; gx++) out.push([gx, gy]);
+    for (let gy = Math.min(...ys); gy <= Math.max(...ys) + 1; gy++) for (let gx = Math.min(...xs); gx <= Math.max(...xs) + 1; gx++) out.push([gx, gy]);
     return out;
   }
   function chunksFor(town, districts, opt) {
