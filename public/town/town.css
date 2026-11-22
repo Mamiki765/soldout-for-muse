@@ -39,7 +39,10 @@
 @media (max-width: 640px) { .town-dsel { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; } .town-find { display: block; } }
 .town-win { position: relative; height: min(72vh, 720px); min-height: 340px; overflow: hidden; border: 1px solid #99a; background: #efe4cc; touch-action: none; cursor: grab; margin: 4px 0; }
 @media (max-width: 640px) { .town-win { height: calc(100dvh - 150px); margin: 4px -8px; border-left: 0; border-right: 0; } }
-.town-win .top-map { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.town-win { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: contain; }
+.town-win.grabbing { cursor: grabbing; }
+.town-win .top-map { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.town-win .town-card { -webkit-user-select: text; user-select: text; }
 .town-win .zb { position: absolute; right: 8px; top: 8px; z-index: 6; display: flex; flex-direction: column; gap: 4px; }
 .town-win .zb button { width: 34px; height: 34px; border: 1px solid #8b6b3a; background: #fbf5e6; color: #3d2a12; border-radius: 6px; font-size: 18px; cursor: pointer; }
 .town-win .hint { position: absolute; left: 8px; bottom: 8px; z-index: 6; background: rgba(251,245,230,.92); border: 1px solid #c9b38a; border-radius: 6px; font-size: 11px; padding: 2px 6px; color: #3d2a12; }
