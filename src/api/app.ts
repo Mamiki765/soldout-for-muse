@@ -236,6 +236,7 @@ export class App {
 
   /** 経過時間ぶんの計算をした Game を返す (原作の Turn → DataRead) */
   private game(): { g: Game; turned: boolean } {
+    if (this.worldNeedsReload) this.loadSavedWorld();
     const now = this.clock();
     const g = new Game(this.world, this.config, this.rng, now);
     const before = this.world.shops.map((s) => s.id);
@@ -244,6 +245,8 @@ export class App {
     try {
       const turnedTime = turn(g);
       turned = ord.sweepOrders(g) || turnedTime;
+      // 旧版の未処理区間を通常どおり消化してから記録を始める。区間を分割して売れ行き等を変えない。
+      if (turnedTime) this.world.taxTrackingStartedAt ??= this.world.lasttime;
     } catch (e) {
       // 計算の途中で落ちたら、メモリの街は中途半端。保存してある街に戻す (監査 A01)
       this.reloadWorld();
@@ -258,10 +261,15 @@ export class App {
   }
 
   private save(g: Game): void {
-    // 決算で作った値動きの記録 (0.6.0) は、街と同じトランザクションで書く
-    const rows = g.newPriceRows.splice(0);
-    this.persist(g.newLogs, g.now, rows.length ? () => this.store.addPriceRows(rows, PRICE_HISTORY_KEEP) : undefined);
+    // 値動きと税額は街と一緒に確定する。閉店・倒産のsomを切り離す前に書く。
+    const rows = g.newPriceRows;
+    this.persist(g.newLogs, g.now, rows.length || g.newTaxes.size ? () => {
+      if (rows.length) this.store.addPriceRows(rows, PRICE_HISTORY_KEEP);
+      if (g.newTaxes.size) this.store.addTaxTotals(g.newTaxes);
+    } : undefined);
     if (rows.length) this.prevPrices = undefined;
+    rows.length = 0;
+    g.newTaxes.clear();
     g.newLogs.length = 0;
   }
 
@@ -278,6 +286,7 @@ export class App {
    */
   private persist(newLogs: LogEntry[], now: number, extra?: () => void): void {
     try {
+      if (this.worldNeedsReload) throw new Error('保存済みの街を読み直せていません');
       this.store.saveWorld(this.world, newLogs, now, this.config.logExpireTime * 2, extra);
     } catch (e) {
       this.reloadWorld();
@@ -285,13 +294,22 @@ export class App {
     }
   }
 
+  private worldNeedsReload = false;
+
   /** 保存してある街を読み直す (メモリの街を捨てる) */
+  private loadSavedWorld(): void {
+    const world = this.store.loadWorld(this.clock());
+    new Game(world, this.config, this.rng, this.clock()).sortShops();
+    this.world = world;
+    this.worldNeedsReload = false;
+  }
+
   private reloadWorld(): void {
+    this.worldNeedsReload = true;
     try {
-      this.world = this.store.loadWorld(this.clock());
-      new Game(this.world, this.config, this.rng, this.clock()).sortShops();
+      this.loadSavedWorld();
     } catch (e) {
-      // 読み直しも失敗したら、次の保存でもう一度試す
+      // 読み直しに成功するまで、失敗した処理の街を保存しない
       console.error(e);
     }
   }

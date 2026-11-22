@@ -62,6 +62,8 @@ export class Game {
   periodMode = false;
   /** このリクエストで増えた最近の出来事。保存側がまとめて書き込む */
   readonly newLogs: LogEntry[] = [];
+  /** この処理で発生した税額。保存側で店idをsomに解決して街と一緒に確定する */
+  readonly newTaxes = new Map<number, { sales: bigint; deposit: bigint }>();
   /** このリクエストの決算で記録した値動き (1期1行)。保存側が market_history に書く (engine/prices.ts) */
   readonly newPriceRows: PeriodPriceRow[] = [];
   /** 決算で数えた今期の売れ数。同じ区間の市場在庫の増減のあとで1行にする (engine/prices.ts) */
@@ -300,6 +302,25 @@ export class Game {
     if (taxrate > 99) taxrate = 99;
     const tax = Math.trunc((price * taxrate) / 100);
     return [taxrate, tax];
+  }
+
+  /** 売上から差し引いたときに記録し、期の集計は従来どおり更新する */
+  recordSaleTax(dt: Shop, tax: number): void {
+    dt.taxtoday += tax;
+    this.recordTax(dt.id, 'sales', tax);
+  }
+
+  /** 通常決算と休業開始の精算で、実際に計上した入金庫税を記録する */
+  recordDepositTax(dt: Shop, tax: number): void {
+    this.recordTax(dt.id, 'deposit', tax);
+  }
+
+  private recordTax(shopId: number, kind: 'sales' | 'deposit', tax: number): void {
+    if (this.world.taxTrackingStartedAt === undefined || !tax) return;
+    if (!Number.isSafeInteger(tax)) throw new RangeError('納税額が安全に扱える整数の範囲外です');
+    const totals = this.newTaxes.get(shopId) ?? { sales: 0n, deposit: 0n };
+    totals[kind] += BigInt(tax);
+    this.newTaxes.set(shopId, totals);
   }
 
   /** 原作 GetTaxToday: 入金庫の残高にかかる税。[税額, 税率] */
