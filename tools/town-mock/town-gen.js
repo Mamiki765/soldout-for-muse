@@ -742,16 +742,16 @@
   const GROUND = { grass: 0, avenue: 1, alley: 2, canal: 3, hedge: 4, plaza: 5, lawn: 6, path: 7, flowerbed: 8, curb: 9, field: 10, bridge: 11 };
   /** 地面の上に置く小物 (1チップ) */
   const DECO = { none: 0, tree: 1, bush: 2, lamp: 3, bench: 4, pot: 5, street_tree: 6, mailbox: 7, crate: 8, scarecrow: 9, reed: 10, flowers: 11 };
-  /** 外観の色の組み合わせ (仮。本番は GPT に作ってもらうプリセット) */
+  /** A「焼き瓦と柳」の外観プリセット。 */
   const PALETTES = [
-    { name: '赤レンガ', roof: '#b5523b', wall: '#f1e6d0', door: '#6b4a2b', trim: '#fff8e6' },
-    { name: '港の青', roof: '#3f6fa0', wall: '#eef2f6', door: '#2f4a6b', trim: '#ffffff' },
-    { name: '若葉', roof: '#5b8c3e', wall: '#f4efe0', door: '#5a4026', trim: '#fffbe8' },
-    { name: '藤', roof: '#8b5a9e', wall: '#f3ecf4', door: '#4e3358', trim: '#ffffff' },
-    { name: '山吹', roof: '#c08a1e', wall: '#fbf1da', door: '#7a4e1c', trim: '#fff8e6' },
-    { name: '灰桜', roof: '#b07b86', wall: '#f7eeee', door: '#6b4148', trim: '#ffffff' },
-    { name: '墨', roof: '#454b57', wall: '#e9e6df', door: '#2c2a27', trim: '#f5f2ea' },
-    { name: '浅葱', roof: '#3a8f8a', wall: '#ecf5f3', door: '#2a5a56', trim: '#ffffff' },
+    { name: '赤レンガ', roof: '#a36550', wall: '#e6d7bd', door: '#694f40', trim: '#ccc2aa' },
+    { name: '港の青', roof: '#4f6682', wall: '#e0ded3', door: '#3f536c', trim: '#d5d0bd' },
+    { name: '若葉', roof: '#617852', wall: '#e1dcc0', door: '#5a4026', trim: '#cfc5aa' },
+    { name: '藤', roof: '#7b5971', wall: '#e8ddd8', door: '#4e3358', trim: '#d3c8ba' },
+    { name: '山吹', roof: '#a17a46', wall: '#e9dabc', door: '#d8c7a8', trim: '#cfc5aa' },
+    { name: '灰桜', roof: '#a87582', wall: '#e8dad6', door: '#824d47', trim: '#d4c7b9' },
+    { name: '墨', roof: '#535762', wall: '#e0d9ca', door: '#2c2a27', trim: '#c8c1ad' },
+    { name: '浅葱', roof: '#4d8380', wall: '#e0e4d5', door: '#496b55', trim: '#ccd0bb' },
   ];
   const NPC_PALETTES = [
     { name: 'NPC 茶', roof: '#8a6f55', wall: '#e6dccb', door: '#5a4636', trim: '#efe8da' },
@@ -766,9 +766,9 @@
     const base = PALETTES[lk.palette ?? (shop ? Math.floor(shop.hue / 45) % PALETTES.length : 0)];
     return { ...base, ...(lk.roof ? { roof: lk.roof } : {}), ...(lk.door ? { door: lk.door } : {}) };
   }
-  /** 屋根・ドアの色の選択肢 (仮) */
-  const ROOF_COLORS = ['#b5523b', '#3f6fa0', '#5b8c3e', '#8b5a9e', '#c08a1e', '#b07b86', '#454b57', '#3a8f8a'];
-  const DOOR_COLORS = ['#6b4a2b', '#2f4a6b', '#5a4026', '#4e3358', '#a33a2a', '#2c2a27', '#e9e2cf', '#3f7a5a'];
+  /** 屋根と入口を個別に変えるときの色。 */
+  const ROOF_COLORS = PALETTES.map((p) => p.roof);
+  const DOOR_COLORS = PALETTES.map((p) => p.door);
 
 
   // ---- チャンク (地区の格子 1マスぶん) ----
@@ -1085,6 +1085,7 @@
       size: [W, H],
       chip: CHIP,
       tileset: 'kit/town/tiles-v1.png',
+      tileset_manifest: 'kit/town/tileset-v1.json',
       terrain: g.stripKind,
       neighbors: { n: chunkId(town, gx, gy - 1), e: chunkId(town, gx + 1, gy), s: chunkId(town, gx, gy + 1), w: chunkId(town, gx - 1, gy) },
       ground,

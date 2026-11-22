@@ -153,14 +153,35 @@
     el.style.height = H * s + 'px';
     el.style.setProperty('--chip', s + 'px');
     // canvas は大きすぎないように (一辺 8192px まで)
-    const res = Math.max(0.25, Math.min(o.res, 8192 / (W * s), 8192 / (H * s)));
+    const cap = Math.min(8192 / W, 8192 / H);
+    const target = s * o.res;
+    const density = Math.min(cap, target >= 32 && cap < 32 ? 16 : target);
     const cv = document.createElement('canvas');
     cv.className = 'tiles';
-    cv.width = Math.round(W * s * res); cv.height = Math.round(H * s * res);
+    cv.width = Math.round(W * density); cv.height = Math.round(H * density);
     cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
     const chunks = T.chunksFor(town, o.districts, { sizeOverride: o.sizeOverride });
-    root.Tiles.paint(cv.getContext('2d'), chunks, s * res, x1, y1, W, H);
+    const ctx = cv.getContext('2d');
+    root.Tiles.paint(ctx, chunks, density, x1, y1, W, H);
     el.appendChild(cv);
+    const chunkIndex = new Map(chunks.map((ch, i) => [ch.id, i]));
+    el.redrawLot = (lot, sizeOverride) => {
+      const index = chunkIndex.get(lot.district);
+      if (index === undefined) return;
+      const district = town.districts.find((d) => d.id === lot.district);
+      const chunk = T.chunkData(town, district, { sizeOverride });
+      chunks[index] = chunk;
+      const [cx, cy] = chunk.origin;
+      const [cw, ch] = chunk.size;
+      const left = Math.round((cx - x1) * density), top = Math.round((cy - y1) * density);
+      const right = Math.round((cx + cw - x1) * density), bottom = Math.round((cy + ch - y1) * density);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, top, right - left, bottom - top);
+      ctx.clip();
+      root.Tiles.paint(ctx, [chunk], density, x1, y1, W, H, { partial: true, neighbors: chunks });
+      ctx.restore();
+    };
     const px = (v, base) => (v - base) * s + 'px';
     const bld = new Map();
     for (const ch of chunks) for (const b of ch.buildings) if (b.kind !== 'npc') bld.set(b.lot, b);

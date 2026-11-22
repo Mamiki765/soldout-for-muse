@@ -30,30 +30,30 @@
 <body>
 <header class="bar"><h1><a href="index.html">P0</a> ／ マップチップと Muse に渡すチャンク</h1><span id="ctl"></span></header>
 <main>
-  <p>人間向けの地図（UI案1〜3）も、ここにある<b>同じチャンク</b>から描いている。チャンクは配信の単位で、地形の境目ではない。どのチャンクも「自分の地区＋西と北の大通り」だけを持つので、隣と同じマスを2回描かない。川と並木は列ごとに決まり、地区をまたいで街の外まで続く。Muse には地区ごとのチャンク（地面と小物のマス目・建物・区画）と共通のマップチップ（tileset）を渡し、各自のスペースで同じ街を描ける。絵は仮（canvas で描いている）。本物の 32px の絵ができたら、同じ番号のまま tileset 画像に差し替える。</p>
+  <p>人間向けの地図（UI案1〜3）も、ここにある<b>同じチャンク</b>から描いている。チャンクは配信の単位で、地形の境目ではない。どのチャンクも「自分の地区＋西と北の大通り」だけを持つので、隣と同じマスを2回描かない。川と並木は列ごとに決まり、地区をまたいで街の外まで続く。Muse には地区ごとのチャンク（地面と小物のマス目・建物・区画）と共通のマップチップ（tileset）を渡し、各自のスペースで同じ街を描ける。地図は <a href="../../kit/town/tileset-v1.json">共通マニフェスト</a> を使って PNG を描画します。</p>
 
   <h2>地面と小物（番号つき）</h2>
   <div class="sheet"><canvas id="sheet"></canvas><div class="names" id="gn"></div><div class="names" id="dn" style="margin-top:4px"></div></div>
 
-  <h2>外観のプリセット（仮。本番は GPT に作ってもらう）</h2>
-  <p class="note">プリセットは屋根・壁・ドア・縁の4色。店主はプリセットを選び、屋根とドアの色だけ上書きできる（UI案2の札で試せる）。家の大きさは棚の数で決まる：S 1〜4棚（64px）／M 5〜7棚（128px）／L 8棚（192px）。区画はどの店も 192px 四方。</p>
+  <h2>外観のプリセット</h2>
+  <p class="note">プリセットは屋根・壁・ドア・縁の4色。店主はプリセットを選び、屋根と入口の色を上書きできる。北向きLでは入口の庇と裏口の扉が同じ色になる（UI案2の札で試せる）。家の大きさは棚の数で決まる：S 1〜4棚（64px）／M 5〜7棚（128px）／L 8棚（192px）。区画はどの店も 192px 四方。</p>
   <div class="pals" id="pals"></div>
 
   <h2>橋（32px のまま）</h2>
   <p class="note">川は 64px（2マス）。橋は川幅ぴったりで終わらせず、両岸の陸へ1マス（32px）ずつ延ばすので長さ 128px。幅は道に合わせる：大通りの橋は 96px（3マス）、路地・中央通りの橋は 64px（2マス）。陸側の1マスは石の橋台、川の上は板張り、左右の端に欄干。</p>
-  <div class="bridges"><figure><canvas id="br1"></canvas><figcaption>大通りの橋（幅 96px）</figcaption></figure><figure><canvas id="br2"></canvas><figcaption>中央通りの橋（幅 64px）</figcaption></figure></div>
+  <div class="bridges"><figure><canvas id="br1"></canvas><figcaption>大通りの橋</figcaption></figure><figure><canvas id="br2"></canvas><figcaption>中央通りの橋</figcaption></figure></div>
 
-  <h2>絵にするチップの一覧（本番の 32px 素材）</h2>
+  <h2>PNG 素材の構成</h2>
   <div class="wrap"><table class="list">
     <tr><th>まとまり</th><th>チップ</th><th>数</th><th>メモ</th></tr>
     <tr><td>地面</td><td>草地・芝・大通り（石畳）・歩道・路地（土）・広場（石畳）・小道・花壇・畑・並木（生け垣）</td><td>10</td><td>草地と路地は2〜3種のゆらぎがあると単調にならない</td></tr>
-    <tr><td>川</td><td>水面・岸（上）・岸（下）</td><td>3</td><td>今は東西にまっすぐ流れるだけ。曲がる川や池を作るなら岸（左右）と角（内・外 4つずつ）を足す</td></tr>
+    <tr><td>川</td><td>水面と岸の接続</td><td>16組</td><td>北・南・西・東の接続に応じて岸を選ぶ</td></tr>
     <tr><td>橋（大通り 3マス幅）</td><td>欄干左・床・欄干右 × 橋台（北）・川の上・橋台（南）</td><td>9</td><td>川の上は2マスとも同じ「川の上」チップをくり返す</td></tr>
     <tr><td>橋（路地 2マス幅）</td><td>欄干左・欄干右 × 橋台（北）・川の上・橋台（南）</td><td>6</td><td>床だけの列が無い形</td></tr>
     <tr><td>小物</td><td>木・植え込み・ガス灯・ベンチ・鉢・街路樹・郵便受け・木箱・かかし・葦・花</td><td>11</td><td>1マス。地面の上に重ねる（透過）</td></tr>
-    <tr><td>店兼家</td><td>S（2×2）・M（4×4）・L（6×6）× 戸口 上／下</td><td>6</td><td>屋根・壁・ドア・縁の色はプリセットで塗り分け（色を差し替えられる素材にする）。改装中の足場、空き家の灰色は重ね絵</td></tr>
-    <tr><td>NPC の家</td><td>S・M × 戸口 上／下</td><td>4</td><td>店の家と同じ絵でもよい（日除け無し）</td></tr>
-    <tr><td>中央の公共施設</td><td>街役場（10×4）・ギルド会館（10×4）・市場の大屋根（4×4）・屋台（2×2）・掲示板（4×2）・大きな樹（6×5）・噴水（4×4）・船着き場（4×3）</td><td>8</td><td>大きい1枚絵。チャンクの objects に位置と大きさが入る</td></tr>
+    <tr><td>店兼家</td><td>S（2×2）・M（4×4）・L（6×6）× 戸口 上／下</td><td>6</td><td>屋根・入口・壁・縁の色は部位マスクで合成。改装中の足場は重ね絵</td></tr>
+    <tr><td>NPC の家</td><td>S・M × 戸口 上／下</td><td>4</td><td>住居用の配色で同じ原寸素材を使う</td></tr>
+    <tr><td>中央の公共施設</td><td>街役場（10×4）・ギルド会館（10×4）・市場の大屋根（10×4、地区8列の場合は16×4）・屋台（2×2）・掲示板（4×2）・大きな樹（6×5）・噴水（4×4）・船着き場（4×3）・東屋（3×3）</td><td>9</td><td>大きい1枚絵。チャンクの objects に位置と大きさが入る</td></tr>
     <tr><td>地区の目印</td><td>ガス灯・水車・船着き場・橋のたもと・古井戸・花時計・柳・水門・銀杏・鐘楼・星見台・風見鶏・鍛冶場・苔むした石・りんごの木・風車</td><td>16</td><td>2×2。地区名と1対1</td></tr>
   </table></div>
 
@@ -83,10 +83,11 @@
   <pre id="json"></pre>
 </main>
 <script src="town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
 <script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
-(() => {
+Tiles.withAssets(() => {
   const { T, params, getTown, esc } = Mock;
   const p = params();
   Mock.controls(p);
@@ -100,12 +101,12 @@
   document.getElementById('gn').innerHTML = names.ground.map((n) => `<span title="${n}">${T.GROUND[n]} ${n}</span>`).join('');
   document.getElementById('dn').innerHTML = names.deco.map((n) => `<span title="${n}">${T.DECO[n]} ${n}</span>`).join('');
   // プリセット
-  document.getElementById('pals').innerHTML = T.PALETTES.map((pl, i) => `<div class="pal"><canvas data-i="${i}" width="140" height="80"></canvas>${esc(pl.name)}</div>`).join('');
+  document.getElementById('pals').innerHTML = T.PALETTES.map((pl, i) => `<div class="pal"><canvas data-i="${i}" width="230" height="114"></canvas>${esc(pl.name)}</div>`).join('');
   document.querySelectorAll('.pals canvas').forEach((c) => {
     const g = c.getContext('2d'), pl = T.PALETTES[Number(c.dataset.i)];
-    g.fillStyle = '#a3cf7c'; g.fillRect(0, 0, 140, 80);
+    g.fillStyle = '#aab98d'; g.fillRect(0, 0, c.width, c.height);
     Tiles.building(g, { kind: 'shop', x: 0.3, y: 0.5, w: 2, h: 2, palette: pl, door: 'down' }, 16, 0, 0);
-    Tiles.building(g, { kind: 'shop', x: 3.6, y: 0.5, w: 4, h: 4, palette: pl, door: 'down' }, 16, 0, 0);
+    Tiles.building(g, { kind: 'shop', x: 3, y: 0.5, w: 4, h: 4, palette: pl, door: 'down' }, 16, 0, 0);
   });
   // チャンク1つ
   const ch = T.chunkData(town, town.districts[0]);
@@ -148,7 +149,7 @@
   const txt = JSON.stringify(ch, (k, v) => ((k === 'ground' || k === 'deco') ? `[${v.length} 個: 横 ${ch.size[0]} × 縦 ${ch.size[1]}、行ごと]` : v), 1);
   document.getElementById('jsz').textContent = `この地区は ${ch.size[0]}×${ch.size[1]} チップ、JSON は約 ${(JSON.stringify(ch).length / 1024).toFixed(1)}KB（ground と deco は番号の配列。下では省略）。`;
   document.getElementById('json').textContent = txt;
-})();
+});
 </script>
 </body>
 </html>

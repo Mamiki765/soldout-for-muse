@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="mock.css">
 <style>
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: calc(100vh - var(--hdr, 53px)); }
-  .viewport { overflow: auto; position: relative; background: #6f9d55; }
+  .viewport { overflow: auto; position: relative; background: #9bae80; }
   .viewport .top-map { margin: 24px; }
   aside.side { border-left: 1px solid var(--line); background: var(--bg); overflow: auto; padding: 12px; }
   aside.side h2 { font-size: 13px; color: var(--dim); margin: 4px 0 8px; font-weight: 600; }
@@ -38,15 +38,16 @@
     <button class="btn sheet-close" id="close">閉じる</button>
     <h2>この案の使い方</h2>
     <p class="note">全景で地区（目印の名前）を選ぶ → 寄ると看板が読める → 店を押すと右（スマホは下）に札が出る。札の「左隣・右隣・向かい」を押すと、その店へ移る。PC はマウスを乗せると店名と住所が出る。</p>
-    <p class="note">地図の絵は仮のマップチップ（canvas で描いている）。日除けのある家が店（S 1〜4棚・M 5〜7棚・L 8棚で大きくなる）、日除けの無い家が NPC の家、灰色が空き家、足場が改装中（休業）。</p>
+    <p class="note">店名札のある建物が店。棚の数に応じて S（1〜4棚）／M（5〜7棚）／L（8棚）の大きさになります。灰色は空き家、足場は改装中（休業）です。</p>
   </aside>
 </div>
 <div class="tip" id="tip"></div>
 <script src="town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
 <script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
-(() => {
+Tiles.withAssets(() => {
   const { T, params, getTown, setParam, shopCard, renderTop, lotInfo } = Mock;
   const p = params();
   const town = getTown(p);
@@ -120,7 +121,7 @@
   document.getElementById('zout').onclick = () => { scale = Math.max(2, scale / 1.4); view = scale < 9 ? 'all' : 'district'; draw(selected); };
   document.getElementById('from-card').onclick = () => select(youLot().id);
   draw(youLot().id);
-})();
+});
 </script>
 </body>
 </html>

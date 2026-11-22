@@ -1,4 +1,4 @@
-/* SOLD OUT ミューズ街 P0 見本 — 共通の見た目。マップチップはまだ無いので、地面・道・家は CSS の仮。 */
+/* SOLD OUT ミューズ街 P0 見本 — 共通の見た目。地面・道・家は PNG アトラスから描画。 */
 :root {
   --bg: #f6f3ec; --panel: #ffffff; --ink: #1d2433; --dim: #6a7183; --line: #d9d3c5; --accent: #3f6fa0;
   --grass: #9cc77a; --grass2: #8dbb6b; --avenue: #cfc6b3; --alley: #e6dcc6; --canal: #6fb0d8; --hedge: #4f8a3b;

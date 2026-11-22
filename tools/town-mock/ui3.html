@@ -8,7 +8,7 @@
 <style>
   .layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); height: calc(100vh - var(--hdr, 53px)); }
   .listp { border-right: 1px solid var(--line); overflow: auto; padding: 12px; background: var(--bg); }
-  .mapp { overflow: auto; background: #6f9d55; position: relative; }
+  .mapp { overflow: auto; background: #9bae80; position: relative; }
   .mapp .top-map { margin: 16px; }
   .tools { display: flex; gap: 6px; margin-bottom: 8px; }
   .tools select, .tools input { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-width: 0; }
@@ -49,10 +49,11 @@
   <div class="mapp" id="mapp"></div>
 </div>
 <script src="town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
 <script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
-(() => {
+Tiles.withAssets(() => {
   const { T, params, getTown, setParam, shopCard, renderTop, lotInfo, esc } = Mock;
   const p = params();
   const town = getTown(p);
@@ -138,7 +139,7 @@
   document.getElementById('from-card').onclick = () => select(youLot().id);
   drawAll();
   select(youLot().id);
-})();
+});
 </script>
 </body>
 </html>
