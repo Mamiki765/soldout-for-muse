@@ -171,7 +171,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     dts.itemtoday[itemno] = (dts.itemtoday[itemno] ?? 0) + num;
     dts.moneystock += num * baseprice - tax;
     dts.saletoday += num * baseprice;
-    dts.taxtoday += tax;
+    g.recordSaleTax(dts, tax);
     // 売り切れたら売った店の人気が下がる
     if (dts.item[itemno - 1] === 0) {
       let rankdown = (dts.rank / 100) ** 3 / 1000;

@@ -122,6 +122,8 @@ export interface LogEntry {
 export interface World {
   /** 最後に売上計算した時刻 ($DTlasttime) */
   lasttime: number;
+  /** 累計納税の記録を始めた Unix 秒。旧版からの最初の時間更新と同時に保存する */
+  taxTrackingStartedAt?: number;
   /** 街の人口 ($DTpeople) */
   people: number;
   /** 次の店舗 id ($DTnextid) */

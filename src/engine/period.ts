@@ -81,6 +81,7 @@ export function settleShop(g: Game, dt: Shop, at: number, rankNo: number): void 
   dt.paytoday += cost;
   // 入金庫の残高にかかる税
   dt.money -= taxtoday;
+  g.recordDepositTax(dt, taxtoday);
 
   // ギルドはこの移植では未実装。無所属ペナルティだけ設定があれば適用する
   if (dt.guild === '' && cfg.guildUnattachPenalty) {
