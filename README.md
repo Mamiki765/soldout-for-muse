@@ -97,6 +97,8 @@ docker compose up -d
 - 街のタイプは `package.json` の `items` スクリプトの引数で選びます (`normal` / `timehalf` など)。
 - 決算の間隔・店の上限 (100) などは `src/config.ts` にあります。
 
+v1.2.0 の街マップ素材は [美術設定と制作資料](docs/town-map/README.md) を参照してください。
+
 ### 累計納税と街暦の管理コマンド
 
 - `node dist/src/main.js tax-totals` は累計納税の記録開始時刻を表示します。店主ID（例 `som0001`）を添えると、その店主の売上税・入金庫税・合計を円単位の整数文字列で表示します。開始時刻はこの版で初めて街の時間更新を保存できた時点の Unix 秒です。その更新で処理した経過分と従来の今期税額は累計に入りません。開始前は `started_at: null` です。
