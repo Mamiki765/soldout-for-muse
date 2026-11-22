@@ -19,6 +19,8 @@ import { renewLabel } from '../engine/orders.js';
 import { closingAt } from '../engine/watch.js';
 import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
+import * as tv from './town-view.js';
+import type { Town } from '../town/gen.js';
 
 interface Reply {
   status: number;
@@ -96,6 +98,7 @@ a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .av.l{width:160px;height:160px;font-size:72px;margin:0}
 .cell .av{width:56px;height:56px;flex:none;margin:0;font-size:26px;border-radius:10px}
 .lic{max-width:100%;height:auto;border-radius:8px;display:block;margin:6px 0}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.3);margin:0 2px}
 `;
 
 function page(title: string, menu: string, body: string): string {
@@ -112,7 +115,7 @@ function menuBar(app: App, g: Game, inShop: boolean): string {
   const period = app.store.townPeriod(g.now);
   const title = period ? 'SOLD OUT ' + period.label : GAME_TITLE;
   const party = app.partyPublicUrl ? ` <a href="${esc(app.partyPublicUrl)}">[Muse Party]</a>` : '';
-  return `${esc(title)}${party} <a href="/">[トップ]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  return `${esc(title)}${party} <a href="/">[トップ]</a> <a href="/view/town">[街の地図]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -207,6 +210,10 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
       body = 'som を指定してください';
       break;
     }
+    case '/view/town':
+      title = '街の地図';
+      body = `<div id="town-page"></div>${townEmbed(app, g)}`;
+      break;
     case '/updates':
       title = '更新履歴';
       body = updatesPage();
@@ -315,22 +322,73 @@ export function setViewerKey(app: { store: { setSetting(k: string, v: string | u
   app.store.setSetting('viewer_cookie', sha256('so:' + key));
 }
 
+// ---------------------------------------------------------------------------
+// 街の地図 (1.2.0)。地図はブラウザで描く (public/town/view.js)。ページには区画と店の様子の JSON を埋め込む
+
+/** 地図の札に出す店の様子 (棚の品と順位も) */
+function townInfoFull(app: App, g: Game) {
+  const base = app.townInfo(g);
+  return (som: string) => {
+    const i = base(som);
+    if (!i) return undefined;
+    const id = app.store.ownerBySom(som)?.shop_id;
+    const dt = g.allShops.find((s) => s.id === id && s.status);
+    if (!dt) return i;
+    const goods = shelfData(g, dt).filter((x) => x.item && x.stock).map((x) => ({ name: x.name, price: x.price, stock: x.stock }));
+    const at = g.shopIndex(dt.id);
+    return { ...i, goods, rank: dt.rest || at < 0 ? undefined : at + 1 };
+  };
+}
+
+function townEmbed(app: App, g: Game): string {
+  return tv.jsonScript('town-data', tv.townState(app.town, townInfoFull(app, g), g.now)) + tv.townScripts();
+}
+
+/** 住所 (som → 短い形・長い形・見出し)。街がまだ無ければ空 */
+function townAddresses(app: App, g: Game): { town: Town; of: (som: string) => { short: string; long: string; heading: string; lot: number } | undefined } {
+  const town = app.town.build(app.townInfo(g), g.now);
+  return {
+    town,
+    of: (som) => {
+      const h = app.town.home(som);
+      const lot = h && h.state === 'occupied' ? town.lots.get(h.lot) : undefined;
+      if (!lot) return undefined;
+      const a = app.town.gen.addressForms(town, lot);
+      return { short: a.short, long: a.long, heading: a.heading, lot: lot.id };
+    },
+  };
+}
+
+/** 店構えと色の1行 (店主ページ・店長室) */
+function homeLine(app: App, town: Town, som: string): string {
+  const h = app.town.home(som);
+  const lot = h && town.lots.get(h.lot);
+  if (!h || !lot) return '';
+  const c = app.town.gen.homeColors(som, h.roof, h.door);
+  const R = app.town.gen.ROOFS[c.roof - 1], D = app.town.gen.DOORS[c.door - 1];
+  return `店構え ${lot.size} (棚${(town.shops.get(som)?.shelves as number | undefined) ?? '?'}) 屋根 <i class="sw" style="background:${R.hex}"></i>${esc(R.name)} 入口 <i class="sw" style="background:${D.hex}"></i>${esc(D.name)}`;
+}
+
 /** トップ: 全員をアイコン付きで順位順に並べる (箱庭のように。0.5.0)。出来事は PC では右の列に置いて、スクロールしても見える */
 function topPage(app: App, g: Game): string {
   const start = app.party && app.partyPublicUrl && app.store.getSetting('viewer_key_hash') && app.store.getSetting('party_join_invite')
     ? ' <a href="./start">[Museでもわかる！導入法]</a>' : '';
   let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small>${start}<hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
-  let main = `●街のお店 (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
+  // 街の地図の小窓 (押すとその地区の地図へ) と、カードの住所 (1.2.0)
+  const ad = townAddresses(app, g);
+  let main = `●街の地図 <a href="/view/town">[大きく見る]</a><div id="town-mini" class="town-mini"></div>${townEmbed(app, g)}<hr>`;
+  main += `●街のお店 (人口 ${shownPeople(g.world)}人 / ${g.shops.length}店・順位順) <a href="/view/ranking">[ランキング]</a><div class="grid">`;
   g.shops.forEach((dt, i) => {
     const ow = app.store.ownerByShop(dt.id);
+    const at = ow ? ad.of(ow.som) : undefined;
     const href = ow ? `/view/owner/${ow.som}` : '/view/shops';
     // 街で見たいのは何を売っているか: 棚の品・値段・在庫をカードの主役に (アイコンと店主は見出し)
     const shelves = shelfData(g, dt).filter((x) => x.item && x.stock);
     const goods = shelves.length
       ? shelves.map((x) => `<li>${itemIcon(g, x.item)}<span class="nm">${esc(x.name)}</span><span class="pr">￥${x.price} ×${x.stock}</span></li>`).join('')
       : '<li><span class="nm">(棚は空)</span></li>';
-    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
+    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点${at ? `<span class="adr">${esc(at.short)}</span>` : ''}</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
   // 改装中 (休業) の店は順位の外。名前だけ並べる (1.1.0)
@@ -349,7 +407,15 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
   s += d.shop
     ? `${raw(d.shop.shopname)}【${esc(d.shop.job)}】 ${d.shop.resting ? `改装中 (${jst(d.shop.resting.until)}まで)` : `RANK ${d.shop.rank}`} / ${d.shop.point}点 / 人気 ${d.shop.popularity}%<br>${d.shop.comment ? 'コメント: ' + raw(d.shop.comment) + '<br>' : ''}`
     : '閉店中<br>';
-  s += `許可年月日 ${esc(d.licensed_on)}</div></div>`;
+  s += `許可年月日 ${esc(d.licensed_on)}`;
+  // 住所と、お店のまわりの地図 (1.2.0)
+  const ad = d.shop ? townAddresses(app, g) : undefined;
+  const at = ad?.of(som);
+  if (at) s += `<br><b>住所 ${esc(at.long)}</b> (${esc(at.heading)}) <a href="/view/town?lot=${at.lot}">[地図で見る]</a>`;
+  s += '</div></div>';
+  if (ad && at) {
+    s += `<hr>●お店のまわり <small>(押すと街の地図へ)</small><br><div class="town-around" data-town-around="${esc(som)}"></div><small>${homeLine(app, ad.town, som)} (色は Muse が決めます)</small>${townEmbed(app, g)}`;
+  }
   if (d.card) {
     s += `<hr>●出店許可証${d.card.stale ? ' <small>(描いたあとに店主名・店名・職業が変わっています)</small>' : ''}<a href="${esc(d.card.url!)}"><img class="lic" src="${esc(d.card.url!)}" width="2293" height="1482" alt="${esc(d.card.alt)}" loading="lazy"></a>`;
     if (d.card.aka.length) {
@@ -453,6 +519,19 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('熟練度合計', Math.trunc(expsum / 10) + '%')}<td>　</td><td>　</td></tr>`;
   s += `<tr>${td('創業', formatHms(g.now - dt.foundation))}${td('職業', esc(job))}</tr></table>`;
   if (dt.comment) s += 'コメント: ' + raw(dt.comment) + '<br>';
+  // 住所・店構え・色 (1.2.0)。引っ越し・色変えは Muse が API で
+  const at = ow ? townAddresses(app, g) : undefined;
+  const adr = ow && at?.of(ow.som);
+  if (ow && at && adr) {
+    const h = app.town.home(ow.som)!;
+    const tickets = [h.free_move_until > g.now && `引っ越し ${jst(h.free_move_until)}まで`, h.free_paint_until > g.now && `色変え ${jst(h.free_paint_until)}まで`].filter(Boolean);
+    const waits = [h.move_ready_at > g.now && `引っ越し ${jst(h.move_ready_at)}から`, h.paint_ready_at > g.now && `色変え ${jst(h.paint_ready_at)}から`].filter(Boolean);
+    s += `<table><tr><td>住所</td><td><b>${esc(adr.long)}</b> (${esc(adr.heading)}) <a href="/view/town?lot=${adr.lot}">[地図で見る]</a></td></tr>`;
+    s += `<tr><td>外観</td><td>${homeLine(app, at.town, ow.som)} <small><a href="/view/town/colors">[色の見本]</a></small></td></tr>`;
+    if (tickets.length) s += `<tr><td>無料で1回</td><td>${tickets.join(' / ')}</td></tr>`;
+    if (waits.length) s += `<tr><td>次に使える</td><td>${waits.join(' / ')}</td></tr>`;
+    s += '</table>';
+  }
 
   s += '<hr>●陳列棚<br><table><tr><td>棚</td><td>商品</td><td>価格</td><td>在庫</td><td>相場</td></tr>';
   for (let k = 0; k < dt.showcasecount; k++) {

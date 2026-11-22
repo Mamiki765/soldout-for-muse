@@ -100,11 +100,11 @@ const triples = (u: UseDef['use']) => u.map((l) => [l.item_no, l.count, l.proba]
 const BOOK_TOOLS: Record<number, number[]> = { 66: [18, 19], 20: [18] };
 const toolsOf = (book: number) => BOOK_TOOLS[book] ?? [];
 
-test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が正しい (全132種で番号・名前が重ならない)', () => {
-  assert.equal(MAX_ITEM, 132);
-  assert.equal(current.items.length, 132);
-  assert.equal(new Set(current.items.map((it) => it.code)).size, 132);
-  assert.equal(new Set(current.items.map((it) => it.name)).size, 132);
+test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が正しい (全134種で番号・名前が重ならない)', () => {
+  assert.equal(MAX_ITEM, 134);
+  assert.equal(current.items.length, 134);
+  assert.equal(new Set(current.items.map((it) => it.code)).size, 134);
+  assert.equal(new Set(current.items.map((it) => it.name)).size, 134);
   for (const [no,name,price,popular,cost,limit,plus] of itemSpecs) {
     const i = BASE_ITEMS[no];
     assert.deepEqual([i.no,i.name,i.price,i.popular,i.cost,i.limit,i.plus,i.point,i.type],
@@ -293,7 +293,7 @@ test('原作定義からの再生成がコミット対象JSONと完全一致す�
   assert.equal(execFileSync('perl',['tools/dump-items.pl','normal'],{encoding:'utf8'}),readFileSync('src/data/items.json','utf8'));
 });
 
-test('79品時代のセーブは在庫を保ったまま132枠へ拡張し、新素材は初期投入しない', () => {
+test('79品時代のセーブは在庫を保ったまま134枠へ拡張し、新素材は初期投入しない', () => {
   const store = new Store(':memory:');
   try {
     const w = newWorld(T0,79);
@@ -304,8 +304,8 @@ test('79品時代のセーブは在庫を保ったまま132枠へ拡張し、新
     dt.exp[9] = 400;
     store.saveWorld(w,[],T0,172800);
     const loaded = store.loadWorld(T0);
-    assert.deepEqual(loaded.wholestore,[...Array(79).fill(3),...Array(53).fill(0)]);
-    assert.deepEqual(loaded.shops[0].item,[...Array(79).fill(2),...Array(53).fill(0)]);
+    assert.deepEqual(loaded.wholestore,[...Array(79).fill(3),...Array(55).fill(0)]);
+    assert.deepEqual(loaded.shops[0].item,[...Array(79).fill(2),...Array(55).fill(0)]);
     assert.equal(loaded.shops[0].exp[9],400);
   } finally { store.close(); }
 });

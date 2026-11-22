@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ミューズ街 P0 見本</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  main { padding: 16px; max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 17px; margin: 26px 0 8px; }
+  .links { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .links a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-decoration: none; color: var(--ink); }
+  .links a b { display: block; color: var(--accent); }
+  .links a span { font-size: 12px; color: var(--dim); }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--panel); font-size: 13px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; text-align: left; }
+  th { background: var(--bg); white-space: nowrap; }
+  td ul { margin: 0; padding-left: 1.1em; }
+</style>
+</head>
+<body>
+<header class="bar"><h1>SOLD OUT ミューズ街 P0 見本</h1><span class="note">本体には入らない見本。店・名前はすべてダミー、絵はA「焼き瓦と柳」のPNG素材</span></header>
+<main>
+  <p>設計書 第2版（S は無料の店兼家、全店に 3×3 敷地の区画）を前提に、<b>上から見る地図</b>で、画面の作りと操作がちがう <b>UI を3案</b>作った。どれも同じ街（121店 → 200店に増やせる）を使う。中央地区の「噴水通り」はどの案でも同じ並び（おたがいに希望した2店・偶然の向かい2店・休業の店・空き家・NPCの家・新しく入った店）。</p>
+  <div class="links">
+    <a href="ui1.html"><b>UI案1 地図＋横の札</b><span>地図の右に札（スマホは下から出る札）。全景／地区を切り替え、＋－で寄る。マウスを乗せると店名。</span></a>
+    <a href="ui2.html"><b>UI案2 全画面の地図＋浮かぶ札</b><span>画面いっぱいの地図をドラッグ・ホイール・二本指で動かす。札は店のそばに浮かぶ。地区の見出しと右下の小さな地図で移動。</span></a>
+    <a href="ui3.html"><b>UI案3 一覧と地図の二画面</b><span>左に通りごとの一覧と札、右に地図。一覧に指を乗せると地図が光る。スマホは「一覧／地図」のタブ。</span></a>
+    <a href="front.html">観戦画面に入れた見本</a> ・ <a href="tiles.html"><b>マップチップと Muse に渡すチャンク</b><span>PNG チップ一覧（番号つき）、外観のプリセット、地区1つを 32px で、チャンクの大きさの比べ、JSON。</span></a>
+    <a href="license.html"><b>許可証の見本</b><span>横長・縦長・正方形と、旧許可証＋住所。3:4／1:1／未提出を切り替え。</span></a>
+  </div>
+
+  <h2>3案の比べ方</h2>
+  <div class="wrap"><table>
+    <tr><th></th><th>UI案1 地図＋横の札</th><th>UI案2 全画面の地図＋浮かぶ札</th><th>UI案3 一覧と地図の二画面</th></tr>
+    <tr><th>画面の作り</th><td>地図（左）と札（右 360px）の2列。スマホは地図＋下から出る札</td><td>地図が画面いっぱい。地区の見出し（上）・小さな地図（右下）・札（店のそば）が重なる</td><td>一覧（左 380px）と地図（右）の2列。スマホはタブで切り替え</td></tr>
+    <tr><th>動かし方</th><td>スクロール＋「＋－」ボタン。全景／地区の切り替え</td><td>ドラッグ・ホイール・二本指で自由に。ゲームの地図に近い</td><td>一覧の行を押す。地図は選んだ地区とまわり（地続き）を出す</td></tr>
+    <tr><th>全景</th><td>全地区を縮めて目印の名前を重ねる</td><td>引くと全地区。小さな地図で今いる場所が赤枠</td><td>地区の選択（目印つき）。全体の絵は出さない</td></tr>
+    <tr><th>店を選んだとき</th><td>右の札。札の下で S/M/L を切り替えて増築の見え方</td><td>店のそばに札が浮かぶ。地図から目を離さない</td><td>左の一番上に札。一覧の行も光る</td></tr>
+    <tr><th>住所 → 店先</th><td colspan="3">どの案も「許可証の住所を押す」→ その区画に寄って赤枠、札の「左隣・右隣・向かい」でお隣へ移る</td></tr>
+    <tr><th>PC のマウス</th><td>乗せると店名と住所</td><td>（乗せる案内は無し。押すと札）</td><td>一覧に乗せると地図の区画が光る</td></tr>
+    <tr><th>スマホ</th><td>素直。札が画面の半分を使う</td><td>操作は気持ちいいが、見出しや札が地図を隠しやすい</td><td>一番使いやすい（一覧が主、地図は確認）</td></tr>
+    <tr><th>観戦と API</th><td colspan="3">観戦は地図と札。API は地区ごとの区画・持ち主（GET /town/map）と札の中身（GET /lots/{id}、左右・向かい・目印）。UI案3 の一覧は API の並びとほぼ同じなので、Muse のスペースにも写しやすい</td></tr>
+    <tr><th>実装の重さ</th><td>軽い〜中</td><td>中（ドラッグ・ピンチ・小さな地図・札の位置合わせ）</td><td>中（一覧と地図を同期させる）</td></tr>
+    <tr><th>200店以上</th><td>平気（地区ごと）</td><td>平気。引いたときの描画が一番重い（全地区を1枚で持つ）</td><td>一番平気（地図は近くの地区だけ）</td></tr>
+  </table></div>
+  <p class="note">組み合わせもできる：たとえば「PC は UI案2、スマホは UI案3 のタブ」や「UI案1 に UI案3 の検索を足す」。</p>
+
+  <h2>切り替え</h2>
+  <p>第4弾（11/22）：中央を横に2チャンクに。西＝公共施設、東＝大きな公園（池・東屋）と将来の施設の予定地（花壇・遊歩道・石畳・緑地に見せる）。あいだの大通りは石畳の中央軸。まわりの地区は中央の2マスを囲む輪で時計回りに置き、地区名もこの並びで振り直した。</p>
+  <p>第3弾（11/22）：中央の1チャンクを公共地区に（街役場・ギルド会館・大きな樹・噴水広場・掲示板・中央市場・船着き場）。南北に中央通りが抜け、川を64pxの橋で渡る。川と並木は列ごとに決まり、地区をまたいで街の外まで続く。大通りが川を渡る所は96pxの橋。チャンクは重ならない（各チャンクは自分の地区＋西と北の大通り）。地区名は地形と目印に結び付けた案A／案B。「中央」で公共施設だけ／管理人の店入りを切り替え。</p>
+  <p>第2弾（11/22）：UI案2を本命に。家の大きさは棚の数で決まる（S 1〜4棚 64px／M 5〜7棚 128px／L 8棚 192px、区画はどの店も 192px 四方、家の維持費は無く棚の維持費だけ）。地図は Muse に渡すチャンク（地区ごとのマス目）と同じデータから canvas で描く。外観はプリセット＋屋根・ドアの色（UI案2の札で試せる）。札の左右・向かいは常には出さず「まわりを見る」で通りの両側か地区ぜんぶを取る。見出しに「ミューズ街 第○期」の置き場。</p>
+  <p class="note">各画面の上で、店数 121／200（79店を後から入れて、前からいる店の区画が変わらないことを見る）、大通り 96px／64px、路地 64px／32px、地区の幅 6×4／8×4区画を切り替えられる（スマホは「切り替え」を押す）。<code>node tools/town-mock/check.mjs</code> で配置の決まり（重なりなし・道がつながる・ブロック・希望・121→200 で動かない など）を確かめられる。</p>
+</main>
+</body>
+</html>

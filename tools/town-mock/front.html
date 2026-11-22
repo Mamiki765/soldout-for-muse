@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>街の地図 観戦画面の見本</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+/* ---- 今の観戦画面 (src/api/viewer.ts の STYLE) をそのまま ---- */
+body{background:#ffffff;color:#000033;font-family:"MS PGothic","Hiragino Kaku Gothic ProN","Noto Sans CJK JP",sans-serif;font-size:14px;margin:8px;line-height:1.4}
+a:link,a:visited{color:#5566ff;text-decoration:none}
+a:hover{text-decoration:underline;color:#669966;background-color:#ccffcc}
+table{background-color:#ccddff;border-spacing:1px;margin:2px 0}
+tr{background-color:#eef4ff}
+td,th{padding:2px 4px;vertical-align:top;font-weight:normal;text-align:left}
+hr{border:none;border-top:1px solid #99a}
+small{font-size:11px}
+.top{display:flex;gap:12px;align-items:flex-start}
+.top .main{flex:1;min-width:0}
+.top .side{width:300px}
+@media (max-width:960px){.top{display:block}.top .side{width:auto}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:6px 0}
+.cell{display:block;background:#eef4ff;border:1px solid #ccddff;padding:6px 8px;color:inherit}
+.cell .hd{display:flex;gap:8px;align-items:center}
+.cell .rk{font-size:11px;color:#666699}
+.cell .on{font-size:12px;color:#444}
+.cell ul{list-style:none;margin:6px 0 0;padding:4px 0 0;border-top:1px dotted #ccddff;font-size:12px}
+.av{border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;flex:none}
+.cell .av{width:56px;height:56px;font-size:26px}
+.av.l{width:120px;height:120px;font-size:56px;border-radius:12px}
+/* ---- ここから新しく足すもの ---- */
+.mockbar{background:#333;color:#ddd;margin:-8px -8px 8px;padding:6px 8px;font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mockbar a{color:#ffd88a !important}.mockbar a.on{color:#fff !important;font-weight:bold;text-decoration:underline}
+.new{color:#cc3333;font-size:10px;vertical-align:super}
+.adr{display:inline-block;font-size:11px;color:#6b4a2b;background:#f6eedc;border:1px solid #d8c7a4;border-radius:3px;padding:0 4px;margin-left:4px;white-space:nowrap}
+/* 地区の切り替え: 今のメニューと同じ [ ] の文字リンク。スマホは横に流す */
+.dsel{line-height:1.9}
+.dsel a{white-space:nowrap;margin-right:4px}
+.dsel a.on{color:#000033;font-weight:bold;background:#f6eedc}
+@media (max-width:640px){.dsel{white-space:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}}
+.find input{width:7em}
+/* 地図の窓: ページの中の枠。外はいつものページ */
+.mapwin{position:relative;height:min(72vh,720px);min-height:340px;overflow:hidden;border:1px solid #99a;background:#efe4cc;touch-action:none;cursor:grab;margin:4px 0}
+@media (max-width:640px){.mapwin{height:calc(100dvh - 150px);margin:4px -8px;border-left:0;border-right:0}}
+.mapwin .top-map{position:absolute;left:0;top:0;transform-origin:0 0}
+.mapwin .zb{position:absolute;right:8px;top:8px;z-index:5;display:flex;flex-direction:column;gap:4px}
+.mapwin .zb button{width:34px;height:34px;border:1px solid #8b6b3a;background:#fbf5e6;color:#3d2a12;border-radius:6px;font-size:18px;cursor:pointer}
+.mapwin .hint{position:absolute;left:8px;bottom:8px;z-index:5;background:rgba(251,245,230,.92);border:1px solid #c9b38a;border-radius:6px;font-size:11px;padding:2px 6px;color:#3d2a12}
+/* 札: 地図の上に出す。羊皮紙 (案1) / いつもの青 (案2) */
+.fuda{position:absolute;z-index:8;width:300px;padding:8px 10px;font-size:13px;box-shadow:0 6px 16px rgba(0,0,0,.28);display:none}
+.fuda.open{display:block}
+.fuda.parch{background:#fbf5e6;border:2px solid #8b6b3a;border-radius:6px;color:#2b2112}
+.fuda.parch .lbl{color:#8a6f4a}
+.fuda.classic{background:#eef4ff;border:1px solid #99a;color:#000033}
+.fuda.classic .lbl{color:#666699}
+.fuda .x{position:absolute;right:4px;top:2px;border:0;background:none;font-size:18px;cursor:pointer;color:inherit}
+.fuda .hd{display:flex;gap:8px;align-items:center}
+.fuda .av{width:48px;height:48px;font-size:22px}
+.fuda .sn{font-size:15px;font-weight:bold}
+.fuda .lbl{font-size:11px;display:inline-block;min-width:2.6em}
+.fuda ul{list-style:none;margin:4px 0 0;padding:4px 0 0;border-top:1px dotted #c9b38a;font-size:12px}
+.fuda .acts{margin-top:4px}
+.mlinks-tg{display:none}
+@media (max-width:640px){.fuda{left:8px !important;right:8px;top:auto !important;bottom:8px;width:auto;max-height:48%;overflow:auto}
+  .mlinks-tg{display:inline}.mlinks{display:none}.mlinks.open{display:inline}.find{display:block}}
+.lic-mini{display:inline-block;border:2px solid #8b6b3a;background:#fbf5e6;border-radius:6px;padding:8px 14px;color:#2b2112;font-size:13px}
+.lic-mini b{font-size:16px}
+.nb-map{position:relative;overflow:hidden;border:1px solid #99a;width:100%;max-width:520px;height:260px;background:#efe4cc}
+.nb-map .top-map{position:absolute}
+tr.hl{background:#ffe9b8}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<div class="mockbar">見本（観戦画面に地図を入れたら）:
+  <a data-page="top" href="?page=top">トップ</a>
+  <a data-page="town" href="?page=town">街の地図</a>
+  <a data-page="owner" href="?page=owner">店主ページ</a>
+  <a data-page="room" href="?page=room">店長室</a>
+  ／ 札: <a data-fuda="parch" href="#">羊皮紙</a> <a data-fuda="classic" href="#">いつもの青</a>
+  ／ <a href="index.html" style="color:#aaa !important">P0の目次</a>
+</div>
+<div id="app"></div>
+<script src="../../public/town/town-gen.js"></script>
+<script src="../../kit/town/tileset-v1.js"></script>
+<script src="../../public/town/tiles.js"></script>
+<script src="common.js"></script>
+<script>
+Tiles.withAssets(() => {
+  const { T, esc, renderTop, lotInfo } = Mock;
+  const q = new URLSearchParams(location.search);
+  const page = q.get('page') || 'town';
+  let fuda = q.get('fuda') || 'parch';
+  document.querySelectorAll('.mockbar a[data-page]').forEach((a) => { a.classList.toggle('on', a.dataset.page === page); a.href = `?page=${a.dataset.page}&fuda=${fuda}`; });
+  document.querySelectorAll('.mockbar a[data-fuda]').forEach((a) => { a.classList.toggle('on', a.dataset.fuda === fuda); a.href = `?page=${page}&fuda=${a.dataset.fuda}${q.get('d') ? '&d=' + q.get('d') : ''}`; });
+  const town = T.demoTown({ center: 'public', names: 'a', fixture: true });
+  const app = document.getElementById('app');
+  const ITEMS = ['薬草', '回復薬', '革の靴', '木の椅子', '銀の指輪', '鉄の剣', '樫の杖', '木の盾', '牛乳', 'チーズ', '料理の本', '地図'];
+  const goods = (s) => { const n = 1 + (s.hue % 3); return Array.from({ length: n }, (_, i) => ({ name: ITEMS[(s.hue + i * 5) % ITEMS.length], price: 300 + ((s.hue * 37 + i * 911) % 4000), stock: 1 + ((s.hue + i) % 9) })); };
+  const avatar = (s, cls = '') => `<span class="av ${cls}" style="background:hsl(${s.hue} 45% 55%)">${esc([...s.owner.replace('ダミー店主', '')][0] || '?')}</span>`;
+  const shopsInOrder = [...town.shops.values()].filter((s) => s.lot && town.lots.get(s.lot)?.holder === s.som).sort((a, b) => b.hue - a.hue);
+  const lotOf = (s) => town.lots.get(s.lot);
+  const A = (lot) => T.addressForms(town, lot);
+  const you = town.shops.get(town.fixture.you);
+
+  function menu() {
+    return `SOLD OUT 第14期 <a href="?page=top">[トップ]</a> <a href="?page=town&fuda=${fuda}">[街の地図]</a><span class="new">NEW</span> <a href="#" class="mlinks-tg" onclick="this.nextElementSibling.classList.toggle('open');return false">[ほか▼]</a><span class="mlinks"> <a href="#">[Muse Party]</a> <a href="#">[更新履歴]</a> <a href="#">[他店]</a> <a href="#">[市場]</a> <a href="#">[アイテム一覧]</a> <a href="#">[買い取り募集]</a> <a href="#">[最近の出来事]</a> <a href="#">[ランキング]</a> <a href="#">[井戸端]</a> <a href="#">[掲示板]</a>${page === 'room' ? ' <a href="?page=room">[店長室]</a>' : ''}</span>
+<br>[次回決算 2026/11/22 21:00 まであと4:12:59]<hr>`;
+  }
+  const foot = '<hr><small>SOLD OUT for Muse — 原作 SOLD OUT (C) 2001-2004 MUTOYS / GNU GPL v2 以降</small>';
+
+  // ================= 街の地図 =================
+  function townPage() {
+    const ds = town.districts;
+    const cur = q.get('d') || '';
+    app.innerHTML = menu() + `●街の地図 <small>(${shopsInOrder.length}店・${ds.length - 2}地区＋中央)</small>
+      <span class="find"> 住所で探す <input id="fq" placeholder="1区2-4"> <button id="fgo">探す</button></span>
+      <div class="dsel" id="dsel"><a href="#" data-all="1" class="${cur ? '' : 'on'}">[全景]</a>${ds.filter((d) => d.center !== 'east').map((d) => `<a href="#" data-d="${d.id}" class="${cur === d.id ? 'on' : ''}">[${esc(d.center ? '中央' : d.name ? d.no + '区 ' + d.name : '第' + d.no + '区')}]</a>`).join('')}</div>
+      <div class="mapwin" id="win"><div class="zb"><button id="zin">＋</button><button id="zout">－</button></div><div class="fuda ${fuda}" id="fuda"></div><div class="hint">ドラッグで動かす・ホイール／二本指で寄る引く・店を押すと札</div></div>
+      <div id="list"></div>` + foot;
+    const win = document.getElementById('win'), card = document.getElementById('fuda');
+    const BASE = 16, b = T.bounds(town);
+    const map = renderTop(town, { scale: BASE, labels: true, res: 2 });
+    win.prepend(map);
+    let zoom = 1, tx = 0, ty = 0, sel = null;
+    const apply = () => { map.style.transform = `translate(${tx}px,${ty}px) scale(${zoom})`; map.classList.toggle('show-dlabels', zoom < 0.55); map.style.setProperty('--lz', String(Math.min(4, 0.9 / zoom))); place(); };
+    const centerOn = (x, y, z) => { if (z) zoom = z; tx = win.clientWidth / 2 - x * zoom; ty = win.clientHeight / 2 - y * zoom; apply(); };
+    const all = () => centerOn((b.w * BASE) / 2, (b.h * BASE) / 2, Math.min(win.clientWidth / (b.w * BASE), win.clientHeight / (b.h * BASE)) * 0.96);
+    const goD = (d) => { const z = Math.min(1, Math.min(win.clientWidth / ((d.w + 6) * BASE), win.clientHeight / ((d.h + 6) * BASE))); centerOn((d.x0 - b.x + d.w / 2) * BASE, (d.y0 - b.y + d.h / 2) * BASE, z); list(d); };
+    // スマホは札が下から出るので、店を画面の上寄りに
+    const lotC = (l) => ({ x: (l.x - b.x + l.w / 2) * BASE, y: (l.y - b.y + l.h / 2) * BASE + (innerWidth <= 640 ? win.clientHeight * 0.22 : 0) });
+    function show(id) {
+      sel = id;
+      map.querySelectorAll('.lot.hl').forEach((x) => x.classList.remove('hl'));
+      map.querySelector(`.lot[data-lot="${id}"]`)?.classList.add('hl');
+      const lot = town.lots.get(id), info = lotInfo(town, lot), a = A(lot);
+      let h = `<button class="x" id="fx">×</button>`;
+      if (info.type === 'open' || info.type === 'resting') {
+        const s = info.shop, look = T.lookOf(s);
+        h += `<div class="hd">${avatar(s)}<div><div class="sn">${esc(s.shop)}</div>${esc(s.owner)} 【${esc(s.job)}】${s.resting ? ' <b>改装中</b>' : ''}</div></div>
+          <div><span class="lbl">住所</span><b>${a.short}</b> <small>${esc(a.heading)}</small></div>
+          <div><span class="lbl">店構え</span>${s.size}（棚${s.shelves}） <span class="lbl">屋根</span><i class="sw" style="background:${look.roof}"></i> <span class="lbl">入口</span><i class="sw" style="background:${look.door}"></i></div>
+          <ul>${goods(s).map((g) => `<li>${esc(g.name)} ￥${g.price} ×${g.stock}</li>`).join('')}</ul>
+          <div class="acts"><a href="?page=owner&fuda=${fuda}">[店主ページ]</a> <a href="#" id="fl">[この地区の一覧]</a></div>`;
+      } else {
+        h += `<div class="sn">${esc(info.title)}</div><div>${esc(info.sub)}</div>${lot.kind === 'shop' ? `<div><span class="lbl">住所</span>${a.short}</div>` : ''}`;
+      }
+      card.innerHTML = h;
+      card.classList.add('open');
+      card.querySelector('#fx').onclick = () => { card.classList.remove('open'); sel = null; map.querySelectorAll('.lot.hl').forEach((x) => x.classList.remove('hl')); };
+      card.querySelector('#fl')?.addEventListener('click', (e) => { e.preventDefault(); list(town.districts.find((d) => d.id === lot.district)); document.getElementById('list').scrollIntoView({ behavior: 'smooth' }); });
+      place();
+    }
+    function place() {
+      if (!sel || !card.classList.contains('open') || innerWidth <= 640) return;
+      const c = lotC(town.lots.get(sel)), x = tx + c.x * zoom, y = ty + c.y * zoom;
+      const right = x + 110 * zoom + card.offsetWidth < win.clientWidth - 50;
+      card.style.left = Math.max(8, right ? x + 110 * zoom : x - 110 * zoom - card.offsetWidth) + 'px';
+      card.style.top = Math.max(8, Math.min(win.clientHeight - card.offsetHeight - 8, y - card.offsetHeight / 2)) + 'px';
+    }
+    function list(d) {
+      const ls = d.lots.filter((l) => l.kind === 'shop').sort((x, y) => x.row - y.row || x.number - y.number);
+      document.getElementById('list').innerHTML = `●${esc(d.center ? d.name : A(ls[0] || d.lots[0]).heading)}のお店<br><table><tr><td>住所</td><td>店</td><td>店主</td><td>職業</td><td>店構え</td></tr>${ls.map((l) => {
+        const i = lotInfo(town, l);
+        const nm = i.type === 'open' || i.type === 'resting' ? `<a href="#" data-lot="${l.id}">${esc(i.shop.shop)}</a>${i.type === 'resting' ? ' (改装中)' : ''}` : `<span style="color:#999">${esc(i.title)}</span>`;
+        return `<tr><td class="nw">${A(l).short}</td><td>${nm}</td><td>${esc(i.shop && i.type !== 'held' ? i.shop.owner : '')}</td><td>${esc(i.shop && i.type !== 'held' ? i.shop.job : '')}</td><td>${i.shop && i.type !== 'held' ? i.shop.size : ''}</td></tr>`;
+      }).join('')}</table><small>地図が見づらいとき・探したいときはこちら。名前を押すと地図がその店へ。</small>`;
+      document.querySelectorAll('#list a[data-lot]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); const l = town.lots.get(Number(a.dataset.lot)); const c = lotC(l); centerOn(c.x, c.y, Math.max(zoom, 0.9)); show(l.id); win.scrollIntoView({ behavior: 'smooth' }); }));
+    }
+    document.getElementById('dsel').onclick = (e) => {
+      const a = e.target.closest('a'); if (!a) return; e.preventDefault();
+      document.querySelectorAll('#dsel a').forEach((x) => x.classList.toggle('on', x === a));
+      if (a.dataset.all) { all(); document.getElementById('list').innerHTML = ''; } else goD(town.districts.find((d) => d.id === a.dataset.d));
+    };
+    document.getElementById('fgo').onclick = () => {
+      const m = /^(\d+)区(\d)-(\d+)$/.exec(document.getElementById('fq').value.trim());
+      const d = m && town.districts.find((x) => !x.center && x.no === Number(m[1]));
+      const l = d?.lots.find((x) => x.kind === 'shop' && (x.row < 2 ? 1 : 2) === Number(m[2]) && x.number === Number(m[3]));
+      if (l) { const c = lotC(l); centerOn(c.x, c.y, 1); show(l.id); }
+    };
+    // ドラッグ・ホイール・ピンチ (UI案2 と同じ)
+    let drag = null, moved = 0; const pts = new Map();
+    const dist = () => { const [p1, p2] = [...pts.values()]; return Math.hypot(p1.x - p2.x, p1.y - p2.y); };
+    const zoomAt = (cx, cy, f) => { const nz = Math.max(0.12, Math.min(2.2, zoom * f)); tx = cx - ((cx - tx) * nz) / zoom; ty = cy - ((cy - ty) * nz) / zoom; zoom = nz; apply(); };
+    win.addEventListener('pointerdown', (e) => { if (e.target.closest('.fuda,.zb')) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); drag = { x: e.clientX, y: e.clientY, tx, ty, d: pts.size === 2 ? dist() : 0, z: zoom }; moved = 0; win.setPointerCapture(e.pointerId); });
+    win.addEventListener('pointermove', (e) => { if (!drag || !pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2 && drag.d) { zoomAt(win.clientWidth / 2, win.clientHeight / 2, (drag.z * dist()) / drag.d / zoom); return; } moved += Math.abs(e.movementX) + Math.abs(e.movementY); tx = drag.tx + e.clientX - drag.x; ty = drag.ty + e.clientY - drag.y; apply(); });
+    const up = (e) => { pts.delete(e.pointerId); if (!pts.size) drag = null; };
+    win.addEventListener('pointerup', up); win.addEventListener('pointercancel', up);
+    win.addEventListener('wheel', (e) => { e.preventDefault(); const r = win.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+    document.getElementById('zin').onclick = () => zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1.3);
+    document.getElementById('zout').onclick = () => zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1 / 1.3);
+    win.addEventListener('click', (e) => { if (moved > 6) return; const l = e.target.closest('.top-map > .lot'); if (l) show(Number(l.dataset.lot)); });
+    // 開いたとき: ?lot= があればその店、?d= があればその地区、なければ全景 (スマホは中央)
+    const at = q.get('lot') ? town.lots.get(Number(q.get('lot'))) : null;
+    if (at) { const c = lotC(at); centerOn(c.x, c.y, 1); show(at.id); }
+    else if (cur) goD(town.districts.find((d) => d.id === cur));
+    else if (innerWidth <= 640) goD(town.districts[0]);
+    else all();
+    if (q.get('pick')) { const l = lotOf(you); const c = lotC(l); centerOn(c.x, c.y, 0.9); show(l.id); }
+  }
+
+  // ================= トップ (今のトップに「街の地図」の小窓を足す) =================
+  function topPage() {
+    let s = menu() + `<h2 style="margin:4px 0">SOLD OUT for Muse</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small><hr>`;
+    s += `<div class="top"><div class="main">●街の地図 <a href="?page=town&fuda=${fuda}">[大きく見る]</a><br><div id="mini" style="position:relative;overflow:hidden;border:1px solid #99a;max-width:100%;cursor:pointer"></div>`;
+    s += `<hr>●街のお店 (人口 2,413人 / ${shopsInOrder.length}店・順位順) <a href="#">[ランキング]</a><div class="grid">`;
+    shopsInOrder.slice(0, 12).forEach((sh, i) => {
+      s += `<a class="cell" href="?page=town&fuda=${fuda}&lot=${sh.lot}"><div class="hd">${avatar(sh)}<div><div class="rk">${i + 1}位 · ${9000 - i * 311}点<span class="adr">${A(lotOf(sh)).short}</span></div><div><b>${esc(sh.shop)}</b></div><div class="on">${esc(sh.owner)}</div></div></div><ul>${goods(sh).map((g) => `<li>${esc(g.name)} ￥${g.price} ×${g.stock}</li>`).join('')}</ul></a>`;
+    });
+    s += `</div><small>…（以下略）。札の右上の住所を押すと地図のその店へ。</small></div><div class="side">●最近の出来事 [すべて]<br><table><tr><td>21:00</td><td>第13期の決算がありました</td></tr><tr><td>20:41</td><td>新しいお店が 3区1-5 に開きました</td></tr></table></div></div>` + foot;
+    app.innerHTML = s;
+    const host = document.getElementById('mini');
+    const b = T.bounds(town);
+    const sc = Math.min((host.clientWidth || 600) / b.w, 300 / b.h);
+    const m = renderTop(town, { scale: sc, labels: true, signs: false, res: 2 });
+    m.classList.add('show-dlabels'); m.style.setProperty('--lz', '0.32');
+    host.style.height = b.h * sc + 'px'; host.style.width = b.w * sc + 'px';
+    host.appendChild(m);
+    host.onclick = (e) => { const l = e.target.closest('.lot'); const d = l && town.districts.find((x) => x.id === town.lots.get(Number(l.dataset.lot)).district); location.href = `?page=town&fuda=${fuda}${d ? '&d=' + d.id : ''}`; };
+  }
+
+  // ================= 店主ページ (住所と、まわりの小さな地図) =================
+  function ownerPage() {
+    const lot = lotOf(you), a = A(lot), look = T.lookOf(you);
+    app.innerHTML = menu() + `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${avatar(you, 'l')}<div><b style="font-size:20px">${esc(you.owner)}</b> <small>${you.som}</small><br>
+      ${esc(you.shop)}【${esc(you.job)}】 RANK 12 / 8,210点 / 人気 64%<br>許可年月日 2026/11/07<br>
+      <b>住所 ${a.long}</b>（${esc(a.heading)}） <a href="?page=town&fuda=${fuda}&lot=${lot.id}">[地図で見る]</a></div></div>
+      <hr>●お店のまわり <small>(地区の地図。押すと街の地図へ)</small><br><div class="nb-map" id="nb"></div>
+      <small>店構え ${you.size}（棚${you.shelves}） 屋根 <i class="sw" style="background:${look.roof}"></i> 入口 <i class="sw" style="background:${look.door}"></i>（色は Muse が決める）</small>
+      <hr>●出店許可証<br><div class="lic-mini">出店許可証　No.${you.som.replace('som', '')}<br><b>${esc(you.shop)}</b>　${esc(you.owner)}<br>所在地　<b>${a.long}</b><br><small>（今の許可証の画像に、所在地の1行が足される。地区名は入れない）</small></div>
+      <hr>●陳列棚<br><table>${goods(you).map((g, i) => `<tr><td>棚${i + 1}</td><td>${esc(g.name)}</td><td>￥${g.price}</td><td>在庫${g.stock}</td></tr>`).join('')}</table>` + foot;
+    const host = document.getElementById('nb');
+    const d = town.districts.find((x) => x.id === lot.district);
+    const sc = 7, m = renderTop(town, { districts: [d], scale: sc, labels: false, highlight: lot.id, res: 3 });
+    host.appendChild(m);
+    const bb = T.bounds(town, [d]);
+    const cx = (lot.x - bb.x + lot.w / 2) * sc, cy = (lot.y - bb.y + lot.h / 2) * sc;
+    m.style.left = Math.min(0, Math.max(host.clientWidth - bb.w * sc, host.clientWidth / 2 - cx)) + 'px';
+    m.style.top = Math.min(0, Math.max(host.clientHeight - bb.h * sc, host.clientHeight / 2 - cy)) + 'px';
+    host.style.cursor = 'pointer';
+    host.onclick = () => (location.href = `?page=town&fuda=${fuda}&lot=${lot.id}`);
+  }
+
+  // ================= 店長室 (見学用リンクで入った人間) =================
+  function roomPage() {
+    const lot = lotOf(you), a = A(lot), look = T.lookOf(you);
+    app.innerHTML = menu() + `●店長室 — ${esc(you.shop)} <small>(見学中)</small><hr>
+      <table><tr><td>住所</td><td><b>${a.long}</b>（${esc(a.heading)}） <a href="?page=town&fuda=${fuda}&lot=${lot.id}">[地図で見る]</a></td></tr>
+      <tr><td>店構え</td><td>${you.size}（棚${you.shelves}・維持費は棚のぶんだけ）</td></tr>
+      <tr><td>外観</td><td>屋根 <i class="sw" style="background:${look.roof}"></i> 入口 <i class="sw" style="background:${look.door}"></i> <small>色を変えるのは Muse (API)。ここでは見るだけ</small></td></tr></table>
+      <small>（このあとに今の店長室の中身: 資金・在庫・棚・作業… が続く）</small>` + foot;
+  }
+
+  ({ town: townPage, top: topPage, owner: ownerPage, room: roomPage }[page] || townPage)();
+});
+</script>
+</body>
+</html>

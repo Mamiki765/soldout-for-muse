@@ -1,0 +1,65 @@
+/* SOLD OUT for Muse — 観戦画面の街の地図 (1.2.0)。地図の窓と札は羊皮紙色、まわりはいつもの観戦画面のまま。 */
+
+/* ---- 上から見た地図 (地面・建物は canvas、上に押せる区画と看板) ---- */
+.top-map { position: relative; background: #c9bfa9; }
+.top-map > div { position: absolute; }
+.top-map canvas.tiles { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
+.top-map .lot { cursor: pointer; }
+.top-map .lot:hover { outline: 2px solid rgba(255,255,255,.9); outline-offset: -2px; z-index: 2; }
+.top-map .lot .sign { position: absolute; left: 6%; right: 6%; text-align: center; font-size: max(9px, calc(var(--chip) * .42)); line-height: 1.25; color: #2b2112;
+  background: rgba(255,248,230,.94); border: 1px solid #8b6b3a; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1; pointer-events: none; }
+.top-map .lot .sign:empty { display: none; }
+.top-map .lot .sign.down { bottom: calc(var(--chip) * -.35); }
+.top-map .lot .sign.up { top: calc(var(--chip) * -.35); }
+.top-map .lot .sign.pub { background: rgba(123,93,58,.9); color: #fff; border-color: #5c4126; }
+.top-map .lot.t-resting .sign { background: #e9b949; }
+.top-map .lot.t-held .sign { background: #ddd; }
+.top-map .lot.hl::after { content: ""; position: absolute; inset: 0; border: 3px solid #ff5a36; z-index: 4; pointer-events: none; }
+.top-map .dlabel { transform: translate(-50%, -50%) scale(var(--lz, 1)); pointer-events: none; text-align: center; background: rgba(251,245,230,.92); color: #2b2112; border: 1px solid #8b6b3a; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; z-index: 5; }
+.top-map .dlabel b { display: block; font-size: 13px; }
+.top-map .dlabel span { font-size: 11px; color: #6b4a2b; }
+.top-map .dlabel.center b { color: #7a3328; }
+.top-map.show-dlabels .dlabel { display: block; }
+.top-map.show-dlabels .lot .sign { display: none; }
+/* 地名の札 (北の大通りの上)。引いたときは地区の真ん中の dlabel に替わる */
+.top-map .dplate { transform: translate(-50%, -50%); pointer-events: none; background: #5c4126; color: #fff8e6; border: 2px solid #d9b23a; border-radius: 6px; padding: 1px 10px; font-size: max(10px, calc(var(--chip) * .55)); white-space: nowrap; z-index: 5; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+.top-map .dplate.center { background: #7a3328; }
+.top-map.show-dlabels .dplate { display: none; }
+
+/* ---- 小物 ---- */
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; border: 1px solid rgba(0,0,0,.3); margin: 0 2px; }
+.adr { display: inline-block; font-size: 11px; color: #6b4a2b; background: #f6eedc; border: 1px solid #d8c7a4; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
+.town-dim { color: #999; }
+.town-miss { color: #cc3333; font-size: 12px; }
+
+/* ---- 街の地図のページ ---- */
+.town-dsel { line-height: 1.9; }
+.town-dsel a { white-space: nowrap; margin-right: 4px; }
+.town-dsel a.on { color: #000033; font-weight: bold; background: #f6eedc; }
+@media (max-width: 640px) { .town-dsel { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; } .town-find { display: block; } }
+.town-win { position: relative; height: min(72vh, 720px); min-height: 340px; overflow: hidden; border: 1px solid #99a; background: #efe4cc; touch-action: none; cursor: grab; margin: 4px 0; }
+@media (max-width: 640px) { .town-win { height: calc(100dvh - 150px); margin: 4px -8px; border-left: 0; border-right: 0; } }
+.town-win .top-map { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.town-win .zb { position: absolute; right: 8px; top: 8px; z-index: 6; display: flex; flex-direction: column; gap: 4px; }
+.town-win .zb button { width: 34px; height: 34px; border: 1px solid #8b6b3a; background: #fbf5e6; color: #3d2a12; border-radius: 6px; font-size: 18px; cursor: pointer; }
+.town-win .hint { position: absolute; left: 8px; bottom: 8px; z-index: 6; background: rgba(251,245,230,.92); border: 1px solid #c9b38a; border-radius: 6px; font-size: 11px; padding: 2px 6px; color: #3d2a12; }
+
+/* 札 (羊皮紙) */
+.town-card { position: absolute; z-index: 8; width: 300px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,.28); display: none; cursor: auto;
+  background: #fbf5e6; border: 2px solid #8b6b3a; border-radius: 6px; color: #2b2112; }
+.town-card.open { display: block; }
+.town-card .x { position: absolute; right: 4px; top: 2px; border: 0; background: none; font-size: 18px; cursor: pointer; color: inherit; }
+.town-card .sn { font-size: 15px; font-weight: bold; padding-right: 20px; }
+.town-card .lbl { font-size: 11px; display: inline-block; min-width: 2.6em; color: #8a6f4a; }
+.town-card ul { list-style: none; margin: 4px 0 0; padding: 4px 0 0; border-top: 1px dotted #c9b38a; font-size: 12px; }
+.town-card .acts { margin-top: 4px; }
+@media (max-width: 640px) { .town-card { left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; max-height: 48%; overflow: auto; } }
+
+/* ---- 小さな地図 (トップ・店主ページ) ---- */
+.town-mini { position: relative; overflow: hidden; border: 1px solid #99a; max-width: 100%; cursor: pointer; background: #efe4cc; }
+.town-around { position: relative; overflow: hidden; border: 1px solid #99a; width: 100%; max-width: 520px; height: 260px; background: #efe4cc; cursor: pointer; }
+.town-around .top-map { position: absolute; }
+
+/* ---- 色の見本 ---- */
+table.town-colors td { text-align: center; font-size: 11px; vertical-align: middle; }
+table.town-colors canvas { display: block; margin: auto; image-rendering: pixelated; }
