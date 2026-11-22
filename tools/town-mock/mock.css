@@ -1,0 +1,89 @@
+/* SOLD OUT ミューズ街 P0 見本 — 共通の見た目。マップチップはまだ無いので、地面・道・家は CSS の仮。 */
+:root {
+  --bg: #f6f3ec; --panel: #ffffff; --ink: #1d2433; --dim: #6a7183; --line: #d9d3c5; --accent: #3f6fa0;
+  --grass: #9cc77a; --grass2: #8dbb6b; --avenue: #cfc6b3; --alley: #e6dcc6; --canal: #6fb0d8; --hedge: #4f8a3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #191c22; --panel: #232730; --ink: #e6e8ee; --dim: #9aa1b2; --line: #39404d; --accent: #8fb6e6; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.6 "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif; }
+a { color: var(--accent); }
+header.bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+header.bar h1 { font-size: 15px; margin: 0; }
+header.bar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+header.bar .seg button { border: 0; background: transparent; color: var(--ink); padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+header.bar .seg button.on { background: var(--accent); color: #fff; }
+header.bar .lbl { font-size: 12px; color: var(--dim); }
+.note { font-size: 12px; color: var(--dim); }
+button.go { border: 1px solid var(--line); background: var(--bg); color: var(--accent); border-radius: 6px; padding: 0 6px; font: inherit; cursor: pointer; }
+button.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer; }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---- 店の札 ---- */
+.card { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.card .portrait { flex: 0 0 132px; aspect-ratio: 3 / 4; border-radius: 8px; display: grid; place-items: center; text-align: center; font-size: 12px; color: #fff;
+  background: repeating-linear-gradient(45deg, hsl(var(--h) 35% 55%) 0 10px, hsl(var(--h) 35% 50%) 10px 20px); }
+.card .portrait small { opacity: .8; }
+.card-body { min-width: 0; flex: 1; }
+.card h3 { margin: 2px 0 0; font-size: 17px; }
+.card .sub { color: var(--dim); font-size: 12px; }
+.card .addr { margin-top: 6px; font-weight: 600; }
+.card .lb { display: inline-block; min-width: 3em; color: var(--dim); font-size: 12px; font-weight: 400; }
+.card .dim, .dim { color: var(--dim); font-size: 12px; }
+.card ul.nb { list-style: none; padding: 0; margin: 6px 0 0; font-size: 13px; }
+.card ul.nb li { margin: 2px 0; }
+.card details.json { margin-top: 6px; font-size: 12px; }
+.card details.json pre { background: var(--bg); padding: 6px; border-radius: 6px; overflow: auto; max-height: 220px; font-size: 11px; line-height: 1.35; }
+.card.compact .portrait { flex-basis: 72px; }
+.badges .badge { display: inline-block; font-size: 11px; border-radius: 99px; padding: 0 8px; margin-right: 4px; background: var(--bg); border: 1px solid var(--line); }
+.badge.you { background: #3f6fa0; color: #fff; border-color: #3f6fa0; }
+.badge.rest { background: #e9b949; color: #3a2a00; border-color: #e9b949; }
+.badge.held { background: #8a8f99; color: #fff; border-color: #8a8f99; }
+.badge.new { background: #4f9a5a; color: #fff; border-color: #4f9a5a; }
+@media (max-width: 520px) { .card .portrait { flex-basis: 96px; } }
+
+/* ---- 上から見た地図 (仮のチップ) ---- */
+.top-map { position: relative; background: var(--grass2); }
+.top-map > div { position: absolute; }
+.avenue { background: var(--avenue) repeating-linear-gradient(0deg, transparent 0 calc(var(--chip) - 1px), rgba(0,0,0,.06) 0 var(--chip)),
+  repeating-linear-gradient(90deg, transparent 0 calc(var(--chip) - 1px), rgba(0,0,0,.06) 0 var(--chip)); }
+.ground { background: var(--grass); }
+.alley { background: var(--alley); box-shadow: inset 0 1px rgba(0,0,0,.08), inset 0 -1px rgba(0,0,0,.08); }
+.strip.canal { background: var(--canal) repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 2px, transparent 2px calc(var(--chip) / 2)); }
+.strip.hedge { background: var(--hedge) radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0 25%, transparent 26%) 0 0 / var(--chip) var(--chip); }
+.lot { cursor: pointer; }
+.lot.t-open, .lot.t-resting, .lot.t-held { box-shadow: inset 0 0 0 1px rgba(80,60,20,.35); }
+.lot:hover { outline: 2px solid #fff; outline-offset: -2px; z-index: 2; }
+.lot.hl { outline: 3px solid #ff5a36; outline-offset: -3px; z-index: 3; }
+.lot .garden { position: absolute; inset: 0; background: #a9d084 radial-gradient(circle, #f4d24d 0 8%, transparent 9%) 0 0 / calc(var(--chip) * 1.5) calc(var(--chip) * 1.5); }
+.lot .garden.L { background: #a9d084; }
+.lot .bld { position: absolute; background: var(--wall); border: 1px solid rgba(0,0,0,.35); }
+.lot .bld .roof { position: absolute; inset: 0 0 45% 0; background: var(--roof); }
+.lot .bld.npc { filter: saturate(.55); }
+.lot .npc-yard { position: absolute; inset: 0; }
+.lot .npc-yard.t1 { background: radial-gradient(circle at 20% 25%, #4f8a3b 0 9%, transparent 10%); }
+.lot .npc-yard.t2 { background: radial-gradient(circle at 80% 30%, #4f8a3b 0 9%, transparent 10%), radial-gradient(circle at 18% 70%, #4f8a3b 0 7%, transparent 8%); }
+.lot .npc-yard.t3 { background: radial-gradient(circle at 75% 75%, #4f8a3b 0 10%, transparent 11%); }
+.lot.t-held .bld { background: #b9b4aa; }
+.lot.t-held .bld .roof { background: #7d7468; }
+.lot .sign { position: absolute; left: 4%; right: 4%; text-align: center; font-size: max(9px, calc(var(--chip) * .42)); line-height: 1.25; color: #2b2112;
+  background: #fff8e6; border: 1px solid #8b6b3a; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1; }
+.lot .sign:empty { display: none; }
+.lot .sign.down { bottom: 2px; }
+.lot .sign.up { top: 2px; }
+.lot.t-resting .sign { background: #e9b949; }
+.lot.t-held .sign { background: #ddd; }
+.lot.is-new .sign { border-color: #4f9a5a; box-shadow: 0 0 0 2px rgba(79,154,90,.5); }
+.pub-fountain { position: absolute; inset: 0; background: #e8e1d2 repeating-conic-gradient(#ddd4c2 0 25%, #e8e1d2 0 50%) 0 0 / var(--chip) var(--chip); }
+.lot[data-lot] .pub-fountain::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; background: radial-gradient(circle, #bfe4f7 0 35%, #6fb0d8 36% 70%, #b9ad94 71%); }
+.pub-park { position: absolute; inset: 0; background: #7fb35d radial-gradient(circle, #3f7a30 0 22%, transparent 23%) 0 0 / calc(var(--chip) * 2) calc(var(--chip) * 2); }
+.pub-mark { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; background: #e8e1d2; text-align: center; }
+.pub-mark i { font-style: normal; width: calc(var(--chip) * 1.6); height: calc(var(--chip) * 1.6); border-radius: 50%; display: grid; place-items: center; background: #7b5d3a; color: #fff; font-size: calc(var(--chip) * .8); }
+.pub-mark span { font-size: max(9px, calc(var(--chip) * .4)); color: #4a3a22; margin-top: 2px; }
+.dlabel { transform: translate(-50%, -50%); pointer-events: none; text-align: center; background: rgba(255,255,255,.85); color: #1d2433; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; }
+.dlabel b { display: block; font-size: 13px; }
+.dlabel span { font-size: 11px; color: #555; }
+.show-dlabels .dlabel { display: block; }
+.show-dlabels .lot .sign { display: none; }
+.lot.hl::after { content: ""; position: absolute; inset: 0; border: 3px solid #ff5a36; z-index: 4; pointer-events: none; }

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案B 通りを歩く</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+  main { padding: 12px 16px 24px; max-width: 1280px; margin: 0 auto; }
+  .crumb { font-size: 13px; color: var(--dim); margin: 4px 0 10px; }
+  .crumb button { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+  /* 全景: 通りの路線図 */
+  .net { display: grid; gap: 10px; }
+  .dcell { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-height: 120px; }
+  .dcell h3 { margin: 0 0 4px; font-size: 14px; }
+  .dcell .lm { font-size: 11px; color: var(--dim); }
+  .dcell .line { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; cursor: pointer; border-radius: 8px; padding: 4px 6px; }
+  .dcell .line:hover { background: var(--bg); }
+  .dcell .rail { flex: 1; height: 6px; border-radius: 3px; background: #c9b48a; position: relative; }
+  .dcell .rail i { position: absolute; top: -3px; width: 12px; height: 12px; border-radius: 50%; background: #3f6fa0; border: 2px solid #fff; }
+  .dcell .rail i.lm { background: #7b5d3a; }
+  .dcell .cnt { font-size: 11px; color: var(--dim); white-space: nowrap; }
+  .dcell.empty { background: transparent; border-style: dashed; color: var(--dim); display: grid; place-items: center; font-size: 12px; }
+  /* 通り */
+  .street-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
+  .street-head h2 { font-size: 18px; margin: 0; }
+  .facing { font-size: 13px; color: var(--dim); }
+  .scene { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+  .strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; background: linear-gradient(#bfe0f5, #e8f4fb 70%, #e8f4fb); }
+  .fac { flex: 0 0 var(--lw); height: calc(var(--lw) * 1.15); position: relative; scroll-snap-align: center; cursor: pointer; }
+  .fac .gnd { position: absolute; left: 0; right: 0; bottom: 0; height: 18%; background: #e3d6bb; border-top: 2px solid #c9b48a; }
+  .fac .yard { position: absolute; left: 0; right: 0; bottom: 18%; height: 10%; background: #9cc77a; }
+  .fac .fence { position: absolute; left: 0; right: 0; bottom: 18%; height: 7%; background: repeating-linear-gradient(90deg, #fff 0 4px, transparent 4px 14px); border-top: 2px solid #fff; opacity: .9; }
+  .fac .house { position: absolute; bottom: 18%; background: var(--wall); border: 2px solid rgba(0,0,0,.35); border-bottom: 0; }
+  .fac .house .rf { position: absolute; left: -8%; right: -8%; bottom: 100%; height: 38%; background: var(--roof); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .fac .house .door { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 22%; height: 38%; background: #6b4a2b; border-radius: 4px 4px 0 0; }
+  .fac .house .win { position: absolute; width: 18%; height: 18%; background: #fff7c9; border: 2px solid rgba(0,0,0,.3); }
+  .fac .house .board { position: absolute; left: 8%; right: 8%; top: 8%; background: #fff8e6; border: 2px solid #8b6b3a; border-radius: 4px; text-align: center; font-size: clamp(10px, calc(var(--lw) * .06), 15px); font-weight: 700; color: #2b2112; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 4px; }
+  .fac .house.S .board { left: -45%; right: -45%; }
+  .fac.t-resting .board { background: #e9b949; }
+  .fac.t-held .house { --wall: #c9c4ba !important; --roof: #7d7468 !important; }
+  .fac.t-held .win { background: repeating-linear-gradient(45deg, #8a6c45 0 4px, #a5855a 4px 8px); }
+  .fac.t-npc .house { filter: saturate(.55); }
+  .fac .rest-tag { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%) rotate(-4deg); background: #e9b949; color: #3a2a00; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 4px; z-index: 2; }
+  .fac .no { position: absolute; bottom: 3%; left: 0; right: 0; text-align: center; font-size: 11px; color: #5a4a2e; }
+  .fac.focus::after { content: ""; position: absolute; inset: 4px; border: 3px solid #ff5a36; border-radius: 10px; pointer-events: none; }
+  .fac.you .no::before { content: "あなたの店 ・ "; color: #3f6fa0; font-weight: 700; }
+  .fac .fountain { position: absolute; bottom: 18%; left: 20%; right: 20%; height: 22%; background: #b9ad94; border-radius: 8px 8px 0 0; }
+  .fac .fountain::before { content: ""; position: absolute; left: 30%; right: 30%; bottom: 100%; height: 140%; border: 6px solid #8fd0f2; border-bottom: 0; border-radius: 50% 50% 0 0; }
+  .fac .tree { position: absolute; bottom: 18%; width: 16%; height: 46%; background: radial-gradient(circle at 50% 30%, #4f8a3b 0 45%, transparent 46%), linear-gradient(90deg, transparent 44%, #7a5532 44% 56%, transparent 56%); }
+  .fac .pole { position: absolute; bottom: 18%; left: 46%; width: 8%; height: 55%; background: #7b5d3a; }
+  .fac .plate { position: absolute; bottom: 72%; left: 50%; transform: translateX(-50%); background: #7b5d3a; color: #fff; font-size: 12px; padding: 1px 8px; border-radius: 4px; white-space: nowrap; }
+  .fac.edge { flex-basis: calc(var(--lw) * .35); cursor: default; }
+  .fac.edge .gnd { background: #cfc6b3; }
+  .fac.edge .plate { bottom: 40%; background: #555; }
+  .walk { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px; background: #e3d6bb; }
+  .info-row { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; margin-top: 12px; }
+  .opposite { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+  .opposite h4 { margin: 0 0 4px; font-size: 13px; color: var(--dim); }
+  /* 店に入る */
+  .modal { position: fixed; inset: 0; background: rgba(10,12,18,.55); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+  .modal.open { display: flex; }
+  .inside { background: var(--panel); border-radius: 16px; max-width: 860px; width: 100%; max-height: 92vh; overflow: auto; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+  .inside .big { aspect-ratio: 3 / 4; display: grid; place-items: center; color: #fff; text-align: center; background: repeating-linear-gradient(45deg, hsl(var(--h) 35% 55%) 0 14px, hsl(var(--h) 35% 50%) 14px 28px); }
+  .inside .r { padding: 14px; }
+  .inside .r .card { border: 0; padding: 0; }
+  .inside .r .card .portrait { display: none; }
+  @media (max-width: 760px) {
+    .info-row { grid-template-columns: 1fr; }
+    .inside { grid-template-columns: 1fr; }
+    .inside .big { aspect-ratio: auto; height: 46vh; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1><a href="index.html">P0</a> ／ 案B 通りを歩く</h1>
+  <span class="lbl">店数</span><span class="seg" id="seg-shops"><button data-v="121">121</button><button data-v="200">200</button></span>
+  <button class="btn" id="to-net">全景（通りの路線図）</button>
+  <button class="btn primary" id="from-card">許可証の住所を押す</button>
+</header>
+<main id="main"></main>
+<div class="modal" id="modal"></div>
+<script src="town-gen.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  const { T, params, getTown, setParam, shopCard, lotInfo, esc, ROOF, WALL } = Mock;
+  const p = params();
+  const town = getTown(p);
+  const main = document.getElementById('main'), modal = document.getElementById('modal');
+  document.querySelectorAll('#seg-shops button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(p.shops)));
+  document.getElementById('seg-shops').onclick = (e) => e.target.dataset.v && setParam('shops', e.target.dataset.v);
+  const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
+  const district = (id) => town.districts.find((d) => d.id === id);
+  // 立ち位置: どの区画の前に立って、どちら側を見ているか
+  let pos = null;
+
+  // ---- 全景: 通りの路線図 ----
+  function drawNet() {
+    pos = null;
+    const xs = town.districts.map((d) => d.gx), ys = town.districts.map((d) => d.gy);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const cols = maxX - minX + 1;
+    let cells = '';
+    for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+      const d = town.districts.find((v) => v.gx === x && v.gy === y);
+      if (!d) { cells += `<div class="dcell empty">まだ開いていない土地</div>`; continue; }
+      const line = (ai) => {
+        const lots = d.lots.filter((l) => (l.row < 2 ? 0 : 1) === ai);
+        const shops = lots.filter((l) => l.kind === 'shop' && l.state !== 'vacant').length;
+        const dots = lots.filter((l, i) => l.row % 2 === 0).map((l) => `<i class="${l.kind === 'public' ? 'lm' : ''}" style="left:${(l.col / 5) * 94}%" title="${esc(l.publicName || '')}"></i>`).join('');
+        return `<div class="line" data-d="${d.id}" data-a="${ai}"><span>${esc(d.alleys[ai].name)}</span><span class="rail">${dots}</span><span class="cnt">${shops}店</span></div>`;
+      };
+      cells += `<div class="dcell"><h3>${esc(d.name)}</h3><div class="lm">目印：${esc(d.landmark.name)}</div>${line(0)}${line(1)}</div>`;
+    }
+    main.innerHTML = `<div class="crumb">全景 ・ 通りを選ぶと、その通りの店先に立つ</div><div class="net" style="grid-template-columns:repeat(${cols}, minmax(0, 1fr))">${cells}</div>
+      <p class="note">地区は大通りでつながっていて、路線図の上下左右がそのまま地図の位置です。スマホでは横にスクロールします。</p>`;
+    if (matchMedia('(max-width: 760px)').matches) { const n = main.querySelector('.net'); n.style.gridTemplateColumns = `repeat(${cols}, 220px)`; n.style.overflowX = 'auto'; }
+    main.querySelectorAll('.line').forEach((el) => (el.onclick = () => {
+      const d = district(el.dataset.d);
+      const first = d.lots.find((l) => (l.row < 2 ? 0 : 1) === Number(el.dataset.a) && l.row % 2 === 0);
+      stand(first.id, 'upper');
+    }));
+  }
+
+  // ---- 通り ----
+  function sideLots(lot, side) {
+    const d = district(lot.district);
+    const alley = lot.row < 2 ? 0 : 1;
+    const row = side === 'upper' ? alley * 2 : alley * 2 + 1;
+    const lots = d.lots.filter((l) => l.row === row);
+    // 上側を見るとき左=西、下側を見るとき左=東
+    return side === 'upper' ? lots : lots.slice().reverse();
+  }
+  function stand(lotId, side) {
+    const lot = town.lots.get(lotId);
+    pos = { lot: lotId, side: side ?? (lot.row % 2 === 0 ? 'upper' : 'lower') };
+    drawStreet();
+  }
+  function facade(l, focus) {
+    const info = lotInfo(town, l);
+    const you = info.shop && info.shop.som === town.fixture.you;
+    if (l.kind === 'public') {
+      const body = l.publicKind === 'fountain' ? '<div class="fountain"></div>'
+        : l.publicKind === 'park' ? '<div class="tree" style="left:12%"></div><div class="tree" style="left:44%;height:56%"></div><div class="tree" style="left:72%"></div>'
+        : `<div class="pole"></div><div class="plate">${esc(l.publicName)}</div>`;
+      return `<div class="fac t-public ${focus ? 'focus' : ''}" data-lot="${l.id}"><div class="yard"></div>${body}<div class="gnd"></div><div class="no">${esc(l.publicName)}</div></div>`;
+    }
+    let size = l.size, roof, wall;
+    if (info.type === 'npc') {
+      const k = T.npcLook(town, l.id);
+      size = k.shape === 2 ? 'M' : 'S';
+      roof = ROOF[k.roof]; wall = WALL[k.wall];
+    } else {
+      roof = `hsl(${info.shop.hue} 45% 42%)`; wall = `hsl(${info.shop.hue} 40% 90%)`;
+    }
+    const w = { S: 34, M: 62, L: 90 }[size], h = { S: 34, M: 50, L: 62 }[size];
+    const wins = size === 'S' ? '' : size === 'M' ? '<div class="win" style="left:10%;top:40%"></div><div class="win" style="right:10%;top:40%"></div>'
+      : '<div class="win" style="left:8%;top:38%"></div><div class="win" style="left:30%;top:38%"></div><div class="win" style="right:30%;top:38%"></div><div class="win" style="right:8%;top:38%"></div>';
+    const board = info.type === 'open' || info.type === 'resting' ? `<div class="board">${esc(info.shop.shop)}</div>` : info.type === 'held' ? '<div class="board">空き家</div>' : '';
+    const fence = info.type === 'npc' ? '' : '<div class="fence"></div>';
+    const tree = size !== 'L' ? `<div class="tree" style="left:${size === 'S' ? 6 : 2}%;height:${size === 'S' ? 40 : 34}%"></div>` : '';
+    return `<div class="fac t-${info.type} ${focus ? 'focus' : ''} ${you ? 'you' : ''}" data-lot="${l.id}">
+      <div class="yard"></div>${fence}${tree}
+      <div class="house ${size}" style="--roof:${roof};--wall:${wall};left:${(100 - w) / 2}%;width:${w}%;height:${h}%"><div class="rf"></div>${board}${wins}<div class="door"></div></div>
+      ${info.type === 'resting' ? '<div class="rest-tag">改装中（休業）</div>' : ''}
+      <div class="gnd"></div><div class="no">${l.number}番</div></div>`;
+  }
+  function drawStreet() {
+    const lot = town.lots.get(pos.lot);
+    const d = district(lot.district);
+    const alley = d.alleys[lot.row < 2 ? 0 : 1];
+    const lots = sideLots(lot, pos.side);
+    const phone = matchMedia('(max-width: 760px)').matches;
+    const lw = phone ? Math.min(window.innerWidth - 40, 360) : 300;
+    const dirL = pos.side === 'upper' ? '西' : '東', dirR = pos.side === 'upper' ? '東' : '西';
+    const edge = (t) => `<div class="fac edge"><div class="gnd"></div><div class="plate">${t}</div></div>`;
+    const info = lotInfo(town, lot);
+    const opp = lot.links ? T.neighborsJson(town, lot.id) : null;
+    main.innerHTML = `<div class="crumb"><button id="c-net">全景</button> › ${esc(d.name)} › ${esc(alley.name)}</div>
+      <div class="street-head"><h2>${esc(alley.name)}</h2><span class="facing">${pos.side === 'upper' ? '北側' : '南側'}の店先を見ている（左が${dirL}・右が${dirR}）</span></div>
+      <div class="scene"><div class="strip" id="strip" style="--lw:${lw}px">${edge('大通り（' + dirL + '）')}${lots.map((l) => facade(l, l.id === pos.lot)).join('')}${edge('大通り（' + dirR + '）')}</div>
+        <div class="walk"><button class="btn" id="w-left">◀ 左へ歩く</button><button class="btn" id="w-turn">振り返る（向かい側を見る）</button>${info.type === 'open' || info.type === 'resting' ? '<button class="btn primary" id="w-in">店に入る</button>' : ''}<button class="btn" id="w-right">右へ歩く ▶</button></div></div>
+      <div class="info-row"><div class="opposite"><h4>いま立っている前</h4>${esc(info.title)} ・ ${esc(T.addressText(town, lot))}
+        ${opp ? `<br><span class="dim">振り返ると向かいは ${opp.neighbors.front ? (opp.neighbors.front.shop ? esc(opp.neighbors.front.shop) : opp.neighbors.front.state === 'npc_house' ? 'NPCの家' : '空き家') : '（公共の場所）'}、目印の${esc(opp.landmark?.name ?? '')}は${opp.landmark?.same_street ? opp.landmark.lots_away + '軒先' : '一本となりの通り'}</span>` : ''}
+        <p class="note">増築：S は小さな家と広い庭、M は庭が減って二階建て、L は区画いっぱいの館。区画の幅（3×3 の敷地）は同じなので、通りの並びは変わらない。</p></div>
+        <div>${shopCard(town, lot, { compact: true })}</div></div>`;
+    const strip = document.getElementById('strip');
+    const cur = strip.querySelector('.focus');
+    if (cur) strip.scrollLeft = cur.offsetLeft - (strip.clientWidth - cur.clientWidth) / 2;
+    document.getElementById('c-net').onclick = drawNet;
+    strip.querySelectorAll('.fac[data-lot]').forEach((el) => (el.onclick = () => { pos.lot = Number(el.dataset.lot); drawStreet(); }));
+    const idx = lots.findIndex((l) => l.id === pos.lot);
+    document.getElementById('w-left').onclick = () => { if (idx > 0) { pos.lot = lots[idx - 1].id; drawStreet(); } };
+    document.getElementById('w-right').onclick = () => { if (idx < lots.length - 1) { pos.lot = lots[idx + 1].id; drawStreet(); } };
+    document.getElementById('w-turn').onclick = () => {
+      const other = pos.side === 'upper' ? 'lower' : 'upper';
+      const o = sideLots(lot, other).find((l) => l.col === lot.col);
+      pos = { lot: o.id, side: other };
+      drawStreet();
+    };
+    document.getElementById('w-in')?.addEventListener('click', () => enter(lot));
+    main.querySelectorAll('button.go').forEach((b) => (b.onclick = () => stand(Number(b.dataset.lot))));
+  }
+  function enter(lot) {
+    const info = lotInfo(town, lot);
+    modal.innerHTML = `<div class="inside" style="--h:${info.shop.hue}"><div class="big"><span>立ち絵の領域<br><small>3:4（1:1 なら上下に余白）</small></span></div>
+      <div class="r"><button class="btn" id="m-out" style="float:right">店を出る</button>${shopCard(town, lot)}<p class="note">ここに店の棚（今の観戦画面の「店の中」）が続く。</p></div></div>`;
+    modal.classList.add('open');
+    modal.querySelector('#m-out').onclick = () => modal.classList.remove('open');
+    modal.querySelectorAll('button.go').forEach((b) => (b.onclick = () => { modal.classList.remove('open'); stand(Number(b.dataset.lot)); }));
+  }
+  modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
+  document.getElementById('to-net').onclick = drawNet;
+  document.getElementById('from-card').onclick = () => stand(youLot().id);
+  stand(youLot().id);
+})();
+</script>
+</body>
+</html>
