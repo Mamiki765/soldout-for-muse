@@ -40,7 +40,7 @@
 <body class="tab-list">
 <header class="bar">
   <h1><a href="index.html">P0</a> ／ UI案3 一覧と地図の二画面</h1>
-  <span class="lbl">店数</span><span class="seg" id="seg-shops"><button data-v="121">121</button><button data-v="200">200</button></span>
+  <span id="ctl"></span>
   <button class="btn primary" id="from-card">許可証の住所を押す</button>
 </header>
 <div class="tabs"><button data-t="list" class="on">一覧</button><button data-t="map">地図</button></div>
@@ -49,14 +49,14 @@
   <div class="mapp" id="mapp"></div>
 </div>
 <script src="town-gen.js"></script>
+<script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
   const { T, params, getTown, setParam, shopCard, renderTop, lotInfo, esc } = Mock;
   const p = params();
   const town = getTown(p);
-  document.querySelectorAll('#seg-shops button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(p.shops)));
-  document.getElementById('seg-shops').onclick = (e) => e.target.dataset.v && setParam('shops', e.target.dataset.v);
+  Mock.controls(p);
   const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
   const listp = document.getElementById('listp'), mapp = document.getElementById('mapp');
   let cur = town.districts[0].id, sel = null, q = '';
@@ -103,8 +103,8 @@
   function drawPicked() {
     const el = listp.querySelector('#picked');
     if (!sel) { el.innerHTML = '<p class="note">一覧の行か、地図の区画を押すと、ここに札が出る。一覧に指を乗せると地図の区画が光る。</p>'; return; }
-    el.innerHTML = shopCard(town, town.lots.get(sel), { compact: true });
-    el.querySelectorAll('button.go').forEach((b) => (b.onclick = () => select(Number(b.dataset.lot))));
+    el.innerHTML = shopCard(town, town.lots.get(sel), { compact: true, neighbors: true });
+    Mock.wireCard(el, town, town.lots.get(sel), (id) => select(id));
   }
   function drawMap() {
     mapp.innerHTML = '';
@@ -112,7 +112,7 @@
     const dd = d();
     const near = town.districts.filter((x) => Math.abs(x.gx - dd.gx) <= 1 && Math.abs(x.gy - dd.gy) <= 1);
     const map = renderTop(town, { districts: near, scale: 14, highlight: sel, labels: true });
-    map.querySelectorAll('.lot').forEach((el) => { if (town.lots.get(Number(el.dataset.lot)).district !== cur) el.style.opacity = '.55'; });
+    map.querySelectorAll('.lot').forEach((el) => { if (town.lots.get(Number(el.dataset.lot)).district !== cur) el.style.background = 'rgba(40,50,40,.32)'; });
     mapp.appendChild(map);
     map.onclick = (e) => {
       const l = e.target.closest('.lot');

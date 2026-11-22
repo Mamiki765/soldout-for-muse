@@ -28,6 +28,12 @@
   .pop .grow { background: var(--panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; padding: 6px 12px; font-size: 12px; margin-top: -8px; padding-top: 12px; }
   .pop .grow button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 0 8px; cursor: pointer; }
   .pop .grow button.on { background: var(--accent); color: #fff; }
+  .pop .grow > div { margin: 3px 0; display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+  .pop .grow .lb { min-width: 3.2em; color: var(--dim); }
+  .pop .grow button.swb { width: 20px; height: 20px; padding: 0; border-radius: 4px; border: 2px solid transparent; }
+  .pop .grow button.swb.on { border-color: var(--ink); }
+  .pop .around { margin-top: 0; border-radius: 0 0 12px 12px; border-top: 0; max-height: 40vh; overflow: auto; }
+  .pop { max-height: calc(100% - 60px); overflow: auto; }
   .help { position: absolute; left: 12px; bottom: 12px; z-index: 10; background: rgba(255,255,255,.9); color: #1d2433; border-radius: 10px; padding: 6px 10px; font-size: 12px; max-width: 300px; }
   @media (max-width: 760px) {
     .pop { left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; }
@@ -40,27 +46,24 @@
 <body>
 <header class="bar">
   <h1><a href="index.html">P0</a> ／ UI案2 全画面の地図＋浮かぶ札</h1>
-  <span class="lbl">店数</span><span class="seg" id="seg-shops"><button data-v="121">121</button><button data-v="200">200</button></span>
-  <span class="lbl">大通り</span><span class="seg" id="seg-av"><button data-v="2">64px</button><button data-v="1">32px</button></span>
+  <span id="ctl"></span>
   <button class="btn primary" id="from-card">許可証の住所を押す</button>
 </header>
 <div class="stage" id="stage">
   <div class="chips" id="chips"></div>
   <div class="pop" id="pop"></div>
   <div class="nav"><div class="mm" id="mm"></div><div class="zb"><button id="zout">－</button><button id="zin">＋</button></div></div>
-  <div class="help">ドラッグで動かす・ホイール（スマホは二本指）で寄る引く。店を押すと、その場に札が浮かぶ。右下の小さな地図を押すとそこへ飛ぶ。</div>
+  <div class="help">ドラッグで動かす・ホイール（スマホは二本指）で寄る引く。店を押すと、その場に札が浮かぶ。札の「まわりを見る」で通りの両側や地区ぜんぶ。右下の小さな地図を押すとそこへ飛ぶ。</div>
 </div>
 <script src="town-gen.js"></script>
+<script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
   const { T, params, getTown, setParam, shopCard, renderTop, lotInfo, esc } = Mock;
   const p = params();
   const town = getTown(p);
-  const mark = (id, v) => document.querySelectorAll('#' + id + ' button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(v)));
-  mark('seg-shops', p.shops); mark('seg-av', p.avenue);
-  document.getElementById('seg-shops').onclick = (e) => e.target.dataset.v && setParam('shops', e.target.dataset.v);
-  document.getElementById('seg-av').onclick = (e) => e.target.dataset.v && setParam('avenue', e.target.dataset.v);
+  Mock.controls(p);
   const stage = document.getElementById('stage'), pop = document.getElementById('pop'), mm = document.getElementById('mm');
   const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
   const BASE = 16; // 地図は 1チップ 16px で作って、拡大縮小は transform で
@@ -69,7 +72,7 @@
   let map;
   function build() {
     map?.remove();
-    map = renderTop(town, { scale: BASE, highlight: selected, sizeOverride, labels: true });
+    map = renderTop(town, { scale: BASE, highlight: selected, sizeOverride, labels: true, res: 2 });
     stage.prepend(map);
     apply();
   }
@@ -90,7 +93,7 @@
   const MM = 180 / (b.w * BASE);
   function drawNav() {
     if (!mm.firstChild) {
-      const small = renderTop(town, { scale: BASE * MM, labels: false });
+      const small = renderTop(town, { scale: BASE * MM, labels: false, signs: false, res: 2 });
       mm.style.width = b.w * BASE * MM + 'px';
       mm.style.height = b.h * BASE * MM + 'px';
       mm.appendChild(small);
@@ -153,9 +156,14 @@
     if (!l || e.target.closest('.nav')) return;
     select(Number(l.dataset.lot), false);
   });
+  function highlight() {
+    map.querySelectorAll('.lot.hl').forEach((x) => x.classList.remove('hl'));
+    if (selected) map.querySelector(`.lot[data-lot="${selected}"]`)?.classList.add('hl');
+  }
   function select(id, center = true) {
+    const rebuild = !!sizeOverride;
     selected = id; sizeOverride = null;
-    build();
+    if (rebuild) build(); else highlight();
     const lot = town.lots.get(id);
     if (center) { const c = lotCenter(lot); centerOn(c.x, c.y, Math.max(zoom, 0.9)); }
     showPop();
@@ -165,13 +173,24 @@
     const info = lotInfo(town, lot);
     const can = info.type === 'open' || info.type === 'resting';
     const cur = sizeOverride?.size ?? lot.size;
-    pop.innerHTML = `<button class="x" id="px">×</button>${shopCard(town, lot, { compact: true })}${can ? `<div class="grow">増築の見え方 ${['S', 'M', 'L'].map((s) => `<button data-v="${s}" class="${cur === s ? 'on' : ''}">${s}</button>`).join(' ')}</div>` : ''}`;
+    const look = can ? T.lookOf(info.shop) : null;
+    const sw = (k, list, now) => list.map((c) => `<button class="swb ${now === c ? 'on' : ''}" data-k="${k}" data-v="${c}" style="background:${c}" title="${c}"></button>`).join('');
+    pop.innerHTML = `<button class="x" id="px">×</button>${shopCard(town, lot, { compact: true })}${can ? `<div class="grow">
+      <div><span class="lb">棚の数</span> ${['S', 'M', 'L'].map((s) => `<button data-sz="${s}" class="${cur === s ? 'on' : ''}">${s} ${Mock.SIZE_SHELVES[s]}</button>`).join(' ')}</div>
+      <div><span class="lb">外観</span> ${T.PALETTES.map((pl, i) => `<button data-pal="${i}" class="${look.name === pl.name ? 'on' : ''}"><i class="sw" style="background:${pl.roof}"></i>${pl.name}</button>`).join(' ')}</div>
+      <div><span class="lb">屋根</span> ${sw('roof', T.ROOF_COLORS, look.roof)}</div>
+      <div><span class="lb">ドア</span> ${sw('door', T.DOOR_COLORS, look.door)}</div>
+      <div class="dim">見本なのでどの店でも試せる。本番は自分の店だけ。区画と番地はそのまま、維持費は棚のぶんだけ。</div></div>` : ''}`;
     pop.classList.add('open');
-    pop.querySelector('#px').onclick = () => { pop.classList.remove('open'); selected = null; build(); };
-    pop.querySelectorAll('button.go').forEach((bt) => (bt.onclick = () => select(Number(bt.dataset.lot))));
-    pop.querySelectorAll('.grow button').forEach((bt) => (bt.onclick = () => { sizeOverride = { lot: selected, size: bt.dataset.v }; build(); showPop(); }));
+    pop.querySelector('#px').onclick = () => { pop.classList.remove('open'); selected = null; highlight(); };
+    Mock.wireCard(pop, town, lot, (id) => select(id));
+    const redraw = () => { build(); showPop(); };
+    pop.querySelectorAll('.grow button[data-sz]').forEach((bt) => (bt.onclick = () => { sizeOverride = { lot: selected, size: bt.dataset.sz }; redraw(); }));
+    pop.querySelectorAll('.grow button[data-pal]').forEach((bt) => (bt.onclick = () => { info.shop.look = { palette: Number(bt.dataset.pal) }; redraw(); }));
+    pop.querySelectorAll('.grow button.swb').forEach((bt) => (bt.onclick = () => { info.shop.look = { ...(info.shop.look ?? { palette: T.PALETTES.findIndex((x) => x.name === look.name) }), [bt.dataset.k]: bt.dataset.v }; redraw(); }));
     placePop();
   }
+  pop.addEventListener('cardresize', () => placePop());
   function placePop() {
     if (!selected || !pop.classList.contains('open')) return;
     const c = lotCenter(town.lots.get(selected));

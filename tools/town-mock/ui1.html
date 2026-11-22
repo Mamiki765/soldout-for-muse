@@ -28,8 +28,7 @@
 <body>
 <header class="bar">
   <h1><a href="index.html">P0</a> ／ UI案1 地図＋横の札</h1>
-  <span class="lbl">店数</span><span class="seg" id="seg-shops"><button data-v="121">121</button><button data-v="200">200</button></span>
-  <span class="lbl">大通り</span><span class="seg" id="seg-av"><button data-v="2">64px</button><button data-v="1">32px</button></span>
+  <span id="ctl"></span>
   <span class="lbl">表示</span><span class="seg" id="seg-view"><button data-v="all">全景</button><button data-v="district">地区</button></span>
   <button class="btn primary" id="from-card">許可証の住所を押す</button>
 </header>
@@ -39,11 +38,12 @@
     <button class="btn sheet-close" id="close">閉じる</button>
     <h2>この案の使い方</h2>
     <p class="note">全景で地区（目印の名前）を選ぶ → 寄ると看板が読める → 店を押すと右（スマホは下）に札が出る。札の「左隣・右隣・向かい」を押すと、その店へ移る。PC はマウスを乗せると店名と住所が出る。</p>
-    <p class="note">地図は CSS の仮です。緑の庭のある区画が店（S は小さな家＋庭、M・L は家が大きい）、くすんだ色の家が NPC の家、灰色の札が空き家、黄色の札が休業。</p>
+    <p class="note">地図の絵は仮のマップチップ（canvas で描いている）。日除けのある家が店（S 1〜4棚・M 5〜7棚・L 8棚で大きくなる）、日除けの無い家が NPC の家、灰色が空き家、足場が改装中（休業）。</p>
   </aside>
 </div>
 <div class="tip" id="tip"></div>
 <script src="town-gen.js"></script>
+<script src="tiles.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
@@ -54,9 +54,7 @@
   let view = 'district', scale = 16, selected = null, sizeOverride = null;
   const history = [];
   const mark = (id, v) => document.querySelectorAll('#' + id + ' button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(v)));
-  mark('seg-shops', p.shops); mark('seg-av', p.avenue);
-  document.getElementById('seg-shops').onclick = (e) => e.target.dataset.v && setParam('shops', e.target.dataset.v);
-  document.getElementById('seg-av').onclick = (e) => e.target.dataset.v && setParam('avenue', e.target.dataset.v);
+  Mock.controls(p);
   document.getElementById('seg-view').onclick = (e) => { if (e.target.dataset.v) { view = e.target.dataset.v; scale = view === 'all' ? fitScale() : 16; draw(selected ?? youLot().id); } };
   const youLot = () => town.lots.get(town.shops.get(town.fixture.you).lot);
   const fitScale = () => { const b = T.bounds(town); return Math.max(2, Math.min(16, Math.floor(((vp.clientWidth - 48) / b.w) * 10) / 10)); };
@@ -86,15 +84,15 @@
     const canGrow = info.type === 'open' || info.type === 'resting';
     side.innerHTML = `<button class="btn sheet-close" id="close">閉じる</button>
       <div class="hist">${history.length ? `<button class="btn" id="back">← 前の店へ戻る</button>` : ''}<button class="btn" id="home">あなたの店へ</button></div>
-      ${shopCard(town, lot)}
-      ${canGrow ? `<div class="grow"><span class="lbl note">増築したときの見え方（見本）</span> <span class="seg" id="seg-grow" style="display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden">
-        ${['S', 'M', 'L'].map((s) => `<button data-v="${s}" style="border:0;padding:4px 12px;cursor:pointer;background:${(sizeOverride?.size ?? lot.size) === s ? 'var(--accent)' : 'transparent'};color:${(sizeOverride?.size ?? lot.size) === s ? '#fff' : 'var(--ink)'}">${s}</button>`).join('')}</span>
-        <p class="note">区画（3×3の敷地）は同じまま、家だけが大きくなる。番地・お隣さんは変わらない。</p></div>` : ''}`;
+      ${shopCard(town, lot, { neighbors: true })}
+      ${canGrow ? `<div class="grow"><span class="lbl note">棚を増やしたときの見え方（見本）</span> <span class="seg" id="seg-grow" style="display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+        ${['S', 'M', 'L'].map((s) => `<button data-v="${s}" style="border:0;padding:4px 12px;cursor:pointer;background:${(sizeOverride?.size ?? lot.size) === s ? 'var(--accent)' : 'transparent'};color:${(sizeOverride?.size ?? lot.size) === s ? '#fff' : 'var(--ink)'}">${s} ${Mock.SIZE_SHELVES[s]}</button>`).join('')}</span>
+        <p class="note">区画（3×3の敷地）は同じまま、店が大きくなる。番地・お隣さんは変わらない。家の維持費は無く、棚の維持費だけ。</p></div>` : ''}`;
     side.classList.add('open');
     side.querySelector('#close').onclick = () => side.classList.remove('open');
     side.querySelector('#home').onclick = () => select(youLot().id);
     side.querySelector('#back')?.addEventListener('click', () => select(history.pop(), false));
-    side.querySelectorAll('button.go').forEach((b) => (b.onclick = () => select(Number(b.dataset.lot))));
+    Mock.wireCard(side.querySelector('.card').parentElement, town, lot, (id) => select(id));
     side.querySelector('#seg-grow')?.addEventListener('click', (e) => {
       if (!e.target.dataset.v) return;
       sizeOverride = { lot: selected, size: e.target.dataset.v };

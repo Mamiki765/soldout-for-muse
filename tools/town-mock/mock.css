@@ -43,47 +43,48 @@ button.btn.primary { background: var(--accent); border-color: var(--accent); col
 .badge.new { background: #4f9a5a; color: #fff; border-color: #4f9a5a; }
 @media (max-width: 520px) { .card .portrait { flex-basis: 96px; } }
 
-/* ---- 上から見た地図 (仮のチップ) ---- */
-.top-map { position: relative; background: var(--grass2); }
+/* ---- 上から見た地図 (地面・建物は tiles.js の canvas、上に押せる区画と看板) ---- */
+.top-map { position: relative; background: #c9bfa9; }
 .top-map > div { position: absolute; }
-.avenue { background: var(--avenue) repeating-linear-gradient(0deg, transparent 0 calc(var(--chip) - 1px), rgba(0,0,0,.06) 0 var(--chip)),
-  repeating-linear-gradient(90deg, transparent 0 calc(var(--chip) - 1px), rgba(0,0,0,.06) 0 var(--chip)); }
-.ground { background: var(--grass); }
-.alley { background: var(--alley); box-shadow: inset 0 1px rgba(0,0,0,.08), inset 0 -1px rgba(0,0,0,.08); }
-.strip.canal { background: var(--canal) repeating-linear-gradient(90deg, rgba(255,255,255,.25) 0 2px, transparent 2px calc(var(--chip) / 2)); }
-.strip.hedge { background: var(--hedge) radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0 25%, transparent 26%) 0 0 / var(--chip) var(--chip); }
+.top-map canvas.tiles { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
 .lot { cursor: pointer; }
-.lot.t-open, .lot.t-resting, .lot.t-held { box-shadow: inset 0 0 0 1px rgba(80,60,20,.35); }
-.lot:hover { outline: 2px solid #fff; outline-offset: -2px; z-index: 2; }
-.lot.hl { outline: 3px solid #ff5a36; outline-offset: -3px; z-index: 3; }
-.lot .garden { position: absolute; inset: 0; background: #a9d084 radial-gradient(circle, #f4d24d 0 8%, transparent 9%) 0 0 / calc(var(--chip) * 1.5) calc(var(--chip) * 1.5); }
-.lot .garden.L { background: #a9d084; }
-.lot .bld { position: absolute; background: var(--wall); border: 1px solid rgba(0,0,0,.35); }
-.lot .bld .roof { position: absolute; inset: 0 0 45% 0; background: var(--roof); }
-.lot .bld.npc { filter: saturate(.55); }
-.lot .npc-yard { position: absolute; inset: 0; }
-.lot .npc-yard.t1 { background: radial-gradient(circle at 20% 25%, #4f8a3b 0 9%, transparent 10%); }
-.lot .npc-yard.t2 { background: radial-gradient(circle at 80% 30%, #4f8a3b 0 9%, transparent 10%), radial-gradient(circle at 18% 70%, #4f8a3b 0 7%, transparent 8%); }
-.lot .npc-yard.t3 { background: radial-gradient(circle at 75% 75%, #4f8a3b 0 10%, transparent 11%); }
-.lot.t-held .bld { background: #b9b4aa; }
-.lot.t-held .bld .roof { background: #7d7468; }
-.lot .sign { position: absolute; left: 4%; right: 4%; text-align: center; font-size: max(9px, calc(var(--chip) * .42)); line-height: 1.25; color: #2b2112;
-  background: #fff8e6; border: 1px solid #8b6b3a; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1; }
+.lot:hover { outline: 2px solid rgba(255,255,255,.9); outline-offset: -2px; z-index: 2; }
+.lot .sign { position: absolute; left: 6%; right: 6%; text-align: center; font-size: max(9px, calc(var(--chip) * .42)); line-height: 1.25; color: #2b2112;
+  background: rgba(255,248,230,.94); border: 1px solid #8b6b3a; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 1; pointer-events: none; }
 .lot .sign:empty { display: none; }
-.lot .sign.down { bottom: 2px; }
-.lot .sign.up { top: 2px; }
+.lot .sign.down { bottom: calc(var(--chip) * -.35); }
+.lot .sign.up { top: calc(var(--chip) * -.35); }
+.lot .sign.pub { background: rgba(123,93,58,.9); color: #fff; border-color: #5c4126; }
 .lot.t-resting .sign { background: #e9b949; }
 .lot.t-held .sign { background: #ddd; }
 .lot.is-new .sign { border-color: #4f9a5a; box-shadow: 0 0 0 2px rgba(79,154,90,.5); }
-.pub-fountain { position: absolute; inset: 0; background: #e8e1d2 repeating-conic-gradient(#ddd4c2 0 25%, #e8e1d2 0 50%) 0 0 / var(--chip) var(--chip); }
-.lot[data-lot] .pub-fountain::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; background: radial-gradient(circle, #bfe4f7 0 35%, #6fb0d8 36% 70%, #b9ad94 71%); }
-.pub-park { position: absolute; inset: 0; background: #7fb35d radial-gradient(circle, #3f7a30 0 22%, transparent 23%) 0 0 / calc(var(--chip) * 2) calc(var(--chip) * 2); }
-.pub-mark { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; background: #e8e1d2; text-align: center; }
-.pub-mark i { font-style: normal; width: calc(var(--chip) * 1.6); height: calc(var(--chip) * 1.6); border-radius: 50%; display: grid; place-items: center; background: #7b5d3a; color: #fff; font-size: calc(var(--chip) * .8); }
-.pub-mark span { font-size: max(9px, calc(var(--chip) * .4)); color: #4a3a22; margin-top: 2px; }
-.dlabel { transform: translate(-50%, -50%); pointer-events: none; text-align: center; background: rgba(255,255,255,.85); color: #1d2433; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; }
+.dlabel { transform: translate(-50%, -50%); pointer-events: none; text-align: center; background: rgba(255,255,255,.88); color: #1d2433; border-radius: 8px; padding: 2px 10px; white-space: nowrap; display: none; z-index: 5; }
 .dlabel b { display: block; font-size: 13px; }
 .dlabel span { font-size: 11px; color: #555; }
 .show-dlabels .dlabel { display: block; }
 .show-dlabels .lot .sign { display: none; }
 .lot.hl::after { content: ""; position: absolute; inset: 0; border: 3px solid #ff5a36; z-index: 4; pointer-events: none; }
+
+/* 札の小物 */
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin: 0 3px; border: 1px solid rgba(0,0,0,.25); }
+.card .acts { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+.around { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; margin-top: 6px; font-size: 12px; }
+.around .ar-h { font-weight: 600; margin-bottom: 4px; }
+.around .ar-st { margin: 6px 0 2px; color: var(--dim); }
+.around .ar-row { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; margin: 2px 0; }
+.around .ar-row > .dim { width: 2.6em; }
+.around button.ar { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 1px 5px; font: inherit; font-size: 11px; cursor: pointer; max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.around button.ar span { margin-left: 3px; }
+.around button.ar b { color: var(--accent); margin-right: 3px; }
+.around button.ar.rel-self { border-color: #ff5a36; }
+.around button.ar.st-npc_house, .around button.ar.st-empty_house { color: var(--dim); }
+.cal { font-size: 12px; border: 1px dashed var(--line); border-radius: 99px; padding: 2px 10px; color: var(--ink); background: var(--bg); white-space: nowrap; }
+
+/* 見出しの切り替え (スマホではたたむ) */
+header.bar .ctlbox { display: contents; }
+header.bar .ctl-tg { display: none; padding: 3px 10px; font-size: 12px; }
+@media (max-width: 760px) {
+  header.bar .ctl-tg { display: inline-block; }
+  header.bar .ctlbox { display: none; }
+  header.bar.ctl-open .ctlbox { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; width: 100%; }
+}

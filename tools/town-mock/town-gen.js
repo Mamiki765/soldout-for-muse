@@ -9,14 +9,14 @@
   const CHIP = 32;
   const MOD = 2; // 敷地マス 1つ = 2×2 チップ = 64px
   const LOT = 3 * MOD; // 区画 = 3×3 敷地マス = 6×6 チップ = 192px (L の家がちょうど入る)
-  const COLS = 6; // 1列に並ぶ区画の数
+  const COLS = 6; // 1列に並ぶ区画の数 (既定。opts.cols で 8 も試せる)
   const ROWS = 4; // 区画の列 (路地 2本 × 両側)
-  const ALLEY = 1; // 店先の路地 = 1チップ (32px)
   const STRIP = 1; // 裏どうしの間 (水路か生け垣) = 1チップ
-  const INNER_W = COLS * LOT; // 36
-  const INNER_H = 2 * (LOT + ALLEY + LOT) + STRIP; // 27
   /** 家の大きさ → 建物の一辺 (チップ) */
   const HOME = { S: 2, M: 4, L: 6 };
+  /** 家の大きさは棚の数で決まる (リカさん 11/22): S 1〜4棚 / M 5〜7棚 / L 8棚。維持費は今の棚の維持費そのまま */
+  const SHELF_COST = [0, 2000, 5000, 30000, 100000, 200000, 400000, 1000000];
+  const sizeOfShelves = (n) => (n <= 4 ? 'S' : n <= 7 ? 'M' : 'L');
 
   // ---- 乱数 ----
   function mulberry32(a) {
@@ -82,7 +82,8 @@
    */
   function layoutDistrict(index, gx, gy, opts) {
     const r = mulberry32(hash2(opts.seed, index + 1));
-    const A = opts.avenue;
+    const A = opts.avenue, ALLEY = opts.alley, COLS = opts.cols;
+    const INNER_W = COLS * LOT, INNER_H = 2 * (LOT + ALLEY + LOT) + STRIP;
     const PX = INNER_W + A, PY = INNER_H + A;
     const x0 = gx * PX, y0 = gy * PY;
     const id = 'd' + String(index + 1).padStart(2, '0');
@@ -99,7 +100,8 @@
     const pub = new Map(); // 'row,col' -> {kind,name}
     let landmark;
     if (index === 0) {
-      for (const rr of [0, 1]) for (const cc of [2, 3]) pub.set(rr + ',' + cc, { kind: 'fountain', name: '噴水広場' });
+      const mid = Math.floor(COLS / 2) - 1;
+      for (const rr of [0, 1]) for (const cc of [mid, mid + 1]) pub.set(rr + ',' + cc, { kind: 'fountain', name: '噴水広場' });
       landmark = { kind: 'fountain', name: '噴水広場' };
     } else {
       const lm = LANDMARKS[(index - 1) % LANDMARKS.length];
@@ -142,11 +144,12 @@
         });
       }
     }
-    return { id, index, name, gx, gy, x0, y0, w: INNER_W, h: INNER_H, alleys, strip, landmark, lots };
+    return { id, index, name, gx, gy, x0, y0, w: INNER_W, h: INNER_H, cols: COLS, alleys, strip, landmark, lots };
   }
 
   /** 区画の左隣・右隣・向かい・目印。路地に立って店を見たときの左右 */
   function buildLinks(d) {
+    const COLS = d.cols;
     const at = (row, col) => (row < 0 || row >= ROWS || col < 0 || col >= COLS ? null : d.lots[row * COLS + col]);
     for (const l of d.lots) {
       if (l.kind !== 'shop') continue;
@@ -181,7 +184,7 @@
 
   // ---- 街 ----
   function createTown(opts) {
-    const o = { seed: 20261122, avenue: 2, fillCap: 0.8, groupMax: 4, minVacant: 3, ...opts };
+    const o = { seed: 20261122, avenue: 3, alley: 2, cols: 6, fillCap: 0.8, groupMax: 4, minVacant: 3, minVacantRatio: 0.15, ...opts };
     return { opts: o, districts: [], lots: new Map(), shops: new Map(), log: [], rand: mulberry32(hash2(o.seed, 999)) };
   }
   function openDistrict(town) {
@@ -268,8 +271,8 @@
         // 同じ列で続き
         const rows = shuffle([0, 1, 2, 3], r);
         for (const row of rows) {
-          for (let c = 0; c + g.length <= COLS && !done; c++) {
-            const seq = d.lots.slice(row * COLS + c, row * COLS + c + g.length);
+          for (let c = 0; c + g.length <= d.cols && !done; c++) {
+            const seq = d.lots.slice(row * d.cols + c, row * d.cols + c + g.length);
             if (seq.some((l) => l.kind !== 'shop' || l.state !== 'vacant')) continue;
             if (seq.some((l, i) => conflicts(town, l, g[i].som, blocks))) continue;
             seq.forEach((l, i) => occupy(town, l, g[i], 'assign-wish'));
@@ -317,7 +320,9 @@
   function addShop(town, shop, blocks) {
     const r = town.rand;
     town.shops.set(shop.som, shop);
-    if (vacantLots(town).length < town.opts.minVacant + 1) openDistrict(town);
+    // 空きを残す: NPC の家が「店の区画の15%」か3つを切りそうなら、新しい地区を開く (街がぎゅうぎゅうにならない)
+    const need = Math.max(town.opts.minVacant, Math.ceil(shopLots(town).length * town.opts.minVacantRatio));
+    if (vacantLots(town).length < need + 1) openDistrict(town);
     // おたがいに希望している相手がいれば: 隣・向かい → 同じ路地 → 同じ地区 → どこでも
     const free = vacantLots(town).filter((l) => !conflicts(town, l, shop.som, blocks));
     const partners = (shop.wishes || [])
@@ -403,6 +408,29 @@
     };
   }
 
+  /**
+   * まわりをまとめて取る (API案 GET /town/lots/{id}/around?scope=street|district)。
+   * 札に左右・向かいを常に出す代わりに、必要なときに同じ通り (両側) か地区ぜんぶを返す。
+   */
+  function aroundJson(town, lotId, scope) {
+    const l = town.lots.get(lotId);
+    const d = town.districts.find((x) => x.id === l.district);
+    const rel = (id) => (id === l.id ? 'self' : id === l.links?.left ? 'left' : id === l.links?.right ? 'right' : id === l.links?.front ? 'front' : null);
+    const lots = d.lots
+      .filter((n) => n.kind === 'shop' || n.kind === 'public')
+      .filter((n) => scope === 'district' || n.street === l.street)
+      .map((n) => {
+        const s = n.holder && n.state !== 'vacant' ? town.shops.get(n.holder) : null;
+        return {
+          lot_id: n.id, street: n.street, number: n.kind === 'public' ? null : n.number, side: n.front === 'down' ? 'north' : 'south',
+          state: n.kind === 'public' ? 'landmark' : n.state === 'vacant' ? 'npc_house' : n.state === 'held' ? 'empty_house' : s?.resting ? 'resting' : 'open',
+          som: s?.som ?? null, shop: n.kind === 'public' ? n.publicName : s?.shop ?? null, home_size: n.kind === 'shop' && n.state !== 'vacant' ? n.size : null,
+          rel: rel(n.id),
+        };
+      });
+    return { lot_id: l.id, scope: scope === 'district' ? 'district' : 'street', district: d.id, street: scope === 'district' ? null : l.street, lots };
+  }
+
   /** 道 (大通り) のチップを集める: 開いている地区の外周 avenue 幅の帯 */
   function roadCells(town) {
     const A = town.opts.avenue;
@@ -412,7 +440,7 @@
         const inside = x >= d.x0 && x < d.x0 + d.w && y >= d.y0 && y < d.y0 + d.h;
         if (!inside) cells.add(x + ',' + y);
       }
-      for (const a of d.alleys) for (let x = a.x; x < a.x + a.w; x++) cells.add(x + ',' + a.y);
+      for (const a of d.alleys) for (let x = a.x; x < a.x + a.w; x++) for (let y = a.y; y < a.y + a.h; y++) cells.add(x + ',' + y);
     }
     return cells;
   }
@@ -439,13 +467,15 @@
     for (let i = 0; i < n; i++) {
       const no = (start ?? 1) + i;
       const sz = r();
+      // 棚の数 (ダミー): 1〜4 が多め、8 は少なめ
+      const shelves = sz < 0.6 ? 1 + Math.floor(sz / 0.15) : sz < 0.9 ? 5 + Math.floor((sz - 0.6) / 0.1) : 8;
       out.push({
         som: 'som' + String(no).padStart(4, '0'),
         owner: 'ダミー店主' + no,
         shop: A1[Math.floor(r() * A1.length)] + A2[Math.floor(r() * A2.length)],
         job: JOBS[Math.floor(r() * JOBS.length)],
         resting: r() < 0.04,
-        size: sz < 0.7 ? 'S' : sz < 0.92 ? 'M' : 'L',
+        shelves, size: sizeOfShelves(shelves),
         hue: Math.floor(r() * 360),
         wishes: [],
         isNew: false,
@@ -513,19 +543,20 @@
    * (検査 check.mjs はこれを使わない。追い出した店は空き区画へ移す)
    */
   const FIXTURE = [
-    // [row, col, 店名, 職, 家, 役]
-    [0, 0, 'こもれび堂', '本屋', 'S', 'you'],
-    [0, 1, 'るり工房', '道具屋(装飾)', 'M', 'wish'],
-    [1, 0, 'あかね商店', '薬屋', 'S', 'front'],
-    [1, 1, 'しずく庵', '酪農家', 'L', 'front'],
-    [0, 4, 'つきみ亭', '行商人', 'M', 'resting'],
-    [0, 5, null, null, 'S', 'held'],
-    [1, 4, null, null, 'S', 'npc'],
-    [1, 5, 'ひだまり雑貨', '防具屋(盾)', 'S', 'new'],
+    // [row, col (負は右から), 店名, 職, 棚の数, 役]
+    [0, 0, 'こもれび堂', '本屋', 3, 'you'],
+    [0, 1, 'るり工房', '道具屋(装飾)', 6, 'wish'],
+    [1, 0, 'あかね商店', '薬屋', 4, 'front'],
+    [1, 1, 'しずく庵', '酪農家', 8, 'front'],
+    [0, -2, 'つきみ亭', '行商人', 6, 'resting'],
+    [0, -1, null, null, 2, 'held'],
+    [1, -2, null, null, 1, 'npc'],
+    [1, -1, 'ひだまり雑貨', '防具屋(盾)', 1, 'new'],
   ];
   function applyFixture(town) {
     const d = town.districts[0];
-    const at = (row, col) => d.lots[row * COLS + col];
+    const C = d.cols;
+    const at = (row, col) => d.lots[row * C + (col < 0 ? C + col : col)];
     const evict = [];
     for (const [row, col] of FIXTURE) {
       const l = at(row, col);
@@ -534,7 +565,7 @@
       l.holder = null;
     }
     const roles = {};
-    FIXTURE.forEach(([row, col, shop, job, size, role], i) => {
+    FIXTURE.forEach(([row, col, shop, job, shelves, role], i) => {
       const l = at(row, col);
       if (role === 'npc') return;
       const s = {
@@ -543,7 +574,7 @@
         shop: shop ?? '（閉店した店）',
         job: job ?? '',
         resting: role === 'resting',
-        size, hue: [200, 330, 20, 140, 45, 0, 0, 260][i], wishes: [], isNew: role === 'new', role,
+        shelves, size: sizeOfShelves(shelves), hue: [200, 330, 20, 140, 45, 0, 0, 260][i], wishes: [], isNew: role === 'new', role,
       };
       town.shops.set(s.som, s);
       occupy(town, l, s, 'fixture');
@@ -563,10 +594,174 @@
     town.fixture = { district: d.id, you: you.som };
   }
 
+  // ---- Muse にも渡す地図データ (地区 = チャンクごとのマス目) ----
+  /** 地面のマップチップ番号。人間の地図も Muse のスペースも、同じ番号で同じ絵を描く */
+  const GROUND = { grass: 0, avenue: 1, alley: 2, canal: 3, hedge: 4, plaza: 5, lawn: 6, path: 7, flowerbed: 8, curb: 9, field: 10 };
+  /** 地面の上に置く小物 (1チップ) */
+  const DECO = { none: 0, tree: 1, bush: 2, lamp: 3, bench: 4, pot: 5, street_tree: 6, mailbox: 7, crate: 8, scarecrow: 9 };
+  /** 外観の色の組み合わせ (仮。本番は GPT に作ってもらうプリセット) */
+  const PALETTES = [
+    { name: '赤レンガ', roof: '#b5523b', wall: '#f1e6d0', door: '#6b4a2b', trim: '#fff8e6' },
+    { name: '港の青', roof: '#3f6fa0', wall: '#eef2f6', door: '#2f4a6b', trim: '#ffffff' },
+    { name: '若葉', roof: '#5b8c3e', wall: '#f4efe0', door: '#5a4026', trim: '#fffbe8' },
+    { name: '藤', roof: '#8b5a9e', wall: '#f3ecf4', door: '#4e3358', trim: '#ffffff' },
+    { name: '山吹', roof: '#c08a1e', wall: '#fbf1da', door: '#7a4e1c', trim: '#fff8e6' },
+    { name: '灰桜', roof: '#b07b86', wall: '#f7eeee', door: '#6b4148', trim: '#ffffff' },
+    { name: '墨', roof: '#454b57', wall: '#e9e6df', door: '#2c2a27', trim: '#f5f2ea' },
+    { name: '浅葱', roof: '#3a8f8a', wall: '#ecf5f3', door: '#2a5a56', trim: '#ffffff' },
+  ];
+  const NPC_PALETTES = [
+    { name: 'NPC 茶', roof: '#8a6f55', wall: '#e6dccb', door: '#5a4636', trim: '#efe8da' },
+    { name: 'NPC 灰青', roof: '#6f7c8c', wall: '#e4e4e0', door: '#4a5260', trim: '#eeeeea' },
+    { name: 'NPC 苔', roof: '#748a62', wall: '#e8e4d4', door: '#4f5c40', trim: '#f0ede0' },
+    { name: 'NPC 煉瓦', roof: '#9a6a5c', wall: '#ebe0d6', door: '#5e4038', trim: '#f2ebe4' },
+  ];
+
+  /**
+   * 1地区ぶんのマス目 (32px チップ単位)。地区のまわりの大通りも入れる (隣の地区と大通りぶん重なるが、中身は同じ)。
+   * 返す形は Muse 向け API (案) の GET /town/chunks/{id} と同じ。
+   */
+  /** 店の外観: プリセット (palette) に、屋根とドアの色だけ上書きできる。shop.look = { palette, roof, door } */
+  function lookOf(shop) {
+    const lk = shop?.look ?? {};
+    const base = PALETTES[lk.palette ?? (shop ? Math.floor(shop.hue / 45) % PALETTES.length : 0)];
+    return { ...base, ...(lk.roof ? { roof: lk.roof } : {}), ...(lk.door ? { door: lk.door } : {}) };
+  }
+  /** 屋根・ドアの色の選択肢 (仮) */
+  const ROOF_COLORS = ['#b5523b', '#3f6fa0', '#5b8c3e', '#8b5a9e', '#c08a1e', '#b07b86', '#454b57', '#3a8f8a'];
+  const DOOR_COLORS = ['#6b4a2b', '#2f4a6b', '#5a4026', '#4e3358', '#a33a2a', '#2c2a27', '#e9e2cf', '#3f7a5a'];
+
+  function chunkData(town, d, opt) {
+    const o = { sizeOverride: null, ...opt };
+    const A = town.opts.avenue;
+    const X = d.x0 - A, Y = d.y0 - A, W = d.w + 2 * A, H = d.h + 2 * A;
+    const ground = new Array(W * H).fill(GROUND.avenue);
+    const deco = new Array(W * H).fill(DECO.none);
+    const inC = (x, y) => x >= X && x < X + W && y >= Y && y < Y + H;
+    const set = (arr, x, y, v) => { if (inC(x, y)) arr[(y - Y) * W + (x - X)] = v; };
+    const get = (arr, x, y) => (inC(x, y) ? arr[(y - Y) * W + (x - X)] : -1);
+    for (let y = d.y0; y < d.y0 + d.h; y++) for (let x = d.x0; x < d.x0 + d.w; x++) set(ground, x, y, GROUND.grass);
+    for (const a of d.alleys) for (let y = a.y; y < a.y + a.h; y++) for (let x = a.x; x < a.x + a.w; x++) set(ground, x, y, GROUND.alley);
+    for (let x = d.strip.x; x < d.strip.x + d.strip.w; x++) set(ground, x, d.strip.y, d.strip.kind === 'canal' ? GROUND.canal : GROUND.hedge);
+    // 大通りの縁石と街路樹・ガス灯 (地区の外周に沿って)
+    for (let x = d.x0 - 1; x <= d.x0 + d.w; x++) for (const y of [d.y0 - 1, d.y0 + d.h]) set(ground, x, y, GROUND.curb);
+    for (let y = d.y0 - 1; y <= d.y0 + d.h; y++) for (const x of [d.x0 - 1, d.x0 + d.w]) set(ground, x, y, GROUND.curb);
+    let k = 0;
+    for (let x = d.x0; x < d.x0 + d.w; x += 3) { set(deco, x, d.y0 - 1, k % 2 ? DECO.lamp : DECO.street_tree); set(deco, x, d.y0 + d.h, k % 2 ? DECO.street_tree : DECO.lamp); k++; }
+    for (let y = d.y0 + 2; y < d.y0 + d.h; y += 4) { set(deco, d.x0 - 1, y, DECO.street_tree); set(deco, d.x0 + d.w, y, DECO.street_tree); }
+    // 路地の出入口は縁石を切る
+    for (const a of d.alleys) for (let y = a.y; y < a.y + a.h; y++) { set(ground, d.x0 - 1, y, GROUND.avenue); set(ground, d.x0 + d.w, y, GROUND.avenue); set(deco, d.x0 - 1, y, 0); set(deco, d.x0 + d.w, y, 0); }
+
+    const buildings = [];
+    const objects = [];
+    const seen = new Set();
+    for (const l of d.lots) {
+      const h = hash2(town.opts.seed, l.id);
+      const upper = l.front === 'down';
+      const frontY = upper ? l.y + l.h - 1 : l.y; // 路地に面した列
+      const backY = upper ? l.y : l.y + l.h - 1;
+      const fill = (v) => { for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) set(ground, x, y, v); };
+      if (l.kind === 'public') {
+        if (l.publicKind === 'fountain') {
+          fill(GROUND.plaza);
+          const key = 'fountain';
+          if (!seen.has(key)) {
+            seen.add(key);
+            const ps = d.lots.filter((p) => p.publicKind === 'fountain');
+            const x1 = Math.min(...ps.map((p) => p.x)), y1 = Math.min(...ps.map((p) => p.y));
+            const x2 = Math.max(...ps.map((p) => p.x + p.w)), y2 = Math.max(...ps.map((p) => p.y + p.h));
+            objects.push({ kind: 'fountain', x: (x1 + x2) / 2 - 2, y: (y1 + y2) / 2 - 2, w: 4, h: 4, name: l.publicName });
+            for (const [bx, by] of [[x1 + 1, y1 + 1], [x2 - 2, y1 + 1], [x1 + 1, y2 - 2], [x2 - 2, y2 - 2]]) set(deco, bx, by, DECO.tree);
+            for (const [bx, by] of [[x1 + 3, y1 + 2], [x2 - 4, y2 - 3]]) set(deco, bx, by, DECO.bench);
+          }
+          // 広場の中を路地が通る
+          continue;
+        }
+        if (l.publicKind === 'park') {
+          fill(GROUND.lawn);
+          for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) if ((x + y + h) % 3 === 0) set(deco, x, y, (x * 7 + y) % 5 ? DECO.tree : DECO.bush);
+          set(deco, l.x + 2, frontY, DECO.bench);
+          set(ground, l.x + 3, frontY, GROUND.path);
+          continue;
+        }
+        fill(GROUND.plaza);
+        objects.push({ kind: 'landmark', sub: l.publicKind, x: l.x + 2, y: l.y + 2, w: 2, h: 2, name: l.publicName });
+        set(deco, l.x, l.y, DECO.tree); set(deco, l.x + 5, l.y, DECO.tree); set(deco, l.x + 1, frontY, DECO.bench);
+        continue;
+      }
+      fill(GROUND.lawn);
+      const shop = l.holder ? town.shops.get(l.holder) : null;
+      if (l.state === 'vacant') {
+        // NPC の家: 長屋 (S が2軒) / M が1軒 / S と畑
+        const pal = NPC_PALETTES[(h >>> 4) % NPC_PALETTES.length];
+        const shape = (h >>> 6) % 3;
+        const by = upper ? l.y + 1 : l.y + 1;
+        if (shape === 0) {
+          buildings.push({ lot: l.id, kind: 'npc', x: l.x + 1, y: upper ? l.y + 3 : l.y + 1, w: 2, h: 2, palette: pal, door: upper ? 'down' : 'up' });
+          buildings.push({ lot: l.id, kind: 'npc', x: l.x + 3, y: upper ? l.y + 3 : l.y + 1, w: 2, h: 2, palette: NPC_PALETTES[(h >>> 8) % NPC_PALETTES.length], door: upper ? 'down' : 'up' });
+          set(deco, l.x, backY, DECO.tree); set(deco, l.x + 5, backY, DECO.tree); set(deco, l.x + 3, backY, DECO.crate);
+        } else if (shape === 1) {
+          buildings.push({ lot: l.id, kind: 'npc', x: l.x + 1, y: by, w: 4, h: 4, palette: pal, door: upper ? 'down' : 'up' });
+          set(deco, l.x, frontY, DECO.pot); set(deco, l.x + 5, backY, DECO.tree);
+        } else {
+          buildings.push({ lot: l.id, kind: 'npc', x: l.x + 1, y: upper ? l.y + 3 : l.y + 1, w: 2, h: 2, palette: pal, door: upper ? 'down' : 'up' });
+          for (let y = l.y + 1; y < l.y + 5; y++) for (let x = l.x + 3; x < l.x + 6; x++) if ((y + (upper ? 0 : 1)) % 2) set(ground, x, y, GROUND.field);
+          set(deco, l.x + 4, upper ? l.y + 1 : l.y + 4, DECO.scarecrow);
+        }
+        set(ground, l.x + 2, frontY, GROUND.path);
+        continue;
+      }
+      // 店 (空き家も同じ建物を灰色で)
+      const size = (o.sizeOverride && o.sizeOverride.lot === l.id ? o.sizeOverride.size : l.size) || 'S';
+      const bs = HOME[size];
+      const bx = l.x + (l.w - bs) / 2;
+      const gap = size === 'L' ? 0 : 1; // 店先に1チップの前庭
+      const byy = upper ? l.y + l.h - gap - bs : l.y + gap;
+      const pal = l.state === 'held' ? { name: '空き家', roof: '#7d7468', wall: '#c9c4ba', door: '#5a5248', trim: '#ddd' } : lookOf(shop);
+      buildings.push({ lot: l.id, kind: l.state === 'held' ? 'held' : 'shop', size, x: bx, y: byy, w: bs, h: bs, palette: pal, door: upper ? 'down' : 'up', som: shop?.som ?? null, resting: !!shop?.resting });
+      if (size !== 'L') {
+        // 前庭: 戸口から路地へ小道、両脇に花壇
+        const cx = l.x + 2 + (h % 2);
+        set(ground, cx, frontY, GROUND.path);
+        if (size === 'S') {
+          set(ground, l.x, frontY, GROUND.flowerbed); set(ground, l.x + 1, frontY, GROUND.flowerbed);
+          set(ground, l.x + 4, frontY, GROUND.flowerbed); set(ground, l.x + 5, frontY, GROUND.flowerbed);
+          for (let y = l.y; y < l.y + l.h; y++) if (y !== frontY) set(ground, cx, y, get(ground, cx, y) === GROUND.lawn && (upper ? y > byy + bs - 1 : y < byy) ? GROUND.path : get(ground, cx, y));
+          set(deco, l.x, backY, DECO.tree); set(deco, l.x + 5, backY, DECO.tree);
+          set(deco, l.x + 1, backY, (h >>> 3) % 2 ? DECO.bush : DECO.bench);
+          set(deco, l.x + 4, backY, (h >>> 5) % 2 ? DECO.pot : DECO.bush);
+          set(deco, l.x, upper ? frontY - 2 : frontY + 2, DECO.bush);
+          set(deco, l.x + 5, upper ? frontY - 2 : frontY + 2, DECO.tree);
+        } else {
+          set(ground, l.x, frontY, GROUND.flowerbed); set(ground, l.x + 5, frontY, GROUND.flowerbed);
+          set(deco, l.x + 5, frontY, (h >>> 3) % 2 ? DECO.pot : DECO.none);
+          set(deco, l.x, backY, DECO.tree);
+        }
+        set(deco, cx + 1, frontY, DECO.mailbox);
+      }
+    }
+    return {
+      v: 1,
+      id: d.id,
+      name: d.name,
+      origin: [X, Y],
+      size: [W, H],
+      chip: CHIP,
+      tileset: 'kit/town/tiles-v1.png',
+      ground,
+      deco,
+      buildings,
+      objects,
+      streets: d.alleys.map((a) => ({ id: a.id, name: a.name, x: a.x, y: a.y, w: a.w, h: a.h })),
+      lots: d.lots.map((l) => ({ id: l.id, x: l.x, y: l.y, w: l.w, h: l.h, kind: l.kind, street: l.street, number: l.number, state: l.state, som: l.holder && l.state !== 'vacant' ? l.holder : null })),
+    };
+  }
+
   root.TownGen = {
+    GROUND, DECO, PALETTES, NPC_PALETTES, ROOF_COLORS, DOOR_COLORS, lookOf, chunkData,
     FIXTURE,
-    CHIP, MOD, LOT, COLS, ROWS, ALLEY, STRIP, INNER_W, INNER_H, HOME,
+    CHIP, MOD, LOT, COLS, ROWS, STRIP, HOME, SHELF_COST, sizeOfShelves,
     mulberry32, hash2, spiral, layoutDistrict, createTown, openDistrict, placeInitial, addShop, closeShop, expireHolds,
-    npcLook, addressText, neighborsJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
+    npcLook, addressText, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
