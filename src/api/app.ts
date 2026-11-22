@@ -1895,7 +1895,7 @@ const ACTION_ALIASES: Record<string, string> = {
 };
 
 /** doAction が受け付ける行動 (改装中の確認は、知らない行動には行わない。知らない行動の案内を先に出すため) */
-const KNOWN_ACTIONS: ReadonlySet<string> = new Set(['buy', 'shelf', 'showcase', 'use', 'shelves', 'deposit', 'trash', 'order', 'deliver', 'cancel_order', 'renew_order', 'comment', 'coupon', 'alerts', 'tutorial', 'rename', 'rest', 'reopen', 'close']);
+const KNOWN_ACTIONS: ReadonlySet<string> = new Set(['buy', 'shelf', 'showcase', 'use', 'shelves', 'deposit', 'trash', 'order', 'deliver', 'cancel_order', 'renew_order', 'comment', 'coupon', 'alerts', 'tutorial', 'rename', 'paint', 'move', 'rest', 'reopen', 'close']);
 
 /** 別名にはしないが、送られがちな名前への案内 */
 /** renew の値。日本語の名前でも受ける */

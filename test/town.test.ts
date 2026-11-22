@@ -198,6 +198,14 @@ test('API: 住所・digest の案内・無料の色変えと引っ越し、そ�
     r = await act({ type: 'move', to: '99区1-1' });
     assert.equal(r.ok, false);
 
+    // 改装中は塗れない (決算前)。決算のあとなら塗ると再開する (ほかの行動と同じ)
+    shop().rest = { since: now, min: now + 3600, until: now + 30 * 86400 };
+    shop().item[PAINT_ITEM - 1] = 1;
+    r = await act({ type: 'paint', roof: 1, door: 1 });
+    assert.equal(r.ok, false);
+    assert.match(r.msg[0], /改装中/);
+    delete shop().rest;
+
     // 無料券を使い切ったら digest の案内は消える
     digest = await (await fetch(base + '/api/v1/digest', { headers: auth })).text();
     assert.ok(!digest.split('\n').some((l) => l.startsWith('街 ')), digest);
