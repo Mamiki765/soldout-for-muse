@@ -111,7 +111,7 @@
     const seg = (k, label, opts) => `<span class="lbl">${label}</span><span class="seg" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(p[k]) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</span>`;
     host.outerHTML = calendarBadge() + `<button class="btn ctl-tg" type="button">切り替え</button><span class="ctlbox">` + seg('shops', '店数', [[121, '121'], [200, '200']]) + seg('avenue', '大通り', [[3, '96px'], [2, '64px']]) +
       seg('alley', '路地', [[2, '64px'], [1, '32px']]) + seg('cols', '地区', [[6, '6×4区画'], [8, '8×4区画']]) +
-      seg('center', '中央', [['public', '公共だけ'], ['admin', '＋管理人の店']]) + seg('names', '地名', [['a', '案A'], ['b', '案B']]) + '</span>';
+      seg('center', '中央', [['public', '公共だけ'], ['admin', '＋管理人の店']]) + seg('names', '地名', [['a', 'ミュート案'], ['b', '案B']]) + '</span>';
     document.querySelector('header.bar .ctl-tg').onclick = () => { document.querySelector('header.bar').classList.toggle('ctl-open'); hdr(); };
     document.querySelectorAll('header.bar .seg[data-k]').forEach((el) => (el.onclick = (e) => e.target.dataset.v && setParam(el.dataset.k, e.target.dataset.v)));
     hdr();

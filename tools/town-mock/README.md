@@ -12,6 +12,7 @@
 - `ui2.html` … UI案2 全画面の地図＋浮かぶ札
 - `ui3.html` … UI案3 一覧と地図の二画面
 - `tiles.html` … PNG チップ一覧・外観プリセット・地区1つのチャンク・チャンクの大きさの比べ・JSON
+- `front.html` … 今の観戦画面に地図を入れた見本（`?page=top|town|owner|room`、札は `&fuda=parch|classic`）。設計はプロジェクトの `soldout/2026-11-22-town-front-design.md`
 - `license.html` … 許可証の見本（横長・縦長・正方形・旧許可証＋住所）
 
 URL の `?center=admin` で中央に管理人の店（som0002）を入れる案、`?names=b` で地区名の案B、`?shops=200` で200店（後から79店を入れる）、`?avenue=2` で大通り64px（既定96px）、`?alley=1` で路地32px（既定64px）、`?cols=8` で地区を8×4区画（既定6×4）に切り替えられます。

@@ -105,6 +105,9 @@
     { key: 'orchard', name: 'りんごの木', a: '林檎坂', b: 'オーチャード' },
     { key: 'windmill', name: '風車', a: '風車ヶ丘', b: 'ミルヒル' },
   ];
+  /** 地区名 (ミュート案 2026-11-22、24区ぶん)。区の番号で決まる。25区から先は名前なし (「第25区」だけ) */
+  const MUSE_NAMES = ['灯火横丁', '銀杏坂', '鐘の辻', '星見ヶ丘', '風見坂', '水車河岸', '鍛冶屋町', '苔石町', '林檎坂', '風車ヶ丘',
+    '硝子町', '染布坂', '薬師小路', '機織町', '月見台', '藤の辻', '鏡池小路', '猫待坂', '太鼓橋', '香炉坂', '窯場町', '雨読横丁', '翡翠台', '鈴蘭小路'];
   const ord = (n) => ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][n - 1] ?? String(n);
   /** 位置 index の地区の名前と目印。同じ地形の列で何番目かで決まる (index だけで決まる) */
   function districtIdentity(index, names) {
@@ -119,6 +122,7 @@
     const pool = mine ? WATER_MARKS : GROVE_MARKS;
     const lm = pool[k % pool.length];
     const round = Math.floor(k / pool.length);
+    if (set === 'a') return { name: MUSE_NAMES[index - 2] ?? '', landmark: { kind: lm.key, name: lm.name } };
     return { name: lm[set] + (round ? ord(round + 1) + '丁目' : ''), landmark: { kind: lm.key, name: lm.name } };
   }
 
@@ -515,7 +519,19 @@
     return `${d.center ? '中央' : d.no + '区'}${chome}丁目${lot.number}番地`;
   }
   /** 地区の呼び方: 「7区（銀杏坂）」。名前は通称で任意 (変わってもよい) */
-  const districtLabel = (d) => (d.center ? d.name : `${d.no}区（${d.name}）`);
+  const districtLabel = (d) => (d.center ? d.name : d.name ? `${d.no}区（${d.name}）` : `第${d.no}区`);
+  /** 住所の3つの書き方 (2026-11-22 の表記案): 長い = 許可証、短い = 地図・札、見出し = 地区の見出し */
+  function addressForms(town, lot) {
+    const d = town.districts.find((x) => x.id === lot.district);
+    const chome = lot.row < 2 ? 1 : 2;
+    const ward = d.center ? '中央' : d.no + '区';
+    return {
+      long: `${d.center ? '中央' : '第' + d.no + '区'}${chome}丁目${lot.number}番地`,
+      short: `${ward}${chome}-${lot.number}`,
+      heading: d.center ? d.name : d.name ? `第${d.no}区・${d.name}` : `第${d.no}区`,
+      data: { district: d.center ? 0 : d.no, block: chome, lot: lot.number },
+    };
+  }
 
   /** Muse に渡す形 (API 案 GET /lots/{id} の neighbors) */
   function neighborsJson(town, lotId) {
@@ -1105,6 +1121,6 @@
     FIXTURE,
     CHIP, MOD, LOT, COLS, ROWS, STRIP, HOME, SHELF_COST, sizeOfShelves,
     mulberry32, hash2, spiral, layoutDistrict, createTown, openDistrict, placeInitial, addShop, closeShop, expireHolds,
-    npcLook, addressText, districtLabel, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
+    npcLook, addressText, addressForms, districtLabel, MUSE_NAMES, neighborsJson, aroundJson, roadCells, bounds, makeShops, addRelations, demoTown, conflicts, mutualGroups, shopLots, vacantLots,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
