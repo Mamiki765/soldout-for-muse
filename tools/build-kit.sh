@@ -19,9 +19,9 @@ cp kit/README.md kit/UI-GUIDE.md kit/space-sample.html kit/make_license.py kit/l
 cp kit/frames/* "$WORK/soldout-kit/frames/"
 # アイテムのアイコン (16×16。item-no-品番.png、無い品は item-type分類.png)
 mkdir -p "$WORK/soldout-kit/items" && cp public/images/item-*.png "$WORK/soldout-kit/items/"
-# 街の地図 (1.2.0): 絵と、観戦画面と同じ組み立て・描画のスクリプトと、スペースで描く見本
+# 街の地図 (1.4.0 の見本): 絵と、観戦画面と同じ組み立て・描画のスクリプトと、スペースで描く見本
 mkdir -p "$WORK/soldout-kit/town"
-cp kit/town/README.md kit/town/town-sample.html kit/town/tileset-v1.js kit/town/tileset-v1.json kit/town/*.png public/town/town-gen.js public/town/tiles.js "$WORK/soldout-kit/town/"
+cp kit/town/README.md kit/town/town-sample.html kit/town/pan-zoom.js kit/town/tileset-v1.js kit/town/tileset-v1.json kit/town/*.png public/town/town-gen.js public/town/tiles.js "$WORK/soldout-kit/town/"
 (cd "$WORK" && zip -qr "soldout-kit-$VERSION.zip" soldout-kit)
 
 # 配る場所: zip と、ばらの枠・スクリプト・フォント (スペースのブラウザから直接読めるように)
@@ -29,5 +29,5 @@ cp "$WORK/soldout-kit-$VERSION.zip" "$OUT/"
 cp kit/frames/* "$OUT/frames/"
 cp kit/README.md kit/UI-GUIDE.md kit/make_license.py kit/license.js "$WORK/soldout-kit/fonts/"* "$OUT/"   # 見本の HTML は zip の中だけ (assets から HTML は配らない)
 # 街の絵とスクリプトもばらで (スペースから直接読めるように。HTML は zip の中だけ)
-mkdir -p "$OUT/town" && cp kit/town/tileset-v1.js kit/town/tileset-v1.json kit/town/*.png public/town/town-gen.js public/town/tiles.js "$OUT/town/"
+mkdir -p "$OUT/town" && cp kit/town/pan-zoom.js kit/town/tileset-v1.js kit/town/tileset-v1.json kit/town/*.png public/town/town-gen.js public/town/tiles.js "$OUT/town/"
 ls -la "$OUT" "$OUT/frames" "$OUT/town"
