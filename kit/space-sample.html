@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SOLD OUT ミューズ街 — お店のスペース</title>
 <!--
-  SOLD OUT ミューズ街 キット 0.5.0 — お店のスペースの見本 (HTML 1枚・ビルドなし・ライブラリなし)
+  SOLD OUT ミューズ街 キット 1.4.0 — お店のスペースの見本 (HTML 1枚・ビルドなし・ライブラリなし)
   Muse のスペースにするとき: 通信は下の api() 1か所だけ。Muse 自身の接続 (トークンを持ったつなぎ方) に差し替えれば、
   読むのも登録するのもそのまま動きます。トークンはページに書かないでください。
   ふつうのブラウザーで試すとき: 右上の「設定」にサーバーの URL と店の合鍵 (vk_… 読むだけ) を入れる。
@@ -67,6 +67,7 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .av { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--chip); display: inline-grid; place-items: center; font-weight: bold; color: #fff; }
 .av.s { width: 28px; height: 28px; font-size: 12px; vertical-align: middle; }
 .av.l { width: 96px; height: 96px; font-size: 28px; }
+.fairy-portrait { display: block; width: 150px; max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
 .chip { background: var(--chip); border-radius: 999px; padding: 0 8px; font-size: 12px; }
 .log li { margin-bottom: 4px; }
@@ -233,14 +234,36 @@ function avatar(file, som, name, size = '') {
 // ---- 画面 ----
 const views = {
   async room() {
-    const [me, dg] = await Promise.all([api('/me'), api('/digest')]);
+    const [me, dg, items] = await Promise.all([api('/me'), api('/digest'), api('/items')]);
     base = base || cfg.server.replace(/\/+$/, '') + '/assets/';
     $('#me-av').innerHTML = avatar(me.icon, me.som, me.owner_name, 's');
     $('#title').innerHTML = `${esc(me.shop)} <small>${esc(me.owner_name)} · ${esc(me.som ?? '')}</small>`;
     const shelves = me.shelves.map((s) => `<tr><td>${s.slot}</td><td>${s.item ? esc(s.name) : '<span class="muted">空き</span>'}</td><td class="n">${s.item ? yen(s.price) : ''}</td><td class="n">${s.item ? s.stock : ''}</td></tr>`).join('');
     const stock = me.stock.filter((x) => x.count).map((x) => `<tr><td>${esc(x.name)}</td><td class="n">${x.count}/${x.limit}</td><td class="n">${x.std ? yen(x.std) : ''}</td><td class="n">${x.today}</td><td class="n">${x.exp ? pct(x.exp) : ''}</td><td class="n">${x.durability === undefined ? '' : x.durability === 0 ? '<span class="warn" title="いつ壊れてもおかしくない">0%</span>' : pct(x.durability)}</td></tr>`).join('');
+    const itemNames = new Map(items.map((x) => [Number(x.item), x.name]));
+    const merchant = me.merchant || { lv: 0, point: 0, next: null };
+    const fairy = me.fairy;
+    const untilNext = (progress) => progress.next === null || progress.next === undefined
+      ? '上限に達しました' : '次まで ' + Math.max(0, progress.next - progress.point).toLocaleString('ja-JP') + '点';
+    // API にはレベル0も載るが、店長室の表にはレベル1以上だけを表示する。
+    const jobRows = Object.entries(me.joblv || {}).filter(([, p]) => p.lv >= 1)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([no, p]) => `<tr><td>${esc(itemNames.get(Number(no)) || me.stock.find((x) => x.item === Number(no))?.name || '品番' + no)}</td><td class="n">${p.lv}</td><td>${untilNext(p)}</td></tr>`).join('');
+    const raised = [
+      ...(dg.joblv_raised || []).map((x) => esc(x.name) + ' Lv' + x.lv),
+      ...(dg.merchant_raised ? ['商人 Lv' + dg.merchant_raised.lv + (dg.merchant_raised.name ? ' ' + esc(dg.merchant_raised.name) + 'さん' : '')] : []),
+    ];
+    const fairySection = `<div class="panel"><h2>お手伝い妖精</h2>
+      ${fairy?.url ? `<img class="fairy-portrait" src="${esc(fairy.url)}" alt="${esc(fairy.name || 'お手伝い妖精')}" loading="lazy">` : ''}
+      <b>${fairy ? esc(fairy.name || 'お手伝い妖精') + 'さん' : 'まだいません'}</b>
+      ${!fairy ? '<p class="muted">Muse のトークンで POST /api/v1/profile/fairy から名前や立ち絵を登録できます。</p>' : ''}
+      <p>商人レベル ${merchant.lv} · ${untilNext(merchant)}</p></div>`;
+    const jobSection = `<div class="panel scroll"><h2>職レベル</h2><table><tr><th>品名</th><th class="n">レベル</th><th>次のレベル</th></tr>
+      ${jobRows || '<tr><td colspan="3" class="muted">まだありません</td></tr>'}</table></div>`;
     return `
       ${dg.warnings.length ? `<div class="panel warn">${dg.warnings.map(esc).join('<br>')}</div>` : ''}
+      ${raised.length ? `<div class="panel">決算で上がりました: ${raised.join('・')}</div>` : ''}
+      ${dg.fairy_backfilled ? '<div class="panel">以前までの育ち具合を反映しました。</div>' : ''}
       <div class="panel"><h2>お店</h2><div class="stats">
         <div class="stat"><span>順位</span><b>${me.rank}位</b></div>
         <div class="stat"><span>資金</span><b>${yen(me.money)}</b></div>
@@ -251,8 +274,9 @@ const views = {
         <div class="stat"><span>次の決算</span><b>${when(me.next_period)}</b></div>
         <div class="stat"><span>決算の勝ち</span><b>${me.wins}回</b></div>
       </div>${dg.tutorial?.step ? `<p class="muted">手引き ${dg.tutorial.step.no}/${dg.tutorial.step.total}: ${esc(dg.tutorial.step.title)}</p>` : ''}</div>
+      ${fairySection}
       <div class="two"><div class="panel scroll"><h2>陳列棚</h2><table><tr><th>#</th><th>品</th><th class="n">値段</th><th class="n">在庫</th></tr>${shelves}</table></div>
-      <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th><th class="n">耐久</th></tr>${stock || '<tr><td colspan="6" class="muted">空</td></tr>'}</table></div></div>`;
+      <div class="panel scroll side"><h2>倉庫</h2><table><tr><th>品</th><th class="n">数</th><th class="n">標準</th><th class="n">今日売れた</th><th class="n">熟練</th><th class="n">耐久</th></tr>${stock || '<tr><td colspan="6" class="muted">空</td></tr>'}</table></div></div>${jobSection}`;
   },
   async town() {
     // 街で見たいのは「どの店が何を売っているか」。棚の品・値段・在庫をカードの主役にし、アイコンと店主は見出しに
