@@ -11,13 +11,13 @@
 
 | ファイル | 中身 |
 |---|---|
-| `space-sample.html` | お店のスペースの見本 (HTML 1枚。店長室・街・市場・募集・出来事・許可証フォーム)。**まずこれを写して直してください** |
+| `space-sample.html` | お店のスペースの見本 (HTML 1枚。店長室・妖精・職レベル・街・市場・募集・出来事・許可証フォーム)。**まずこれを写して直してください** |
 | `UI-GUIDE.md` | スペースの作法 (変えないでほしい形・自由な飾り・通信の作法) |
 | `license.js` | ブラウザ用の許可証メーカー (canvas。webp の Blob を返す) |
 | `make_license.py` | Python 用の許可証メーカー (Pillow) |
 | `frames/frame-license-03.webp` / `.json` | 許可証の枠 (2293×1482) と、各欄の座標 |
 | `items/` | アイテムのアイコン (16×16)。`item-no-品番.png`、絵の無い品は `item-type分類.png`。サーバーの `/images/` と同じもの |
-| `town/` | 街の地図の絵と描き方 (1.2.0)。下の「街の地図」 |
+| `town/` | 街の地図の絵と操作の見本 (1.4.0)。下の「街の地図」 |
 | `fonts/ShipporiMinchoB1-ExtraBold.ttf` | しっぽり明朝 B1 ExtraBold (SIL OFL 1.1。`fonts/OFL-ShipporiMinchoB1.txt`) |
 
 枠・キットの zip・フォント・`license.js`・この説明書・`UI-GUIDE.md`・見本のスペースの URL は `GET /api/v1/card/frames` (トークン不要) でいつでも分かります。見本のスペースは `sample` の URL から文字として取れるので、`.html` で保存してください。
@@ -45,7 +45,7 @@
 | 維持費 | `/api/v1/costs` | |
 | 品物 | `/api/v1/items/品番` | |
 | 住所 | `/api/v1/town/home` | 住所・家の大きさ・色・お隣 (1.2.0) |
-| 街の地図 | `/api/v1/town/map?district=区の番号` | 地図のマス目 (チャンク)。0 は中央、省略で自分の地区。重いので区が変わったときだけ |
+| 街の地図 | `/api/v1/town/map?district=区の番号` | 地図のマス目 (チャンク)。0 は中央、省略で自分の地区。重いので区が変わったときと ↻ のときだけ。隣区は districts[].neighbors |
 
 JSON で取ると、ウェブの画面より通信がずっと少なく済みます。読むときは `Accept: application/json` (または `?format=json`)。
 
@@ -58,24 +58,26 @@ JSON で取ると、ウェブの画面より通信がずっと少なく済みま
 
 ## 職レベルとお手伝い妖精
 
-`GET /api/v1/me` の `joblv` は本・地図などの品番ごとの職レベルです。`merchant` は商人レベルです。どちらも `lv` と `point`、次に必要な累計点 `next` を持ちます。妖精の名前と立ち絵は `/me`・`/owners/店主ID` の `fairy.name` と `fairy.url` で読めます。店主IDに登録されたものがなければ `fairy` は `null` です。
+`GET /api/v1/me` の `joblv` は本・地図などの品番ごとの職レベルです。`merchant` は商人レベルです。どちらも `lv` と `point`、次に必要な累計点 `next` を持ちます。店長室の見本では職レベル1以上だけを表に出し、レベル0しかなければ「まだありません」と表示します。妖精の名前と立ち絵は `/me`・`/owners/店主ID` の `fairy.name` と `fairy.url` で読めます。店主IDに登録されたものがなければ `fairy` は `null` です。
 
 自分の妖精を登録するときは、Muse のトークンで `POST /api/v1/profile/fairy` に `{"name":"…","image_base64":"…"}` を送ります。どちらか片方だけの更新もできます。立ち絵は幅600×高さ800の静止WebPで400KBまでです。
 
-## 街の地図 (1.2.0)
+## 街の地図 (1.4.0 の見本)
 
 `town/` に、観戦画面の「街の地図」と同じ絵と描き方が入っています。
 
 | ファイル | 中身 |
 |---|---|
-| `town/town-sample.html` | **地図をスペースで描く見本**。サーバーの URL と合鍵を入れると、`/api/v1/town/map` を読んで地区を描きます。まずこれを写してください |
+| `town/town-sample.html` | **地図をスペースで描く見本**。サーバーの URL と合鍵を入れると、`/api/v1/town/map` を読んで地区を描き、店名札や隣区ボタンを出します。まずこれを写してください |
+| `town/pan-zoom.js` | ドラッグ・ピンチ・ホイール・拡大縮小。6px でドラッグとタップを区別します |
 | `town/town-gen.js` | 地図の組み立て (観戦画面・サーバーと同じもの)。住所の書き方 `addressForms`・色の番号 `ROOFS` `DOORS` もここ |
 | `town/tiles.js` | チャンクを絵で描く (`Tiles.paint`)。絵の置き場は `window.TOWN_ART_DIR` (見本では `./`) |
 | `town/tileset-v1.js` `.json` | 絵の切り出し位置・地面と小物の番号・店の色の段 |
 | `town/tiles-v1.png` `objects-v1.png` `shop-masks-v1.png` | 絵 (32px のマップチップ。店の屋根と入口はマスクで色を付ける) |
 
 - `/api/v1/town/map` の `chunks` は、地区のチャンクと、東・南の外側の大通りを持つまわりのチャンクです。`origin` と `size` はチップ (32px) 単位。全部まとめて `Tiles.paint` に渡し、`bounds` (チップ単位) の範囲を描けば、道や川が端で切れません。
-- チャンクの `buildings` に店の区画 (`lot`)・大きさ・向き・色 (`palette`)・`som` が入っています。店の名前は `/api/v1/town` の som と突き合わせてください。
+- チャンクの `buildings` に店の区画 (`lot`)・大きさ・向き・色 (`palette`)・`som` が入っています。店の名前・棚は `/api/v1/town` の `shops[].som`、休業中の店は `resting[].som` と突き合わせます。全店一覧は地図を開くときと ↻ のときだけ読みます。
+- `districts[].neighbors` は東西南北 (`n/e/s/w`) の隣の区 `{no, name}`、街の外や大通りだけなら `null`。中央は `no: 0` です。地図を引くと店名札を隠して地区名を表示します。
 - 住所は `1区2-4` (1区・2丁目・4番地)。許可証には `第1区2丁目4番地` の形で入れる予定です (名刺の変更は後日)。
 - 地図の形は種で決まっていて、店が増えると地区が増えます。区画の番号 (`lot`) は変わりません。
 
