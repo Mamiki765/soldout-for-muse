@@ -3,7 +3,7 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { restInfo } from '../engine/rest.js';
-import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
@@ -17,6 +17,7 @@ import { discardPlan, periodEstimate, type Alert, type peekData } from '../engin
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
+import { JOB_CHILDREN } from '../engine/jobs.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
 export type LastPrices = Map<number, PeriodPriceRow>;
@@ -419,37 +420,13 @@ export function specialtyType(g: Game, dt: Shop): number {
 
 /**
  * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
- * 転職先は職業コードより細かい (革細工屋・木工細工屋・装飾細工屋はどれも道具屋) ので、
- * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「武器屋(杖)」のように出す。
- * 山師は 1.3.0 で探鉱夫・木こりに分けた (括弧なしの職名)。分けられなかった山師 (熟練が並び) だけ「山師」のまま
- * いちばん高いものが並んだとき (どれも 0 を含む) は職業名だけ (案: リカさんより)
+ * 1.3.0 から13職それぞれが職コードなので、その名前をそのまま出す (剣屋・革細工屋・探鉱夫など)。
+ * 分けられなかった店 (熟練が並んでいた) だけ、道具屋・武器屋・防具屋・山師のまま
  */
 export function jobName(dt: Shop): string {
   if (!dt.job) return '';
-  const name = CATALOG.jobTypes[dt.job] ?? dt.job;
-  const branches = JOB_BRANCHES[dt.job];
-  if (!branches) return name;
-  let best = '';
-  let bestExp = 0;
-  let tie = false;
-  for (const [itemno, label] of branches) {
-    const exp = dt.exp[itemno] ?? 0;
-    if (exp > bestExp) {
-      best = label;
-      bestExp = exp;
-      tie = false;
-    } else if (exp === bestExp) {
-      tie = true;
-    }
-  }
-  return best && !tie ? `${name}(${best})` : name;
+  return CATALOG.jobTypes[dt.job] ?? dt.job;
 }
-/** 職業コードごとの転職先: [熟練を集める本・地図, 括弧に出す名前] (転職のススメの並び) */
-const JOB_BRANCHES: Record<string, [number, string][]> = {
-  tool: [[itemNoByName('革細工入門'), '革細工'], [itemNoByName('木工細工入門'), '木工'], [itemNoByName('装飾細工入門'), '装飾']],
-  weapon: [[itemNoByName('剣の鍛え方'), '剣'], [itemNoByName('杖の作り方'), '杖']],
-  armor: [[itemNoByName('盾の作り方'), '盾'], [itemNoByName('鎧の作り方'), '鎧']],
-};
 
 export function rankingData(g: Game) {
   return g.shops.map((s, i) => {
@@ -598,11 +575,12 @@ export function findItem(key: string): number | undefined {
   return no;
 }
 
-/** 職業の補正の言葉 (例: 探鉱夫・元山師 時間1/2) */
+/** 職業の補正の言葉 (例: 探鉱夫・木こり 時間1/2) */
 function jobWords(u: RtUse): string[] {
   return u.def.jobs.map((j) => {
-    // 元山師 (1.3.0 より前の山師) は探鉱夫・木こりの両方のボーナスが付く (engine/jobs.ts)
-    const who = (CATALOG.jobTypes[j.job] ?? j.job) + (j.job === 'mine' || j.job === 'wood' ? '・元山師' : '');
+    // ボーナスは親の職コードに付いていて、子の職 (1.3.0 の13職) はみな受ける (engine/jobs.ts)
+    const kids = JOB_CHILDREN[j.job];
+    const who = kids ? kids.map(([, code]) => CATALOG.jobTypes[code] ?? code).join('・') : (CATALOG.jobTypes[j.job] ?? j.job);
     const what = j.key === 'times' || j.key === 'time' ? '時間' : j.key === 'money' ? '費用' : j.key;
     const how = j.op === '/' ? `1/${j.value}` : j.op === '*' ? `×${j.value}` : j.op === '=' ? `=${j.value}` : `${j.op}${j.value}`;
     return `${who} ${what}${how}`;

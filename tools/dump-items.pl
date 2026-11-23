@@ -594,24 +594,21 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$by_no{$it->{no}} = $it;
 	}
 
-	# 1.3.0 山師を探鉱夫・木こりに分ける (tools/v130.json): 職の名前を足し、地図 (9/12) の職ボーナスと転職のススメの行き先を職ごとにする
+	# 1.3.0 13職を職コードごとに分ける (tools/v130.json): 職の名前を足し、転職のススメの行き先を子の職コードにする。
+	# 職ボーナスは親の職コードのまま (子は親のボーナスを受ける。engine/jobs.ts)
 	open(my $v130_fh, '<:raw', "$FindBin::Bin/v130.json") or die $!;
 	my $v130 = JSON::PP->new->utf8->decode(do { local $/; <$v130_fh> });
 	close $v130_fh;
 	$v130 = $as_bytes->($v130);
 	@define{keys %{ $v130->{define} }} = values %{ $v130->{define} };
-	for my $no (sort keys %{ $v130->{jobs} }) {
-		my $job = $v130->{jobs}{$no};
-		my $n = 0;
-		for my $u (@{ $by_no{$no}{uses} }) {
-			for my $j (@{ $u->{jobs} }) { if ($j->{job} eq 'material') { $j->{job} = $job; $n++; } }
-		}
-		die "v1.3.0: item $no has no material bonus" if !$n;
+	for my $no (sort keys %{ $v130->{job_change} }) {
+		my ($parent, $child) = @{ $v130->{job_change}{$no} };
+		die "v1.3.0: no name for $child" if !defined $define{"job-$child"};
 		my $m = 0;
 		for my $u (@{ $by_no{78}{uses} }) {
 			next if !$u->{params} || ($u->{params}[0] // '') ne $no;
-			die "v1.3.0: 78/$u->{no} is not material" if $u->{params}[3] ne 'material';
-			$u->{params}[3] = $job;
+			die "v1.3.0: 78/$u->{no} is not $parent" if $u->{params}[3] ne $parent;
+			$u->{params}[3] = $child;
 			$m++;
 		}
 		die "v1.3.0: no job change to $no" if $m != 1;

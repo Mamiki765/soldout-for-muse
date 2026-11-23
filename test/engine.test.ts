@@ -197,29 +197,13 @@ test('ランキングに職業と「○専門店」を出す (原作 inc-html-ra
   r = rankingData(g)[0];
   assert.equal(r.specialty, '原料');
   assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
-  // 1.3.0 から山師は探鉱夫・木こりに分かれ、括弧は付けない (分けられなかった山師だけ山師)
+  // 1.3.0 から13職それぞれが職コード。名前をそのまま出す (熟練が並んで分けられなかった店だけ親の名前)
   a.job = 'material';
-  a.exp[itemNoByName('近くの鉱山への地図')] = 300;
   assert.equal(rankingData(g)[0].job, '山師');
-  a.job = 'mine';
-  assert.equal(rankingData(g)[0].job, '探鉱夫');
-  a.job = 'wood';
-  assert.equal(rankingData(g)[0].job, '木こり');
-  // ほかの職業も転職先で呼び分ける。いちばん高いものが並んだら職業名だけ
-  a.job = 'tool';
-  assert.equal(rankingData(g)[0].job, '道具屋');
-  a.exp[itemNoByName('木工細工入門')] = 200;
-  assert.equal(rankingData(g)[0].job, '道具屋(木工)');
-  a.exp[itemNoByName('装飾細工入門')] = 200;
-  assert.equal(rankingData(g)[0].job, '道具屋', '並んだら括弧なし');
-  a.exp[itemNoByName('革細工入門')] = 600;
-  assert.equal(rankingData(g)[0].job, '道具屋(革細工)');
-  a.job = 'weapon';
-  a.exp[itemNoByName('杖の作り方')] = 100;
-  assert.equal(rankingData(g)[0].job, '武器屋(杖)');
-  a.job = 'armor';
-  a.exp[itemNoByName('盾の作り方')] = 100;
-  assert.equal(rankingData(g)[0].job, '防具屋(盾)');
+  for (const [code, name] of [['mine', '探鉱夫'], ['wood', '木こり'], ['leather', '革細工屋'], ['woodwork', '木工細工屋'], ['deco', '装飾細工屋'], ['sword', '剣屋'], ['staff', '杖屋'], ['shield', '盾屋'], ['mail', '鎧屋']]) {
+    a.job = code;
+    assert.equal(rankingData(g)[0].job, name);
+  }
   a.job = 'drug';
   assert.equal(rankingData(g)[0].job, '薬屋');
 });

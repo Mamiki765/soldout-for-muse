@@ -1,43 +1,56 @@
-// 1.3.0 山師を探鉱夫 (mine) と木こり (wood) に分ける。
-// - 地図の職ボーナスは、近くの鉱山への地図 = 探鉱夫、近くの山への地図 = 木こり。
-// - 1.3.0 より前に山師だった店 (元山師) は、分けたあとも両方の地図のボーナスを持ったまま。転職し直すと普通の職になる。
+// 1.3.0 13職を職コードごとに分ける。
+// 原作の職コードは9つ (道具屋・武器屋・防具屋・山師が転職先をまとめていた) で、転職先は熟練のいちばん高い本・地図で見分けていた。
+// 1.3.0 から転職先そのものを職コード (子) にする。職ボーナスは今までどおり親の職コードに付けたままで、
+// 子の職は親のボーナスを全部受ける＝分ける前と遊び方は何も変わらない (剣屋にも杖屋にも武器屋のボーナスが全部付く)。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 import type { Shop } from './types.js';
 
-/** 元山師の印 (店の user に分けた版を入れる) */
-export const FORMER_MATERIAL_KEY = '_former_material';
-/** 分ける前の職コード (山師) */
-export const MATERIAL = 'material';
-const MINE_MAP = 9;
-const MOUNT_MAP = 12;
+/** 子の職コード → 親の職コード (職ボーナスはこちらに付いている) */
+export const JOB_PARENT: Record<string, string> = {
+  mine: 'material',
+  wood: 'material',
+  leather: 'tool',
+  woodwork: 'tool',
+  deco: 'tool',
+  sword: 'weapon',
+  staff: 'weapon',
+  shield: 'armor',
+  mail: 'armor',
+};
 
-/** その店に職ボーナス jobCode が付くか。元山師 (と分けられなかった山師) は探鉱夫・木こりの両方が付く */
+/** 親の職コード → [熟練を集める本・地図, 子の職コード] (転職のススメの並び) */
+export const JOB_CHILDREN: Record<string, [number, string][]> = {
+  material: [[9, 'mine'], [12, 'wood']],
+  tool: [[16, 'leather'], [17, 'woodwork'], [66, 'deco']],
+  weapon: [[20, 'sword'], [23, 'staff']],
+  armor: [[21, 'shield'], [22, 'mail']],
+};
+
+/** その店に職ボーナス jobCode (データ上の職コード) が付くか。子の職は親のボーナスも受ける */
 export function hasJobBonus(dt: Shop, jobCode: string): boolean {
-  if (jobCode === dt.job) return true;
-  if (jobCode !== 'mine' && jobCode !== 'wood') return false;
-  return dt.job === MATERIAL || !!dt.user?.[FORMER_MATERIAL_KEY];
-}
-
-/** 元山師か (分けたあとの探鉱夫・木こりで、両方のボーナスが残っている) */
-export function isFormerMaterial(dt: Shop): boolean {
-  return !!dt.user?.[FORMER_MATERIAL_KEY] && (dt.job === 'mine' || dt.job === 'wood');
+  return jobCode === dt.job || JOB_PARENT[dt.job] === jobCode;
 }
 
 /**
- * 保存データの山師を探鉱夫か木こりに分ける (読み込みのたびに呼んでよい)。
- * 熟練の高いほうの地図の職にする。並んでいる (どちらも0を含む) 店は分けられないので山師のまま (両方のボーナスが付く)
+ * 保存データの親の職コードを子に分ける (読み込みのたびに呼んでよい)。
+ * 熟練のいちばん高い本・地図の職にする (1.2.x までの「道具屋(革細工)」の括弧と同じ決め方)。
+ * いちばん高いものが並ぶ (どれも0を含む) 店は分けられないので親のまま (ボーナスは同じ)
  */
-export function splitMaterialJob(dt: Shop): void {
-  if (dt.job !== MATERIAL) return;
-  const mine = dt.exp[MINE_MAP] ?? 0;
-  const wood = dt.exp[MOUNT_MAP] ?? 0;
-  if (mine === wood) return;
-  dt.job = mine > wood ? 'mine' : 'wood';
-  dt.user ??= {};
-  dt.user[FORMER_MATERIAL_KEY] = '1.3.0';
-}
-
-/** 転職したとき: 元山師の印を外す */
-export function clearFormerMaterial(dt: Shop): void {
-  if (dt.user) delete dt.user[FORMER_MATERIAL_KEY];
+export function splitJob(dt: Shop): void {
+  const children = JOB_CHILDREN[dt.job];
+  if (!children) return;
+  let best = '';
+  let bestExp = 0;
+  let tie = false;
+  for (const [itemno, code] of children) {
+    const exp = dt.exp[itemno] ?? 0;
+    if (exp > bestExp) {
+      best = code;
+      bestExp = exp;
+      tie = false;
+    } else if (exp === bestExp) {
+      tie = true;
+    }
+  }
+  if (best && !tie) dt.job = best;
 }
