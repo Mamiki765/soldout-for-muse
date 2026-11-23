@@ -13,10 +13,10 @@
     { "book": 66, "product": 130, "time": 9000, "exptime": 4500 }
   ],
   "items": [
-    { "no": 135, "reference": 87, "code": "lacquer-box", "name": "漆塗りの小箱", "info": "漆で艶を出し、研磨宝石を留めた木の小箱。", "scale": "個", "price": 7000, "popular": 57600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
-    { "no": 136, "reference": 87, "code": "rocking-chair", "name": "揺り椅子", "info": "弓なりの脚でゆっくり揺れる、革張りの木の椅子。", "scale": "脚", "price": 9000, "popular": 86400, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
-    { "no": 137, "reference": 87, "code": "wooden-lute", "name": "木のリュート", "info": "漆を塗った木の胴に、ミスリルの弦を張った楽器。", "scale": "挺", "price": 12000, "popular": 129600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
-    { "no": 138, "reference": 91, "code": "lacquer", "name": "漆", "info": "樹脂林で採れる樹液。木工品の塗りに使う。", "scale": "滴", "price": 500, "popular": 7200, "seedmarket": 24 }
+    { "no": 135, "reference": 87, "code": "lacquer-box", "name": "漆塗りの小箱", "info": "漆を塗り重ねた小箱。指輪や髪飾りをしまうのにちょうどいい。", "scale": "個", "price": 7000, "popular": 57600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 136, "reference": 87, "code": "rocking-chair", "name": "揺り椅子", "info": "丸太と革で組んだ揺り椅子。店先に置けば、夕方まで揺られていられる。", "scale": "脚", "price": 9000, "popular": 86400, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 137, "reference": 87, "code": "wooden-lute", "name": "木のリュート", "info": "漆で仕上げた木のリュート。素朴で温かい音がする。", "scale": "挺", "price": 12000, "popular": 129600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 138, "reference": 91, "code": "lacquer", "name": "漆", "info": "樹脂林で採れる黒い樹液。塗り重ねると深い艶が出る、木工の仕上げ材。", "scale": "滴", "price": 500, "popular": 7200, "seedmarket": 24 }
   ],
   "woodwork": {
     "book": 17,
