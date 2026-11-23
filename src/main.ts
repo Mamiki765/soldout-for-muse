@@ -21,7 +21,7 @@
 
 import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { delimiter, dirname, resolve } from 'node:path';
 import { App } from './api/app.js';
 import { setViewerKey } from './api/viewer.js';
 import { httpPartyVerifier } from './api/party.js';
@@ -34,6 +34,7 @@ import { APOLOGY_HAY_PER_HEAD, giveApologyHay } from './engine/apology.js';
 import { EXISTING_SHOP_CIGARETTES, giveShopTime } from './engine/campaign.js';
 import { shownPeople } from './engine/types.js';
 import { APP_VERSION, UPDATES } from './updates.js';
+import { readFairyBackfillInput } from './fairy-backfill-input.js';
 
 const env = process.env;
 const dbPath = resolve(env.DB_PATH ?? 'data/soldout.sqlite');
@@ -188,6 +189,10 @@ if (cmd === 'set-invite') {
   console.log(`${rows.length} 店にタイムシガレットを最大${count}本 (${count / 2}時間) 配りました`);
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
 } else if (cmd === 'serve') {
+  // 本番での移し替えは試算を確認したうえで、このフラグを指定した起動時だけ行う。
+  const fairyBackfill = env.FAIRY_BACKFILL === '1'
+    ? (env.FAIRY_BACKFILL_BACKUPS ?? '').split(delimiter).filter(Boolean).map((file) => readFairyBackfillInput(file).world)
+    : undefined;
   const store = new Store(dbPath);
   if (env.TOWN_EPOCH) {
     const configured = Number(env.TOWN_EPOCH);
@@ -207,6 +212,7 @@ if (cmd === 'set-invite') {
     assetsDir: env.ASSETS_ROOT === '' ? undefined : resolve(env.ASSETS_ROOT ?? resolve(dirname(dbPath), 'assets')),
     assetsBaseUrl: env.ASSETS_BASE_URL || undefined,
     kitDir: resolve(env.KIT_DIR ?? 'kit'),
+    fairyBackfill,
   });
   // TICK_SECONDS を入れると、誰もアクセスしなくても街の時間がその間隔で確かめられ、5分刻みで進む。
   // 既定は 0 (止める): 今はアクセスだけで5分ごとに進んでいるので、番犬運用で止まると分かってから入れる (リカさん 2026-11-15)

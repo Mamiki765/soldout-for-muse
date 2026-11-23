@@ -11,7 +11,8 @@
     "start": "node --disable-warning=ExperimentalWarning dist/src/main.js",
     "test": "tsc -p tsconfig.json && node --disable-warning=ExperimentalWarning --test \"dist/test/**/*.test.js\"",
     "items": "perl tools/dump-items.pl normal > src/data/items.json",
-    "merchant-cap": "tsc -p tsconfig.json && node tools/merchant-cap/simulate.mjs"
+    "merchant-cap": "tsc -p tsconfig.json && node tools/merchant-cap/simulate.mjs",
+    "fairy-backfill": "tsc -p tsconfig.json && node --disable-warning=ExperimentalWarning tools/fairy-backfill/report.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
