@@ -8,6 +8,7 @@ import { MAX_ITEM } from './data/catalog.js';
 import { DEFAULT_CONFIG } from './config.js';
 import { newWorld, type LogEntry, type World } from './engine/types.js';
 import type { PeriodPriceRow } from './engine/prices.js';
+import { splitJob } from './engine/jobs.js';
 import { isTownEpoch, townPeriodAt } from './town-calendar.js';
 
 const TOWN_EPOCH_SETTING = 'town_epoch';
@@ -227,6 +228,8 @@ export class Store {
     for (const s of w.shops) {
       while (s.item.length < MAX_ITEM) s.item.push(0);
       s.status = 1;
+      // 1.3.0 道具屋・武器屋・防具屋・山師を13職の職コードに分ける (熟練のいちばん高い本・地図の職へ。ボーナスは同じ)
+      splitJob(s);
     }
     return w;
   }
