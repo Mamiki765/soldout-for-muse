@@ -151,6 +151,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
 
   // ミノタウロス♀ 乳を搾る
   'mino:_local_1'(g, dt, u, { count }) {
+    // 職レベルの出来高倍率は意図して掛けない (2026-11-23)。
     const p1 = Number(u.params[0]);
     let val = p1 * count;
     val *= dt.item[25 - 1];
@@ -177,6 +178,7 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // 1回で 頭数×params[0] 〜 頭数×(params[0]+params[1]) 本 (5〜7、平均6)。
   // 1.1.1: 牛は「乳を搾る」と同じく1回ごとに 1/1000 だけ老い、寿命に届くごとに1頭天に召される (前は減らなかった)
   'mino:_local_2'(g, dt, u, { count }) {
+    // 飼い葉桶の上乗せを含め、職レベルの出来高倍率は意図して掛けない (2026-11-23)。
     const base = Number(u.params[0]);
     const spread = Number(u.params[1]);
     const n = dt.item[25 - 1] * count;
