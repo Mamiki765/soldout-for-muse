@@ -122,7 +122,9 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
   }
 });
 
-test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草・1.0.0 の直し以外に差分がなく、イベントも不変', () => {
+const v122 = JSON.parse(readFileSync('tools/v122.json', 'utf8')) as { recipe_exptime: { item: number; name: string; exptime: number }[] };
+
+test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボーナス・0.6.0 の干し草・1.0.0 の直し・1.2.2 の乳搾り以外に差分がなく、イベントも不変', () => {
   const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as {
     info_changes: { item: number; use: number; info: string }[];
     recipe_changes: { item: number; use: number; time: number; get: [number, number, number][]; info: string }[];
@@ -171,6 +173,11 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
     // 0.6.0 干し草 (tools/hay.json): 近くの山への地図の行き先すべてに副産物の干し草、乳搾り2つは説明に数字を足すだけ
     if (old.no === 12) for (const u of expected.uses) u.get = [...u.get, { item_no: 115, count: 20, proba: 800 }];
     if (old.no === 25) for (const ch of hay.info_changes) expected.uses[ch.use].info = ch.info;
+    // 1.2.2 (tools/v122.json): 原作で exptime が無かった乳搾り2つに、熟練100%の時間を付ける
+    for (const ch of v122.recipe_exptime) if (ch.item === old.no) expected.uses.find((u) => u.name === ch.name)!.exptime = ch.exptime;
+    // 1.3.0 (tools/v130.json): 転職のススメの行き先を13職の職コードに (職ボーナスは親の職コードのまま)
+    const split: Record<string, string> = { 9: 'mine', 12: 'wood', 16: 'leather', 17: 'woodwork', 66: 'deco', 20: 'sword', 23: 'staff', 21: 'shield', 22: 'mail' };
+    if (old.no === 78) for (const u of expected.uses) if (split[u.params[0] ?? '']) u.params[3] = split[u.params[0]!];
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
@@ -182,7 +189,11 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
   const byCode = (list: unknown[]) => new Map((list as { code: string }[]).map((e) => [e.code, e]));
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
-  assert.deepEqual(current.define, { ...original.define, version: '1.0.1' });
+  assert.deepEqual(current.define, {
+    ...original.define, version: '1.3.0',
+    'job-mine': '探鉱夫', 'job-wood': '木こり', 'job-leather': '革細工屋', 'job-woodwork': '木工細工屋', 'job-deco': '装飾細工屋',
+    'job-sword': '剣屋', 'job-staff': '杖屋', 'job-shield': '盾屋', 'job-mail': '鎧屋',
+  });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 

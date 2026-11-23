@@ -174,10 +174,10 @@ test('放牧地で草を刈る: 干し草×60 (90%)、2時間・酪農家は1時
   assert.equal(dt.item[MINO - 1], 1);
 });
 
-test('原作の乳を搾る・ハードに乳を搾るは式も時間もそのままで、説明に数字が付く', () => {
+test('原作の乳を搾る・ハードに乳を搾るは式そのままで、説明に数字が付く (1.2.2 から熟練100%で1時間)', () => {
   const [normal, hard] = BASE_ITEMS[MINO].uses;
-  assert.deepEqual([normal.name, normal.params[0], normal.time, normal.exptime], ['乳を搾る', '1', 7200, 7200]);
-  assert.deepEqual([hard.name, hard.params[0], hard.time, hard.exptime], ['ハードに乳を搾る', '2', 7200, 7200]);
+  assert.deepEqual([normal.name, normal.params[0], normal.time, normal.exptime], ['乳を搾る', '1', 7200, 3600]);
+  assert.deepEqual([hard.name, hard.params[0], hard.time, hard.exptime], ['ハードに乳を搾る', '2', 7200, 3600]);
   assert.match(normal.info!, /1〜頭数本/);
   assert.match(normal.info!, /0\.1%/);
   assert.match(hard.info!, /1〜頭数×2本/);

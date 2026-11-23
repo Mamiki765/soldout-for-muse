@@ -7,6 +7,7 @@ import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
 import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
 import type { Shop } from './types.js';
+import { hasJobBonus } from './jobs.js';
 
 export interface UseResultLine {
   item_no: number;
@@ -128,7 +129,7 @@ export function checkUses(g: Game, dt: Shop, uses: RtUse[]): RtUse[] {
 function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
   // 原作 _job_use_<no>_<job>_ : 職業による時間などの補正
   for (const jm of u.def.jobs) {
-    if (jm.job !== dt.job) continue;
+    if (!hasJobBonus(dt, jm.job)) continue;
     const keys = jm.key === 'times' ? (['time', 'exptime'] as const) : ([jm.key] as const);
     for (const key of keys) {
       const rec = u as unknown as Record<string, number>;

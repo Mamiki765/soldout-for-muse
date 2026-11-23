@@ -3,7 +3,7 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { restInfo } from '../engine/rest.js';
-import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNoByName, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNote, itemVisibility, itemVisibilityVersion, makesHiddenItem } from '../data/catalog.js';
 import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
@@ -17,6 +17,7 @@ import { discardPlan, periodEstimate, type Alert, type peekData } from '../engin
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
+import { JOB_CHILDREN } from '../engine/jobs.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
 export type LastPrices = Map<number, PeriodPriceRow>;
@@ -338,6 +339,8 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       shelf_lo: it.marketprice ? it.marketpricelow : 0,
       shelf_hi: it.marketprice ? it.marketpricehigh : 0,
       shops: it.listshops,
+      // 1.3.0: あなたがここで1回買うのにかかる時間 (秒)。個数に関係しない
+      deal_time: g.buyTime(c.itemno, c.price, true),
       // 前の決算のときの値と、そこから何%動いたか (どちらかが無ければ null)
       market_prev: p?.market ?? 0,
       market_change: changePct(it.marketprice, p?.market ?? 0),
@@ -363,15 +366,25 @@ export function balanceWord(per: number): string {
   return '均衡';
 }
 
+/** 市場・他店の棚の「取引」列の説明 (1.3.0) */
+export const DEAL_TIME_NOTE =
+  '取引=あなたが1回買うのにかかる時間。何個買っても1回ぶん (個数に関係なし) なので、時間の長い品 (標準より安い品) は要る数より多めにまとめて買うのが得。buy に "max_minutes" を付けると、それより長いときは時間を使わずに中止';
+
+/** 取引時間の短い表示。1時間以上は「!」を付けて目立たせる (1.3.0) */
+export function dealWord(sec: number): string {
+  return dur(sec) + (sec >= 3600 ? '!' : '');
+}
+
 export function marketText(d: ReturnType<typeof marketData>): string {
   const lines = [
     `人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''),
-    '# 市場 品番 名前 在庫 単価 標準 相場(棚の最安〜最高・店数) 需給 前期比(単価/相場) 推移は /api/v1/items/品番',
+    '# 市場 品番 名前 在庫 単価 標準 相場(棚の最安〜最高・店数) 需給 前期比(単価/相場) 取引 推移は /api/v1/items/品番',
+    DEAL_TIME_NOTE,
   ];
   for (const c of d.items) {
     const std = c.std !== c.std_base ? `${c.std}(高騰中、普段${c.std_base})` : String(c.std);
     const market = c.market ? `${c.market}(${c.shelf_lo}〜${c.shelf_hi}・${c.shops}店)` : '-';
-    lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)}`);
+    lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)} ${dealWord(c.deal_time)}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -388,16 +401,19 @@ export function shopsData(g: Game, opts: { item?: number; limit: number }) {
       popularity: pct(s.rank),
       point: s.point,
       comment: s.comment,
-      shelves: shelfData(g, s).filter((x) => x.item && x.stock),
+      // 1.3.0: deal_time はあなたがその棚で1回買うのにかかる時間 (秒、個数に関係しない)
+      shelves: shelfData(g, s)
+        .filter((x) => x.item && x.stock)
+        .map((x) => ({ ...x, deal_time: g.buyTime(x.item, x.price, false) })),
     }))
     .filter((s) => !opts.item || s.shelves.some((x) => x.item === opts.item))
     .slice(0, opts.limit);
 }
 
 export function shopsText(d: ReturnType<typeof shopsData>): string {
-  const lines = ['# 店 id 順位 店名 人気% 点 | 棚番号:品番:名前@価格x在庫'];
+  const lines = ['# 店 id 順位 店名 人気% 点 | 棚番号:品番:名前@価格x在庫/取引', DEAL_TIME_NOTE];
   for (const s of d) {
-    const sh = s.shelves.map((x) => `${x.slot}:${x.item}:${x.name}@${x.price}x${x.stock}`).join(' ');
+    const sh = s.shelves.map((x) => `${x.slot}:${x.item}:${x.name}@${x.price}x${x.stock}/${dealWord(x.deal_time)}`).join(' ');
     lines.push(`${s.id} ${s.rank} ${s.shop} ${s.popularity} ${s.point} | ${sh || '-'}`);
   }
   return lines.join('\n') + '\n';
@@ -419,37 +435,13 @@ export function specialtyType(g: Game, dt: Shop): number {
 
 /**
  * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
- * 転職先は職業コードより細かい (革細工屋・木工細工屋・装飾細工屋はどれも道具屋) ので、
- * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「山師(木こり)」のように出す。
- * いちばん高いものが並んだとき (どれも 0 を含む) は職業名だけ (案: リカさんより)
+ * 1.3.0 から13職それぞれが職コードなので、その名前をそのまま出す (剣屋・革細工屋・探鉱夫など)。
+ * 分けられなかった店 (熟練が並んでいた) だけ、道具屋・武器屋・防具屋・山師のまま
  */
 export function jobName(dt: Shop): string {
   if (!dt.job) return '';
-  const name = CATALOG.jobTypes[dt.job] ?? dt.job;
-  const branches = JOB_BRANCHES[dt.job];
-  if (!branches) return name;
-  let best = '';
-  let bestExp = 0;
-  let tie = false;
-  for (const [itemno, label] of branches) {
-    const exp = dt.exp[itemno] ?? 0;
-    if (exp > bestExp) {
-      best = label;
-      bestExp = exp;
-      tie = false;
-    } else if (exp === bestExp) {
-      tie = true;
-    }
-  }
-  return best && !tie ? `${name}(${best})` : name;
+  return CATALOG.jobTypes[dt.job] ?? dt.job;
 }
-/** 職業コードごとの転職先: [熟練を集める本・地図, 括弧に出す名前] (転職のススメの並び) */
-const JOB_BRANCHES: Record<string, [number, string][]> = {
-  material: [[itemNoByName('近くの鉱山への地図'), '探鉱夫'], [itemNoByName('近くの山への地図'), '木こり']],
-  tool: [[itemNoByName('革細工入門'), '革細工'], [itemNoByName('木工細工入門'), '木工'], [itemNoByName('装飾細工入門'), '装飾']],
-  weapon: [[itemNoByName('剣の鍛え方'), '剣'], [itemNoByName('杖の作り方'), '杖']],
-  armor: [[itemNoByName('盾の作り方'), '盾'], [itemNoByName('鎧の作り方'), '鎧']],
-};
 
 export function rankingData(g: Game) {
   return g.shops.map((s, i) => {
@@ -598,12 +590,15 @@ export function findItem(key: string): number | undefined {
   return no;
 }
 
-/** 職業の補正の言葉 (例: 山師 時間1/2) */
+/** 職業の補正の言葉 (例: 探鉱夫・木こり 時間1/2) */
 function jobWords(u: RtUse): string[] {
   return u.def.jobs.map((j) => {
+    // ボーナスは親の職コードに付いていて、子の職 (1.3.0 の13職) はみな受ける (engine/jobs.ts)
+    const kids = JOB_CHILDREN[j.job];
+    const who = kids ? kids.map(([, code]) => CATALOG.jobTypes[code] ?? code).join('・') : (CATALOG.jobTypes[j.job] ?? j.job);
     const what = j.key === 'times' || j.key === 'time' ? '時間' : j.key === 'money' ? '費用' : j.key;
     const how = j.op === '/' ? `1/${j.value}` : j.op === '*' ? `×${j.value}` : j.op === '=' ? `=${j.value}` : `${j.op}${j.value}`;
-    return `${CATALOG.jobTypes[j.job] ?? j.job} ${what}${how}`;
+    return `${who} ${what}${how}`;
   });
 }
 
@@ -695,6 +690,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
   const rev = reverse();
   const src = sourceOf(itemno);
   const note = itemNote(itemno).note;
+  const wholeCase = dt ? getWholeStore(g).find((c) => c.itemno === itemno && c.stock > 0) : undefined;
   return {
     item: itemno,
     name: it.name,
@@ -706,6 +702,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
     limit: it.limit,
     flags: flagWords(it.flag),
     market: src.market,
+    // 1.3.0: 市場に今あれば、あなたが市場で1回買うのにかかる時間 (秒、個数に関係しない)
+    ...(dt && wholeCase ? { market_price: wholeCase.price, market_deal_time: g.buyTime(itemno, wholeCase.price, true) } : {}),
     ...(note ? { note } : {}),
     /** 値動き (0.6.0)。history を渡したときだけ */
     ...(history ? { prices: itemPricesData(g, itemno, history) } : {}),
@@ -753,6 +751,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   ];
   const how = [d.market && '市場に入ってくる', d.note].filter(Boolean).join('。');
   if (how) lines.push('入手: ' + how);
+  if (d.market_deal_time !== undefined) lines.push(`市場でいま単価${d.market_price}、あなたが買うと1回${dur(d.market_deal_time)} (何個買っても1回ぶん)`);
   if (d.prices) lines.push(...itemPricesLines(d.prices));
   if (d.skill_item) lines.push(`熟練は${d.skill_item.name}と共通 (時間の縮み・増える熟練は${d.skill_item.name}の熟練)`);
   if (d.made_by.length) {

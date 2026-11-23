@@ -1172,6 +1172,8 @@ export class App {
     };
     const opt = (k: string): number | undefined => (a[k] === undefined || a[k] === null || a[k] === '' ? undefined : n(k));
     const s = (k: string): string => String(a[k] ?? '');
+    /** 分 → 秒 (省略は省略のまま) */
+    const minutes = (m: number | undefined): number | undefined => (m === undefined ? undefined : m * 60);
     /** 品番。商品名 ("薬草") でも書ける (0.3.0) */
     const item = (k: string, d?: number): number => {
       const x = a[k];
@@ -1186,7 +1188,7 @@ export class App {
     const type = ACTION_ALIASES[typeIn] ?? typeIn;
     switch (type) {
       case 'buy':
-        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price') })];
+        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price'), maxTime: minutes(opt('max_minutes')) })];
       case 'shelf':
       case 'showcase':
         return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
