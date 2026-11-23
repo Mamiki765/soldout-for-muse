@@ -17,7 +17,7 @@ import { turn } from '../engine/turn.js';
 import { observePrices, PRICE_HISTORY_KEEP } from '../engine/prices.js';
 import { shownPeople, type LogEntry, type Shop, type World } from '../engine/types.js';
 import { averageJoblvYield } from '../engine/joblv.js';
-import { applyFairyBackfill, planFairyBackfill } from '../engine/fairy-backfill.js';
+import { applyFairyBackfill, planFairyBackfill, type FairyBackfillSnapshot } from '../engine/fairy-backfill.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
@@ -77,7 +77,7 @@ export interface AppOptions {
   /** 許可証の枠とキット (kit/) */
   kitDir?: string;
   /** 指定した起動時だけ、欠けている職・商人ポイントを移し替える。空配列なら現在の保存だけで試算する。 */
-  fairyBackfill?: readonly World[];
+  fairyBackfill?: readonly FairyBackfillSnapshot[];
 }
 
 interface Reply {
@@ -186,11 +186,16 @@ export class App {
     // 0.5.0 より前からある店に som を渡す (開店日の古い順)
     this.owners.migrate(this.world, (id) => this.store.partyOwnerOfShop(id), this.clock());
     if (o.fairyBackfill !== undefined) {
-      const rows = planFairyBackfill(this.world, (id) => {
+      const totals = (id: number) => {
         const owner = this.store.ownerByShop(id);
-        return owner ? this.store.ownerTaxTotals(owner.som)?.sales ?? 0n : 0n;
+        return owner ? this.store.ownerTaxTotals(owner.som) : undefined;
+      };
+      const rows = planFairyBackfill({
+        world: this.world,
+        salesTax: (id) => totals(id)?.sales ?? 0n,
+        depositTax: (id) => totals(id)?.deposit ?? 0n,
       }, this.config, o.fairyBackfill);
-      if (applyFairyBackfill(this.world, rows)) this.persist([], this.clock());
+      if (applyFairyBackfill(this.world, rows, this.clock())) this.persist([], this.clock());
     }
     this.mail = new MailBox(this.store);
     this.town = new TownService(this.store, this.config.oneDayTime);

@@ -1,10 +1,11 @@
-// SOLD OUT for Muse — 保存済みの熟練と売上税から、職・商人ポイントを控えめに試算する。
+// SOLD OUT for Muse — 1.4.0 より前の熟練と税の記録から、職・商人ポイントを控えめに試算して足す。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { DEFAULT_CONFIG, type GameConfig } from '../config.js';
 import { BASE_ITEMS, MAX_ITEM, isPublicItem, itemNoByName } from '../data/catalog.js';
 import { Game, SALE_TAX_MAX_RATE } from './game.js';
 import { joblvProgress } from './joblv.js';
+import { MERCHANT_JOB_MULTIPLIER } from './jobs.js';
 import { MERCHANT_CAP_PER_PERIOD, MERCHANT_YEN_PER_POINT } from './merchant.js';
 import { newShop, newWorld, type Shop, type World } from './types.js';
 import { checkUses, itemUseTime, loadUses, type RtUse } from './use.js';
@@ -64,61 +65,127 @@ export function fastestSkillSeconds(config = DEFAULT_CONFIG): Record<number, num
 export interface FairyBackfillRow {
   id: number;
   shopname: string;
+  /** 今の値に足す職ポイント (秒)。品番ごと */
   joblvpt?: Record<number, number>;
+  /** 今の値に足す商人ポイント */
   merchantpt?: number;
+}
+
+/** 試算に使う保存の1枚 (今の街かバックアップ)。税は店主ごとの累計 (店idで引く) */
+export interface FairyBackfillSnapshot {
+  world: World;
+  salesTax: (shopId: number) => bigint;
+  depositTax: (shopId: number) => bigint;
 }
 
 function shopIdentity(dt: Shop): string {
   return JSON.stringify([dt.id, dt.foundation, dt.name]);
 }
 
-/** 期ごとの税率が残っていないため、上限税率で戻した最小側の売上を使う。 */
-function estimateMerchant(shop: Shop, tax: bigint, asOf: number, config: GameConfig): number {
-  if (tax <= 0n || !Number.isSafeInteger(shop.foundation) || shop.foundation <= 0) return 0;
-  const period = (at: number) => Math.floor((at + config.tzOffset - config.dateReviseTime) / config.oneDayTime);
-  const completed = Math.max(0, period(asOf) - period(shop.foundation));
-  const cap = BigInt(completed) * BigInt(MERCHANT_CAP_PER_PERIOD);
-  const fromTax = tax * 100n / BigInt(SALE_TAX_MAX_RATE * MERCHANT_YEN_PER_POINT);
-  return Number(fromTax < cap ? fromTax : cap);
+/** 1.4.0 の職ポイントがまだ付いていない (= この熟練は 1.4.0 より前の働きだけ) */
+const beforeJoblv = (s: Shop) => s.joblvpt === undefined;
+/** 1.4.0 の商人ポイントがまだ動いていない (= この時点の税の累計は 1.4.0 より前の商いだけ) */
+const beforeMerchant = (s: Shop) => s.merchantpt === undefined && s.merchantYen === undefined;
+
+function merchantMultiplier(job: string): number {
+  return Object.hasOwn(MERCHANT_JOB_MULTIPLIER, job) ? MERCHANT_JOB_MULTIPLIER[job] : 1;
 }
 
-export function planFairyBackfill(world: World, salesTax: (shopId: number) => bigint, config = DEFAULT_CONFIG, backups: readonly World[] = []): FairyBackfillRow[] {
-  const pending = world.shops.filter((s) => s.joblvpt === undefined || s.merchantpt === undefined);
+/**
+ * 税の累計から商いの円を下から見積もる。売上税は税率の上限で戻した最小の売上＋税そのもの、入金庫税は1円1円。
+ * 期ごとの税率が残っていないので、これより少なくなることはない。
+ */
+function yenFromTax(sales: bigint, deposit: bigint): bigint {
+  const s = sales > 0n ? sales : 0n;
+  const d = deposit > 0n ? deposit : 0n;
+  return s * 100n / BigInt(SALE_TAX_MAX_RATE) + s + d;
+}
+
+function estimateMerchant(shop: Shop, views: { s: Shop; at: number; sales: bigint; deposit: bigint }[], config: GameConfig): number {
+  if (!views.length || !Number.isSafeInteger(shop.foundation) || shop.foundation <= 0) return 0;
+  const period = (at: number) => Math.floor((at + config.tzOffset - config.dateReviseTime) / config.oneDayTime);
+  const latest = views.reduce((a, b) => (b.at > a.at ? b : a));
+  // 税は通算の累計なので、いちばん新しい時点の職で補正する。期ごとの実績はその時点の職で。
+  const mult = merchantMultiplier(latest.s.job);
+  const capPerPeriod = MERCHANT_CAP_PER_PERIOD * MERCHANT_YEN_PER_POINT;
+  // 税の累計は増える一方なので、いちばん新しい1枚が最大。
+  const taxYen = Math.max(...views.map((v) => Number(yenFromTax(v.sales, v.deposit))));
+  // 保存に残っている前期・今期の売上と仕入れは、その期だけの実際の額。同じ期は大きい方だけ。
+  const byPeriod = new Map<number, number>();
+  for (const v of views) {
+    const p = period(v.at);
+    const lines: [number, number][] = [[p - 1, v.s.saleyesterday + v.s.payyesterday], [p, v.s.saletoday + v.s.paytoday]];
+    for (const [q, yen] of lines) {
+      if (q < period(shop.foundation) || !(yen > 0)) continue;
+      byPeriod.set(q, Math.max(byPeriod.get(q) ?? 0, Math.min(capPerPeriod, yen * merchantMultiplier(v.s.job))));
+    }
+  }
+  const periodYen = [...byPeriod.values()].reduce((a, b) => a + b, 0);
+  const completed = Math.max(0, period(latest.at) - period(shop.foundation)) + (byPeriod.has(period(latest.at)) ? 1 : 0);
+  // 2つは同じ期間の別の数え方なので足さずに大きい方。期の上限 2,000 点 × 期の数を超えない。
+  const yen = Math.max(Math.min(taxYen * mult, completed * capPerPeriod), periodYen);
+  return Math.floor(Math.min(yen, completed * capPerPeriod) / MERCHANT_YEN_PER_POINT);
+}
+
+/**
+ * 1.4.0 より前の働きを、今の値に足す分として試算する。今の街とバックアップの中から、その店にまだ
+ * 1.4.0 のポイントが付いていない時点だけを使う (1.4.0 で貯めた分と重ならない)。移し替え済みの店は外す。
+ */
+export function planFairyBackfill(current: FairyBackfillSnapshot, config = DEFAULT_CONFIG, backups: readonly FairyBackfillSnapshot[] = []): FairyBackfillRow[] {
+  const pending = current.world.shops.filter((s) => s.fairyBackfilledAt === undefined);
   if (!pending.length) return [];
-  const seconds = pending.some((s) => s.joblvpt === undefined) ? fastestSkillSeconds(config) : {};
-  const archives = backups.map((backup) => new Map(backup.shops.map((s) => [shopIdentity(s), s.exp])));
-  return pending.map((s) => {
+  const snapshots = [current, ...backups].map((snap) => ({
+    snap,
+    shops: new Map(snap.world.shops.map((s) => [shopIdentity(s), s])),
+  }));
+  let seconds: Record<number, number> | undefined;
+  const rows: FairyBackfillRow[] = [];
+  for (const s of pending) {
+    const key = shopIdentity(s);
+    const views = snapshots.flatMap(({ snap, shops }) => {
+      const old = shops.get(key);
+      return old ? [{ s: old, at: snap.world.lasttime, sales: snap.salesTax(old.id), deposit: snap.depositTax(old.id) }] : [];
+    });
     const row: FairyBackfillRow = { id: s.id, shopname: s.shopname };
-    if (s.joblvpt === undefined) {
-      const key = shopIdentity(s);
-      row.joblvpt = {};
+    const jobViews = views.filter((v) => beforeJoblv(v.s));
+    if (jobViews.length) {
+      seconds ??= fastestSkillSeconds(config);
+      const pts: Record<number, number> = {};
       for (const [id, full] of Object.entries(seconds)) {
         const no = Number(id);
-        const best = Math.min(FULL_SKILL, Math.max(0, s.exp[no] ?? 0, ...archives.map((a) => a.get(key)?.[no] ?? 0)));
+        const best = Math.min(FULL_SKILL, Math.max(0, ...jobViews.map((v) => v.s.exp[no] ?? 0)));
         const credited = Math.floor(best * full / FULL_SKILL);
-        if (credited > 0) row.joblvpt[no] = credited;
+        if (credited > 0) pts[no] = credited;
       }
+      if (Object.keys(pts).length) row.joblvpt = pts;
     }
-    if (s.merchantpt === undefined) row.merchantpt = estimateMerchant(s, salesTax(s.id), world.lasttime, config);
-    return row;
-  });
+    const merchant = estimateMerchant(s, views.filter((v) => beforeMerchant(v.s)), config);
+    if (merchant > 0) row.merchantpt = merchant;
+    if (row.joblvpt || row.merchantpt) rows.push(row);
+  }
+  return rows;
 }
 
-/** 試算を欠けている欄だけに反映し、職レベルの決算通知には移したぶんを重ねない。 */
-export function applyFairyBackfill(world: World, rows: readonly FairyBackfillRow[]): number {
+/** 試算を今の値に足す (1店1回きり)。移したぶんは職レベル・商人レベルの決算通知に重ねない。 */
+export function applyFairyBackfill(world: World, rows: readonly FairyBackfillRow[], at: number): number {
   const plans = new Map(rows.map((row) => [row.id, row]));
   let count = 0;
   for (const s of world.shops) {
     const row = plans.get(s.id);
-    if (!row) continue;
-    const joblv = s.joblvpt === undefined && row.joblvpt !== undefined;
-    const merchant = s.merchantpt === undefined && row.merchantpt !== undefined;
-    if (!joblv && !merchant) continue;
-    if (joblv) {
-      s.joblvpt = row.joblvpt;
-      s.joblvReached = Object.fromEntries(Object.keys(s.joblvpt!).map(Number).map((no) => [no, joblvProgress(s, no).lv]));
+    if (!row || s.fairyBackfilledAt !== undefined) continue;
+    if (row.joblvpt) {
+      const pts = s.joblvpt ??= {};
+      const reached = s.joblvReached ??= {};
+      for (const [id, add] of Object.entries(row.joblvpt)) {
+        const no = Number(id);
+        pts[no] = (pts[no] ?? 0) + add;
+        // 移した後のレベルを知らせ済みにする。1.4.0 で上がってまだ決算を迎えていない段も、ここでまとめて
+        // 「今までの働きぶん」の案内に含める (決算で移した分まで上がったように知らせない)。
+        reached[no] = Math.max(reached[no] ?? 0, joblvProgress(s, no).lv);
+      }
     }
-    if (merchant) s.merchantpt = row.merchantpt;
+    if (row.merchantpt) s.merchantpt = (s.merchantpt ?? 0) + row.merchantpt;
+    s.fairyBackfilledAt = at;
     s.fairyBackfillNotice = true;
     count++;
   }

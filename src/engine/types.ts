@@ -64,6 +64,8 @@ export interface Shop {
   merchantNotice?: { at: number; lv: number };
   /** 移し替え後に店主が digest を読むまで残す。 */
   fairyBackfillNotice?: boolean;
+  /** 1.4.0 より前の働きを職・商人ポイントに足した時刻 (1.4.1)。1店1回きり */
+  fairyBackfilledAt?: number;
   /** 拡張データ (原作の user) */
   user: Record<string, string>;
   /**
