@@ -106,6 +106,8 @@ export interface BuyRequest {
   slot?: number;
   /** 見込みの単価。指定した場合、実際と違えば中止する (原作の「商品や価格が変化したようです」) */
   expectPrice?: number;
+  /** 取引にかかる時間の上限 (秒)。超えるなら時間を使わずに中止する (1.2.3)。省略で上限なし */
+  maxTime?: number;
 }
 
 /** 原作 buy-s.cgi: 市場または他店から仕入れる */
@@ -161,9 +163,15 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   if (!num && !why) why = '資金が足りません';
   if (!num) throw new GameError(`冷やかしですか？ (${why})`);
 
-  if (isWhole) g.timeSendItem = Math.trunc(g.timeSendItem / 2);
-  const usetime = g.timeDeal(baseprice * num, itemno, num);
-  g.useTime(usetime);
+  // 時間は1回の取引ごと (個数に関係しない)。式は g.buyTime (市場は半分)
+  const usetime = g.buyTime(itemno, baseprice, isWhole);
+  if (req.maxTime !== undefined && usetime > req.maxTime) {
+    throw new GameError(
+      `この取引は${formatHms(usetime)}かかります (上限 ${formatHms(Math.max(0, Math.trunc(req.maxTime)))} を超えるので中止。時間は使っていません)。` +
+        '時間は個数に関係なく1回ぶんなので、買うならまとめて買うのが得です',
+    );
+  }
+  const fromCoupon = g.useTime(usetime);
 
   const [, tax] = g.saleTax(itemno, num, baseprice * num, dts ? g.userTaxRate(dts) : 0);
   if (dts) {
@@ -191,7 +199,8 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   const item = g.items[itemno];
   const ret =
     `${dts ? dts.shopname : '市場'}より${item.name}を${num}${item.scale}@￥${price}(計￥${price * num})にて仕入ました` +
-    `/${formatHms(usetime)}消費`;
+    `/${formatHms(usetime)}消費` +
+    (fromCoupon > 0 ? `(うちクーポン${formatHms(fromCoupon)})` : '');
   g.writeLog(0, dt.id, 0, ret);
 
   // @@FUNCBUY: 市場からの仕入の場合、\500000 に付き1枚のギフト券を進呈する

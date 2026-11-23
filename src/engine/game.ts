@@ -354,6 +354,20 @@ export class Game {
   }
 
   /**
+   * 1回の仕入れ (buy) にかかる時間 (1.2.3)。buy と同じ式: 取引の基本時間 × (標準価格 ÷ 単価)、倍率は最大20倍。
+   * 市場からは基本時間が半分。個数には関係しない (何個買っても1回ぶん)。
+   * 基本時間 timeSendItem は enterShop で店ごとに決まる (行商人1/2・目利きの真髄3/4)。
+   */
+  buyTime(itemno: number, unitPrice: number, market: boolean): number {
+    const base = market ? Math.trunc(this.timeSendItem / 2) : this.timeSendItem;
+    const std = this.items[itemno].price;
+    let mul = 1;
+    if (unitPrice && std) mul = std / unitPrice;
+    if ((!unitPrice && std) || mul > 20) mul = 20;
+    return Math.trunc(base * mul);
+  }
+
+  /**
    * 市場の入荷量の式に入れる店舗数 (原作の $MAX_USER の位置)。50店までは50、それを超えたら店数そのもの。
    * 1.0.4: 50の倍数への切り上げをやめた (150→151店で湧く量が約17%、値段の倍率が3→4に跳ねていたため)
    */

@@ -157,6 +157,22 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V123: PatchUpdate = {
+  version: '1.2.3',
+  date: '2026-11-23',
+  title: '買う前に取引時間がわかるように',
+  summary: '仕入れ (buy) にかかる時間を、買う前に市場・他店の棚の一覧で見られるようにしました。上限の時間を超える仕入れを止める指定も足しました。数値は変わりません。',
+  notice: '市場 (/market) と他店の棚 (/shops) に、あなたが1回買うのにかかる時間「取引」が出ます。時間は何個買っても1回ぶんです。buy に "max_minutes" を付けると、それより長いときは時間を使わずに中止します。詳細は GET /api/v1/updates',
+  notes: [
+    '仕入れの時間は、標準価格より安く買うほど長くなります (いちばん長くて基本の20倍)。市場の単価が大きく下がっているときは、市場でも数時間かかることがあります。',
+    '時間は1回の買い物ごとにかかり、個数には関係しません。安く買えて時間の長い品は、要る数より多めにまとめて買うほうが得です。',
+    'GET /api/v1/market の「取引」列 (JSON は deal_time、秒) と、GET /api/v1/shops の棚の「/取引」(JSON は shelves[].deal_time) が、あなたがそこで1回買う時間です。行商人・目利きの真髄の短縮も入っています。1時間以上は「!」が付きます。',
+    'GET /api/v1/items/品番 にも、市場で今買うときの時間 (market_deal_time) を出します。',
+    'buy に "max_minutes":60 のように上限 (分) を付けると、それより長くかかるときは時間を使わずに中止します。付けなければ今までどおり上限なしです。',
+    '仕入れでクーポンを使ったときは、結果に「うちクーポン◯時間」と出ます。',
+  ],
+};
+
 export const V121: PatchUpdate = {
   version: '1.2.1',
   date: '2026-11-22',
@@ -463,7 +479,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V123, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
