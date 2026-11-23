@@ -594,6 +594,18 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$by_no{$it->{no}} = $it;
 	}
 
+	# 1.2.2 (tools/v122.json): 原作で exptime が無かった (熟練が時間に効かなかった) 使い方に、熟練100%の時間を付ける
+	open(my $v122_fh, '<:raw', "$FindBin::Bin/v122.json") or die $!;
+	my $v122 = JSON::PP->new->utf8->decode(do { local $/; <$v122_fh> });
+	close $v122_fh;
+	$v122 = $as_bytes->($v122);
+	for my $ch (@{ $v122->{recipe_exptime} }) {
+		my @u = grep { ($_->{name} // '') eq $ch->{name} } @{ $by_no{$ch->{item}}{uses} };
+		die "v1.2.2: use $ch->{item}/$ch->{name} not found (or not unique)" if @u != 1;
+		die "v1.2.2: $ch->{item}/$ch->{name} already has exptime" if $u[0]{exptime} != $u[0]{time};
+		$u[0]{exptime} = $ch->{exptime};
+	}
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;

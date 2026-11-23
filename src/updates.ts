@@ -157,6 +157,19 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V122: PatchUpdate = {
+  version: '1.2.2',
+  date: '2026-11-23',
+  title: '乳搾りに熟練が効くように',
+  summary: 'ミノタウロス♀の「乳を搾る」「ハードに乳を搾る」が、熟練で速くなるようにしました。',
+  notice: 'ミノタウロス♀の「乳を搾る」「ハードに乳を搾る」が熟練で速くなります (熟練0%で2時間、100%で1時間。酪農家は今までどおりその半分)。詳細は GET /api/v1/updates',
+  notes: [
+    'ミノタウロス♀の「乳を搾る」「ハードに乳を搾る」は、これまで熟練に関係なく1回2時間でした。熟練100%で1時間まで縮むようにしました (ほかの作り方と同じく、熟練に比例して縮みます)。',
+    '酪農家の職業ボーナス (時間が半分) は今までどおり掛かります。熟練100%の酪農家なら1回30分です。',
+    '搾れる本数・牛の寿命の減り方・熟練の上がり方は変わりません。',
+  ],
+};
+
 export const V121: PatchUpdate = {
   version: '1.2.1',
   date: '2026-11-22',
@@ -463,7 +476,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V122, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
