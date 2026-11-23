@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { App } from '../src/api/app.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
-import { MAX_ITEM } from '../src/data/catalog.js';
+import { itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { openShop } from '../src/engine/actions.js';
 import { applyFairyBackfill, fastestSkillSeconds, planFairyBackfill } from '../src/engine/fairy-backfill.js';
 import { Game } from '../src/engine/game.js';
@@ -43,7 +43,10 @@ test('職ボーナス・熟練条件付きの最短秒数を使い、同じ店�
   differentShop.shops[0].foundation--;
   differentShop.shops[0].exp[MINE] = 1000;
   // 探鉱夫は半分。初めの20回は鉄鉱山、200pt以降の80回は砂鉄の河床が最短。
-  assert.equal(fastestSkillSeconds()[MINE], 440_640);
+  const seconds = fastestSkillSeconds();
+  assert.equal(seconds[MINE], 440_640);
+  // 広告パックには専用の職がなくても、行商人の半減が適用される。
+  assert.equal(seconds[itemNoByName('広告パック')], 144_000);
   const rows = planFairyBackfill(world, () => 10n ** 20n, DEFAULT_CONFIG, [backup, differentShop]);
   assert.deepEqual(rows, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: 264_384 }, merchantpt: 3 * MERCHANT_CAP_PER_PERIOD }]);
   assert.deepEqual(world, before, '試算で街を更新しない');

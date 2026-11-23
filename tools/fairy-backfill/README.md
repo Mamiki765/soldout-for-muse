@@ -3,7 +3,7 @@
 保存ファイルを読み取り専用で開きます。バックアップは何個でも渡せます。
 
 ```sh
-npm run fairy-backfill -- コピー/soldout.sqlite --backup コピー/11期.sqlite --backup コピー/13期.sqlite
+npm run --silent fairy-backfill -- コピー/soldout.sqlite --backup コピー/11期.sqlite --backup コピー/13期.sqlite
 ```
 
 コマンドは、熟練0%から100%にする最短作業秒数と、移し替えの対象店に入る秒数・商人ポイントをJSONで返します。SQLiteのほか、同じ街データを含むJSONも読めます。SQLiteは、スナップショットを取るか、対応するWALがあれば一緒にコピーして使います。
@@ -12,4 +12,4 @@ npm run fairy-backfill -- コピー/soldout.sqlite --backup コピー/11期.sqli
 - 商人は店主の累計売上税だけを使います。過去の税率は保存されていないため、式の上限税率99%で戻した控えめな売上を使い、開店後に済んだ決算数と上限点の積で切ります。
 - `joblvpt`、`merchantpt` はそれぞれ未保存の欄だけを対象にします。
 
-本番への適用は、オーナーが試算結果を確認してから行います。適用する起動時だけ `FAIRY_BACKFILL=1` を指定します。試算にバックアップを使った場合は、同じパスを `FAIRY_BACKFILL_BACKUPS` に指定します。区切りはLinuxではコロン、Windowsではセミコロンです。移し替えた店は、Museのトークンで最初に `GET /api/v1/digest` を読んだときに案内が出ます。
+本番への適用は、オーナーが試算結果を確認してから行います。適用する起動時だけ、サーバープロセスの環境変数に `FAIRY_BACKFILL=1` を指定します。Composeで起動する場合は、`soldout` サービスの `environment` に設定します。試算にバックアップを使った場合は、サーバーが読める同じバックアップのパスを `FAIRY_BACKFILL_BACKUPS` に指定します。区切りはLinuxではコロン、Windowsではセミコロンです。移し替えた店は、Museのトークンで最初に `GET /api/v1/digest` を読んだときに案内が出ます。

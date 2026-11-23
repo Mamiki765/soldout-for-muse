@@ -11,6 +11,25 @@ import { checkUses, itemUseTime, loadUses, type RtUse } from './use.js';
 
 const FULL_SKILL = 1000;
 
+function skillSeconds(g: Game, dt: Shop, no: number, choices: RtUse[]): number {
+  dt.exp[no] = FULL_SKILL;
+  const uses = checkUses(g, dt, structuredClone(choices)).filter((u) => u.useok && u.exp > 0);
+  const shortest = Array<number>(FULL_SKILL + 1).fill(Infinity);
+  shortest[0] = 0;
+  for (let exp = 0; exp < FULL_SKILL; exp++) {
+    if (!Number.isFinite(shortest[exp])) continue;
+    dt.exp[no] = exp;
+    for (const u of uses) {
+      if (exp < u.needexp) continue;
+      const seconds = itemUseTime(dt, u);
+      if (seconds <= 0) continue;
+      const gain = Math.min(FULL_SKILL, exp + u.exp);
+      shortest[gain] = Math.min(shortest[gain], shortest[exp] + seconds);
+    }
+  }
+  return shortest[FULL_SKILL];
+}
+
 /** 品番ごとの、熟練0→100%を最も短い手順で上げる作業秒数。材料の調達や決算の減衰は省く。 */
 export function fastestSkillSeconds(config = DEFAULT_CONFIG): Record<number, number> {
   const g = new Game(newWorld(1, MAX_ITEM), config, { next: () => 0.5 }, 1);
@@ -31,23 +50,13 @@ export function fastestSkillSeconds(config = DEFAULT_CONFIG): Record<number, num
   dt.item.fill(1000);
   const totals: Record<number, number> = {};
   for (const [no, choices] of recipes) {
-    dt.job = chosenJobs.get(no) ?? '';
-    dt.exp[no] = FULL_SKILL;
-    const uses = checkUses(g, dt, choices).filter((u) => u.useok && u.exp > 0);
-    const shortest = Array<number>(FULL_SKILL + 1).fill(Infinity);
-    shortest[0] = 0;
-    for (let exp = 0; exp < FULL_SKILL; exp++) {
-      if (!Number.isFinite(shortest[exp])) continue;
-      dt.exp[no] = exp;
-      for (const u of uses) {
-        if (exp < u.needexp) continue;
-        const seconds = itemUseTime(dt, u);
-        if (seconds <= 0) continue;
-        const gain = Math.min(FULL_SKILL, exp + u.exp);
-        shortest[gain] = Math.min(shortest[gain], shortest[exp] + seconds);
-      }
-    }
-    if (Number.isFinite(shortest[FULL_SKILL])) totals[no] = shortest[FULL_SKILL];
+    // 専門のない品にも職ボーナスがある。職を固定したまま育てる場合の最短だけを採用する。
+    const jobs = new Set(['', chosenJobs.get(no) ?? '', ...choices.flatMap((u) => u.def.jobs.map((j) => j.job))]);
+    const fastest = Math.min(...[...jobs].map((job) => {
+      dt.job = job;
+      return skillSeconds(g, dt, no, choices);
+    }));
+    if (Number.isFinite(fastest)) totals[no] = fastest;
   }
   return totals;
 }
