@@ -848,7 +848,7 @@ export class App {
         case '/town': {
           // 店の一覧 (ランキングと他店を合体し、店主とアイコンを付けたもの。スペースの「店」画面用。0.5.0)
           // resting: 改装中 (休業) の店。順位の外 (1.1.0)
-          const resting = g.allShops.filter((x) => x.status && x.rest).map((x) => ({ id: x.id, shop: x.shopname, until: x.rest!.until }));
+          const resting = g.allShops.filter((x) => x.status && x.rest).map((x) => ({ id: x.id, som: this.store.ownerByShop(x.id)?.som ?? null, shop: x.shopname, until: x.rest!.until }));
           const d = { people: shownPeople(this.world), events: g.eventMessages, base: this.owners.o.assetsBaseUrl + '/', shops: this.owners.townData(g), resting, period: this.world.periodLog };
           return { status: 200, text: townText(d), json: d };
         }
