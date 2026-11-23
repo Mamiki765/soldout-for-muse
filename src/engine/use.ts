@@ -272,6 +272,7 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
       u.result.usemsg.push(line.message);
     }
   }
+  // 職レベルの出来高はレシピの get 行だけ。下の個別処理 (搾乳など) の計算はそのまま。
   for (const line of u.result.create) {
     const units = line.count * count;
     const proba = Math.min(1000, line.proba) * (100 + JOBLV_YIELD_PCT * joblv) / 100;

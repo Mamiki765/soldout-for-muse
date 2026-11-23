@@ -116,6 +116,24 @@ test('熟練共有先に加算し、転職は職レベルを移さない', () =>
   assert.deepEqual(dt.joblvpt, before);
 });
 
+test('搾乳は職レベルの作業時間に入るが、get 行を通さず精製する牛乳は同じ', () => {
+  const cow = 25;
+  for (const use of [0, 1, 2]) {
+    const milk = (seconds: number) => {
+      const { g, dt } = fixture('cow');
+      dt.joblvpt = { [cow]: seconds };
+      supply(dt, cow, use, 1);
+      const u = useItemAction(g, dt, cow, use, { count: 1 });
+      assert.equal(u.result.count, 1);
+      assert.equal(u.result.create.length, 0);
+      assert.ok(u.result.additem.some((l) => l.item_no === 26 && l.count > 0));
+      assert.equal(dt.joblvpt[cow], seconds + itemUseTime(dt, u));
+      return u.result;
+    };
+    assert.deepEqual(milk(0), milk(PROGRESS_THRESHOLDS[10] * 60));
+  }
+});
+
 test('決算で作業秒数が減らず、上がった品だけがその決算の digest 1行に載る', () => {
   const { dt, g: started } = fixture();
   let g = started;
