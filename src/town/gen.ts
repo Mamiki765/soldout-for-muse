@@ -89,6 +89,7 @@ export interface TownGen {
   homeColors(som: string, roof: number | null, door: number | null): { roof: number; door: number };
   sizeOfShelves(n: number): 'S' | 'M' | 'L';
   districtLabel(d: District): string;
+  chunkId(town: Town, gx: number, gy: number): string;
   chunkAt(town: Town, gx: number, gy: number, opt?: Record<string, unknown>): Record<string, unknown>;
   /** 地区を描くのに要るチャンク (地区と、東・南の外側の大通りを持つまわり) */
   /** 描く範囲 (チップ単位)。西・北は自分の大通りから、東・南は外側の大通りの端まで */
