@@ -200,6 +200,8 @@ test('2冊の書籍は新名称で表示し、新旧の商品名と執筆操作�
       assert.deepEqual([item.item, item.name], [no, name]);
 
       const recipe = kit.uses.find((use) => use.get.some((line) => line.item_no === no))!;
+      // どちらの本でも、出来高の追加抽選がない職レベル0から新旧の操作名を試す。
+      shop.joblvpt = {};
       for (const line of recipe.use) shop.item[line.item_no - 1] = line.count * 2;
       const results = await send([
         { type: 'use', item: kit.name, use: `${name}を執筆する` },

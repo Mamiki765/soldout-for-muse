@@ -8,6 +8,7 @@ import type { Game } from './game.js';
 import type { Shop } from './types.js';
 import { onTutorialPeriod } from './tutorial.js';
 import { collectPeriodSales } from './prices.js';
+import { settleJoblv } from './joblv.js';
 
 /** 原作 TurnPeriod */
 export function turnPeriod(g: Game, at: number = g.now): void {
@@ -34,6 +35,9 @@ export function turnPeriod(g: Game, at: number = g.now): void {
   for (const dt of g.shops) {
     dtcount++;
     settleShop(g, dt, at, dtcount);
+  }
+  for (const dt of g.allShops) {
+    if (dt.status) settleJoblv(dt, at);
   }
 
   g.sortShops();

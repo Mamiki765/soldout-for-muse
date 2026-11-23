@@ -8,6 +8,7 @@ import { checkWholeStore } from './market.js';
 import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
 import type { Shop } from './types.js';
 import { hasJobBonus } from './jobs.js';
+import { JOBLV_YIELD_PCT, joblvProgress } from './joblv.js';
 
 export interface UseResultLine {
   item_no: number;
@@ -253,7 +254,10 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   u.result.useitem = [];
   u.result.additem = [];
 
-  g.useTime(usetime * count);
+  const spent = usetime * count;
+  const earnsJoblv = u.exp !== 0 && spent > 0;
+  const joblv = earnsJoblv ? joblvProgress(dt, u.expno).lv : 0;
+  g.useTime(spent);
   dt.money -= u.money * count;
   dt.paytoday += u.money * count;
 
@@ -269,9 +273,12 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
     }
   }
   for (const line of u.result.create) {
-    let itemcount = line.proba < 1000 ? 0 : line.count * count;
-    if (line.proba > 0 && line.proba < 1000) {
-      for (let i = 0; i < line.count * count; i++) if (g.rand(1000) < line.proba) itemcount++;
+    const units = line.count * count;
+    const proba = Math.min(1000, line.proba) * (100 + JOBLV_YIELD_PCT * joblv) / 100;
+    let itemcount = proba < 1000 ? 0 : units;
+    const extra = proba < 1000 ? proba : proba - 1000;
+    if (extra > 0) {
+      for (let i = 0; i < units; i++) if (g.rand(1000) < extra) itemcount++;
     }
     if (itemcount) {
       const item = g.items[line.no];
@@ -296,6 +303,10 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
     u.result.function_return = fn(g, dt, u, { dts, count: u.result.count }) || undefined;
   }
 
+  if (earnsJoblv) {
+    const points = dt.joblvpt ??= {};
+    points[u.expno] = (points[u.expno] ?? 0) + spent;
+  }
   if (u.exp) {
     const exp = dt.exp[u.expno] ?? 0;
     u.result.expold = exp;
