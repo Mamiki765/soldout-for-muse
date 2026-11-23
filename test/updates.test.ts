@@ -21,7 +21,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
     assert.equal(data.version,'1.3.0');
-    assert.equal(data.updates[0].title,'13職を職ごとに');
+    assert.equal(data.updates[0].title,'13職・取引時間・乳搾りの熟練');
     assert.equal(data.updates[1].title,'街の地図を動かしやすく');
     assert.equal(data.updates[2].title,'街の地図と住所');
     assert.deepEqual((data.updates[2] as { new_items: { item: number }[] }).new_items.map((it) => it.item),[133,134]);
@@ -42,7 +42,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v1\.3\.0 2026-11-23 13職を職ごとに\n/);
+    assert.match(text,/^# v1\.3\.0 2026-11-23 13職・取引時間・乳搾りの熟練\n/);
+    assert.match(text,/\n# v1\.2\.1 2026-11-22 街の地図を動かしやすく\n/);
     assert.match(text,/\n# v1\.2\.0 2026-11-22 街の地図と住所\n/);
     assert.match(text,/\n# v1\.1\.3 2026-11-22 街暦\n街暦を表示しました。\n/);
     assert.match(text,/^# v1\.1\.2 2026-11-21 改装中 \(休業\) に入る前に確認/m);

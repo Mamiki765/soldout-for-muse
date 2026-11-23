@@ -339,6 +339,8 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       shelf_lo: it.marketprice ? it.marketpricelow : 0,
       shelf_hi: it.marketprice ? it.marketpricehigh : 0,
       shops: it.listshops,
+      // 1.3.0: あなたがここで1回買うのにかかる時間 (秒)。個数に関係しない
+      deal_time: g.buyTime(c.itemno, c.price, true),
       // 前の決算のときの値と、そこから何%動いたか (どちらかが無ければ null)
       market_prev: p?.market ?? 0,
       market_change: changePct(it.marketprice, p?.market ?? 0),
@@ -364,15 +366,25 @@ export function balanceWord(per: number): string {
   return '均衡';
 }
 
+/** 市場・他店の棚の「取引」列の説明 (1.3.0) */
+export const DEAL_TIME_NOTE =
+  '取引=あなたが1回買うのにかかる時間。何個買っても1回ぶん (個数に関係なし) なので、時間の長い品 (標準より安い品) は要る数より多めにまとめて買うのが得。buy に "max_minutes" を付けると、それより長いときは時間を使わずに中止';
+
+/** 取引時間の短い表示。1時間以上は「!」を付けて目立たせる (1.3.0) */
+export function dealWord(sec: number): string {
+  return dur(sec) + (sec >= 3600 ? '!' : '');
+}
+
 export function marketText(d: ReturnType<typeof marketData>): string {
   const lines = [
     `人口${d.people}` + (d.events.length ? ' イベント ' + d.events.join('/') : ''),
-    '# 市場 品番 名前 在庫 単価 標準 相場(棚の最安〜最高・店数) 需給 前期比(単価/相場) 推移は /api/v1/items/品番',
+    '# 市場 品番 名前 在庫 単価 標準 相場(棚の最安〜最高・店数) 需給 前期比(単価/相場) 取引 推移は /api/v1/items/品番',
+    DEAL_TIME_NOTE,
   ];
   for (const c of d.items) {
     const std = c.std !== c.std_base ? `${c.std}(高騰中、普段${c.std_base})` : String(c.std);
     const market = c.market ? `${c.market}(${c.shelf_lo}〜${c.shelf_hi}・${c.shops}店)` : '-';
-    lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)}`);
+    lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)} ${dealWord(c.deal_time)}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -389,16 +401,19 @@ export function shopsData(g: Game, opts: { item?: number; limit: number }) {
       popularity: pct(s.rank),
       point: s.point,
       comment: s.comment,
-      shelves: shelfData(g, s).filter((x) => x.item && x.stock),
+      // 1.3.0: deal_time はあなたがその棚で1回買うのにかかる時間 (秒、個数に関係しない)
+      shelves: shelfData(g, s)
+        .filter((x) => x.item && x.stock)
+        .map((x) => ({ ...x, deal_time: g.buyTime(x.item, x.price, false) })),
     }))
     .filter((s) => !opts.item || s.shelves.some((x) => x.item === opts.item))
     .slice(0, opts.limit);
 }
 
 export function shopsText(d: ReturnType<typeof shopsData>): string {
-  const lines = ['# 店 id 順位 店名 人気% 点 | 棚番号:品番:名前@価格x在庫'];
+  const lines = ['# 店 id 順位 店名 人気% 点 | 棚番号:品番:名前@価格x在庫/取引', DEAL_TIME_NOTE];
   for (const s of d) {
-    const sh = s.shelves.map((x) => `${x.slot}:${x.item}:${x.name}@${x.price}x${x.stock}`).join(' ');
+    const sh = s.shelves.map((x) => `${x.slot}:${x.item}:${x.name}@${x.price}x${x.stock}/${dealWord(x.deal_time)}`).join(' ');
     lines.push(`${s.id} ${s.rank} ${s.shop} ${s.popularity} ${s.point} | ${sh || '-'}`);
   }
   return lines.join('\n') + '\n';
@@ -675,6 +690,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
   const rev = reverse();
   const src = sourceOf(itemno);
   const note = itemNote(itemno).note;
+  const wholeCase = dt ? getWholeStore(g).find((c) => c.itemno === itemno && c.stock > 0) : undefined;
   return {
     item: itemno,
     name: it.name,
@@ -686,6 +702,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
     limit: it.limit,
     flags: flagWords(it.flag),
     market: src.market,
+    // 1.3.0: 市場に今あれば、あなたが市場で1回買うのにかかる時間 (秒、個数に関係しない)
+    ...(dt && wholeCase ? { market_price: wholeCase.price, market_deal_time: g.buyTime(itemno, wholeCase.price, true) } : {}),
     ...(note ? { note } : {}),
     /** 値動き (0.6.0)。history を渡したときだけ */
     ...(history ? { prices: itemPricesData(g, itemno, history) } : {}),
@@ -733,6 +751,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   ];
   const how = [d.market && '市場に入ってくる', d.note].filter(Boolean).join('。');
   if (how) lines.push('入手: ' + how);
+  if (d.market_deal_time !== undefined) lines.push(`市場でいま単価${d.market_price}、あなたが買うと1回${dur(d.market_deal_time)} (何個買っても1回ぶん)`);
   if (d.prices) lines.push(...itemPricesLines(d.prices));
   if (d.skill_item) lines.push(`熟練は${d.skill_item.name}と共通 (時間の縮み・増える熟練は${d.skill_item.name}の熟練)`);
   if (d.made_by.length) {
