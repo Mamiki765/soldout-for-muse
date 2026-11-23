@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import { resolve } from 'node:path';
 import { App } from '../src/api/app.js';
 import { setViewerKey } from '../src/api/viewer.js';
+import { mapData } from '../src/api/town-view.js';
 import { seededRng } from '../src/engine/rng.js';
 import { sha256, Store } from '../src/store.js';
 import { FREE_DAYS, HOLD_DAYS, MOVE_ITEM, PAINT_ITEM, TownService } from '../src/town/town.js';
@@ -34,6 +35,40 @@ test('街を作る: 今いる店をみな別々の区画に置き、全員に1�
       assert.match(svc.gen.addressForms(town, lot).short, /^\d+区[12]-\d+$/);
     }
     assert.equal(svc.init(soms(3), T0), 0, '2回目は何もしない');
+  } finally {
+    store.close();
+  }
+});
+
+
+test('地図 API の隣接区: 四方向・中央・端の null を返す', () => {
+  const store = new Store(':memory:');
+  try {
+    const svc = new TownService(store, PERIOD);
+    svc.init(soms(121), T0);
+    const town = svc.build();
+    const center = mapData(svc, town, 'som0001', '0')!;
+    assert.equal(center.districts.length, 2, '中央は東西2チャンク');
+    assert.equal(center.districts[0].neighbors.e?.no, 0);
+    assert.equal(center.districts[1].neighbors.w?.no, 0);
+
+    const byCell = new Map(town.districts.map((d) => [d.gx + ',' + d.gy, d]));
+    let foundEdge = false, foundCenter = false, foundDistrict = false;
+    const directions = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] } as const;
+    for (const d of town.districts) {
+      const result = mapData(svc, town, 'som0001', String(d.no))!;
+      const got = result.districts.find((x) => x.chunk === d.id)!;
+      assert.ok(got, d.id);
+      for (const [side, [dx, dy]] of Object.entries(directions) as [keyof typeof directions, readonly [number, number]][]) {
+        const target = byCell.get((d.gx + dx) + ',' + (d.gy + dy));
+        const n = got.neighbors[side];
+        assert.deepEqual(n, target ? { no: target.no, name: target.name || null } : null, d.id + ':' + side);
+        if (!target) foundEdge = true;
+        else if (target.center) foundCenter = true;
+        else foundDistrict = true;
+      }
+    }
+    assert.ok(foundEdge && foundCenter && foundDistrict);
   } finally {
     store.close();
   }
