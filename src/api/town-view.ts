@@ -93,10 +93,23 @@ export function mapData(svc: TownService, town: Town, som: string, district: str
     ds = lot ? town.districts.filter((d) => d.id === lot.district) : town.districts.filter((d) => d.center);
   }
   if (!ds.length) return null;
+  const byChunk = new Map(town.districts.map((d) => [d.id, d]));
+  const neighbor = (gx: number, gy: number) => {
+    const d = byChunk.get(svc.gen.chunkId(town, gx, gy));
+    return d ? { no: d.no, name: d.name || null } : null;
+  };
   return {
-    note: '32px のマップチップのマス目。地区のチャンクと、東・南の外側の大通りを持つまわりのチャンク。描くのは bounds の範囲 (チップ単位) だけでよい。絵と描き方の見本はキットの town/ (town-sample.html)',
+    note: '32px チップの地図。chunks は選んだ地区と東・南の外側の大通りの分。bounds の範囲を描く。districts[].neighbors は隣の区の番号・名前 (中央=0、街の外や大通りのみは null)。隣の区を押したときだけ district を変えて読み直す。絵と見本はキットの town/。',
     bounds: svc.gen.bounds(town, ds),
-    districts: ds.map((d) => ({ no: d.no, name: d.name || null, chunk: d.id })),
+    districts: ds.map((d) => ({
+      no: d.no, name: d.name || null, chunk: d.id,
+      neighbors: {
+        n: neighbor(d.gx, d.gy - 1),
+        e: neighbor(d.gx + 1, d.gy),
+        s: neighbor(d.gx, d.gy + 1),
+        w: neighbor(d.gx - 1, d.gy),
+      },
+    })),
     chunks: svc.gen.chunksFor(town, ds),
   };
 }
