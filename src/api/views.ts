@@ -629,6 +629,10 @@ function jobWords(u: RtUse): string[] {
 }
 
 const lineOut = (l: { no: number; count: number; proba: number }, key: 'consume' | 'chance') => ({ item: l.no, name: shownName(l.no), count: l.count, [key]: l.proba / 10 }) as { item: number; name: string; count: number } & Record<typeof key, number>;
+const getLineOut = (l: RtUse['result']['create'][number]) => ({
+  ...lineOut(l, 'chance'),
+  ...(l.fraction ? { extra_chance: l.proba * l.fraction / 10000 } : {}),
+});
 
 /** 作り方の1行 (道具 tool の使い方 useNo)。dt があれば、その店での時間と今使えるかも付ける */
 function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
@@ -647,7 +651,7 @@ function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
     time_skilled: u.def.exptime,
     money: u.money,
     needs: u.use.map((l) => lineOut(l, 'consume')),
-    gets: u.result.create.map((l) => lineOut(l, 'chance')),
+    gets: u.result.create.map(getLineOut),
     skill_item: { item: skill, name: shownName(skill) },
     needexp: Math.trunc(u.needexp / 10),
     jobs: jobWords(u),
@@ -745,7 +749,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
       exp: Math.trunc(u.exp / 10),
       needexp: Math.trunc(u.needexp / 10),
       needs: u.use.map((l) => lineOut(l, 'consume')),
-      gets: u.result.create.map((l) => lineOut(l, 'chance')),
+      gets: u.result.create.map(getLineOut),
       target: u.argspec.includes('target'),
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
@@ -758,8 +762,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
 
 const needsText = (needs: { name: string; count: number; consume: number }[]) =>
   needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',') || '-';
-const getsText = (gets: { name: string; count: number; chance: number }[]) =>
-  gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',') || '-';
+const getsText = (gets: ReturnType<typeof getLineOut>[]) =>
+  gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}${n.extra_chance ? ` +1個(${n.extra_chance}%)` : ''}`).join(',') || '-';
 
 /** 予告の品 (item-ref.json の teaser) の詳細: 名前だけ */
 export function teaserData(itemno: number) {

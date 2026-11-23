@@ -187,6 +187,8 @@ test('2冊の書籍は新名称で表示し、新旧の商品名と執筆操作�
     const shop = app.world.shops.find((s) => s.id === reg.shop_id)!;
     const kit = BASE_ITEMS[10];
     shop.job = 'book';
+    // 名称の検証では、書くたびに必ず1冊できる出目で揃える。
+    app.rng.next = () => 0.5;
     const send = async (actions: unknown[]) => {
       const response = await fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers, body: JSON.stringify({ actions }) });
       assert.equal(response.status, 200);

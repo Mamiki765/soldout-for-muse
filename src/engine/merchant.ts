@@ -4,13 +4,12 @@
 import { createHash } from 'node:crypto';
 import { BASE_ITEMS, type ItemDef } from '../data/catalog.js';
 import { progressAt } from './joblv.js';
-import { JOB_PARENT } from './jobs.js';
+import { JOB_PARENT, MERCHANT_JOB_MULTIPLIER } from './jobs.js';
 import type { Shop } from './types.js';
 
 export const MERCHANT_YEN_PER_POINT = 1000;
-// 1.4.0 の仮値。再現できる試算は tools/merchant-cap/ を参照。
-export const MERCHANT_CAP_PER_PERIOD = 1000;
-export const MERCHANT_BALANCE_FINGERPRINT = 'deebae2903c9bfd7351ce1e0139fadb3a7d8858ae99333b0a3c73c4350da6f80';
+export const MERCHANT_CAP_PER_PERIOD = 2000;
+export const MERCHANT_BALANCE_FINGERPRINT = 'a295c0f0bcc3541d02727579a14e8482ede5a0525575ff47396902e09d658bac';
 
 /** 計算に使う職バランスの数値。説明文や翻訳の更新では変わらない。 */
 export function merchantBalanceFingerprint(items: ItemDef[] = BASE_ITEMS): string {
@@ -18,22 +17,25 @@ export function merchantBalanceFingerprint(items: ItemDef[] = BASE_ITEMS): strin
     it.no, it.expitem, it.price, it.popular, it.limit, it.cost,
     it.uses.map((u) => [
       u.no, u.time, u.exptime, u.exp, u.needexp, u.money, u.func, u.func_before, u.params,
-      u.get.map(({ item_no, count, proba }) => [item_no, count, proba]),
+      u.get.map(({ item_no, count, proba, fraction }) => [item_no, count, proba, fraction ?? 0]),
       u.use.map(({ item_no, count, proba }) => [item_no, count, proba]),
       u.jobs.map(({ job, key, op, value }) => [job, key, op, value]),
     ]),
   ]);
-  return createHash('sha256').update(JSON.stringify([recipes, JOB_PARENT])).digest('hex');
+  return createHash('sha256').update(JSON.stringify([recipes, JOB_PARENT, MERCHANT_CAP_PER_PERIOD, MERCHANT_JOB_MULTIPLIER])).digest('hex');
 }
 
 export function merchantData(dt: Shop) {
   return { ...progressAt(dt.merchantpt ?? 0), cap: MERCHANT_CAP_PER_PERIOD };
 }
 
-/** 期中の1,000円未満はまとめて数え、枠を超えた分はその場で捨てる。 */
+/** 取引時の職で補正する。期中の端数はまとめ、枠を超えた分は捨てる。 */
 export function addMerchantYen(dt: Shop, amount: number): void {
   if (amount <= 0) return;
-  dt.merchantYen = Math.min((dt.merchantYen ?? 0) + amount, MERCHANT_CAP_PER_PERIOD * MERCHANT_YEN_PER_POINT);
+  const multiplier = Object.hasOwn(MERCHANT_JOB_MULTIPLIER, dt.job) ? MERCHANT_JOB_MULTIPLIER[dt.job] : 1;
+  const weightedTenths = Math.round(amount * multiplier * 10);
+  const accumulatedTenths = Math.round((dt.merchantYen ?? 0) * 10) + weightedTenths;
+  dt.merchantYen = Math.min(accumulatedTenths, MERCHANT_CAP_PER_PERIOD * MERCHANT_YEN_PER_POINT * 10) / 10;
 }
 
 export function settleMerchant(dt: Shop, at: number): void {

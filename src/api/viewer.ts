@@ -607,8 +607,8 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
 function itemsPage(g: Game): string {
   const mats = (l: { item: number; name: string; count: number; consume: number }[]) =>
     l.map((n) => `${esc(n.name)}×${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join('、') || '－';
-  const gets = (l: { name: string; count: number; chance: number }[]) =>
-    l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join('、') || '－';
+  const gets = (l: { name: string; count: number; chance: number; extra_chance?: number }[]) =>
+    l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}${n.extra_chance ? ` ＋1個(${n.extra_chance}%)` : ''}`).join('、') || '－';
   // スマホ幅でも読めるように、表ではなく1品ずつの箱にする (横に並べると作り方の列が細くなり、行が縦に伸びる)
   let s = '●アイテム一覧<hr><small>標準価格はイベントの影響を含まない値です。今の値は市場で見られます。作り方の時間は「熟練0%→100%」。</small>';
   for (const row of itemsData(g)) {

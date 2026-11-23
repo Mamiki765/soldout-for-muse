@@ -12,6 +12,8 @@ export interface UseLine {
   count: number;
   /** 消費/取得確率 (1000=100%)。need の場合は 0 */
   proba: number;
+  /** 取得行の端数。1セットにつき、1個ぶんの抽選に掛ける割合 (1000分率)。 */
+  fraction?: number;
   message?: string;
 }
 
@@ -69,6 +71,8 @@ export interface ItemDef {
   wslimit: number;
   popular: number;
   plus: number;
+  /** 新版の市場初期投入で一度だけ足す個数。定期入荷には使わない。 */
+  seedmarket?: number;
   point: number;
   param: string | null;
   flag: string;

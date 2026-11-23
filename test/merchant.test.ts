@@ -32,7 +32,7 @@ function fixture() {
 
 function verifyFingerprint(items = BASE_ITEMS) {
   assert.equal(merchantBalanceFingerprint(items), MERCHANT_BALANCE_FINGERPRINT,
-    '職バランスが変わりました。tools/merchant-cap/ で上限を出し直し、MERCHANT_CAP_PER_PERIOD と指紋を両方更新してください');
+    '職バランスが変わりました。tools/merchant-cap/ のシミュレーションで補正表と上限を出し直して、表と指紋を両方更新してください');
 }
 
 test('商人ポイント上限の指紋は現行バランスと一致し、レシピ1か所の変更を検出する', () => {
@@ -40,7 +40,7 @@ test('商人ポイント上限の指紋は現行バランスと一致し、レ�
   const changed = BASE_ITEMS.map((it) => it.no === 21
     ? { ...it, uses: it.uses.map((u, i) => i ? u : { ...u, exptime: u.exptime + 1 }) }
     : it);
-  assert.throws(() => verifyFingerprint(changed), /MERCHANT_CAP_PER_PERIOD と指紋を両方更新/);
+  assert.throws(() => verifyFingerprint(changed), /補正表と上限を出し直して、表と指紋を両方更新/);
 });
 
 test('複数回の端数を決算で合算し、今期の上限・レベル上昇の通知・次期への切り替えを守る', () => {
