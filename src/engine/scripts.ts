@@ -11,6 +11,7 @@ import { formatHms, type RtUse } from './use.js';
 
 /** 1.0.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
 import { giveJobGift } from './campaign.js';
+import { clearFormerMaterial } from './jobs.js';
 
 const TROUGH = 131;
 
@@ -384,6 +385,8 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       dt.exp[p1] = exp1;
     }
     const p4 = u.params[3] ?? '';
+    // 転職し直したら元山師 (両方の地図のボーナス) ではなくなる (1.3.0)
+    if (p4) clearFormerMaterial(dt);
     if (p4 && p4 !== '_default_') {
       dt.job = p4;
       ret += '職業が「' + (CATALOG.jobTypes[p4] ?? '') + '」になりました';

@@ -420,7 +420,8 @@ export function specialtyType(g: Game, dt: Shop): number {
 /**
  * 職業の表示名。不定なら '' (原作のランキングは不定を出さない)。
  * 転職先は職業コードより細かい (革細工屋・木工細工屋・装飾細工屋はどれも道具屋) ので、
- * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「山師(木こり)」のように出す。
+ * 転職で熟練を集める本・地図のうち熟練がいちばん高いもので「道具屋(革細工)」「武器屋(杖)」のように出す。
+ * 山師は 1.3.0 で探鉱夫・木こりに分けた (括弧なしの職名)。分けられなかった山師 (熟練が並び) だけ「山師」のまま
  * いちばん高いものが並んだとき (どれも 0 を含む) は職業名だけ (案: リカさんより)
  */
 export function jobName(dt: Shop): string {
@@ -445,7 +446,6 @@ export function jobName(dt: Shop): string {
 }
 /** 職業コードごとの転職先: [熟練を集める本・地図, 括弧に出す名前] (転職のススメの並び) */
 const JOB_BRANCHES: Record<string, [number, string][]> = {
-  material: [[itemNoByName('近くの鉱山への地図'), '探鉱夫'], [itemNoByName('近くの山への地図'), '木こり']],
   tool: [[itemNoByName('革細工入門'), '革細工'], [itemNoByName('木工細工入門'), '木工'], [itemNoByName('装飾細工入門'), '装飾']],
   weapon: [[itemNoByName('剣の鍛え方'), '剣'], [itemNoByName('杖の作り方'), '杖']],
   armor: [[itemNoByName('盾の作り方'), '盾'], [itemNoByName('鎧の作り方'), '鎧']],
@@ -598,12 +598,14 @@ export function findItem(key: string): number | undefined {
   return no;
 }
 
-/** 職業の補正の言葉 (例: 山師 時間1/2) */
+/** 職業の補正の言葉 (例: 探鉱夫・元山師 時間1/2) */
 function jobWords(u: RtUse): string[] {
   return u.def.jobs.map((j) => {
+    // 元山師 (1.3.0 より前の山師) は探鉱夫・木こりの両方のボーナスが付く (engine/jobs.ts)
+    const who = (CATALOG.jobTypes[j.job] ?? j.job) + (j.job === 'mine' || j.job === 'wood' ? '・元山師' : '');
     const what = j.key === 'times' || j.key === 'time' ? '時間' : j.key === 'money' ? '費用' : j.key;
     const how = j.op === '/' ? `1/${j.value}` : j.op === '*' ? `×${j.value}` : j.op === '=' ? `=${j.value}` : `${j.op}${j.value}`;
-    return `${CATALOG.jobTypes[j.job] ?? j.job} ${what}${how}`;
+    return `${who} ${what}${how}`;
   });
 }
 

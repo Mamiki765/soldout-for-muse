@@ -171,6 +171,10 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
     // 0.6.0 干し草 (tools/hay.json): 近くの山への地図の行き先すべてに副産物の干し草、乳搾り2つは説明に数字を足すだけ
     if (old.no === 12) for (const u of expected.uses) u.get = [...u.get, { item_no: 115, count: 20, proba: 800 }];
     if (old.no === 25) for (const ch of hay.info_changes) expected.uses[ch.use].info = ch.info;
+    // 1.3.0 (tools/v130.json): 山師を探鉱夫・木こりに分ける。地図の職ボーナスと転職のススメの行き先
+    const split: Record<string, string> = { 9: 'mine', 12: 'wood' };
+    if (split[old.no]) for (const u of expected.uses) for (const j of u.jobs) if (j.job === 'material') j.job = split[old.no];
+    if (old.no === 78) for (const u of expected.uses) if (split[u.params[0] ?? ''] && u.params[3] === 'material') u.params[3] = split[u.params[0]!];
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
@@ -182,7 +186,7 @@ test('既存79種は4レシピ・末尾へのUSE追加・v0.3.0 の道具屋ボ�
   const byCode = (list: unknown[]) => new Map((list as { code: string }[]).map((e) => [e.code, e]));
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
-  assert.deepEqual(current.define, { ...original.define, version: '1.0.1' });
+  assert.deepEqual(current.define, { ...original.define, version: '1.3.0', 'job-mine': '探鉱夫', 'job-wood': '木こり' });
   assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
 });
 

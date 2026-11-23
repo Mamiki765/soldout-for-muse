@@ -8,6 +8,7 @@ import { MAX_ITEM } from './data/catalog.js';
 import { DEFAULT_CONFIG } from './config.js';
 import { newWorld, type LogEntry, type World } from './engine/types.js';
 import type { PeriodPriceRow } from './engine/prices.js';
+import { splitMaterialJob } from './engine/jobs.js';
 import { isTownEpoch, townPeriodAt } from './town-calendar.js';
 
 const TOWN_EPOCH_SETTING = 'town_epoch';
@@ -227,6 +228,8 @@ export class Store {
     for (const s of w.shops) {
       while (s.item.length < MAX_ITEM) s.item.push(0);
       s.status = 1;
+      // 1.3.0 山師を探鉱夫・木こりに分ける (熟練の高いほうへ。元山師は両方のボーナスのまま)
+      splitMaterialJob(s);
     }
     return w;
   }

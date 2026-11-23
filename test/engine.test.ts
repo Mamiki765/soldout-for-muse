@@ -197,13 +197,14 @@ test('ランキングに職業と「○専門店」を出す (原作 inc-html-ra
   r = rankingData(g)[0];
   assert.equal(r.specialty, '原料');
   assert.match(rankingText(rankingData(g), []), /専門店:【武器屋】アリス商店/);
-  // 山師は熟練の高い地図で呼び分ける (同じなら山師だけ)
+  // 1.3.0 から山師は探鉱夫・木こりに分かれ、括弧は付けない (分けられなかった山師だけ山師)
   a.job = 'material';
-  assert.equal(rankingData(g)[0].job, '山師');
   a.exp[itemNoByName('近くの鉱山への地図')] = 300;
-  assert.equal(rankingData(g)[0].job, '山師(探鉱夫)');
-  a.exp[itemNoByName('近くの山への地図')] = 500;
-  assert.equal(rankingData(g)[0].job, '山師(木こり)');
+  assert.equal(rankingData(g)[0].job, '山師');
+  a.job = 'mine';
+  assert.equal(rankingData(g)[0].job, '探鉱夫');
+  a.job = 'wood';
+  assert.equal(rankingData(g)[0].job, '木こり');
   // ほかの職業も転職先で呼び分ける。いちばん高いものが並んだら職業名だけ
   a.job = 'tool';
   assert.equal(rankingData(g)[0].job, '道具屋');
