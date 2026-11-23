@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { digestData, digestText, meData } from '../src/api/views.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
-import { BASE_ITEMS, MAX_ITEM } from '../src/data/catalog.js';
+import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { averageJoblvYield, progressAt, PROGRESS_THRESHOLDS } from '../src/engine/joblv.js';
@@ -131,6 +131,35 @@ test('搾乳は職レベルの作業時間に入るが、get 行を通さず精�
       return u.result;
     };
     assert.deepEqual(milk(0), milk(PROGRESS_THRESHOLDS[10] * 60));
+  }
+});
+
+test('干し草を与えて搾る: 牛乳の期待本数は職レベルで変わらない (飼い葉桶あり・なし)', () => {
+  const cow = itemNoByName('ミノタウロス♀');
+  const milk = itemNoByName('ミノ牛乳');
+  const hay = itemNoByName('干し草');
+  const trough = itemNoByName('飼い葉桶');
+  const heads = 10;
+  const outcomes = 2 * heads + 1; // 1回の搾乳では、基礎本数の上に 0〜頭数×2 が一様に乗る
+  const expectedMilk = (seconds: number, hasTrough: boolean) => {
+    let bottles = 0;
+    for (let roll = 0; roll < outcomes; roll++) {
+      const { g, dt } = fixture('cow');
+      dt.joblvpt = { [cow]: seconds };
+      dt.item[cow - 1] = heads;
+      dt.item[hay - 1] = heads;
+      dt.item[trough - 1] = hasTrough ? 1 : 0;
+      g.rand = (n = 1) => n === outcomes ? roll : n / 2;
+      const u = useItemAction(g, dt, cow, 2, { count: 1 });
+      assert.equal(u.result.count, 1);
+      bottles += u.result.additem.find((l) => l.item_no === milk)!.count;
+    }
+    return bottles / outcomes;
+  };
+  for (const hasTrough of [false, true]) {
+    const baseline = 6 * heads + (hasTrough ? heads : 0);
+    assert.equal(expectedMilk(0, hasTrough), baseline);
+    assert.equal(expectedMilk(PROGRESS_THRESHOLDS[10] * 60, hasTrough), baseline);
   }
 });
 

@@ -272,7 +272,9 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
       u.result.usemsg.push(line.message);
     }
   }
-  // 職レベルの出来高はレシピの get 行だけ。下の個別処理 (搾乳など) の計算はそのまま。
+  // 職レベルの出来高倍率はレシピの get 行だけ。搾乳や、exp 0 の「働く」など、スクリプトの直接追加には掛けない。
+  // 酪農家は元から強いので搾乳は意図して据え置く。搾乳の点は入り、草刈り・乳製品のレシピには倍率が効く (2026-11-23)。
+  // 搾乳にも掛ける場合は scripts.ts の mino:_local_1 / mino:_local_2 の val に同じ倍率を掛ける。
   for (const line of u.result.create) {
     const units = line.count * count;
     const proba = Math.min(1000, line.proba) * (100 + JOBLV_YIELD_PCT * joblv) / 100;
