@@ -49,6 +49,8 @@ export interface Owner {
   card_file: string | null;
   /** Muse が書いた分 (通り名・枠・alt) と、描いたときの値 (drawn) */
   card_json: string | null;
+  fairy_name: string | null;
+  fairy_file: string | null;
   rev: number;
   /** som を渡した時刻 = 許可年月日 */
   created_at: number;
@@ -59,7 +61,7 @@ export interface StoredAsset {
   seq: number;
   file: string;
   som: string;
-  kind: 'icon' | 'card';
+  kind: 'icon' | 'card' | 'fairy';
   w: number;
   h: number;
   bytes: number;
@@ -130,7 +132,8 @@ export class Store {
       CREATE TABLE IF NOT EXISTS owners (
         som TEXT PRIMARY KEY, num INTEGER NOT NULL UNIQUE, party_owner_id TEXT UNIQUE, shop_id INTEGER,
         display_name TEXT NOT NULL DEFAULT '', name_source TEXT NOT NULL DEFAULT 'local',
-        icon_file TEXT, card_file TEXT, card_json TEXT, rev INTEGER NOT NULL DEFAULT 0,
+        icon_file TEXT, card_file TEXT, card_json TEXT, fairy_name TEXT, fairy_file TEXT,
+        rev INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS owners_shop ON owners(shop_id);
@@ -153,6 +156,9 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS market_history_at ON market_history(at);
     `);
+    const columns = new Set(this.db.prepare('PRAGMA table_info(owners)').all().map((row) => row.name));
+    if (!columns.has('fairy_name')) this.db.exec('ALTER TABLE owners ADD COLUMN fairy_name TEXT');
+    if (!columns.has('fairy_file')) this.db.exec('ALTER TABLE owners ADD COLUMN fairy_file TEXT');
   }
 
   close(): void {
@@ -492,7 +498,7 @@ export class Store {
     this.db.prepare('UPDATE owners SET rev = ?, updated_at = ? WHERE som = ?').run(this.nextRev(), now, som);
   }
 
-  updateOwner(som: string, f: Partial<Pick<Owner, 'shop_id' | 'display_name' | 'name_source' | 'icon_file' | 'card_file' | 'card_json'>>, now: number): void {
+  updateOwner(som: string, f: Partial<Pick<Owner, 'shop_id' | 'display_name' | 'name_source' | 'icon_file' | 'card_file' | 'card_json' | 'fairy_name' | 'fairy_file'>>, now: number): void {
     const keys = Object.keys(f) as (keyof typeof f)[];
     if (!keys.length) return;
     const sets = keys.map((k) => `${k} = ?`).join(', ');
@@ -519,7 +525,7 @@ export class Store {
     return n;
   }
 
-  addAsset(a: { file: string; som: string; kind: 'icon' | 'card'; w: number; h: number; bytes: number; now: number }): number {
+  addAsset(a: { file: string; som: string; kind: StoredAsset['kind']; w: number; h: number; bytes: number; now: number }): number {
     const seq = this.nextAssetSeq();
     this.db.prepare('INSERT INTO assets(seq,file,som,kind,w,h,bytes,created_at) VALUES(?,?,?,?,?,?,?,?)').run(seq, a.file, a.som, a.kind, a.w, a.h, a.bytes, a.now);
     return seq;
@@ -539,8 +545,9 @@ export class Store {
   }
 
   /** 差し替えから keep 秒たったもの (と運営が下げたもの) を消した扱いにして、消すファイル名を返す */
-  sweepAssets(now: number, keep: number): string[] {
-    const rows = this.db.prepare('SELECT file FROM assets WHERE removed_at IS NULL AND replaced_at IS NOT NULL AND replaced_at <= ?').all(now - keep) as { file: string }[];
+  sweepAssets(now: number, keep: number, fairyKeep = keep): string[] {
+    const rows = this.db.prepare(`SELECT file FROM assets WHERE removed_at IS NULL AND replaced_at IS NOT NULL
+      AND replaced_at <= CASE WHEN kind = 'fairy' THEN ? ELSE ? END`).all(now - fairyKeep, now - keep) as { file: string }[];
     for (const r of rows) this.removeAsset(r.file, now);
     return rows.map((r) => r.file);
   }

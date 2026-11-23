@@ -12,7 +12,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { bookDurability } from '../engine/scripts.js';
-import { sha256, type StoredLog } from '../store.js';
+import { sha256, type Owner, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
@@ -22,6 +22,8 @@ import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../u
 import * as tv from './town-view.js';
 import type { Town } from '../town/gen.js';
 import { joblvData } from '../engine/joblv.js';
+import { merchantData } from '../engine/merchant.js';
+import { FAIRY_SIZE } from './owners.js';
 
 interface Reply {
   status: number;
@@ -100,6 +102,8 @@ a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .av.l{width:160px;height:160px;font-size:72px;margin:0}
 .cell .av{width:56px;height:56px;flex:none;margin:0;font-size:26px;border-radius:10px}
 .lic{max-width:100%;height:auto;border-radius:8px;display:block;margin:6px 0}
+.fairy{margin:6px 0}
+.fairy img{display:block;width:150px;max-width:100%;height:auto;border-radius:8px;margin:4px 0}
 .sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.3);margin:0 2px}
 `;
 
@@ -446,7 +450,7 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
   }
   if (d.shop) {
     const dt = g.shopById(d.shop.id)!;
-    s += joblvTable(g, dt) + '<hr>●陳列棚<br><table>';
+    s += fairySection(app, dt, ow) + joblvTable(g, dt) + '<hr>●陳列棚<br><table>';
     for (let k = 0; k < dt.showcasecount; k++) {
       const no = dt.showcase[k] ?? 0;
       const stock = no ? dt.item[no - 1] : 0;
@@ -519,6 +523,14 @@ function joblvTable(g: Game, dt: Shop): string {
   ).join('') + '</table>';
 }
 
+function fairySection(app: App, dt: Shop, ow: Owner | undefined): string {
+  const name = ow?.fairy_name ? `${ow.fairy_name}さん` : 'お手伝い妖精';
+  const src = app.owners.url(ow?.fairy_file ?? null);
+  const [width, height] = FAIRY_SIZE;
+  const portrait = src ? `<img src="${esc(src)}" width="${width}" height="${height}" alt="${esc(name)}" loading="lazy">` : '';
+  return `<hr><div class="fairy"><b>商人レベル${merchantData(dt).lv} ${esc(name)}</b>${portrait}</div>`;
+}
+
 /** 原作 inc-html-owner.cgi (店長室) + inc-html-stock.cgi (倉庫) + 陳列棚 */
 function ownerPage(app: App, g: Game, dt: Shop): string {
   getMarketStatus(g);
@@ -547,7 +559,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('支払済売却税', '￥' + dt.taxtoday)}${td('基本売却税率', g.userTaxRate(dt) + '%')}</tr>`;
   s += `<tr>${td('熟練度合計', Math.trunc(expsum / 10) + '%')}<td>　</td><td>　</td></tr>`;
   s += `<tr>${td('創業', formatHms(g.now - dt.foundation))}${td('職業', esc(job))}</tr></table>`;
-  s += joblvTable(g, dt);
+  s += fairySection(app, dt, ow) + joblvTable(g, dt);
   if (dt.comment) s += 'コメント: ' + raw(dt.comment) + '<br>';
   // 住所・店構え・色 (1.2.0)。引っ越し・色変えは Muse が API で
   const at = ow ? townAddresses(app, g) : undefined;

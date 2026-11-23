@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import type { Game } from '../engine/game.js';
 import { GameError } from '../engine/game.js';
 import type { Shop, World } from '../engine/types.js';
-import type { Owner, Store } from '../store.js';
+import type { Owner, Store, StoredAsset } from '../store.js';
 import { sjisLength } from '../engine/actions.js';
 import { inspectWebp, WebpError } from './webp.js';
 import { jobName, pct, shelfData, specialtyType } from './views.js';
@@ -20,7 +20,14 @@ export const ICON_SIZE = 200;
 export const ICON_MAX_BYTES = 150 * 1024;
 /** 許可証の容量の上限 (大きさは枠と同じ) */
 export const CARD_MAX_BYTES = 1536 * 1024;
-/** 1日 (24時間) に上げられる回数 (アイコン・許可証それぞれ) */
+export const FAIRY_SIZE = [600, 800] as const;
+const FAIRY_MAX_BYTES = 400 * 1024;
+const FAIRY_REPLACED_KEEP = 30 * 86400;
+type AssetKind = StoredAsset['kind'];
+const assetLabel: Record<AssetKind, string> = { icon: 'アイコン', card: '許可証', fairy: 'お手伝い妖精の立ち絵' };
+const assetFileField = { icon: 'icon_file', card: 'card_file', fairy: 'fairy_file' } as const;
+
+/** 1日 (24時間) に上げられる回数 (画像の種類ごと) */
 export const UPLOADS_PER_DAY = 5;
 /** 差し替えた古い画像を消すまでの秒数 (見ている途中の人の画像が切れないよう、少しだけ残す) */
 export const REPLACED_KEEP = 24 * 3600;
@@ -230,16 +237,16 @@ export class OwnerHub {
   /** 書き込み中の登録 (まだ assets に載っていないもの) も回数に数える */
   private pending = new Map<string, number>();
 
-  private checkQuota(som: string, kind: 'icon' | 'card', now: number): void {
+  private checkQuota(som: string, kind: AssetKind, now: number): void {
     const inflight = this.pending.get(som + ':' + kind) ?? 0;
     if (this.store.countAssetsSince(som, kind, now - 86400) + inflight >= UPLOADS_PER_DAY) {
-      throw new GameError(`${kind === 'icon' ? 'アイコン' : '許可証'}の登録は24時間に${UPLOADS_PER_DAY}回までです。作り直しは手元で済ませてから送ってください`);
+      throw new GameError(`${assetLabel[kind]}の登録は24時間に${UPLOADS_PER_DAY}回までです。作り直しは手元で済ませてから送ってください`);
     }
   }
 
   /** ファイルを書くだけ (番号は await の前に取る)。配るのは publish で、持ち主の記録と一緒に */
   /** 回数を確かめて枠を取ったまま書く (重なった登録が上限をすり抜けないように)。publish が済むまで枠を持つ */
-  private async withQuota<T>(som: string, kind: 'icon' | 'card', now: number, fn: () => Promise<T>): Promise<T> {
+  private async withQuota<T>(som: string, kind: AssetKind, now: number, fn: () => Promise<T>): Promise<T> {
     this.checkQuota(som, kind, now);
     const key = som + ':' + kind;
     this.pending.set(key, (this.pending.get(key) ?? 0) + 1);
@@ -264,12 +271,19 @@ export class OwnerHub {
   }
 
   /** 書き終えた画像を、差分 (assets) と店主の今の画像に同時に載せる (間に await を挟まない) */
-  private publish(som: string, kind: 'icon' | 'card', file: string, w: number, h: number, bytes: number, now: number, extra: Partial<Pick<Owner, 'card_json'>> = {}): void {
-    this.store.addAsset({ file, som, kind, w, h, bytes, now });
-    const cur = this.store.ownerBySom(som)!;
-    const prev = kind === 'icon' ? cur.icon_file : cur.card_file;
-    if (prev) this.store.markAssetReplaced(prev, now);
-    this.store.updateOwner(som, kind === 'icon' ? { icon_file: file } : { card_file: file, ...extra }, now);
+  private publish(som: string, kind: AssetKind, file: string, w: number, h: number, bytes: number, now: number, extra: Partial<Pick<Owner, 'card_json' | 'fairy_name'>> = {}): void {
+    const field = assetFileField[kind];
+    this.store.db.exec('BEGIN');
+    try {
+      this.store.addAsset({ file, som, kind, w, h, bytes, now });
+      const prev = this.store.ownerBySom(som)![field];
+      if (prev) this.store.markAssetReplaced(prev, now);
+      this.store.updateOwner(som, { ...extra, [field]: file }, now);
+      this.store.db.exec('COMMIT');
+    } catch (err) {
+      this.store.db.exec('ROLLBACK');
+      throw err;
+    }
   }
 
   private decode(b64: unknown, max: number): Buffer {
@@ -302,6 +316,38 @@ export class OwnerHub {
       this.publish(ow.som, 'icon', file, ICON_SIZE, ICON_SIZE, info.data.length, now);
       return file;
     });
+  }
+
+  fairyData(ow: Owner) {
+    return ow.fairy_name || ow.fairy_file
+      ? { name: ow.fairy_name, file: ow.fairy_file, url: this.url(ow.fairy_file) }
+      : null;
+  }
+
+  async uploadFairy(g: Game, ow: Owner, body: Record<string, unknown>, now: number) {
+    const name = body.name === undefined ? undefined : cleanText(body.name, '妖精の名前', 20, true);
+    if (name !== undefined && (sjisLength(name) < 4 || sjisLength(name) > 20 ||
+      /[,:;\t\r\n<>&]/.test(name) || g.config.ngShopName.some((word) => name.includes(word)))) {
+      throw new GameError('妖精の名前は店名と同じきまりです (全角2〜10文字相当、使えない文字・語句があります)');
+    }
+    if (body.image_base64 !== undefined) {
+      const [w, h] = FAIRY_SIZE;
+      const info = this.inspect(this.decode(body.image_base64, FAIRY_MAX_BYTES), w, h, assetLabel.fairy);
+      await this.withQuota(ow.som, 'fairy', now, async () => {
+        const file = await this.write(ow.som, info.data);
+        try {
+          this.publish(ow.som, 'fairy', file, w, h, info.data.length, now, name === undefined ? {} : { fairy_name: name });
+        } catch (err) {
+          await this.unlinkFile(file);
+          throw err;
+        }
+      });
+    } else if (name !== undefined) {
+      this.store.updateOwner(ow.som, { fairy_name: name }, now);
+    } else {
+      throw new GameError('妖精の名前 (name) か立ち絵 (image_base64) を送ってください');
+    }
+    return this.fairyData(this.store.ownerBySom(ow.som)!);
   }
 
   /** 許可証。画像があれば差し替え、無ければ通り名などの文字だけ直す */
@@ -345,9 +391,15 @@ export class OwnerHub {
     this.store.updateOwner(ow.som, { card_file: null, card_json: null }, now);
   }
 
+  removeFairy(ow: Owner, now: number): void {
+    if (!ow.fairy_file && !ow.fairy_name) return;
+    if (ow.fairy_file) this.store.markAssetReplaced(ow.fairy_file, now);
+    this.store.updateOwner(ow.som, { fairy_file: null, fairy_name: null }, now);
+  }
+
   /** 使い終わった画像を消す (差し替えから REPLACED_KEEP 秒) */
   async sweep(now: number): Promise<number> {
-    const files = this.store.sweepAssets(now, REPLACED_KEEP);
+    const files = this.store.sweepAssets(now, REPLACED_KEEP, FAIRY_REPLACED_KEEP);
     for (const f of files) await this.unlinkFile(f);
     return files.length;
   }
@@ -359,6 +411,7 @@ export class OwnerHub {
     const ow = this.store.ownerBySom(a.som);
     if (ow?.icon_file === file) this.store.updateOwner(ow.som, { icon_file: null }, now);
     if (ow?.card_file === file) this.store.updateOwner(ow.som, { card_file: null, card_json: null }, now);
+    if (ow?.fairy_file === file) this.store.updateOwner(ow.som, { fairy_file: null }, now);
     this.store.removeAsset(file, now);
     await this.unlinkFile(file);
     return true;
@@ -415,6 +468,7 @@ export class OwnerHub {
       // 順位は刻々と変わるので rev の差分には入れない (順位は GET /town で)
       icon: ow.icon_file,
       card: ow.card_file,
+      fairy: this.fairyData(ow),
       rev: ow.rev,
     };
   }
@@ -441,6 +495,7 @@ export class OwnerHub {
         : null,
       icon: ow.icon_file ? { file: ow.icon_file, url: this.url(ow.icon_file) } : null,
       card: this.cardData(g, ow),
+      fairy: this.fairyData(ow),
       rev: ow.rev,
     };
   }
@@ -451,9 +506,9 @@ export class OwnerHub {
     const removed = since ? this.store.assetsRemovedSince(since) : [];
     const touched = new Set([...added.map((a) => a.som), ...(since ? this.store.assetsReplacedSince(since) : [])]);
     for (const f of removed) touched.add(f.slice(0, f.indexOf('_')));
-    const current: Record<string, { icon: string | null; card: string | null }> = {};
+    const current: Record<string, { icon: string | null; card: string | null; fairy: string | null }> = {};
     const list = since ? [...touched].map((s) => this.store.ownerBySom(s)).filter((x): x is Owner => !!x) : this.store.ownersSince(0);
-    for (const ow of list) current[ow.som] = { icon: ow.icon_file, card: ow.card_file };
+    for (const ow of list) current[ow.som] = { icon: ow.icon_file, card: ow.card_file, fairy: ow.fairy_file };
     return {
       cursor: this.store.assetsCursor(),
       base: this.o.assetsBaseUrl + '/',

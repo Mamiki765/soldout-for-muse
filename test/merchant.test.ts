@@ -57,14 +57,14 @@ test('複数回の端数を決算で合算し、今期の上限・レベル上�
   assert.equal(meData(g, buyer).merchant.lv, 0);
   settle();
   assert.deepEqual(meData(g, buyer).merchant, { lv: 1, point: 320, next: 2430, cap: MERCHANT_CAP_PER_PERIOD });
-  assert.match(digest(), /決算で商人レベル1/);
+  assert.match(digest(), /お手伝い妖精が決算で育ちました（商人レベル1/);
   addMerchantYen(buyer, (MERCHANT_CAP_PER_PERIOD + 3000) * 1000);
   settle();
   assert.equal(buyer.merchantpt, 320 + MERCHANT_CAP_PER_PERIOD);
   assert.equal(buyer.merchantYen, undefined);
   settle();
   assert.equal(buyer.merchantpt, 320 + MERCHANT_CAP_PER_PERIOD, '枠から溢れた額は次の決算に持ち越さない');
-  assert.doesNotMatch(digest(), /決算で商人レベル/);
+  assert.doesNotMatch(digest(), /お手伝い妖精が決算で育ちました/);
 });
 
 test('棚の仕入・売上・実際の税額と、買い取りの成立分だけを数える', () => {

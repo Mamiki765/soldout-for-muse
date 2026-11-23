@@ -12,7 +12,7 @@ import { App } from '../src/api/app.js';
 import { httpPartyVerifier } from '../src/api/party.js';
 import { inspectWebp } from '../src/api/webp.js';
 import { seededRng } from '../src/engine/rng.js';
-import { Store } from '../src/store.js';
+import { sha256, Store } from '../src/store.js';
 
 /** 中身は空の、形だけ正しい webp (VP8L の頭だけ。検品は頭しか見ない) */
 function webp(w: number, h: number, extra: { exif?: boolean; anim?: boolean } = {}): string {
@@ -173,7 +173,7 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     assert.equal(r.status, 200);
     const afterDel = await get('/api/v1/assets?since=' + before.cursor, 'pt-lapis');
     assert.ok(afterDel.cursor > before.cursor);
-    assert.deepEqual(afterDel.current.som0001, { icon: null, card: card.file });
+    assert.deepEqual(afterDel.current.som0001, { icon: null, card: card.file, fairy: null });
     r = await post('/api/v1/profile/icon', 'pt-mute', { image_base64: webp(200, 200) });
     const icon3 = ((await r.json()) as { file: string }).file;
 
@@ -250,6 +250,90 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
   } finally {
     server.close();
     party.close();
+    rmSync(assetsDir, { recursive: true, force: true });
+  }
+});
+
+test('お手伝い妖精の名前・立ち絵・店主室と決算の通知・30日間の差し替え履歴', async () => {
+  const assetsDir = mkdtempSync(join(tmpdir(), 'soldout-fairy-'));
+  const now = 1_800_000_000;
+  const store = new Store(':memory:');
+  const app = new App({ store, rng: seededRng(5), clock: () => now, assetsDir });
+  const server = createServer((req, res) => void app.handle(req, res));
+  await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  store.setSetting('invite_hash', sha256('muse-test-invite'));
+  try {
+    const registered = await fetch(base + '/api/v1/register?format=json', {
+      method: 'POST',
+      body: JSON.stringify({ invite: 'muse-test-invite', name: 'fairyshop', shopname: '妖精商店' }),
+    });
+    assert.equal(registered.status, 201, await registered.clone().text());
+    const reg = await registered.json() as { token: string; shop_id: number };
+    const auth = { authorization: 'Bearer ' + reg.token, accept: 'application/json' };
+    const path = '/api/v1/profile/fairy';
+    const post = (body: unknown) => fetch(base + path, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+    const read = async (url: string) => {
+      const response = await fetch(base + url, { headers: auth });
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    const name = 'こもれび';
+    assert.equal((await post({})).status, 409);
+    assert.equal((await post({ name: 'あ'.repeat(11) })).status, 409);
+    assert.equal((await post({ name: '<こもれび>' })).status, 409);
+    assert.equal((await post({ image_base64: webp(800, 600) })).status, 409);
+    assert.equal((await post({ image_base64: webp(600, 800, { anim: true }) })).status, 409);
+    assert.equal((await post({ image_base64: Buffer.alloc(400 * 1024 + 1, 10).toString('base64') })).status, 409);
+    assert.equal((await post({ name })).status, 200);
+    assert.deepEqual((await read('/api/v1/profile')).fairy, { name, file: null, url: null });
+
+    const upload = async () => {
+      const response = await post({ image_base64: webp(600, 800, { exif: true }) });
+      assert.equal(response.status, 201, await response.clone().text());
+      return (await response.json()).fairy as { name: string; file: string; url: string };
+    };
+    const first = await upload();
+    const fairy = await upload();
+    assert.equal(first.name, name);
+    assert.notEqual(first.file, fairy.file);
+    assert.deepEqual((await read('/api/v1/me')).fairy, fairy);
+    assert.deepEqual((await read('/api/v1/owners/som0001')).fairy, fairy);
+    const asset = await fetch(base + fairy.url);
+    assert.equal(asset.status, 200);
+    assert.equal(asset.headers.get('content-type'), 'image/webp');
+    assert.ok(!Buffer.from(await asset.arrayBuffer()).includes(Buffer.from('camera-secret')));
+
+    const g = app.viewerGame();
+    const dt = g.shopById(reg.shop_id)!;
+    dt.merchantpt = 31250;
+    dt.merchantNotice = { at: g.nextPeriodTime() - g.config.oneDayTime, lv: 4 };
+    const page = await fetch(base + '/view/owner/som0001');
+    const html = await page.text();
+    assert.match(html, /商人レベル4 こもれびさん/);
+    assert.ok(html.includes(fairy.url));
+    const key = await (await fetch(base + '/api/v1/view-link', { method: 'POST', headers: auth })).json() as { url: string };
+    const room = await fetch(base + key.url);
+    assert.match(await room.text(), /商人レベル4 こもれびさん/);
+    assert.deepEqual((await read('/api/v1/digest')).merchant_raised, { lv: 4, name });
+    assert.match(await (await fetch(base + '/api/v1/digest', { headers: { authorization: auth.authorization } })).text(), /お手伝い妖精のこもれびさんが決算で育ちました/);
+
+    await app.owners.sweep(now + 29 * 86400);
+    assert.equal((await fetch(base + first.url)).status, 200);
+    await app.owners.sweep(now + 30 * 86400);
+    assert.equal((await fetch(base + first.url)).status, 404);
+    assert.equal((await fetch(base + fairy.url)).status, 200);
+    // 画像の回数は残っている履歴で数える。削除済みの古い版もこの24時間の登録に含む。
+    for (let i = 0; i < 3; i++) await upload();
+    assert.equal((await post({ image_base64: webp(600, 800) })).status, 409);
+    assert.equal((await fetch(base + path, { method: 'DELETE', headers: auth })).status, 200);
+    assert.equal((await read('/api/v1/profile')).fairy, null);
+    const diffs = await read('/api/v1/assets?since=0');
+    assert.equal(diffs.current.som0001.fairy, null);
+    assert.ok(diffs.added.some((image: { kind: string }) => image.kind === 'fairy'));
+  } finally {
+    server.close();
+    store.close();
     rmSync(assetsDir, { recursive: true, force: true });
   }
 });

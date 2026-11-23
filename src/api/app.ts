@@ -770,9 +770,9 @@ export class App {
         case '/digest': {
           if (!readonly && tut.syncTutorial(g, dt)) this.persist([], this.clock());
           const n = this.unreadCounts(dt);
-          const d = v.digestData(g, dt, n, this.digestNotice(dt), this.lastPrices());
-          // 許可証に描いた店主名・店名・職業が今と違えば、描き直しを勧める (0.5.0)
           const ow = this.store.ownerByShop(dt.id);
+          const d = v.digestData(g, dt, n, this.digestNotice(dt), this.lastPrices(), ow?.fairy_name);
+          // 許可証に描いた店主名・店名・職業が今と違えば、描き直しを勧める (0.5.0)
           const card = ow && this.owners.cardData(g, ow);
           if (card?.stale) d.warnings.push('許可証の絵が古い (店主名・店名・職業のどれかが変わった)。描き直すとよい GET /api/v1/profile/card/draft');
           // 街の地図 (1.2.0): 住所はふだん出さない。無料の引っ越し・色変えが残っている間だけ案内する
@@ -782,7 +782,7 @@ export class App {
         case '/me': {
           if (!readonly && tut.onTutorialRead(dt, 'me')) this.persist([], this.clock());
           const ow = this.store.ownerByShop(dt.id);
-          const d = { ...v.meData(g, dt), som: ow?.som ?? null, owner_name: ow?.display_name ?? dt.name, icon: ow?.icon_file ?? null };
+          const d = { ...v.meData(g, dt), som: ow?.som ?? null, owner_name: ow?.display_name ?? dt.name, icon: ow?.icon_file ?? null, fairy: ow ? this.owners.fairyData(ow) : null };
           return { status: 200, text: v.meText(d), json: d };
         }
         case '/costs': {
@@ -915,10 +915,11 @@ export class App {
       throw new HttpError(404, 'ありません');
     }
 
-    if (method === 'DELETE' && (p === '/profile/icon' || p === '/profile/card')) {
+    if (method === 'DELETE' && (p === '/profile/icon' || p === '/profile/card' || p === '/profile/fairy')) {
       const ow = this.owners.ownerOf(shopId);
       if (p === '/profile/icon') this.owners.removeIcon(ow, this.clock());
-      else this.owners.removeCard(ow, this.clock());
+      else if (p === '/profile/card') this.owners.removeCard(ow, this.clock());
+      else this.owners.removeFairy(ow, this.clock());
       return { status: 200, text: 'OK 外しました\n', json: { ok: true } };
     }
 
@@ -1112,7 +1113,8 @@ export class App {
     let digest: unknown;
     if (dt) {
       act.enterShop(g, dt, false);
-      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt), this.lastPrices());
+      const ow = this.store.ownerByShop(dt.id);
+      const d = v.digestData(g, dt, this.unreadCounts(dt), this.digestNotice(dt), this.lastPrices(), ow?.fairy_name);
       digest = d;
       tail = v.digestText(d);
     }
@@ -1805,6 +1807,14 @@ export class App {
       const file = await this.owners.uploadCard(g, ow, body, now);
       const card = this.owners.cardData(g, this.owners.ownerOf(shopId));
       return { status: 201, text: `OK 許可証を登録しました ${file}\n${this.owners.url(file)}\n`, json: { ok: true, file, url: this.owners.url(file), card } };
+    }
+    if (p === '/profile/fairy') {
+      const fairy = await this.owners.uploadFairy(g, ow, body, now);
+      return {
+        status: body.image_base64 === undefined ? 200 : 201,
+        text: 'OK お手伝い妖精を登録しました\n',
+        json: { ok: true, fairy },
+      };
     }
     throw new HttpError(404, 'ありません');
   }
