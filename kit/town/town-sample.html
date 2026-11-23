@@ -3,62 +3,257 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>街の地図の見本</title>
+<title>街の地図の見本 — SOLD OUT ミューズ街</title>
 <style>
-body { margin: 0; padding: 12px 16px; background: #efe4cc; color: #2b2112; font: 14px/1.6 "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 12px; background: #efe4cc; color: #2b2112; font: 14px/1.6 "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+main { max-width: 1050px; margin: auto; }
 form { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 8px; }
-input { font: inherit; padding: 2px 6px; }
-#wrap { display: inline-block; max-width: 100%; overflow: auto; border: 2px solid #8b6b3a; border-radius: 6px; background: #c9bfa9; max-height: 80vh; }
-canvas { display: block; image-rendering: pixelated; }
-#msg { color: #7a3328; }
+input, button { font: inherit; }
+input { max-width: 100%; min-width: 0; padding: 4px 6px; }
+#base { width: 220px; } #key { width: 160px; } #d { width: 80px; } #s { width: 65px; }
+button { cursor: pointer; border: 1px solid #987544; border-radius: 5px; background: #fff4d7; color: #3a2714; padding: 4px 9px; }
+button:disabled { opacity: .45; cursor: default; }
+h2 { margin: 6px 0; font-size: 18px; }
+#msg { color: #7a3328; min-height: 1.6em; overflow-wrap: anywhere; }
+#neighbors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
+.direction { min-width: 0; border: 1px solid #c6af8a; border-radius: 5px; padding: 5px; }
+.direction strong { display: block; font-size: 12px; }
+.direction button { width: 100%; margin: 2px 0; overflow-wrap: anywhere; padding: 4px; }
+#win { position: relative; overflow: hidden; height: min(67vh, 580px); min-height: 340px; width: 100%; border: 2px solid #8b6b3a; border-radius: 6px; background: #c9bfa9; touch-action: none; cursor: grab; }
+#win.dragging { cursor: grabbing; }
+#layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+canvas { display: block; image-rendering: pixelated; pointer-events: none; }
+#labels { position: absolute; inset: 0; }
+.lot { position: absolute; cursor: pointer; }
+.town-sign { display: block; position: absolute; left: 50%; transform: translateX(-50%); max-width: 160px; min-width: 36px; padding: 1px 5px; font: bold 11px/1.4 serif; color: #3b2815; border: 1px solid #815c2c; border-radius: 3px; background: #ffebbb; box-shadow: 0 1px 2px #0006; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lot[data-front="down"] .town-sign { bottom: 0; }
+.lot[data-front="up"] .town-sign { top: 0; }
+.district-label { display: none; position: absolute; transform: translate(-50%,-50%); pointer-events: none; background: #fff0c6df; border: 1px solid #906c3a; border-radius: 5px; color: #3b2815; font: bold 19px/1.3 serif; font-size: calc(19px * var(--label-zoom, 1)); padding: 4px 8px; white-space: nowrap; }
+#layer.zoomed-out .town-sign { display: none; }
+#layer.zoomed-out .lot { pointer-events: none; }
+#layer.zoomed-out .district-label { display: block; }
+.zoom { position: absolute; z-index: 2; top: 8px; right: 8px; display: grid; gap: 4px; }
+.zoom button { width: 40px; height: 38px; font-size: 19px; }
+.town-popup { position: absolute; z-index: 3; left: 8px; bottom: 8px; width: min(310px, calc(100% - 16px)); max-height: 55%; overflow: auto; border: 2px solid #81623d; border-radius: 6px; box-shadow: 0 3px 10px #0006; padding: 9px 12px; background: #fff3d6; color: #2b2112; }
+.town-popup[hidden] { display: none; }
+.town-popup h3 { margin: 0 35px 4px 0; font-size: 16px; }
+.town-popup ul { margin: 4px 0; padding-left: 20px; }
+.town-popup .close { float: right; }
+small { color: #71553c; }
+@media(max-width: 550px) { #neighbors { grid-template-columns: repeat(2,minmax(0,1fr)); } body { padding: 8px; } form label { max-width: 100%; } }
 </style>
 </head>
 <body>
 <!--
-  SOLD OUT for Muse — 街の地図をお店のスペースで描く見本 (キット 1.2.0)。
-  GET /api/v1/town/map のマス目 (チャンク) を、このフォルダの絵 (tiles-v1.png ほか) で描きます。
-  地図の組み立ては town-gen.js、描画は tiles.js (どちらも観戦画面と同じもの)。読むのは合鍵 vk_… で。
+  SOLD OUT for Muse キット 1.4.0 — 地図の見本。観戦画面の地図と同じチップを使う。
+  読むのは vk_ 合鍵。絵の座標・区画・隣区は /town/map、店名・店主・棚は /town。
   This program is free software under the GNU GPL v2 or later. See LICENSE.
 -->
+<main>
 <form id="f">
-  <label>サーバー <input id="base" size="28" placeholder="https://example/soldout"></label>
-  <label>合鍵 <input id="key" size="20" placeholder="vk_…" type="password"></label>
-  <label>区 <input id="d" size="3" placeholder="自分"></label>
-  <label>大きさ <input id="s" size="3" value="16"></label>
-  <button>描く</button> <span id="msg"></span>
+  <label>サーバー <input id="base" placeholder="https://example/soldout" value="https://museimg.party/soldout"></label>
+  <label>合鍵 <input id="key" placeholder="vk_…" type="password" autocomplete="off"></label>
+  <label>区 <input id="d" placeholder="自分 / 0"></label>
+  <label>チップの大きさ <input id="s" type="number" min="8" max="32" value="16"></label>
+  <button type="submit">地図を開く</button>
+  <button id="refresh" type="button" title="今の区と店名を読み直す">↻</button>
 </form>
-<div id="wrap"><canvas id="cv" width="1" height="1"></canvas></div>
+<h2 id="district-title">街の地図</h2>
+<div id="msg" role="status">合鍵を入れて地図を開いてください。</div>
+<div id="neighbors" aria-label="隣の区"></div>
+<div id="win">
+  <div id="layer"><canvas id="cv" width="1" height="1"></canvas><div id="labels"></div></div>
+  <div class="zoom"><button id="plus" type="button" aria-label="寄る">＋</button><button id="minus" type="button" aria-label="引く">－</button></div>
+  <div id="popup" class="town-popup" hidden><button id="close" class="close" type="button">閉じる</button><h3 id="popup-name"></h3><div id="popup-body"></div></div>
+</div>
+<p><small>地図をドラッグして移動。ホイールや二本指で寄る引く。お店の札をタップすると詳しい情報が出ます。↻は最新の店名も読み直します。</small></p>
+</main>
 <script>window.TOWN_ART_DIR = './';</script>
 <script src="town-gen.js"></script>
 <script src="tileset-v1.js"></script>
 <script src="tiles.js"></script>
+<script src="pan-zoom.js"></script>
 <script>
-// 地図の JSON は区ごとに変わったときだけ取り直せば十分です (店の出入り・色・引っ越しで変わる)
-document.getElementById('f').onsubmit = async (e) => {
-  e.preventDefault();
-  const msg = document.getElementById('msg');
-  const base = document.getElementById('base').value.replace(/\/+$/, '');
-  const d = document.getElementById('d').value.trim();
-  const s = Number(document.getElementById('s').value) || 16; // 1チップ (32px) を何 px で描くか
-  msg.textContent = '読んでいます…';
-  try {
-    const r = await fetch(`${base}/api/v1/town/map?format=json${d ? '&district=' + encodeURIComponent(d) : ''}`, {
-      headers: { authorization: 'Bearer ' + document.getElementById('key').value.trim(), accept: 'application/json' },
-    });
-    if (!r.ok) throw new Error(r.status + ' ' + (await r.text()));
-    const map = await r.json();
-    await Tiles.ready;
-    // bounds (チップ単位) の範囲を1枚に描く。チャンクはまとめて渡すと、道や川が境目でつながる
-    const { x, y, w, h } = map.bounds;
-    const cv = document.getElementById('cv');
-    cv.width = w * s;
-    cv.height = h * s;
-    Tiles.paint(cv.getContext('2d'), map.chunks, s, x, y, w, h);
-    msg.textContent = map.districts.map((x) => (x.no ? x.no + '区' : '中央') + (x.name ? ' ' + x.name : '')).join(' / ');
-  } catch (err) {
-    msg.textContent = '描けませんでした: ' + err.message;
+'use strict';
+const $ = (id) => document.getElementById(id);
+const win = $('win'), layer = $('layer');
+let currentDistrict = null, townCache = null, busy = false, initialized = false;
+
+function closePopup() { $('popup').hidden = true; }
+$('close').onclick = closePopup;
+
+const pan = TownPanZoom.create(win, layer, (target) => {
+  const hit = target.closest('.lot');
+  if (!hit) { closePopup(); return; }
+  const data = hit.lotData;
+  if (!data) return;
+  const title = data.name;
+  $('popup-name').textContent = title;
+  const body = $('popup-body');
+  body.replaceChildren();
+  const line = (text) => {
+    const p = document.createElement('div');
+    p.textContent = text;
+    body.appendChild(p);
+  };
+  if (data.owner) line('店主: ' + data.owner);
+  if (data.state) line(data.state);
+  if (data.goods.length) {
+    const heading = document.createElement('b');
+    heading.textContent = '棚の品';
+    body.appendChild(heading);
+    const ul = document.createElement('ul');
+    for (const s of data.goods.slice(0, 4)) {
+      const li = document.createElement('li');
+      li.textContent = String(s.name || '品') + ' ×' + (s.stock ?? 0) + ' / ' + Number(s.price || 0).toLocaleString('ja-JP') + '円';
+      ul.appendChild(li);
+    }
+    body.appendChild(ul);
   }
+  $('popup').hidden = false;
+});
+$('plus').onclick = () => pan.zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1.3);
+$('minus').onclick = () => pan.zoomAt(win.clientWidth / 2, win.clientHeight / 2, 1 / 1.3);
+
+// 同じ区にとどまる間は地図の JSON を取り直さない。店名一覧は開くときと ↻ のときだけ読む。
+async function api(path) {
+  const base = $('base').value.trim().replace(/\/+$/, '');
+  const key = $('key').value.trim();
+  if (!/^https?:\/\//.test(base)) throw new Error('サーバーの URL を入力してください');
+  if (!key) throw new Error('合鍵を入力してください');
+  const res = await fetch(base + '/api/v1' + path, {
+    headers: { authorization: 'Bearer ' + key, accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(res.status + ' ' + (await res.text()).slice(0, 100));
+  return res.json();
+}
+function textDistrict(d) { return d.no === 0 ? '中央' : d.no + '区' + (d.name ? ' ' + d.name : ''); }
+function makeLabels(map, town, scale) {
+  const labels = $('labels');
+  labels.replaceChildren();
+  const open = new Map((town.shops || []).filter((s) => s.som).map((s) => [s.som, s]));
+  // 休業中の店はランキングの shops[] ではなく resting[] に載る。
+  const resting = new Map((town.resting || []).filter((s) => s.som).map((s) => [s.som, s]));
+  const bb = map.bounds;
+  const px = (x, origin) => (x - origin) * scale;
+  for (const chunk of map.chunks) {
+    if (chunk.kind === 'outskirts') continue;
+    const buildings = new Map((chunk.buildings || []).map((b) => [b.lot, b]));
+    for (const lot of chunk.lots || []) {
+      if (lot.kind !== 'shop') continue;
+      const building = buildings.get(lot.id);
+      const som = building?.som || lot.som;
+      const shop = open.get(som);
+      const rest = resting.get(som);
+      const isRest = !!(rest || building?.resting);
+      const vacant = lot.state === 'vacant';
+      const held = lot.state === 'held';
+      const name = held ? '空き家' : vacant ? '空き' :
+        isRest ? (rest?.shop || shop?.shop || '休業中') + ' (休業)' :
+        shop?.shop || '営業情報なし';
+      const mark = document.createElement('div');
+      mark.className = 'lot';
+      mark.style.left = px(lot.x, bb.x) + 'px';
+      mark.style.top = px(lot.y, bb.y) + 'px';
+      mark.style.width = lot.w * scale + 'px';
+      mark.style.height = lot.h * scale + 'px';
+      mark.dataset.front = building?.door || 'up';
+      mark.lotData = {
+        name, owner: shop?.owner_name || '',
+        state: held ? '閉店後の空き家' : vacant ? '入居できる空き区画' : isRest ? '改装中・休業' : '',
+        goods: shop?.shelves || [],
+      };
+      const sign = document.createElement('span');
+      sign.className = 'town-sign';
+      sign.textContent = name;
+      mark.appendChild(sign);
+      labels.appendChild(mark);
+    }
+    const d = map.districts.find((x) => x.chunk === chunk.id);
+    if (d) {
+      const heading = document.createElement('div');
+      heading.className = 'district-label';
+      heading.textContent = textDistrict(d);
+      heading.style.left = px(chunk.origin[0] + chunk.size[0] / 2, bb.x) + 'px';
+      heading.style.top = px(chunk.origin[1] + chunk.size[1] / 2, bb.y) + 'px';
+      labels.appendChild(heading);
+    }
+  }
+}
+
+function makeNeighbors(map) {
+  const host = $('neighbors');
+  host.replaceChildren();
+  const cur = map.districts[0].no;
+  for (const [side, label, arrow] of [['n', '北', '↑'], ['e', '東', '→'], ['s', '南', '↓'], ['w', '西', '←']]) {
+    const group = document.createElement('div');
+    group.className = 'direction';
+    const heading = document.createElement('strong');
+    heading.textContent = label;
+    group.appendChild(heading);
+    const seen = new Set();
+    for (const d of map.districts) {
+      const next = d.neighbors?.[side];
+      if (!next || next.no === cur || seen.has(next.no)) continue;
+      seen.add(next.no);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = arrow + ' ' + textDistrict(next);
+      btn.onclick = () => load(String(next.no), false);
+      group.appendChild(btn);
+    }
+    if (seen.size) host.appendChild(group);
+  }
+}
+function draw(map, town) {
+  const scale = Math.max(8, Math.min(32, Number($('s').value) || 16));
+  const { x, y, w, h } = map.bounds;
+  const cv = $('cv');
+  cv.width = w * scale;
+  cv.height = h * scale;
+  cv.style.width = cv.width + 'px';
+  cv.style.height = cv.height + 'px';
+  layer.style.width = cv.width + 'px';
+  layer.style.height = cv.height + 'px';
+  // この区の地面と建物は1度だけ描き、移動中は transform のみ変更。
+  Tiles.paint(cv.getContext('2d'), map.chunks, scale, x, y, w, h);
+  makeLabels(map, town, scale);
+  $('district-title').textContent = map.districts.map(textDistrict).filter((x, i, a) => a.indexOf(x) === i).join(' / ');
+  makeNeighbors(map);
+  closePopup();
+  pan.fit();
+}
+async function load(district, refresh) {
+  if (busy || (initialized && !refresh && currentDistrict === district)) return;
+  busy = true;
+  $('msg').textContent = '読んでいます…';
+  try {
+    const q = district === null || district === '' ? '' : '&district=' + encodeURIComponent(district);
+    const [map, town] = await Promise.all([
+      api('/town/map?format=json' + q),
+      refresh || !townCache ? api('/town') : Promise.resolve(townCache),
+      Tiles.ready,
+    ]).then(([m, t]) => [m, t]);
+    townCache = town;
+    draw(map, town);
+    currentDistrict = district;
+    initialized = true;
+    $('d').value = district ?? '';
+    $('msg').textContent = '札で店を見られます。最新情報は ↻ で読み直してください。';
+  } catch (err) {
+    $('msg').textContent = '地図を読めませんでした: ' + err.message;
+  } finally {
+    busy = false;
+  }
+}
+$('f').onsubmit = (e) => {
+  e.preventDefault();
+  townCache = null;
+  initialized = false;
+  load($('d').value.trim() || null, true);
 };
+$('refresh').onclick = () => load(currentDistrict, true);
 </script>
 </body>
 </html>
