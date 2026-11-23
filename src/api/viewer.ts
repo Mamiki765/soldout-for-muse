@@ -21,6 +21,7 @@ import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 import * as tv from './town-view.js';
 import type { Town } from '../town/gen.js';
+import { joblvData } from '../engine/joblv.js';
 
 interface Reply {
   status: number;
@@ -444,8 +445,8 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
     }
   }
   if (d.shop) {
-    s += '<hr>●陳列棚<br><table>';
     const dt = g.shopById(d.shop.id)!;
+    s += joblvTable(g, dt) + '<hr>●陳列棚<br><table>';
     for (let k = 0; k < dt.showcasecount; k++) {
       const no = dt.showcase[k] ?? 0;
       const stock = no ? dt.item[no - 1] : 0;
@@ -510,6 +511,14 @@ function ordersPage(g: Game): string {
   return s + '</table>';
 }
 
+function joblvTable(g: Game, dt: Shop): string {
+  const rows = Object.entries(joblvData(dt));
+  if (!rows.length) return '';
+  return '<hr>●職レベル<br><table>' + rows.map(([no, { lv }]) =>
+    `<tr><td>${esc(g.items[Number(no)].name)}</td><td>職レベル${lv}</td></tr>`,
+  ).join('') + '</table>';
+}
+
 /** 原作 inc-html-owner.cgi (店長室) + inc-html-stock.cgi (倉庫) + 陳列棚 */
 function ownerPage(app: App, g: Game, dt: Shop): string {
   getMarketStatus(g);
@@ -538,6 +547,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('支払済売却税', '￥' + dt.taxtoday)}${td('基本売却税率', g.userTaxRate(dt) + '%')}</tr>`;
   s += `<tr>${td('熟練度合計', Math.trunc(expsum / 10) + '%')}<td>　</td><td>　</td></tr>`;
   s += `<tr>${td('創業', formatHms(g.now - dt.foundation))}${td('職業', esc(job))}</tr></table>`;
+  s += joblvTable(g, dt);
   if (dt.comment) s += 'コメント: ' + raw(dt.comment) + '<br>';
   // 住所・店構え・色 (1.2.0)。引っ越し・色変えは Muse が API で
   const at = ow ? townAddresses(app, g) : undefined;

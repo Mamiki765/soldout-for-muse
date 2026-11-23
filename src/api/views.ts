@@ -18,6 +18,7 @@ import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView,
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
+import { joblvData } from '../engine/joblv.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
 export type LastPrices = Map<number, PeriodPriceRow>;
@@ -205,6 +206,9 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     tutorial: tutorialDigest(g, dt),
     /** 自分の品で、前の決算から相場・市場の単価が ±20% 以上動いたもの (0.6.0) */
     price_moves: priceMoves(g, dt, prev),
+    joblv_raised: dt.joblvNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
+      ? Object.entries(dt.joblvNotice.raised).map(([no, lv]) => ({ item: Number(no), name: g.items[Number(no)].name, lv }))
+      : [],
     version: APP_VERSION,
     update,
     /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
@@ -242,6 +246,9 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     const mv = d.price_moves.map((m) => [m.name, m.market_change !== null && `相場${pctWord(m.market_change)}`, m.price_change !== null && `単価${pctWord(m.price_change)}`].filter(Boolean).join(' '));
     lines.push(`値動き(前の決算から) ${mv.join(' / ')} 推移は /api/v1/items/品番`);
   }
+  if (d.joblv_raised.length) {
+    lines.push('決算で職レベルが上がりました ' + d.joblv_raised.map(({ name, lv }) => `${name} ${lv}`).join(' / '));
+  }
   lines.push(...tutorialDigestLines(d.tutorial));
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
@@ -278,6 +285,7 @@ export function meData(g: Game, dt: Shop) {
     name: dt.name,
     shop: dt.shopname,
     job: jobName(dt) || '不定',
+    joblv: joblvData(dt),
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -321,6 +329,11 @@ export function meText(d: ReturnType<typeof meData>): string {
     '# 倉庫 品番 名前 数/上限 今期売/前期売 熟練% 相場',
     ...d.stock.map((s) => `${s.item} ${s.name} ${s.count}/${s.limit} ${s.today}/${s.yesterday} ${s.exp} ${s.market || '-'}`),
   ];
+  const joblv = Object.entries(d.joblv);
+  if (joblv.length) {
+    lines.push('# 職レベル 品番 名前 レベル ポイント 次の累計ポイント');
+    lines.push(...joblv.map(([no, { lv, point, next }]) => `${no} ${BASE_ITEMS[Number(no)].name} ${lv} ${point} ${next ?? '-'}`));
+  }
   return lines.join('\n') + '\n';
 }
 
