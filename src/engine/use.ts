@@ -25,7 +25,7 @@ export interface UseResult {
   trashmsg: string[];
   message: { resultok?: string; resultng?: string };
   /** 取得する商品 (原作 result.create) */
-  create: { no: number; count: number; proba: number; message?: string }[];
+  create: { no: number; count: number; proba: number; fraction?: number; message?: string }[];
   function?: string;
   function_return?: string;
   expold?: number;
@@ -104,7 +104,7 @@ export function loadUses(g: Game, itemno: number): RtUse[] {
           ...(def.okmsg ? { resultok: def.okmsg } : {}),
           ...(def.ngmsg ? { resultng: def.ngmsg } : {}),
         },
-        create: def.get.map((l) => ({ no: l.item_no, count: l.count, proba: l.proba, message: l.message })),
+        create: def.get.map((l) => ({ no: l.item_no, count: l.count, proba: l.proba, fraction: l.fraction, message: l.message })),
         function: def.func ?? undefined,
       },
       arg: { count: 0, message: '' },
@@ -224,6 +224,17 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
   return u;
 }
 
+/** 1,000分率で1個ずつ抽選する。確定の分は乱数を引かない。 */
+function rollYield(g: Game, units: number, proba: number): number {
+  const guaranteed = Math.floor(proba / 1000);
+  const extra = proba % 1000;
+  let produced = guaranteed * units;
+  if (extra > 0) {
+    for (let i = 0; i < units; i++) if (g.rand(1000) < extra) produced++;
+  }
+  return produced;
+}
+
 /** 原作 UseItem($USE,$count) */
 export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   // 実行数は 0 未満にしない (負の数で材料が増え、できた品が減るのを防ぐ)
@@ -276,13 +287,9 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   // 酪農家は元から強いので搾乳は意図して据え置く。搾乳の点は入り、草刈り・乳製品のレシピには倍率が効く (2026-11-23)。
   // 搾乳にも掛ける場合は scripts.ts の mino:_local_1 / mino:_local_2 の val に同じ倍率を掛ける。
   for (const line of u.result.create) {
-    const units = line.count * count;
-    const proba = Math.min(1000, line.proba) * (100 + JOBLV_YIELD_PCT * joblv) / 100;
-    let itemcount = proba < 1000 ? 0 : units;
-    const extra = proba < 1000 ? proba : proba - 1000;
-    if (extra > 0) {
-      for (let i = 0; i < units; i++) if (g.rand(1000) < extra) itemcount++;
-    }
+    const proba = Math.max(0, Math.min(1000, line.proba)) * (100 + JOBLV_YIELD_PCT * joblv) / 100;
+    let itemcount = rollYield(g, line.count * count, proba);
+    if (line.fraction) itemcount += rollYield(g, count, proba * line.fraction / 1000);
     if (itemcount) {
       const item = g.items[line.no];
       if (itemcount + dt.item[line.no - 1] > item.limit) {

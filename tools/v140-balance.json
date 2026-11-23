@@ -1,0 +1,32 @@
+{
+  "version": "1.4.0",
+  "yield_percent": { "10": 112, "12": 120, "14": 135, "15": 117, "20": 122, "21": 127, "22": 118, "23": 130 },
+  "prices": { "71": 3966, "72": 7159 },
+  "recipe_times": [
+    { "book": 16, "product": 82, "time": 10800, "exptime": 8100 },
+    { "book": 16, "product": 83, "time": 7800, "exptime": 5100 },
+    { "book": 16, "product": 85, "time": 6300, "exptime": 4800 },
+    { "book": 66, "product": 68, "time": 9000, "exptime": 2400 },
+    { "book": 66, "product": 69, "time": 9900, "exptime": 3900 },
+    { "book": 66, "product": 84, "time": 10800, "exptime": 8100 },
+    { "book": 66, "product": 86, "time": 5400, "exptime": 4500 },
+    { "book": 66, "product": 130, "time": 9000, "exptime": 4500 }
+  ],
+  "items": [
+    { "no": 135, "reference": 87, "code": "lacquer-box", "name": "漆塗りの小箱", "info": "漆で艶を出し、研磨宝石を留めた木の小箱。", "scale": "個", "price": 7000, "popular": 57600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 136, "reference": 87, "code": "rocking-chair", "name": "揺り椅子", "info": "弓なりの脚でゆっくり揺れる、革張りの木の椅子。", "scale": "脚", "price": 9000, "popular": 86400, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 137, "reference": 87, "code": "wooden-lute", "name": "木のリュート", "info": "漆を塗った木の胴に、ミスリルの弦を張った楽器。", "scale": "挺", "price": 12000, "popular": 129600, "pricebase": 0, "pricehalf": 0, "wslimit": 1, "seedmarket": 1 },
+    { "no": 138, "reference": 91, "code": "lacquer", "name": "漆", "info": "樹脂林で採れる樹液。木工品の塗りに使う。", "scale": "滴", "price": 500, "popular": 7200, "seedmarket": 24 }
+  ],
+  "woodwork": {
+    "book": 17,
+    "template": 87,
+    "needexp": 300,
+    "recipes": [
+      { "product": 135, "materials": [[99, 10], [138, 10], [102, 2]], "count": 10, "proba": 700, "time": 7200, "exptime": 5400 },
+      { "product": 136, "materials": [[4, 6], [99, 20], [101, 6]], "count": 10, "proba": 700, "time": 7200, "exptime": 5400 },
+      { "product": 137, "materials": [[99, 10], [100, 6], [98, 3], [138, 10]], "count": 10, "proba": 600, "time": 10200, "exptime": 7800 }
+    ]
+  },
+  "gathering": { "book": 12, "use": 4, "get": [138, 20, 800] }
+}

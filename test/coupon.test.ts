@@ -223,6 +223,7 @@ test('持ち時間がマイナスでも、クーポンで払える数だけは�
   dt.time = g.now + 10 * H;
   use(g, dt.id, 35 * H); // クーポン残り 13h → 6h の本は2冊まで
   const time0 = dt.time;
+  g.rand = (n = 1) => n / 2;
   const u = useItemAction(g, dt, kit, 0, { count: 3 });
   assert.equal(u.result.count, 2);
   assert.equal(dt.item[book - 1], 2);

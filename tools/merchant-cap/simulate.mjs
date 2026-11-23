@@ -4,7 +4,8 @@
 import { DEFAULT_CONFIG } from '../../dist/src/config.js';
 import { BASE_ITEMS, CATALOG, MAX_ITEM, itemNoByName } from '../../dist/src/data/catalog.js';
 import { Game } from '../../dist/src/engine/game.js';
-import { merchantBalanceFingerprint, MERCHANT_YEN_PER_POINT } from '../../dist/src/engine/merchant.js';
+import { merchantBalanceFingerprint, MERCHANT_CAP_PER_PERIOD, MERCHANT_YEN_PER_POINT } from '../../dist/src/engine/merchant.js';
+import { MERCHANT_JOB_MULTIPLIER } from '../../dist/src/engine/jobs.js';
 import { newShop, newWorld } from '../../dist/src/engine/types.js';
 import { checkUses, itemUseTime, loadUses } from '../../dist/src/engine/use.js';
 
@@ -19,7 +20,7 @@ const purchasePrice = (no) => Math.round(BASE_ITEMS[no].price * INPUT_PRICE_RATI
 
 function outputs(u) {
   if (u.itemcode !== 'mino' || u.no > 2) {
-    return u.result.create.map(({ no, count, proba }) => [no, count * proba / 1000]);
+    return u.result.create.map(({ no, count, proba, fraction }) => [no, (count + (fraction ?? 0) / 1000) * proba / 1000]);
   }
   const base = Number(u.params[0]);
   const expected = u.no === 2 ? (base + Number(u.params[1]) / 2) * COW_COUNT : (base * COW_COUNT + 1) / 2;
@@ -78,7 +79,7 @@ function runJob({ params }) {
       const tax = sold.reduce((total, l) => total + g.saleTax(l.no, l.sold, l.yen, taxRate)[1], 0);
       const profit = beforeTax - tax;
       const turnover = sales + purchases + tax;
-      if (!best || profit > best.profit) best = { job: CATALOG.jobTypes[job], recipe: u.name, count, sales, purchases, tax, profit, turnover };
+      if (!best || profit > best.profit) best = { code: job, job: CATALOG.jobTypes[job], recipe: u.name, count, sales, purchases, tax, profit, turnover };
     }
   }
   if (!best) throw new Error(`${job}: 比較できる作り方がありません`);
@@ -87,8 +88,12 @@ function runJob({ params }) {
 
 const results = jobs.map(runJob).sort((a, b) => a.profit - b.profit);
 const weakest = results[0];
-const cap = Math.max(1, Math.floor(weakest.turnover / MERCHANT_YEN_PER_POINT));
-console.table(results);
+console.table(results.map(({ code, ...row }) => ({
+  ...row,
+  multiplier: MERCHANT_JOB_MULTIPLIER[code],
+  credited: Math.min(MERCHANT_CAP_PER_PERIOD, Math.floor(row.turnover * MERCHANT_JOB_MULTIPLIER[code] / MERCHANT_YEN_PER_POINT)),
+})));
 console.log(`最も低い利益: ${weakest.job}、1決算の取引額 ${weakest.turnover.toLocaleString('ja-JP')}円`);
-console.log(`MERCHANT_CAP_PER_PERIOD=${cap}`);
+console.log(`この試算の最低利益の職で、補正前の点数: ${Math.floor(weakest.turnover / MERCHANT_YEN_PER_POINT)}点`);
+console.log(`MERCHANT_CAP_PER_PERIOD=${MERCHANT_CAP_PER_PERIOD}`);
 console.log(`MERCHANT_BALANCE_FINGERPRINT=${merchantBalanceFingerprint()}`);
