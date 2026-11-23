@@ -58,6 +58,10 @@ export interface Shop {
   /** 決算までに到達した職レベルと、前回の決算で上がった品。 */
   joblvReached?: Record<number, number>;
   joblvNotice?: { at: number; raised: Record<number, number> };
+  /** 商人レベルの累計ポイントと、今期動かした金額 (円)。 */
+  merchantpt?: number;
+  merchantYen?: number;
+  merchantNotice?: { at: number; lv: number };
   /** 拡張データ (原作の user) */
   user: Record<string, string>;
   /**
@@ -253,6 +257,7 @@ export function newShop(id: number, maxItem: number): Shop {
     itemtoday: {},
     exp: {},
     joblvpt: {},
+    merchantpt: 0,
     user: {},
     costitems: {},
     point: 0,

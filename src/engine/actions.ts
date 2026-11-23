@@ -9,6 +9,7 @@ import { getWholeStore } from './market.js';
 import { addItemSub } from './scripts.js';
 import { newShop, type Shop } from './types.js';
 import { escapeHtml, formatHms } from './use.js';
+import { addMerchantYen } from './merchant.js';
 
 /** 原作の Shift_JIS での文字数 (半角1・全角2) */
 export function sjisLength(s: string): number {
@@ -179,7 +180,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     dts.itemtoday[itemno] = (dts.itemtoday[itemno] ?? 0) + num;
     dts.moneystock += num * baseprice - tax;
     dts.saletoday += num * baseprice;
-    g.recordSaleTax(dts, tax);
+    g.recordSaleTax(dts, tax, num * baseprice);
     // 売り切れたら売った店の人気が下がる
     if (dts.item[itemno - 1] === 0) {
       let rankdown = (dts.rank / 100) ** 3 / 1000;
@@ -195,6 +196,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   dt.item[itemno - 1] += num;
   dt.money -= num * price;
   dt.paytoday += num * price;
+  addMerchantYen(dt, num * price);
 
   const item = g.items[itemno];
   const ret =
@@ -271,11 +273,11 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   if (!(money > 0)) throw new GameError('金額が不正です');
   if (dt.money + money > g.maxMoney) money = g.maxMoney - dt.money;
   if (money > dt.moneystock) money = dt.moneystock;
-  const usetime = g.timeDeal(money);
+  const usetime = g.timeDeal(money, undefined, undefined, dt);
   if (g.usableTime(dt) < usetime) throw new GameError('時間が足りません');
   dt.money += money;
   dt.moneystock -= money;
-  g.useTime(g.timeDeal(money));
+  g.useTime(usetime);
   const ret = '￥' + money + '入金しました';
   g.writeLog(0, dt.id, 0, ret);
   return ret;
@@ -289,14 +291,15 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
 export function maxDeposit(g: Game, dt: Shop): number {
   const cap = Math.max(0, Math.min(dt.moneystock, g.maxMoney - dt.money));
   const stocktime = g.usableTime(dt);
-  if (cap <= 0 || stocktime < g.timeDeal(1)) return 0;
-  if (stocktime >= g.timeDeal(cap)) return cap;
+  const time = (amount: number) => g.timeDeal(amount, undefined, undefined, dt);
+  if (cap <= 0 || stocktime < time(1)) return 0;
+  if (stocktime >= time(cap)) return cap;
   // timeDeal は額について単調に増える。lo は払える、hi は払えない
   let lo = 1;
   let hi = cap;
   while (hi - lo > 1) {
     const mid = Math.floor((lo + hi) / 2);
-    if (g.timeDeal(mid) <= stocktime) lo = mid;
+    if (time(mid) <= stocktime) lo = mid;
     else hi = mid;
   }
   return lo;

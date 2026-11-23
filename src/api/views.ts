@@ -19,6 +19,7 @@ import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
 import { joblvData } from '../engine/joblv.js';
+import { merchantData } from '../engine/merchant.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
 export type LastPrices = Map<number, PeriodPriceRow>;
@@ -209,6 +210,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     joblv_raised: dt.joblvNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
       ? Object.entries(dt.joblvNotice.raised).map(([no, lv]) => ({ item: Number(no), name: g.items[Number(no)].name, lv }))
       : [],
+    merchant_raised: dt.merchantNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
+      ? dt.merchantNotice.lv : null,
     version: APP_VERSION,
     update,
     /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
@@ -249,6 +252,9 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.joblv_raised.length) {
     lines.push('決算で職レベルが上がりました ' + d.joblv_raised.map(({ name, lv }) => `${name} ${lv}`).join(' / '));
   }
+  if (d.merchant_raised !== null) {
+    lines.push(`決算で商人レベル${d.merchant_raised}に上がりました（引き出し・品物の取引が少し速くなります）`);
+  }
   lines.push(...tutorialDigestLines(d.tutorial));
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
@@ -286,6 +292,7 @@ export function meData(g: Game, dt: Shop) {
     shop: dt.shopname,
     job: jobName(dt) || '不定',
     joblv: joblvData(dt),
+    merchant: merchantData(dt),
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -334,6 +341,8 @@ export function meText(d: ReturnType<typeof meData>): string {
     lines.push('# 職レベル 品番 名前 レベル ポイント 次の累計ポイント');
     lines.push(...joblv.map(([no, { lv, point, next }]) => `${no} ${BASE_ITEMS[Number(no)].name} ${lv} ${point} ${next ?? '-'}`));
   }
+  const { lv, point, next, cap } = d.merchant;
+  lines.push(`商人レベル${lv} ポイント${point}${next === null ? ' (上限レベル)' : ` / 次の累計${next}`} 1決算最大${cap}点`);
   return lines.join('\n') + '\n';
 }
 
