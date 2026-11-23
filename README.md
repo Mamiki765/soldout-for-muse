@@ -69,6 +69,23 @@ docker compose up -d                             # この起動時刻から7日�
 - 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、`seed-market`・`give-hay` は必ず止めてから実行してください。
 - 元に戻すときは、コードと一緒にバックアップした DB も戻します (新しい版で起動すると保存データが新しい品数に広がるため)。
 
+### 1.4.0 より前の働きを職・商人ポイントに足す (1.4.1)
+
+1.4.0 で始まった職ポイント・商人ポイントに、それより前の熟練と商いの記録から数えた分を足します。1.4.0 で貯まった分は消さずに足すので、更新後しばらく経ってからでも使えます。1店1回きりです。
+
+```sh
+cd ~/apps/soldout
+mkdir -p data/fairy && cp ~/backup/1.4.0前のバックアップ/soldout.sqlite* data/fairy/   # 古いバックアップも足すと拾える期が増える
+npm run fairy-backfill -- data/soldout.sqlite --backup data/fairy/soldout.sqlite     # 試算だけ (読むだけ)
+docker compose stop
+cp data/soldout.sqlite* ~/backup/before-fairy-backfill/
+docker compose run --rm soldout fairy-backfill /data/fairy/soldout.sqlite            # 足す
+docker compose up -d
+```
+
+- 熟練は、バックアップと今の保存のうち「その店にまだ 1.4.0 のポイントが付いていない時点」のいちばん高い値から数えます (1.4.0 で上げた熟練は数えません)。
+- 商人ポイントは、同じ時点の売上税・入金庫税の累計と、保存に残る前期・今期の売上と仕入れから数えます (1期2,000点まで、職の補正つき)。
+
 ### アイコン・許可証の置き場 (0.5.0)
 
 画像は `/data/assets` (ホストでは `data/assets`) に `som0001_000001.webp` の名前で置き、サーバーが `PUBLIC_URL/assets/…` で配ります (中身の変わらないファイルは1年の immutable キャッシュなので、Cloudflare の後ろならほぼ初回しか来ません)。いちばん簡単な置き方は、何も足さずにキットだけ置くことです (画像は `data/` のバックアップに一緒に入ります):

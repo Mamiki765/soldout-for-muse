@@ -33,8 +33,9 @@ import { seedWholeStore } from './engine/market.js';
 import { APOLOGY_HAY_PER_HEAD, giveApologyHay } from './engine/apology.js';
 import { EXISTING_SHOP_CIGARETTES, giveShopTime } from './engine/campaign.js';
 import { shownPeople } from './engine/types.js';
-import { APP_VERSION, UPDATES } from './updates.js';
+import { UPDATES } from './updates.js';
 import { readFairyBackfillInput } from './fairy-backfill-input.js';
+import { applyFairyBackfill, planFairyBackfill } from './engine/fairy-backfill.js';
 
 const env = process.env;
 const dbPath = resolve(env.DB_PATH ?? 'data/soldout.sqlite');
@@ -120,26 +121,28 @@ if (cmd === 'set-invite') {
     process.exit(2);
   }
   const store = new Store(dbPath);
-  const key = 'market_seeded:' + APP_VERSION;
+  // 品を足していない修正版 (1.4.1 など) でも、品を足したいちばん新しい版の初期投入を一度だけ行う
+  const latest = UPDATES.find((u) => u.new_items?.length) ?? UPDATES[0];
+  const seedVersion = latest.version;
+  const key = 'market_seeded:' + seedVersion;
   if (store.getSetting(key)) {
-    console.error(`v${APP_VERSION} の初期投入は済んでいます (${store.getSetting(key)})。二重には入れません`);
+    console.error(`v${seedVersion} の初期投入は済んでいます (${store.getSetting(key)})。二重には入れません`);
     store.close();
     process.exit(1);
   }
   const now = Math.floor(Date.now() / 1000);
   const world = store.loadWorld(now);
   const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
-  const latest = UPDATES[0];
   const targets = (latest.new_items ?? []).map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0 || (BASE_ITEMS[no].seedmarket ?? 0) > 0);
   if (!targets.length) {
-    console.log(`v${APP_VERSION} では市場の初期投入対象がありません`);
+    console.log(`v${seedVersion} では市場の初期投入対象がありません`);
     store.close();
     process.exit(0);
   }
   const rows = seedWholeStore(g, targets, hours);
   try {
     store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2, () => {
-      if (store.getSetting(key)) throw new Error(`v${APP_VERSION} の初期投入は済んでいます`);
+      if (store.getSetting(key)) throw new Error(`v${seedVersion} の初期投入は済んでいます`);
       store.setSetting(key, new Date(now * 1000).toISOString());
     });
   } finally {
@@ -192,10 +195,37 @@ if (cmd === 'set-invite') {
   store.close();
   console.log(`${rows.length} 店にタイムシガレットを最大${count}本 (${count / 2}時間) 配りました`);
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
+} else if (cmd === 'fairy-backfill') {
+  // 1.4.1: 1.4.0 より前の働きを職・商人ポイントに足す。サーバーを止めて実行する。1店1回きり (二度目は足さない)。
+  //   fairy-backfill /data/fairy/1.4.0前.sqlite [/data/fairy/11期.sqlite ...]
+  const files = process.argv.slice(3);
+  if (!files.length) {
+    console.error('使い方: main.js fairy-backfill 1.4.0前のバックアップ.sqlite [古いバックアップ.sqlite ...]');
+    process.exit(1);
+  }
+  const backups = files.map((file) => readFairyBackfillInput(file));
+  const store = new Store(dbPath);
+  const now = Math.floor(Date.now() / 1000);
+  const world = store.loadWorld(now);
+  const totals = (id: number) => {
+    const owner = store.ownerByShop(id);
+    return owner ? store.ownerTaxTotals(owner.som) : undefined;
+  };
+  const rows = planFairyBackfill({
+    world,
+    salesTax: (id) => totals(id)?.sales ?? 0n,
+    depositTax: (id) => totals(id)?.deposit ?? 0n,
+  }, DEFAULT_CONFIG, backups);
+  const count = applyFairyBackfill(world, rows, now);
+  if (count) store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2);
+  store.close();
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  console.log(`${count} 店に足しました (職ポイント ${sum(rows.map((r) => sum(Object.values(r.joblvpt ?? {}))))}秒・商人ポイント ${sum(rows.map((r) => r.merchantpt ?? 0))}点)`);
+  for (const r of rows) console.log(`${r.id} ${r.shopname}: 職 +${sum(Object.values(r.joblvpt ?? {}))}秒 商人 +${r.merchantpt ?? 0}点`);
 } else if (cmd === 'serve') {
   // 本番での移し替えは試算を確認したうえで、このフラグを指定した起動時だけ行う。
   const fairyBackfill = env.FAIRY_BACKFILL === '1'
-    ? (env.FAIRY_BACKFILL_BACKUPS ?? '').split(delimiter).filter(Boolean).map((file) => readFairyBackfillInput(file).world)
+    ? (env.FAIRY_BACKFILL_BACKUPS ?? '').split(delimiter).filter(Boolean).map((file) => readFairyBackfillInput(file))
     : undefined;
   const store = new Store(dbPath);
   if (env.TOWN_EPOCH) {
