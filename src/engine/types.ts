@@ -62,6 +62,8 @@ export interface Shop {
   merchantpt?: number;
   merchantYen?: number;
   merchantNotice?: { at: number; lv: number };
+  /** 移し替え後に店主が digest を読むまで残す。 */
+  fairyBackfillNotice?: boolean;
   /** 拡張データ (原作の user) */
   user: Record<string, string>;
   /**

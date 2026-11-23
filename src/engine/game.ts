@@ -15,6 +15,7 @@ import { addMerchantYen, merchantTime } from './merchant.js';
 export const COUPON_WEEK = '_coupon_week';
 /** 原作 GetTodayTax: 入金庫のこの額を超えた分に、決算で税が掛かる */
 export const TAX_FREE_MONEYSTOCK = 1000000;
+export const SALE_TAX_MAX_RATE = 99;
 export const COUPON_LEFT = '_coupon_left';
 /** '1' ならクーポンから先に使う */
 export const COUPON_FIRST = '_coupon_first';
@@ -302,7 +303,7 @@ export class Game {
     // 原作は「$taxratedown=$taxrate+1,$raxrate=0」(変数名の書き間違いで taxrate は 0 にならない)。そのまま再現する
     if (taxrate < 0) taxratedown = taxrate + 1;
     taxrate = Math.trunc((taxrate + plustaxrate) * taxratedown);
-    if (taxrate > 99) taxrate = 99;
+    if (taxrate > SALE_TAX_MAX_RATE) taxrate = SALE_TAX_MAX_RATE;
     const tax = Math.trunc((price * taxrate) / 100);
     return [taxrate, tax];
   }

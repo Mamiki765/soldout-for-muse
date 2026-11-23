@@ -17,6 +17,7 @@ import { turn } from '../engine/turn.js';
 import { observePrices, PRICE_HISTORY_KEEP } from '../engine/prices.js';
 import { shownPeople, type LogEntry, type Shop, type World } from '../engine/types.js';
 import { averageJoblvYield } from '../engine/joblv.js';
+import { applyFairyBackfill, planFairyBackfill } from '../engine/fairy-backfill.js';
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
@@ -75,6 +76,8 @@ export interface AppOptions {
   assetsBaseUrl?: string;
   /** 許可証の枠とキット (kit/) */
   kitDir?: string;
+  /** 指定した起動時だけ、欠けている職・商人ポイントを移し替える。空配列なら現在の保存だけで試算する。 */
+  fairyBackfill?: readonly World[];
 }
 
 interface Reply {
@@ -182,6 +185,13 @@ export class App {
     });
     // 0.5.0 より前からある店に som を渡す (開店日の古い順)
     this.owners.migrate(this.world, (id) => this.store.partyOwnerOfShop(id), this.clock());
+    if (o.fairyBackfill !== undefined) {
+      const rows = planFairyBackfill(this.world, (id) => {
+        const owner = this.store.ownerByShop(id);
+        return owner ? this.store.ownerTaxTotals(owner.som)?.sales ?? 0n : 0n;
+      }, this.config, o.fairyBackfill);
+      if (applyFairyBackfill(this.world, rows)) this.persist([], this.clock());
+    }
     this.mail = new MailBox(this.store);
     this.town = new TownService(this.store, this.config.oneDayTime);
     this.initTown();
@@ -768,10 +778,14 @@ export class App {
       const dt = this.me(g, shopId);
       switch (p) {
         case '/digest': {
-          if (!readonly && tut.syncTutorial(g, dt)) this.persist([], this.clock());
+          const synced = !readonly && tut.syncTutorial(g, dt);
+          const backfilled = !readonly && dt.fairyBackfillNotice === true;
+          if (backfilled) delete dt.fairyBackfillNotice;
+          if (synced || backfilled) this.persist([], this.clock());
           const n = this.unreadCounts(dt);
           const ow = this.store.ownerByShop(dt.id);
           const d = v.digestData(g, dt, n, this.digestNotice(dt), this.lastPrices(), ow?.fairy_name);
+          d.fairy_backfilled = backfilled;
           // 許可証に描いた店主名・店名・職業が今と違えば、描き直しを勧める (0.5.0)
           const card = ow && this.owners.cardData(g, ow);
           if (card?.stale) d.warnings.push('許可証の絵が古い (店主名・店名・職業のどれかが変わった)。描き直すとよい GET /api/v1/profile/card/draft');

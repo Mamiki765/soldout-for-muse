@@ -212,6 +212,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
       : [],
     merchant_raised: dt.merchantNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
       ? { lv: dt.merchantNotice.lv, name: fairyName ?? null } : null,
+    fairy_backfilled: false,
     version: APP_VERSION,
     update,
     /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
@@ -257,6 +258,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     const who = name ? `お手伝い妖精の${name}さん` : 'お手伝い妖精';
     lines.push(`${who}が決算で育ちました（商人レベル${lv}、引き出し・品物の取引が少し速くなります）`);
   }
+  if (d.fairy_backfilled) lines.push('今までの働きぶんを入れました');
   lines.push(...tutorialDigestLines(d.tutorial));
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
