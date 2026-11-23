@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 仕入れの時間を買う前に見せる・上限で止める (1.2.3)
+// SOLD OUT for Muse — 仕入れの時間を買う前に見せる・上限で止める (1.3.0)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';

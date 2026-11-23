@@ -20,7 +20,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'1.2.3');
+    assert.equal(data.version,'1.3.0');
     assert.equal(data.updates[0].title,'買う前に取引時間がわかるように');
     assert.equal(data.updates[1].title,'街の地図を動かしやすく');
     assert.equal(data.updates[2].title,'街の地図と住所');
@@ -42,7 +42,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v1\.2\.3 2026-11-23 買う前に取引時間がわかるように\n/);
+    assert.match(text,/^# v1\.3\.0 2026-11-23 買う前に取引時間がわかるように\n/);
     assert.match(text,/\n# v1\.2\.1 2026-11-22 街の地図を動かしやすく\n/);
     assert.match(text,/\n# v1\.2\.0 2026-11-22 街の地図と住所\n/);
     assert.match(text,/\n# v1\.1\.3 2026-11-22 街暦\n街暦を表示しました。\n/);

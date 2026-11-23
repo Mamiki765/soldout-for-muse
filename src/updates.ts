@@ -157,8 +157,8 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
-export const V123: PatchUpdate = {
-  version: '1.2.3',
+export const V130: PatchUpdate = {
+  version: '1.3.0',
   date: '2026-11-23',
   title: '買う前に取引時間がわかるように',
   summary: '仕入れ (buy) にかかる時間を、買う前に市場・他店の棚の一覧で見られるようにしました。上限の時間を超える仕入れを止める指定も足しました。数値は変わりません。',
@@ -479,7 +479,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V123, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

@@ -338,7 +338,7 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       shelf_lo: it.marketprice ? it.marketpricelow : 0,
       shelf_hi: it.marketprice ? it.marketpricehigh : 0,
       shops: it.listshops,
-      // 1.2.3: あなたがここで1回買うのにかかる時間 (秒)。個数に関係しない
+      // 1.3.0: あなたがここで1回買うのにかかる時間 (秒)。個数に関係しない
       deal_time: g.buyTime(c.itemno, c.price, true),
       // 前の決算のときの値と、そこから何%動いたか (どちらかが無ければ null)
       market_prev: p?.market ?? 0,
@@ -365,11 +365,11 @@ export function balanceWord(per: number): string {
   return '均衡';
 }
 
-/** 市場・他店の棚の「取引」列の説明 (1.2.3) */
+/** 市場・他店の棚の「取引」列の説明 (1.3.0) */
 export const DEAL_TIME_NOTE =
   '取引=あなたが1回買うのにかかる時間。何個買っても1回ぶん (個数に関係なし) なので、時間の長い品 (標準より安い品) は要る数より多めにまとめて買うのが得。buy に "max_minutes" を付けると、それより長いときは時間を使わずに中止';
 
-/** 取引時間の短い表示。1時間以上は「!」を付けて目立たせる (1.2.3) */
+/** 取引時間の短い表示。1時間以上は「!」を付けて目立たせる (1.3.0) */
 export function dealWord(sec: number): string {
   return dur(sec) + (sec >= 3600 ? '!' : '');
 }
@@ -400,7 +400,7 @@ export function shopsData(g: Game, opts: { item?: number; limit: number }) {
       popularity: pct(s.rank),
       point: s.point,
       comment: s.comment,
-      // 1.2.3: deal_time はあなたがその棚で1回買うのにかかる時間 (秒、個数に関係しない)
+      // 1.3.0: deal_time はあなたがその棚で1回買うのにかかる時間 (秒、個数に関係しない)
       shelves: shelfData(g, s)
         .filter((x) => x.item && x.stock)
         .map((x) => ({ ...x, deal_time: g.buyTime(x.item, x.price, false) })),
@@ -722,7 +722,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
     limit: it.limit,
     flags: flagWords(it.flag),
     market: src.market,
-    // 1.2.3: 市場に今あれば、あなたが市場で1回買うのにかかる時間 (秒、個数に関係しない)
+    // 1.3.0: 市場に今あれば、あなたが市場で1回買うのにかかる時間 (秒、個数に関係しない)
     ...(dt && wholeCase ? { market_price: wholeCase.price, market_deal_time: g.buyTime(itemno, wholeCase.price, true) } : {}),
     ...(note ? { note } : {}),
     /** 値動き (0.6.0)。history を渡したときだけ */
