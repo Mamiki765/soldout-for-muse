@@ -15,6 +15,7 @@ import { itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { openShop } from '../src/engine/actions.js';
 import { applyFairyBackfill, fastestSkillSeconds, planFairyBackfill, type FairyBackfillSnapshot } from '../src/engine/fairy-backfill.js';
 import { Game } from '../src/engine/game.js';
+import { settleJoblv } from '../src/engine/joblv.js';
 import { MERCHANT_CAP_PER_PERIOD } from '../src/engine/merchant.js';
 import { newWorld, type World } from '../src/engine/types.js';
 import { Store } from '../src/store.js';
@@ -85,6 +86,31 @@ test('1.4.0 で貯まったポイントは消さず、1.4.0 より前の時点�
   touched.shops[0].joblvpt = { [MINE]: 1 };
   touched.shops[0].merchantpt = 1;
   assert.deepEqual(planFairyBackfill(snap(touched, 10n ** 9n)), []);
+});
+
+test('期ごとの実績はその時点の職で補正し、後で転職したバックアップを足しても変わらない', () => {
+  const { world } = legacy();
+  const old = structuredClone(world);
+  old.shops[0].saleyesterday = 500_000;
+  const later = structuredClone(world);
+  later.shops[0].job = 'book';
+  later.lasttime += DEFAULT_CONFIG.oneDayTime * 2;
+  const one = planFairyBackfill(snap(world), DEFAULT_CONFIG, [snap(old)]);
+  const two = planFairyBackfill(snap(world), DEFAULT_CONFIG, [snap(old), snap(later)]);
+  assert.equal(one[0].merchantpt, 1_000);
+  assert.equal(two[0].merchantpt, 1_000);
+});
+
+test('まだ決算を迎えていない 1.4.0 の段も、移した後のレベルも、決算で知らせ直さない', () => {
+  const { dt, world, g } = legacy();
+  dt.joblvpt = { [MINE]: 19_200 };
+  dt.joblvReached = {};
+  const pre = structuredClone(world);
+  delete pre.shops[0].joblvpt;
+  pre.shops[0].exp[MINE] = 700;
+  assert.equal(applyFairyBackfill(world, planFairyBackfill(snap(world), DEFAULT_CONFIG, [snap(pre)]), NOW), 1);
+  settleJoblv(dt, g.now);
+  assert.equal(dt.joblvNotice, undefined);
 });
 
 test('期ごとの実績は1期2,000点で頭打ちにし、同じ期は大きい方だけ数える', () => {

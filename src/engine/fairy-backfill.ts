@@ -105,6 +105,7 @@ function estimateMerchant(shop: Shop, views: { s: Shop; at: number; sales: bigin
   if (!views.length || !Number.isSafeInteger(shop.foundation) || shop.foundation <= 0) return 0;
   const period = (at: number) => Math.floor((at + config.tzOffset - config.dateReviseTime) / config.oneDayTime);
   const latest = views.reduce((a, b) => (b.at > a.at ? b : a));
+  // 税は通算の累計なので、いちばん新しい時点の職で補正する。期ごとの実績はその時点の職で。
   const mult = merchantMultiplier(latest.s.job);
   const capPerPeriod = MERCHANT_CAP_PER_PERIOD * MERCHANT_YEN_PER_POINT;
   // 税の累計は増える一方なので、いちばん新しい1枚が最大。
@@ -116,7 +117,7 @@ function estimateMerchant(shop: Shop, views: { s: Shop; at: number; sales: bigin
     const lines: [number, number][] = [[p - 1, v.s.saleyesterday + v.s.payyesterday], [p, v.s.saletoday + v.s.paytoday]];
     for (const [q, yen] of lines) {
       if (q < period(shop.foundation) || !(yen > 0)) continue;
-      byPeriod.set(q, Math.max(byPeriod.get(q) ?? 0, Math.min(capPerPeriod, yen * mult)));
+      byPeriod.set(q, Math.max(byPeriod.get(q) ?? 0, Math.min(capPerPeriod, yen * merchantMultiplier(v.s.job))));
     }
   }
   const periodYen = [...byPeriod.values()].reduce((a, b) => a + b, 0);
@@ -177,10 +178,10 @@ export function applyFairyBackfill(world: World, rows: readonly FairyBackfillRow
       const reached = s.joblvReached ??= {};
       for (const [id, add] of Object.entries(row.joblvpt)) {
         const no = Number(id);
-        const before = joblvProgress(s, no).lv;
         pts[no] = (pts[no] ?? 0) + add;
-        // 1.4.0 で上がってまだ知らせていない分は残し、移した分で上がった段だけ知らせ済みにする。
-        if ((reached[no] ?? 0) >= before) reached[no] = joblvProgress(s, no).lv;
+        // 移した後のレベルを知らせ済みにする。1.4.0 で上がってまだ決算を迎えていない段も、ここでまとめて
+        // 「今までの働きぶん」の案内に含める (決算で移した分まで上がったように知らせない)。
+        reached[no] = Math.max(reached[no] ?? 0, joblvProgress(s, no).lv);
       }
     }
     if (row.merchantpt) s.merchantpt = (s.merchantpt ?? 0) + row.merchantpt;
