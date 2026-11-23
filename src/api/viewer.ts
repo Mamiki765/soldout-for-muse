@@ -91,6 +91,7 @@ a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .cell .rk{font-size:11px;color:#666699}
 .cell .on{font-size:12px;color:#444}
 .cell .sn{font-size:14px}
+.cell .signs{display:inline-flex;gap:3px;align-items:center;vertical-align:middle;color:#556}
 .cell .pt{font-size:11px;color:#666699;margin-top:4px}
 .av{width:100px;height:100px;border-radius:12px;display:block;margin:2px auto 4px;object-fit:cover;background:#dde6ff}
 .av.e{display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;font-weight:bold}
@@ -124,6 +125,25 @@ function itemIcon(g: Game, no: number): string {
   if (!no) return '';
   const it = g.items[no];
   return `<img class="i" src="/images/item-no-${no}.png" alt="" onerror="this.src='/images/item-type${it.type}.png'">`;
+}
+
+function specialtySign(g: Game, dt: Shop): string {
+  const type = specialtyType(g, dt);
+  if (!type) return '';
+  const label = `${esc(CATALOG.itemTypes[type])}専門店`;
+  return `<img class="s" src="/images/item-typesign${type}.png" alt="${label}" title="${label}">`;
+}
+
+const JOB_SIGNS = new Set([
+  'book', 'cow', 'deco', 'drug', 'leather', 'mail', 'mine',
+  'peddle', 'shield', 'staff', 'sword', 'wood', 'woodwork',
+]);
+
+function jobSign(dt: Shop): string {
+  const label = esc(jobName(dt));
+  if (!label) return '';
+  if (!JOB_SIGNS.has(dt.job)) return `<small>【${label}】</small>`;
+  return `<img src="/images/job-sign-${dt.job}.png" width="24" height="16" alt="${label}" title="${label}">`;
 }
 
 /** 店主のアイコン。未登録なら som から決まる色と頭文字のエンブレム (画像を使わない) */
@@ -388,7 +408,8 @@ function topPage(app: App, g: Game): string {
     const goods = shelves.length
       ? shelves.map((x) => `<li>${itemIcon(g, x.item)}<span class="nm">${esc(x.name)}</span><span class="pr">￥${x.price} ×${x.stock}</span></li>`).join('')
       : '<li><span class="nm">(棚は空)</span></li>';
-    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点${at ? `<span class="adr">${esc(at.short)}</span>` : ''}</div><div class="sn"><b>${raw(dt.shopname)}</b></div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
+    const signs = specialtySign(g, dt) + jobSign(dt);
+    main += `<a class="cell" href="${href}"><div class="hd">${avatar(app, ow, dt.shopname)}<div><div class="rk">${i + 1}位 · ${dt.point}点${at ? `<span class="adr">${esc(at.short)}</span>` : ''}</div><div class="sn"><b>${raw(dt.shopname)}</b>${signs ? ` <span class="signs">${signs}</span>` : ''}</div><div class="on">${esc(ow?.display_name ?? dt.name)}</div></div></div><div class="pt">人気 ${rankBar(dt.rank)}</div><ul>${goods}</ul></a>`;
   });
   main += '</div>';
   // 改装中 (休業) の店は順位の外。名前だけ並べる (1.1.0)
@@ -438,9 +459,8 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
 function rankingPage(app: App, g: Game): string {
   let s = '●ランキング<hr><table><tr><td>順位</td><td>店主</td><td>店名</td><td>点数</td><td>人気</td><td>前期</td><td>優勝</td><td>コメント</td></tr>';
   g.shops.forEach((dt, i) => {
-    const sp = specialtyType(g, dt);
     const job = jobName(dt);
-    const tag = (sp ? `<img class="s" src="/images/item-typesign${sp}.png" alt="${esc(CATALOG.itemTypes[sp])}専門店" title="${esc(CATALOG.itemTypes[sp])}専門店">` : '') + (job ? `【${esc(job)}】` : '');
+    const tag = specialtySign(g, dt) + (job ? `【${esc(job)}】` : '');
     const ow = app.store.ownerByShop(dt.id);
     const who = `${avatar(app, ow, dt.shopname, 's')}${ow ? `<a href="/view/owner/${ow.som}">${esc(ow.display_name)}</a>` : esc(dt.name)}`;
     s += `<tr><td>${i + 1}</td><td class="nw">${who}</td><td>${tag}${raw(dt.shopname)}</td><td>${dt.point}</td><td>${rankBar(dt.rank)}</td><td>${dt.rankingyesterday || '-'}</td><td>${dt.rankingcount}回</td><td>${raw(dt.comment)}</td></tr>`;
