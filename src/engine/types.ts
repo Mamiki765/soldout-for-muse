@@ -53,6 +53,17 @@ export interface Shop {
   itemtoday: Record<number, number>;
   /** 熟練度。商品番号 → 0〜1000 */
   exp: Record<number, number>;
+  /** 職レベルの累計作業秒数。熟練を共有する品は同じ品番に加算する。 */
+  joblvpt?: Record<number, number>;
+  /** 決算までに到達した職レベルと、前回の決算で上がった品。 */
+  joblvReached?: Record<number, number>;
+  joblvNotice?: { at: number; raised: Record<number, number> };
+  /** 商人レベルの累計ポイントと、今期動かした職補正後の金額 (円)。 */
+  merchantpt?: number;
+  merchantYen?: number;
+  merchantNotice?: { at: number; lv: number };
+  /** 移し替え後に店主が digest を読むまで残す。 */
+  fairyBackfillNotice?: boolean;
   /** 拡張データ (原作の user) */
   user: Record<string, string>;
   /**
@@ -247,6 +258,8 @@ export function newShop(id: number, maxItem: number): Shop {
     itemyesterday: {},
     itemtoday: {},
     exp: {},
+    joblvpt: {},
+    merchantpt: 0,
     user: {},
     costitems: {},
     point: 0,

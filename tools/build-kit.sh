@@ -6,7 +6,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 ASSETS_ROOT="${ASSETS_ROOT:?ASSETS_ROOT (画像の箱のフォルダ) を指定してください}"
-VERSION=1.2.0
+VERSION=1.4.0
 FONT_BASE=https://raw.githubusercontent.com/google/fonts/main/ofl/shipporiminchob1
 OUT="$ASSETS_ROOT/kit"
 WORK="$(mktemp -d)"

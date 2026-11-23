@@ -18,6 +18,8 @@ import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView,
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
+import { joblvData } from '../engine/joblv.js';
+import { merchantData } from '../engine/merchant.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
 export type LastPrices = Map<number, PeriodPriceRow>;
@@ -126,7 +128,7 @@ export function priceMoves(g: Game, dt: Shop, prev: LastPrices) {
   return out.sort((a, b) => size(b) - size(a)).slice(0, PRICE_MOVE_MAX);
 }
 
-export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | null = null, prev: LastPrices = new Map()) {
+export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | null = null, prev: LastPrices = new Map(), fairyName?: string | null) {
   const rankNo = g.shopIndex(dt.id) + 1;
   const stock = g.stockTime(dt);
   const full = g.config.maxStockTime - stock;
@@ -205,6 +207,12 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     tutorial: tutorialDigest(g, dt),
     /** 自分の品で、前の決算から相場・市場の単価が ±20% 以上動いたもの (0.6.0) */
     price_moves: priceMoves(g, dt, prev),
+    joblv_raised: dt.joblvNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
+      ? Object.entries(dt.joblvNotice.raised).map(([no, lv]) => ({ item: Number(no), name: g.items[Number(no)].name, lv }))
+      : [],
+    merchant_raised: dt.merchantNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
+      ? { lv: dt.merchantNotice.lv, name: fairyName ?? null } : null,
+    fairy_backfilled: false,
     version: APP_VERSION,
     update,
     /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
@@ -242,6 +250,15 @@ export function digestText(d: ReturnType<typeof digestData>): string {
     const mv = d.price_moves.map((m) => [m.name, m.market_change !== null && `相場${pctWord(m.market_change)}`, m.price_change !== null && `単価${pctWord(m.price_change)}`].filter(Boolean).join(' '));
     lines.push(`値動き(前の決算から) ${mv.join(' / ')} 推移は /api/v1/items/品番`);
   }
+  if (d.joblv_raised.length) {
+    lines.push('決算で職レベルが上がりました ' + d.joblv_raised.map(({ name, lv }) => `${name} ${lv}`).join(' / '));
+  }
+  if (d.merchant_raised !== null) {
+    const { lv, name } = d.merchant_raised;
+    const who = name ? `お手伝い妖精の${name}さん` : 'お手伝い妖精';
+    lines.push(`${who}が決算で育ちました（商人レベル${lv}、引き出し・品物の取引が少し速くなります）`);
+  }
+  if (d.fairy_backfilled) lines.push('今までの働きぶんを入れました');
   lines.push(...tutorialDigestLines(d.tutorial));
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
@@ -278,6 +295,8 @@ export function meData(g: Game, dt: Shop) {
     name: dt.name,
     shop: dt.shopname,
     job: jobName(dt) || '不定',
+    joblv: joblvData(dt),
+    merchant: merchantData(dt),
     rank: g.shopIndex(dt.id) + 1,
     popularity: pct(dt.rank),
     point: dt.point,
@@ -321,6 +340,13 @@ export function meText(d: ReturnType<typeof meData>): string {
     '# 倉庫 品番 名前 数/上限 今期売/前期売 熟練% 相場',
     ...d.stock.map((s) => `${s.item} ${s.name} ${s.count}/${s.limit} ${s.today}/${s.yesterday} ${s.exp} ${s.market || '-'}`),
   ];
+  const joblv = Object.entries(d.joblv);
+  if (joblv.length) {
+    lines.push('# 職レベル 品番 名前 レベル ポイント 次の累計ポイント');
+    lines.push(...joblv.map(([no, { lv, point, next }]) => `${no} ${BASE_ITEMS[Number(no)].name} ${lv} ${point} ${next ?? '-'}`));
+  }
+  const { lv, point, next, cap } = d.merchant;
+  lines.push(`商人レベル${lv} ポイント${point}${next === null ? ' (上限レベル)' : ` / 次の累計${next}`} 1決算最大${cap}点`);
   return lines.join('\n') + '\n';
 }
 
@@ -603,6 +629,10 @@ function jobWords(u: RtUse): string[] {
 }
 
 const lineOut = (l: { no: number; count: number; proba: number }, key: 'consume' | 'chance') => ({ item: l.no, name: shownName(l.no), count: l.count, [key]: l.proba / 10 }) as { item: number; name: string; count: number } & Record<typeof key, number>;
+const getLineOut = (l: RtUse['result']['create'][number]) => ({
+  ...lineOut(l, 'chance'),
+  ...(l.fraction ? { extra_chance: l.proba * l.fraction / 10000 } : {}),
+});
 
 /** 作り方の1行 (道具 tool の使い方 useNo)。dt があれば、その店での時間と今使えるかも付ける */
 function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
@@ -621,7 +651,7 @@ function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
     time_skilled: u.def.exptime,
     money: u.money,
     needs: u.use.map((l) => lineOut(l, 'consume')),
-    gets: u.result.create.map((l) => lineOut(l, 'chance')),
+    gets: u.result.create.map(getLineOut),
     skill_item: { item: skill, name: shownName(skill) },
     needexp: Math.trunc(u.needexp / 10),
     jobs: jobWords(u),
@@ -719,7 +749,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
       exp: Math.trunc(u.exp / 10),
       needexp: Math.trunc(u.needexp / 10),
       needs: u.use.map((l) => lineOut(l, 'consume')),
-      gets: u.result.create.map((l) => lineOut(l, 'chance')),
+      gets: u.result.create.map(getLineOut),
       target: u.argspec.includes('target'),
       message: u.argspec.includes('message'),
       one_at_a_time: u.argspec.includes('nocount'),
@@ -732,8 +762,8 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
 
 const needsText = (needs: { name: string; count: number; consume: number }[]) =>
   needs.map((n) => `${n.name}x${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join(',') || '-';
-const getsText = (gets: { name: string; count: number; chance: number }[]) =>
-  gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join(',') || '-';
+const getsText = (gets: ReturnType<typeof getLineOut>[]) =>
+  gets.map((n) => `${n.name}x${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}${n.extra_chance ? ` +1個(${n.extra_chance}%)` : ''}`).join(',') || '-';
 
 /** 予告の品 (item-ref.json の teaser) の詳細: 名前だけ */
 export function teaserData(itemno: number) {

@@ -627,6 +627,67 @@ if (!grep { $_ eq '--original' } @ARGV) {
 	}
 	$define{version} = $v130->{version};
 
+	if (!grep { $_ eq '--before-v140-balance' } @ARGV) {
+		# 1.4.0 の出来高・加工時間・木工品 (tools/v140-balance.json)。
+		open(my $v140_fh, '<:raw', "$FindBin::Bin/v140-balance.json") or die $!;
+		my $v140 = JSON::PP->new->utf8->decode(do { local $/; <$v140_fh> });
+		close $v140_fh;
+		$v140 = $as_bytes->($v140);
+		for my $no (keys %{ $v140->{prices} }) {
+			my $it = $by_no{$no} or die "v1.4.0: unknown item $no";
+			$it->{price} = $v140->{prices}{$no};
+		}
+		for my $ch (@{ $v140->{recipe_times} }) {
+			my $u = $find_use->($ch->{book}, $ch->{product});
+			@$u{qw(time exptime)} = @$ch{qw(time exptime)};
+		}
+		for my $spec (@{ $v140->{items} }) {
+			die "v1.4.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+			my $ref = $by_no{$spec->{reference}} or die 'v1.4.0: unknown item reference';
+			my $it = $copy->($ref);
+			@$it{keys %$spec} = values %$spec;
+			delete $it->{reference};
+			$it->{uses} = [];
+			push @items, $it;
+			$by_no{$it->{no}} = $it;
+		}
+		my $woodwork = $v140->{woodwork};
+		my $template = $find_use->($woodwork->{book}, $woodwork->{template});
+		my $wood_uses = $by_no{$woodwork->{book}}{uses};
+		for my $spec (@{ $woodwork->{recipes} }) {
+			my $u = $copy->($template);
+			my $name = $by_no{$spec->{product}}{name};
+			$u->{no} = scalar @$wood_uses;
+			$u->{name} = $name . 'を作成する';
+			$u->{info} = $name . 'を作成します';
+			$u->{okmsg} = $name . 'を作りました';
+			$u->{needexp} = $woodwork->{needexp};
+			@$u{qw(time exptime)} = @$spec{qw(time exptime)};
+			$u->{use} = $lines->($spec->{materials}, 1000);
+			$u->{get} = $lines->([[$spec->{product}, $spec->{count}, $spec->{proba}]], 1000);
+			push @$wood_uses, $u;
+		}
+		my $gather = $v140->{gathering};
+		my ($gather_use) = grep { $_->{no} == $gather->{use} } @{ $by_no{$gather->{book}}{uses} };
+		die 'v1.4.0: gathering use not found' if !$gather_use;
+		push @{ $gather_use->{get} }, @{ $lines->([$gather->{get}], 1000) };
+		for my $book (keys %{ $v140->{yield_percent} }) {
+			for my $u (@{ $by_no{$book}{uses} }) {
+				for my $get (@{ $u->{get} }) {
+					my $scaled = $get->{count} * $v140->{yield_percent}{$book};
+					if ($get->{count} >= 5) {
+						$get->{count} = int(($scaled + 50) / 100);
+					} else {
+						$get->{count} = int($scaled / 100);
+						my $remainder = $scaled % 100;
+						$get->{fraction} = $remainder * 10 if $remainder;
+					}
+				}
+			}
+		}
+		$define{version} = $v140->{version};
+	}
+
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
 	# 物を作る使い方 (get あり) は、今の時間を熟練0の時間とし、熟練最大で production_exptime_rate 倍に縮む。
 	open(my $share_fh, '<:raw', "$FindBin::Bin/skill-share.json") or die $!;

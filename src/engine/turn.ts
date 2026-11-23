@@ -143,7 +143,7 @@ export function turnProc(g: Game): void {
           dt.saletoday += saleprice;
           dt.item[itemno - 1] -= sale;
           dt.itemtoday[itemno] = (dt.itemtoday[itemno] ?? 0) + sale;
-          g.recordSaleTax(dt, tax);
+          g.recordSaleTax(dt, tax, saleprice);
 
           // 売り切れ時の人気DOWN
           if (dt.item[itemno - 1] === 0) rankdown += (dt.rank / 100) ** 3 / 1000;

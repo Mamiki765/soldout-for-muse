@@ -59,28 +59,28 @@ test('干し草: 新素材の初期投入 (seed-market) の対象で、0.6.0 の
   assert.ok(row.add > 0);
 });
 
-test('近くの山への地図: 7つの行き先すべてに干し草×20 (80%) が付き、牧草地で草を刈るが増える', () => {
+test('近くの山への地図: 7つの行き先すべてに干し草×24 (80%) が付き、牧草地で草を刈れる', () => {
   const uses = BASE_ITEMS[MOUNTAIN].uses;
   assert.equal(uses.length, 8);
   for (const u of uses.slice(0, 7)) {
-    assert.deepEqual(u.get.at(-1), { item_no: HAY, count: 20, proba: 800 }, u.name!);
+    assert.deepEqual(u.get.find((l) => l.item_no === HAY), { item_no: HAY, count: 24, proba: 800 }, u.name!);
     assert.equal(u.get.filter((l) => l.item_no === HAY).length, 1);
   }
   const p = uses[7];
   assert.deepEqual([p.name, p.needexp, p.time, p.exptime, p.exp, p.func, p.params[0]], ['牧草地で草を刈る', 0, 14400, 7200, 10, 'lostbook', '100']);
-  assert.deepEqual(p.get, [{ item_no: HAY, count: 120, proba: 900 }]);
+  assert.deepEqual(p.get, [{ item_no: HAY, count: 144, proba: 900 }]);
   assert.deepEqual(p.jobs, [{ job: 'material', key: 'times', op: '/', value: 2 }]);
   assert.deepEqual(p.use, []);
 });
 
-test('牧草地で草を刈る: 熟練0でも行けて、山師は熟練0で2時間・干し草×120 (1束ずつ90%)', () => {
+test('牧草地で草を刈る: 熟練0でも行けて、山師は熟練0で2時間・干し草×144 (1束ずつ90%)', () => {
   const { g, dt } = fixture('material');
   dt.item[MOUNTAIN - 1] = 1;
   const before = dt.time;
   const u = useItemAction(g, dt, MOUNTAIN, 7, { count: 1 });
   assert.equal(u.result.count, 1);
   assert.equal(dt.time - before, 7200, '熟練0・山師で4時間の半分');
-  assert.equal(dt.item[HAY - 1], 120, '乱数0.2なので全部成功');
+  assert.equal(dt.item[HAY - 1], 144, '乱数0.2なので全部成功');
   assert.equal(dt.exp[MOUNTAIN], 10);
 });
 

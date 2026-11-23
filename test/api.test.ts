@@ -187,6 +187,8 @@ test('2冊の書籍は新名称で表示し、新旧の商品名と執筆操作�
     const shop = app.world.shops.find((s) => s.id === reg.shop_id)!;
     const kit = BASE_ITEMS[10];
     shop.job = 'book';
+    // 名称の検証では、書くたびに必ず1冊できる出目で揃える。
+    app.rng.next = () => 0.5;
     const send = async (actions: unknown[]) => {
       const response = await fetch(base + '/api/v1/actions?format=json', { method: 'POST', headers, body: JSON.stringify({ actions }) });
       assert.equal(response.status, 200);
@@ -200,6 +202,8 @@ test('2冊の書籍は新名称で表示し、新旧の商品名と執筆操作�
       assert.deepEqual([item.item, item.name], [no, name]);
 
       const recipe = kit.uses.find((use) => use.get.some((line) => line.item_no === no))!;
+      // どちらの本でも、出来高の追加抽選がない職レベル0から新旧の操作名を試す。
+      shop.joblvpt = {};
       for (const line of recipe.use) shop.item[line.item_no - 1] = line.count * 2;
       const results = await send([
         { type: 'use', item: kit.name, use: `${name}を執筆する` },

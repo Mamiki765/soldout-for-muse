@@ -9,11 +9,13 @@ import type { GameConfig } from '../config.js';
 import type { LogEntry, Shop, World } from './types.js';
 import type { Rng } from './rng.js';
 import type { PeriodPriceRow } from './prices.js';
+import { addMerchantYen, merchantTime } from './merchant.js';
 
 /** 時間クーポンの保存先 (Shop.user)。配られた週の開始時刻と残り秒 */
 export const COUPON_WEEK = '_coupon_week';
 /** 原作 GetTodayTax: 入金庫のこの額を超えた分に、決算で税が掛かる */
 export const TAX_FREE_MONEYSTOCK = 1000000;
+export const SALE_TAX_MAX_RATE = 99;
 export const COUPON_LEFT = '_coupon_left';
 /** '1' ならクーポンから先に使う */
 export const COUPON_FIRST = '_coupon_first';
@@ -301,19 +303,21 @@ export class Game {
     // 原作は「$taxratedown=$taxrate+1,$raxrate=0」(変数名の書き間違いで taxrate は 0 にならない)。そのまま再現する
     if (taxrate < 0) taxratedown = taxrate + 1;
     taxrate = Math.trunc((taxrate + plustaxrate) * taxratedown);
-    if (taxrate > 99) taxrate = 99;
+    if (taxrate > SALE_TAX_MAX_RATE) taxrate = SALE_TAX_MAX_RATE;
     const tax = Math.trunc((price * taxrate) / 100);
     return [taxrate, tax];
   }
 
   /** 売上から差し引いたときに記録し、期の集計は従来どおり更新する */
-  recordSaleTax(dt: Shop, tax: number): void {
+  recordSaleTax(dt: Shop, tax: number, gross: number): void {
     dt.taxtoday += tax;
+    addMerchantYen(dt, gross + Math.max(0, tax));
     this.recordTax(dt.id, 'sales', tax);
   }
 
   /** 通常決算と休業開始の精算で、実際に計上した入金庫税を記録する */
   recordDepositTax(dt: Shop, tax: number): void {
+    addMerchantYen(dt, tax);
     this.recordTax(dt.id, 'deposit', tax);
   }
 
@@ -339,18 +343,18 @@ export class Game {
   }
 
   /** 原作 GetTimeDeal: 取引にかかる時間 */
-  timeDeal(price: number, itemno?: number, itemcount?: number): number {
+  timeDeal(price: number, itemno?: number, itemcount?: number, dt = this.dt): number {
     if (!itemno) {
       if (!price) return 0;
-      if (!CATALOG.timeSendMoneyPlus) return CATALOG.timeSendMoney;
-      return Math.trunc((CATALOG.timeSendMoney * price) / CATALOG.timeSendMoneyPlus) + CATALOG.timeSendMoney;
+      const extra = CATALOG.timeSendMoneyPlus ? Math.trunc((CATALOG.timeSendMoney * price) / CATALOG.timeSendMoneyPlus) : 0;
+      return merchantTime(CATALOG.timeSendMoney + extra, dt);
     }
     if (!itemcount) return 0;
     const std = this.items[itemno].price;
     let mul = 1;
     if (price && std) mul = std / (price / itemcount);
     if ((!price && std) || mul > 20) mul = 20;
-    return Math.trunc(this.timeSendItem * mul);
+    return merchantTime(Math.trunc(this.timeSendItem * mul), dt);
   }
 
   /**
@@ -364,7 +368,7 @@ export class Game {
     let mul = 1;
     if (unitPrice && std) mul = std / unitPrice;
     if ((!unitPrice && std) || mul > 20) mul = 20;
-    return Math.trunc(base * mul);
+    return merchantTime(Math.trunc(base * mul), this.dt);
   }
 
   /**

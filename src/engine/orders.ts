@@ -10,6 +10,7 @@
 
 import { CATALOG } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
+import { addMerchantYen } from './merchant.js';
 import type { BuyOrder, OrderRenew, OrderStats, Shop } from './types.js';
 
 /** 募集まわりの決まり。数値はリカさん決定 (2026-11-14) */
@@ -157,7 +158,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
 
   const total = price * count;
   if (dt.money < total) throw new GameError('資金が足りません (代金は募集のときに全額預けます)');
-  const usetime = g.timeDeal(total, itemno, count);
+  const usetime = g.timeDeal(total, itemno, count, dt);
   const fromCoupon = g.useTime(usetime);
   dt.money -= total;
   bump(stats.posted, dt.id);
@@ -236,7 +237,7 @@ function repostOrder(g: Game, o: BuyOrder, buyer: Shop): string | true {
     .reduce((a, x) => a + x.count, 0);
   if (after + others + o.left > item.limit) return '所持上限のため再掲せず';
   const paid = got > 0;
-  const cost = paid ? g.timeDeal(o.left * o.price, o.item, o.left) : 0;
+  const cost = paid ? g.timeDeal(o.left * o.price, o.item, o.left, buyer) : 0;
   if (paid) {
     const max = g.config.maxStockTime;
     const base = t - buyer.time > max ? t - max : buyer.time;
@@ -417,11 +418,12 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     dt.itemtoday[o.item] = (dt.itemtoday[o.item] ?? 0) + num;
     dt.moneystock += amount - tax;
     dt.saletoday += amount;
-    g.recordSaleTax(dt, tax);
+    g.recordSaleTax(dt, tax, amount);
     // 棚の「売り切れで人気が下がる」は掛けない (意図的)。納品は棚を使わないので売り切れ放置が起きない。
     // 人気・点数への効き過ぎは、1期に応じられる件数 (fillsPerDay) で抑える (リカさん判断 2026-11-14)
     // 買い手: 預り金から払う (時間は募集のときに払い済み)。品は締めるまで募集の中で預かる
     buyer.paytoday += amount;
+    addMerchantYen(buyer, amount);
     o.escrow -= amount;
     o.left -= num;
     bump(stats.filled, dt.id);

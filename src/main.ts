@@ -8,7 +8,7 @@
 //   node dist/src/main.js town-calendar [Unix秒] 街暦を確認する。引数ありで第1期の開始を設定する
 //   node dist/src/main.js admin-grant <店名|店id>  その店のトークン (Party のトークンも) で管理 API を使えるようにする
 //   node dist/src/main.js admin-revoke <店名|店id> やめる
-//   node dist/src/main.js seed-market [時間=12]    新素材のうち市場に湧く品 (plus が正) の市場在庫を一度だけ初期投入する。サーバーを止めて実行
+//   node dist/src/main.js seed-market [時間=12]    新素材の市場在庫と、指定された新品の個数を一度だけ初期投入する。サーバーを止めて実行
 //   node dist/src/main.js give-hay                 0.6.0 の詫び草: ミノタウロス♀を持つ店に干し草を頭数×10束、一度だけ配る。サーバーを止めて実行
 //   node dist/src/main.js give-time [本数] [名前]  1.0.0: タイムシガレット (1本30分) を全店に配る。既定は既存店への8本 (existing)。名前ごとに一度だけ。サーバーを止めて実行
 // 環境変数: DB_PATH (data/soldout.sqlite), TOWN_EPOCH (未設定時に保存する第1期の開始Unix秒),
@@ -21,7 +21,7 @@
 
 import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { delimiter, dirname, resolve } from 'node:path';
 import { App } from './api/app.js';
 import { setViewerKey } from './api/viewer.js';
 import { httpPartyVerifier } from './api/party.js';
@@ -34,6 +34,7 @@ import { APOLOGY_HAY_PER_HEAD, giveApologyHay } from './engine/apology.js';
 import { EXISTING_SHOP_CIGARETTES, giveShopTime } from './engine/campaign.js';
 import { shownPeople } from './engine/types.js';
 import { APP_VERSION, UPDATES } from './updates.js';
+import { readFairyBackfillInput } from './fairy-backfill-input.js';
 
 const env = process.env;
 const dbPath = resolve(env.DB_PATH ?? 'data/soldout.sqlite');
@@ -111,8 +112,7 @@ if (cmd === 'set-invite') {
   }
   store.close();
 } else if (cmd === 'seed-market') {
-  // 今回の版で追加した品のうち plus が正のもの (時間で市場に湧く素材) だけが対象。
-  // plus が負の品は時間で市場から減る側 (プレイヤーが作って供給する) なので、在庫を入れてはいけない。
+  // 今回の版で追加した品のうち、時間で市場に湧くか市場初期投入数が明示された品が対象。
   // 動いているサーバーは街の状態をメモリに持っていて後で上書きするので、必ず止めてから実行する。
   const hours = Number(arg ?? 12);
   if (!(hours > 0 && hours <= 72)) {
@@ -130,17 +130,22 @@ if (cmd === 'set-invite') {
   const world = store.loadWorld(now);
   const g = new Game(world, DEFAULT_CONFIG, { next: Math.random }, now);
   const latest = UPDATES[0];
-  const targets = (latest.new_items ?? []).map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0);
+  const targets = (latest.new_items ?? []).map((it) => it.item).filter((no) => BASE_ITEMS[no].plus > 0 || (BASE_ITEMS[no].seedmarket ?? 0) > 0);
   if (!targets.length) {
-    console.log(`v${APP_VERSION} では新しい素材を追加していないので、初期投入は要りません`);
+    console.log(`v${APP_VERSION} では市場の初期投入対象がありません`);
     store.close();
     process.exit(0);
   }
   const rows = seedWholeStore(g, targets, hours);
-  store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2);
-  store.setSetting(key, `${new Date(now * 1000).toISOString()} ${hours}時間ぶん`);
-  store.close();
-  console.log(`市場に新素材を ${hours} 時間ぶん入れました (人口 ${shownPeople(world)}、店 ${world.shops.length})`);
+  try {
+    store.saveWorld(world, [], now, DEFAULT_CONFIG.logExpireTime * 2, () => {
+      if (store.getSetting(key)) throw new Error(`v${APP_VERSION} の初期投入は済んでいます`);
+      store.setSetting(key, new Date(now * 1000).toISOString());
+    });
+  } finally {
+    store.close();
+  }
+  console.log(`市場に新しい品を初期投入しました (人口 ${shownPeople(world)}、店 ${world.shops.length})`);
   for (const r of rows) console.log(`${r.no} ${r.name}: ${r.before} → ${r.after} (+${r.add})`);
 } else if (cmd === 'give-hay') {
   // 0.6.0 の詫び草。動いているサーバーは街の状態をメモリに持っていて後で上書きするので、必ず止めてから実行する。
@@ -188,6 +193,10 @@ if (cmd === 'set-invite') {
   console.log(`${rows.length} 店にタイムシガレットを最大${count}本 (${count / 2}時間) 配りました`);
   for (const r of rows) console.log(`${r.shop} ${r.shopname}: ${r.cigarettes}本`);
 } else if (cmd === 'serve') {
+  // 本番での移し替えは試算を確認したうえで、このフラグを指定した起動時だけ行う。
+  const fairyBackfill = env.FAIRY_BACKFILL === '1'
+    ? (env.FAIRY_BACKFILL_BACKUPS ?? '').split(delimiter).filter(Boolean).map((file) => readFairyBackfillInput(file).world)
+    : undefined;
   const store = new Store(dbPath);
   if (env.TOWN_EPOCH) {
     const configured = Number(env.TOWN_EPOCH);
@@ -207,6 +216,7 @@ if (cmd === 'set-invite') {
     assetsDir: env.ASSETS_ROOT === '' ? undefined : resolve(env.ASSETS_ROOT ?? resolve(dirname(dbPath), 'assets')),
     assetsBaseUrl: env.ASSETS_BASE_URL || undefined,
     kitDir: resolve(env.KIT_DIR ?? 'kit'),
+    fairyBackfill,
   });
   // TICK_SECONDS を入れると、誰もアクセスしなくても街の時間がその間隔で確かめられ、5分刻みで進む。
   // 既定は 0 (止める): 今はアクセスだけで5分ごとに進んでいるので、番犬運用で止まると分かってから入れる (リカさん 2026-11-15)

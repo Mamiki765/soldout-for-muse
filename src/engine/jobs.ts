@@ -5,6 +5,14 @@
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 import type { Shop } from './types.js';
 
+/** 店のお金が動いた時点の職で補正する。親職のままの山師は木こりと同じ値。 */
+export const MERCHANT_JOB_MULTIPLIER: Readonly<Record<string, number>> = {
+  mine: 2, wood: 1.9, peddle: 1.7, cow: 1.4,
+  leather: 1.3, woodwork: 1.3, deco: 1.3,
+  book: 1, drug: 1, sword: 1, staff: 1, shield: 1, mail: 1,
+  '': 1, material: 1.9, tool: 1.3, weapon: 1, armor: 1,
+};
+
 /** 子の職コード → 親の職コード (職ボーナスはこちらに付いている) */
 export const JOB_PARENT: Record<string, string> = {
   mine: 'material',

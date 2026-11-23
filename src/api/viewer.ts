@@ -12,7 +12,7 @@ import { getMarketStatus, getWholeStore } from '../engine/market.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { bookDurability } from '../engine/scripts.js';
-import { sha256, type StoredLog } from '../store.js';
+import { sha256, type Owner, type StoredLog } from '../store.js';
 import type { App } from './app.js';
 import { balanceWord, dur, itemDetailData, itemsData, jobName, jst, ordersData, shelfData, specialtyType } from './views.js';
 import { renewLabel } from '../engine/orders.js';
@@ -21,6 +21,9 @@ import { GAME_TITLE } from '../config.js';
 import { APP_VERSION, UPDATE_NOTICE, UPDATES, isPatch, materialText } from '../updates.js';
 import * as tv from './town-view.js';
 import type { Town } from '../town/gen.js';
+import { joblvData } from '../engine/joblv.js';
+import { merchantData } from '../engine/merchant.js';
+import { FAIRY_SIZE } from './owners.js';
 
 interface Reply {
   status: number;
@@ -99,6 +102,8 @@ a.cell:hover{background:#ddeeff;text-decoration:none;color:inherit}
 .av.l{width:160px;height:160px;font-size:72px;margin:0}
 .cell .av{width:56px;height:56px;flex:none;margin:0;font-size:26px;border-radius:10px}
 .lic{max-width:100%;height:auto;border-radius:8px;display:block;margin:6px 0}
+.fairy{margin:6px 0}
+.fairy img{display:block;width:150px;max-width:100%;height:auto;border-radius:8px;margin:4px 0}
 .sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;border:1px solid rgba(0,0,0,.3);margin:0 2px}
 `;
 
@@ -444,8 +449,8 @@ function ownerPublicPage(app: App, g: Game, som: string): string | undefined {
     }
   }
   if (d.shop) {
-    s += '<hr>●陳列棚<br><table>';
     const dt = g.shopById(d.shop.id)!;
+    s += fairySection(app, dt, ow) + joblvTable(g, dt) + '<hr>●陳列棚<br><table>';
     for (let k = 0; k < dt.showcasecount; k++) {
       const no = dt.showcase[k] ?? 0;
       const stock = no ? dt.item[no - 1] : 0;
@@ -510,6 +515,22 @@ function ordersPage(g: Game): string {
   return s + '</table>';
 }
 
+function joblvTable(g: Game, dt: Shop): string {
+  const rows = Object.entries(joblvData(dt));
+  if (!rows.length) return '';
+  return '<hr>●職レベル<br><table>' + rows.map(([no, { lv }]) =>
+    `<tr><td>${esc(g.items[Number(no)].name)}</td><td>職レベル${lv}</td></tr>`,
+  ).join('') + '</table>';
+}
+
+function fairySection(app: App, dt: Shop, ow: Owner | undefined): string {
+  const name = ow?.fairy_name ? `${ow.fairy_name}さん` : 'お手伝い妖精';
+  const src = app.owners.url(ow?.fairy_file ?? null);
+  const [width, height] = FAIRY_SIZE;
+  const portrait = src ? `<img src="${esc(src)}" width="${width}" height="${height}" alt="${esc(name)}" loading="lazy">` : '';
+  return `<hr><div class="fairy"><b>商人レベル${merchantData(dt).lv} ${esc(name)}</b>${portrait}</div>`;
+}
+
 /** 原作 inc-html-owner.cgi (店長室) + inc-html-stock.cgi (倉庫) + 陳列棚 */
 function ownerPage(app: App, g: Game, dt: Shop): string {
   getMarketStatus(g);
@@ -538,6 +559,7 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
   s += `<tr>${td('支払済売却税', '￥' + dt.taxtoday)}${td('基本売却税率', g.userTaxRate(dt) + '%')}</tr>`;
   s += `<tr>${td('熟練度合計', Math.trunc(expsum / 10) + '%')}<td>　</td><td>　</td></tr>`;
   s += `<tr>${td('創業', formatHms(g.now - dt.foundation))}${td('職業', esc(job))}</tr></table>`;
+  s += fairySection(app, dt, ow) + joblvTable(g, dt);
   if (dt.comment) s += 'コメント: ' + raw(dt.comment) + '<br>';
   // 住所・店構え・色 (1.2.0)。引っ越し・色変えは Muse が API で
   const at = ow ? townAddresses(app, g) : undefined;
@@ -585,8 +607,8 @@ function ownerPage(app: App, g: Game, dt: Shop): string {
 function itemsPage(g: Game): string {
   const mats = (l: { item: number; name: string; count: number; consume: number }[]) =>
     l.map((n) => `${esc(n.name)}×${n.count}${n.consume === 100 ? '' : n.consume === 0 ? '(消費しない)' : `(${n.consume}%で消費)`}`).join('、') || '－';
-  const gets = (l: { name: string; count: number; chance: number }[]) =>
-    l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}`).join('、') || '－';
+  const gets = (l: { name: string; count: number; chance: number; extra_chance?: number }[]) =>
+    l.map((n) => `${esc(n.name)}×${n.count}${n.chance === 100 ? '' : `(${n.chance}%)`}${n.extra_chance ? ` ＋1個(${n.extra_chance}%)` : ''}`).join('、') || '－';
   // スマホ幅でも読めるように、表ではなく1品ずつの箱にする (横に並べると作り方の列が細くなり、行が縦に伸びる)
   let s = '●アイテム一覧<hr><small>標準価格はイベントの影響を含まない値です。今の値は市場で見られます。作り方の時間は「熟練0%→100%」。</small>';
   for (const row of itemsData(g)) {
