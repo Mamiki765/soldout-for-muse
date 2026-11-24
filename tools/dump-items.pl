@@ -686,6 +686,63 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			}
 		}
 		$define{version} = $v140->{version};
+
+		# 1.5.0 石炭と寒波 (tools/v150-coal.json)。石炭・黒玉の原石は流入・不足のどのイベントにも入れない。
+		# 鉱山の地図の行き先は 1.4.0 の出来高の倍率 (yield_percent) の後に足す (鉱山の地図は倍率の対象外)
+		open(my $v150_fh, '<:raw', "$FindBin::Bin/v150-coal.json") or die $!;
+		my $v150 = JSON::PP->new->utf8->decode(do { local $/; <$v150_fh> });
+		close $v150_fh;
+		$v150 = $as_bytes->($v150);
+		for my $spec (@{ $v150->{items} }) {
+			die "v1.5.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+			my $ref = $by_no{$spec->{reference}} or die 'v1.5.0: unknown item reference';
+			my $it = $copy->($ref);
+			@$it{keys %$spec} = values %$spec;
+			delete $it->{reference};
+			$it->{uses} = [];
+			push @items, $it;
+			$by_no{$it->{no}} = $it;
+		}
+		my $g150 = $v150->{gathering};
+		my $map_uses = $by_no{$g150->{book}}{uses};
+		my ($g_tpl) = grep { $_->{no} == $g150->{template_use} } @$map_uses;
+		die 'v1.5.0: gathering template not found' if !$g_tpl;
+		my $gu = $copy->($g_tpl);
+		$gu->{no} = scalar @$map_uses;
+		$gu->{name} = $gu->{info} = $g150->{name};
+		@$gu{qw(time exptime needexp)} = @$g150{qw(time exptime needexp)};
+		$gu->{get} = $lines->($g150->{get}, 1000);
+		push @$map_uses, $gu;
+		for my $spec (@{ $v150->{recipes} }) {
+			my $u = $copy->($find_use->($spec->{book}, $spec->{template_product}));
+			my $uses = $by_no{$spec->{book}}{uses};
+			my $name = $by_no{$spec->{product}}{name};
+			$u->{no} = scalar @$uses;
+			$u->{name} = $name . 'を作成する';
+			$u->{info} = $name . 'を作成します';
+			$u->{okmsg} = $name . 'を作りました';
+			@$u{qw(time exptime)} = @$spec{qw(time exptime)};
+			# 道具 (proba 0) は見本のまま、材料だけ入れ替える
+			$u->{use} = [ (grep { !$_->{proba} } @{ $u->{use} }), @{ $lines->($spec->{materials}, 1000) } ];
+			$u->{get} = $lines->([[$spec->{product}, $spec->{count}, $spec->{proba}]], 1000);
+			push @$uses, $u;
+		}
+		my %ev150 = map { $_->{code} => $_ } @events;
+		for my $spec (@{ $v150->{events} }) {
+			die "v1.5.0: duplicate event $spec->{code}" if $ev150{$spec->{code}};
+			die "v1.5.0: group $spec->{group} is used" if grep { $_->{group} eq "$spec->{group}" } @events;
+			push @events, {
+				code => $spec->{code}, group => "$spec->{group}", startproba => $spec->{startproba},
+				auto_start => ($spec->{auto_start} ? JSON::PP::true : JSON::PP::false),
+				basetime => $spec->{basetime}, plustime => $spec->{plustime},
+				info => $spec->{info}, startmsg => $spec->{startmsg}, endmsg => $spec->{endmsg},
+				startfunc => undef, startfuncparam => undef, endfunc => undef, endfuncparam => undef,
+				nowfunc => undef, nowfuncparam => undef,
+				local_funcstart => undef, local_funcend => undef, local_funcnow => undef,
+				params => $params->($spec->{params}),
+			};
+		}
+		$define{version} = $v150->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

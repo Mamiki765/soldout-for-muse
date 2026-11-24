@@ -19,7 +19,7 @@ import { addMerchantYen, MERCHANT_CAP_PER_PERIOD, settleMerchant } from '../src/
 import { newWorld } from '../src/engine/types.js';
 import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
-import { V140 } from '../src/updates.js';
+import { V140, V150 } from '../src/updates.js';
 
 const T0 = 1_800_000_000;
 const WOODWORK = 17;
@@ -65,7 +65,8 @@ test('8本・地図の全レシピに出来高調整を適用し、指定の2価
     }
     const current = BASE_ITEMS[item.no];
     assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
-    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0), item.name);
+    // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した
+    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0), item.name);
   }
   assert.deepEqual(shortened.sort(), [...times.keys()].sort());
 });
@@ -145,12 +146,14 @@ test('商人ポイントは13職の補正を取引ごとに適用し、転職前
   assert.equal(dt.merchantpt, 2);
 });
 
-test('1.4.0の市場初期投入は一度だけ。アイコン4点は16×16のPNG', () => {
-  for (const { item } of V140.new_items!) {
+test('1.4.0・1.5.0の新しい品のアイコンは16×16のPNG。1.5.0の品は市場に初期投入しない', () => {
+  for (const { item } of [...V140.new_items!, ...V150.new_items!]) {
     const png = readFileSync(`public/images/item-no-${item}.png`);
     assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
     assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [16, 16]);
   }
+  // 1.4.0 の4品の初期投入 (漆24滴・木工品各1点) は上の seedWholeStore で確かめている。
+  // seed-market は品を足したいちばん新しい版 (1.5.0) を見る。石炭・黒玉は市場に湧かない品なので対象なし
   const dir = mkdtempSync(join(tmpdir(), 'soldout-v140-balance-'));
   const db = join(dir, 'seed.sqlite');
   const seed = () => spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'dist/src/main.js', 'seed-market'], {
@@ -159,13 +162,11 @@ test('1.4.0の市場初期投入は一度だけ。アイコン4点は16×16のPN
   try {
     const first = seed();
     assert.equal(first.status, 0, first.stderr);
-    const second = seed();
-    assert.equal(second.status, 1, second.stderr);
+    assert.match(first.stdout, /v1\.5\.0 では市場の初期投入対象がありません/);
     const store = new Store(db);
     try {
       const w = store.loadWorld(T0);
-      assert.deepEqual(w.wholestore.slice(134), [1, 1, 1, 24]);
-      assert.ok(store.getSetting('market_seeded:1.4.0'));
+      assert.deepEqual(w.wholestore.slice(138), [0, 0, 0]);
     } finally {
       store.close();
     }
