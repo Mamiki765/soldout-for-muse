@@ -18,7 +18,7 @@ import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView,
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
-import { joblvData } from '../engine/joblv.js';
+import { joblvData, joblvName } from '../engine/joblv.js';
 import { merchantData } from '../engine/merchant.js';
 
 /** いちばん新しい決算の値動き (品番 → 行)。まだ無ければ空 */
@@ -208,7 +208,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     /** 自分の品で、前の決算から相場・市場の単価が ±20% 以上動いたもの (0.6.0) */
     price_moves: priceMoves(g, dt, prev),
     joblv_raised: dt.joblvNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
-      ? Object.entries(dt.joblvNotice.raised).map(([no, lv]) => ({ item: Number(no), name: g.items[Number(no)].name, lv }))
+      ? Object.entries(dt.joblvNotice.raised).map(([no, lv]) => ({ item: Number(no), name: joblvName(Number(no)), lv }))
       : [],
     merchant_raised: dt.merchantNotice?.at === g.nextPeriodTime() - g.config.oneDayTime
       ? { lv: dt.merchantNotice.lv, name: fairyName ?? null } : null,
@@ -342,8 +342,8 @@ export function meText(d: ReturnType<typeof meData>): string {
   ];
   const joblv = Object.entries(d.joblv);
   if (joblv.length) {
-    lines.push('# 職レベル 品番 名前 レベル ポイント 次の累計ポイント');
-    lines.push(...joblv.map(([no, { lv, point, next }]) => `${no} ${BASE_ITEMS[Number(no)].name} ${lv} ${point} ${next ?? '-'}`));
+    lines.push('# 職レベル 品番 職種 レベル ポイント 次の累計ポイント');
+    lines.push(...joblv.map(([no, { name, lv, point, next }]) => `${no} ${name} ${lv} ${point} ${next ?? '-'}`));
   }
   const { lv, point, next, cap } = d.merchant;
   lines.push(`商人レベル${lv} ポイント${point}${next === null ? ' (上限レベル)' : ` / 次の累計${next}`} 1決算最大${cap}点`);

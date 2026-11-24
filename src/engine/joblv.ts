@@ -1,7 +1,7 @@
 // SOLD OUT for Muse — 作業時間で育つ職レベルと、共通のポイント曲線。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { BASE_ITEMS, isPublicItem, makesHiddenItem } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, isPublicItem, itemNoByName, makesHiddenItem } from '../data/catalog.js';
 import type { Shop } from './types.js';
 
 export const PROGRESS_MAX_LV = 10;
@@ -30,11 +30,21 @@ const eligibleItems = [...new Set(BASE_ITEMS.flatMap((it) => {
   ) ? [expno] : [];
 }))];
 
-/** 持っている品か、熟練・作業時間の記録がある品の職レベル。 */
+/** 熟練を集める本・地図 → その職の表示名 (転職のススメの並び。13職に1つずつ) */
+const JOB_BY_ITEM = new Map(BASE_ITEMS[itemNoByName('転職のススメ')].uses
+  .filter((u) => Number(u.params[0]) > 0 && u.params[3] && CATALOG.jobTypes[u.params[3]])
+  .map((u) => [Number(u.params[0]), CATALOG.jobTypes[u.params[3]!]]));
+
+/** 職レベルの表示名。職の本・地図なら職種名 (剣の鍛え方→剣屋)、職のない系統 (修行キットなど) は品名のまま */
+export function joblvName(no: number): string {
+  return JOB_BY_ITEM.get(no) ?? BASE_ITEMS[no].name;
+}
+
+/** 持っている品か、熟練・作業時間の記録がある品の職レベル。キーは品番、name は表示名 (職種名か品名) */
 export function joblvData(dt: Shop) {
   return Object.fromEntries(eligibleItems
     .filter((no) => dt.item[no - 1] || dt.exp[no] || dt.joblvpt?.[no])
-    .map((no) => [no, joblvProgress(dt, no)]));
+    .map((no) => [no, { name: joblvName(no), ...joblvProgress(dt, no) }]));
 }
 
 /** 営業店を均等に数える。作業記録のある品を店ごとに平均し、記録がなければ等倍。 */
