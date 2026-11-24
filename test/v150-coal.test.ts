@@ -43,7 +43,9 @@ test('石炭と黒玉は寒波のほかのどのイベントの対象でもな�
     assert.equal(touches, code === 'coldwave', code);
   }
   const cold = EVENTS.get('coldwave')!;
-  assert.deepEqual(cold.params.map((p) => [p.item_no, p.key, p.op, p.value]), [[COAL, 'price', '*', 1.3], [COAL, 'popular', '/', 1.5]]);
+  // 寒波は石炭の値段1.5倍・客2倍、革のロングコート (85) の客1.5倍
+  assert.deepEqual(cold.params.map((p) => [p.item_no, p.key, p.op, p.value]),
+    [[COAL, 'price', '*', 1.5], [COAL, 'popular', '/', 2], [85, 'popular', '/', 1.5]]);
   assert.deepEqual([cold.startproba, cold.basetime, cold.plustime, cold.startmsg, cold.info, cold.endmsg],
     [40, 86400, 86400, '北から寒波がやってきました', '寒波で石炭がよく売れ、値も上がっています', '寒波が去りました']);
   assert.equal([...EVENTS.values()].filter((e) => e.group === cold.group).length, 1);
@@ -52,14 +54,14 @@ test('石炭と黒玉は寒波のほかのどのイベントの対象でもな�
 test('炭鉱に潜るは熟練なしで行け、探鉱夫は時間が半分', () => {
   const u = BASE_ITEMS[MINE_MAP].uses.find((u) => u.name === '炭鉱に潜る')!;
   assert.deepEqual([u.needexp, u.time, u.exptime, u.exp, u.func, u.params[0]], [null, 14400, 7200, 10, 'lostbook', '100']);
-  assert.deepEqual(u.get.map((l) => [l.item_no, l.count, l.proba]), [[COAL, 90, 900], [JET, 1, 400]]);
+  assert.deepEqual(u.get.map((l) => [l.item_no, l.count, l.proba]), [[COAL, 80, 900], [JET, 1, 400]]);
   for (const [job, hours] of [['mine', 2], ['wood', 2], ['book', 4]] as const) {
     const { g, dt } = fixture(job);
     dt.item[MINE_MAP - 1] = 1;
     const before = dt.time;
     useItemAction(g, dt, MINE_MAP, u.no, { count: 1 });
     assert.equal(dt.time - before, hours * 3600, job);
-    assert.ok(dt.item[COAL - 1] >= 80, job);
+    assert.ok(dt.item[COAL - 1] >= 70, job);
   }
 });
 
