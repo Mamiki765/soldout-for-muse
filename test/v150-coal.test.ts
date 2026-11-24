@@ -51,6 +51,18 @@ test('石炭と黒玉は寒波のほかのどのイベントの対象でもな�
   assert.equal([...EVENTS.values()].filter((e) => e.group === cold.group).length, 1);
 });
 
+// 炭鉱はわざと鉱石より弱い (約8割、リカさん 2026-11-24)。ふだんは鉱石が得で、石炭は暴落時の逃げ道。
+// 探鉱夫を上げたいときも石炭の個数は上げない (tools/v150-coal.json の note)。
+test('炭鉱は熟練100%・職ボーナスで鉄・ミスリル鉱山の9割未満の稼ぎ (わざと弱い)', () => {
+  const perHour = (u: (typeof BASE_ITEMS)[number]['uses'][number]) =>
+    u.get.reduce((s, l) => s + l.count * l.proba / 1000 * BASE_ITEMS[l.item_no].price, 0) / (u.exptime / 2);
+  const uses = BASE_ITEMS[MINE_MAP].uses;
+  const coal = perHour(uses.find((u) => u.name === '炭鉱に潜る')!);
+  for (const name of ['鉄鉱山へ行く', 'ミスリル鉱山へ行く']) {
+    assert.ok(coal < perHour(uses.find((u) => u.name === name)!) * 0.9, name);
+  }
+});
+
 test('炭鉱に潜るは熟練なしで行け、探鉱夫は時間が半分', () => {
   const u = BASE_ITEMS[MINE_MAP].uses.find((u) => u.name === '炭鉱に潜る')!;
   assert.deepEqual([u.needexp, u.time, u.exptime, u.exp, u.func, u.params[0]], [null, 14400, 7200, 10, 'lostbook', '100']);
