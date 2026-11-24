@@ -8,7 +8,7 @@ import { DEFAULT_CONFIG } from '../src/config.js';
 import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
-import { averageJoblvYield, progressAt, PROGRESS_THRESHOLDS } from '../src/engine/joblv.js';
+import { averageJoblvYield, joblvName, progressAt, PROGRESS_THRESHOLDS } from '../src/engine/joblv.js';
 import { turn } from '../src/engine/turn.js';
 import { newWorld } from '../src/engine/types.js';
 import { itemUseTime, useItemAction, type RtUse } from '../src/engine/use.js';
@@ -94,7 +94,7 @@ test('失敗した作業と熟練100%の作業でも、職ボーナス適用後�
     assert.deepEqual(u.result.additem, []);
     assert.equal(dt.exp[MINE], 1000);
     assert.equal(dt.joblvpt?.[MINE], dt.time - oldTime);
-    assert.deepEqual(meData(g, dt).joblv[MINE], progressAt(Math.trunc(itemUseTime(dt, u) * 2 / 60)));
+    assert.deepEqual(meData(g, dt).joblv[MINE], { name: '探鉱夫', ...progressAt(Math.trunc(itemUseTime(dt, u) * 2 / 60)) });
     return u;
   };
   assert.equal(work('mine').exptime * 2, work('').exptime);
@@ -177,9 +177,19 @@ test('決算で作業秒数が減らず、上がった品だけがその決算�
   const before = { ...dt.joblvpt };
   settle();
   assert.deepEqual(dt.joblvpt, before);
-  assert.match(digest(), /決算で職レベルが上がりました 近くの鉱山への地図 1\n/);
+  assert.match(digest(), /決算で職レベルが上がりました 探鉱夫 1\n/);
   assert.equal(averageJoblvYield([dt]), 1.01);
   settle();
   assert.doesNotMatch(digest(), /決算で職レベル/);
   assert.deepEqual(dt.joblvpt, before);
+});
+
+test('職レベルの表示名は、13職の本・地図なら職種名、職のない系統は品名', () => {
+  const jobs = BASE_ITEMS[itemNoByName('転職のススメ')].uses.filter((u) => Number(u.params[0]) > 0);
+  assert.equal(jobs.length, 13);
+  assert.deepEqual(
+    [9, 12, 14, 10, 25, 20, 21, 22, 23, 15, 16, 17, 66].map(joblvName),
+    ['探鉱夫', '木こり', '行商人', '本屋', '酪農家', '剣屋', '盾屋', '鎧屋', '杖屋', '薬屋', '革細工屋', '木工細工屋', '装飾細工屋'],
+  );
+  assert.equal(joblvName(itemNoByName('修行キット')), '修行キット');
 });

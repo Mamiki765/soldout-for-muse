@@ -1,0 +1,31 @@
+{
+  "note": "1.5.0 石炭と寒波 (ラピス案 soldout/2026-11-24-coal-items-list.md、名前と文面はミュート、リカさん了承 2026-11-24)。鉱石の流入で暴落している間も探鉱夫が掘れる先。石炭・黒玉の原石はどの流入・不足イベントにも入れず、市場にも湧かない (plus 負・seedmarket 0)。【わざと弱い】炭鉱は鉄・ミスリル鉱山の約8割の効率に抑えてある (リカさん 2026-11-24「石炭は意図的に弱くしてる」)。ふだんは鉱石を掘るほうが得で、石炭は鉱石が暴落したときの逃げ道。職バランスの見直しで探鉱夫を上げたいときも、石炭の個数ではなく鉱石側で上げること。寒波 (値段x1.5・客x2) だけは稼ぎどきにしてある。",
+  "version": "1.5.0",
+  "items": [
+    { "no": 139, "reference": 93, "code": "coal", "name": "石炭", "info": "黒くよく燃える石。冬の家々の燃料になる", "scale": "個", "price": 300, "cost": 30, "popular": 900, "limit": 2000, "wslimit": 300, "plus": -1200, "pricebase": 300, "pricehalf": 800, "seedmarket": 0 },
+    { "no": 140, "reference": 93, "code": "jet-ore", "name": "黒玉の原石", "info": "炭鉱でまれに見つかる、黒く艶のある石", "scale": "個", "price": 1500, "cost": 150, "popular": 21600, "limit": 500, "wslimit": 20, "plus": -1200, "pricebase": 100, "pricehalf": 500, "seedmarket": 0 },
+    { "no": 141, "reference": 86, "code": "jet-brooch", "name": "黒玉のブローチ", "info": "磨いた黒玉をあしらったブローチ", "scale": "個", "price": 12000, "cost": 1200, "popular": 172800, "limit": 50, "wslimit": 0, "plus": 0, "pricebase": 0, "pricehalf": 0, "seedmarket": 0 }
+  ],
+  "gathering": {
+    "book": 9, "template_use": 3,
+    "name": "炭鉱に潜る", "time": 14400, "exptime": 7200, "needexp": null,
+    "get": [[139, 80, 900], [140, 1, 400]]
+  },
+  "recipes": [
+    { "book": 66, "template_product": 86, "product": 141, "materials": [[140, 3], [5, 1]], "count": 1, "proba": 900, "time": 3600, "exptime": 1800 }
+  ],
+  "events": [
+    {
+      "code": "coldwave", "group": "31", "startproba": 40, "auto_start": true,
+      "basetime": 86400, "plustime": 86400,
+      "startmsg": "北から寒波がやってきました",
+      "info": "寒波で石炭がよく売れ、値も上がっています",
+      "endmsg": "寒波が去りました",
+      "params": [
+        { "item_no": 139, "key": "price", "op": "*", "value": 1.5 },
+        { "item_no": 139, "key": "popular", "op": "/", "value": 2 },
+        { "item_no": 85, "key": "popular", "op": "/", "value": 1.5 }
+      ]
+    }
+  ]
+}

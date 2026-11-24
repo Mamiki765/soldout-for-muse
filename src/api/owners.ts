@@ -564,7 +564,7 @@ export class OwnerHub {
 }
 
 /** キットの zip の名前 (版を入れて不変にする) */
-export const KIT_ZIP = 'soldout-kit-1.4.0.zip';
+export const KIT_ZIP = 'soldout-kit-1.5.0.zip';
 
 /** 名前の決まり (Party と同じ: 1〜20字、空白と @ # / \ < > は不可) */
 export function checkOwnerName(name: unknown): string {

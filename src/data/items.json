@@ -64,7 +64,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.4.0"
+      "version" : "1.5.0"
    },
    "errors" : [],
    "events" : [
@@ -2567,6 +2567,46 @@
          "startfuncparam" : null,
          "startmsg" : "海が荒れて交易船が来られなくなりました",
          "startproba" : 70
+      },
+      {
+         "auto_start" : true,
+         "basetime" : 86400,
+         "code" : "coldwave",
+         "endfunc" : null,
+         "endfuncparam" : null,
+         "endmsg" : "寒波が去りました",
+         "group" : "31",
+         "info" : "寒波で石炭がよく売れ、値も上がっています",
+         "local_funcend" : null,
+         "local_funcnow" : null,
+         "local_funcstart" : null,
+         "nowfunc" : null,
+         "nowfuncparam" : null,
+         "params" : [
+            {
+               "item_no" : 139,
+               "key" : "price",
+               "op" : "*",
+               "value" : 1.5
+            },
+            {
+               "item_no" : 139,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 2
+            },
+            {
+               "item_no" : 85,
+               "key" : "popular",
+               "op" : "/",
+               "value" : 1.5
+            }
+         ],
+         "plustime" : 86400,
+         "startfunc" : null,
+         "startfuncparam" : null,
+         "startmsg" : "北から寒波がやってきました",
+         "startproba" : 40
       }
    ],
    "functions" : {
@@ -3156,6 +3196,56 @@
                ],
                "scale" : "往復",
                "time" : 10800,
+               "use" : []
+            },
+            {
+               "action" : "採取しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 80,
+                     "item_no" : 139,
+                     "proba" : 900
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 140,
+                     "proba" : 400
+                  }
+               ],
+               "info" : "炭鉱に潜る",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "炭鉱に潜る",
+               "needexp" : null,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 6,
+               "okmsg" : null,
+               "params" : [
+                  "100",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 14400,
                "use" : []
             }
          ],
@@ -13287,6 +13377,72 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 1800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 141,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "黒玉のブローチを作成します",
+               "jobs" : [
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "黒玉のブローチを作成する",
+               "needexp" : null,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 8,
+               "okmsg" : "黒玉のブローチを作りました",
+               "params" : [
+                  "107",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 19,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 3,
+                     "item_no" : 140,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 2
@@ -16250,6 +16406,96 @@
          "type" : 1,
          "uses" : [],
          "wslimit" : 500
+      },
+      {
+         "code" : "coal",
+         "cost" : 30,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "黒くよく燃える石。冬の家々の燃料になる",
+         "limit" : 2000,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "石炭",
+         "no" : 139,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 900,
+         "price" : 300,
+         "pricebase" : 300,
+         "pricehalf" : 800,
+         "scale" : "個",
+         "seedmarket" : 0,
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 300
+      },
+      {
+         "code" : "jet-ore",
+         "cost" : 150,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "炭鉱でまれに見つかる、黒く艶のある石",
+         "limit" : 500,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "黒玉の原石",
+         "no" : 140,
+         "param" : null,
+         "plus" : -1200,
+         "point" : 1000,
+         "popular" : 21600,
+         "price" : 1500,
+         "pricebase" : 100,
+         "pricehalf" : 500,
+         "scale" : "個",
+         "seedmarket" : 0,
+         "sort" : 0,
+         "type" : 1,
+         "uses" : [],
+         "wslimit" : 20
+      },
+      {
+         "code" : "jet-brooch",
+         "cost" : 1200,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "磨いた黒玉をあしらったブローチ",
+         "limit" : 50,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "黒玉のブローチ",
+         "no" : 141,
+         "param" : null,
+         "plus" : 0,
+         "point" : 1000,
+         "popular" : 172800,
+         "price" : 12000,
+         "pricebase" : 0,
+         "pricehalf" : 0,
+         "scale" : "個",
+         "seedmarket" : 0,
+         "sort" : 0,
+         "type" : 8,
+         "uses" : [],
+         "wslimit" : 0
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",

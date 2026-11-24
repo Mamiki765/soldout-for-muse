@@ -233,7 +233,7 @@ test('店主ID・アイコン・許可証・差分・合鍵で読む・古い画
     assert.equal((await fetch(base + '/assets/kit/../package.json')).status, 404);
     // 見本のスペースは文字として配る (ページとしては開かせない)。HTML のままの名前では配らない
     const fr = frames as unknown as { sample: string; kit: string };
-    assert.ok(fr.kit.endsWith('/kit/soldout-kit-1.4.0.zip'));
+    assert.ok(fr.kit.endsWith('/kit/soldout-kit-1.5.0.zip'));
     assert.ok(fr.sample.endsWith('/kit/space-sample.txt'));
     const sample = await fetch(base + '/assets/kit/space-sample.txt');
     assert.equal(sample.status, 200);
