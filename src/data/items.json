@@ -13156,7 +13156,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 7200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
@@ -13193,7 +13193,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 21600,
+               "time" : 8640,
                "use" : [
                   {
                      "count" : 1,
@@ -13702,7 +13702,7 @@
          "param" : null,
          "plus" : 0,
          "point" : 1000,
-         "popular" : 172800,
+         "popular" : 691200,
          "price" : 80000,
          "pricebase" : 0,
          "pricehalf" : 0,
