@@ -142,7 +142,7 @@ export function turnProc(g: Game): void {
           const [, tax] = g.saleTax(itemno, sale, saleprice, g.userTaxRate(dt));
           dt.moneystock += saleprice - tax;
           dt.saletoday += saleprice;
-          dt.lastmobsale = g.now; // 人口の見張り (1.7.0)
+          dt.lastmobsale = temptimenow + timespan; // 人口の見張り (1.7.0)。まとめて計算するときも、その区切りの時刻で残す
           dt.item[itemno - 1] -= sale;
           dt.itemtoday[itemno] = (dt.itemtoday[itemno] ?? 0) + sale;
           g.recordSaleTax(dt, tax, saleprice);

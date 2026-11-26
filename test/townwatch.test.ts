@@ -49,3 +49,18 @@ test('1.7.0 人口の見張り: モブに売れたら lastmobsale が残り、�
   assert.equal(world.mobsaleSince !== undefined, true);
   assert.equal(world.shops[0].lastmobsale !== undefined, true, '安いポーションは売れる');
 });
+
+test('1.7.0 人口の見張り: 何日ぶんかまとめて計算しても、売れた区切りの時刻で残す (最後の計算の時刻にしない)', () => {
+  const world = newWorld(T0, MAX_ITEM);
+  const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
+  const s = openShop(g0, { name: 'a', shopname: '見張りの店' });
+  s.item[30 - 1] = 1; // ポーション1本だけ。最初の区切りで売り切れる
+  s.showcase[0] = 30;
+  s.price[0] = 1;
+  s.rank = 5000;
+  const now = T0 + 5 * 24 * H;
+  const g = new Game(world, DEFAULT_CONFIG, seededRng(3), now);
+  turnProc(g);
+  const at = world.shops[0].lastmobsale!;
+  assert.ok(at !== undefined && at < now - 3 * 24 * H, `最初の区切りで売れた時刻 ${at - T0}`);
+});
