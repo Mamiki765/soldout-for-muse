@@ -25,6 +25,7 @@ import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engin
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
 import { idleShopLine, idleShopStat, IDLE_WARN_RATE } from '../engine/townwatch.js';
+import { editWish, wishedFor, wishedLine } from '../engine/wish.js';
 import * as tut from '../engine/tutorial.js';
 import * as rest from '../engine/rest.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
@@ -1303,6 +1304,10 @@ export class App {
         if (!this.store.isPartyShop(to) && this.party) throw new GameError('その店は募集を使えません');
         return ord.deliver(g, dt, to, lines);
       }
+      case 'wish':
+      case 'unwish':
+        // ほしい物リスト (1.7.0)。時間はかからない。item なしなら今のリスト
+        return [editWish(g, dt, a.item === undefined ? 0 : item('item'), type === 'unwish' || isYes(a.remove))];
       case 'cancel_order':
         return [ord.cancelOrder(g, dt, n('order'))];
       case 'renew_order':
@@ -2027,7 +2032,7 @@ const ACTION_ALIASES: Record<string, string> = {
 };
 
 /** doAction が受け付ける行動 (改装中の確認は、知らない行動には行わない。知らない行動の案内を先に出すため) */
-const KNOWN_ACTIONS: ReadonlySet<string> = new Set(['buy', 'shelf', 'showcase', 'use', 'shelves', 'deposit', 'trash', 'order', 'deliver', 'cancel_order', 'renew_order', 'comment', 'coupon', 'alerts', 'tutorial', 'rename', 'paint', 'move', 'rest', 'reopen', 'close']);
+const KNOWN_ACTIONS: ReadonlySet<string> = new Set(['buy', 'shelf', 'showcase', 'use', 'shelves', 'deposit', 'trash', 'order', 'deliver', 'cancel_order', 'renew_order', 'wish', 'unwish', 'comment', 'coupon', 'alerts', 'tutorial', 'rename', 'paint', 'move', 'rest', 'reopen', 'close']);
 
 /** 別名にはしないが、送られがちな名前への案内 */
 /** renew の値。日本語の名前でも受ける */
@@ -2113,8 +2118,9 @@ function newerVersion(a: string, b: string): boolean {
 function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
   const msg = useResultMessages(g, dt, u);
   if (!u.result.count) throw new GameError(msg.join(' / '));
-  // できた品を欲しがっている募集があれば知らせる (1.7.0)
-  const line = ord.wantedLine(g, dt, ord.wantedFor(g, dt, (u.result.additem ?? []).map((a) => a.item_no)));
+  // できた品を欲しがっている店があれば知らせる (1.7.0)
+  // 1.7.0: ほしい物リストに入れた店と、今納品できる募集を出している店を1行にまとめる
+  const line = wishedLine(g, dt, wishedFor(g, dt, (u.result.additem ?? []).map((a) => a.item_no)));
   if (line) msg.push(line);
   return msg;
 }

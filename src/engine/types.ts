@@ -89,6 +89,8 @@ export interface Shop {
   rest?: ShopRest;
   /** 最後にモブ (街の客) に売れた時刻 (1.7.0 人口の見張り)。まだ記録がなければ無い */
   lastmobsale?: number;
+  /** ほしい物リスト (品番、1.7.0)。上限なし */
+  wish?: number[];
   /** これまで改装中だった秒数の合計。不在閉店の延長 (営業日数ぶん) の計算から引く */
   resttotal?: number;
   /** 点数 (保存しない。SortDT で再計算) */
