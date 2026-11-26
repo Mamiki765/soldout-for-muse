@@ -140,6 +140,13 @@ test('1.7.0: 自分の在庫を欲しがる募集は、今納品できるもの�
     assert.deepEqual(wantedFor(g, me).map((w) => [w.name, w.orders]), [['薬草', 1]]);
     assert.deepEqual(digestData(g, me, { newMine: 0, newTown: 0, newChat: 0, newBbs: 0 } as never, null).wanted.map((w) => w.name), ['薬草']);
   });
+  // 最低納品数に手持ちが届かない募集・買い手の倉庫が空かない募集も数えない
+  const { world: w2, buyer: b2, buyer2: b22, seller: s2 } = setup();
+  w2.shops.find((x) => x.id === s2.id)!.item[HERB - 1] = 10;
+  act(w2, b2, T0, (g, me) => createOrder(g, me, { itemno: HERB, price: 20, count: 100, hours: 24, min: 50 }));
+  act(w2, b22, T0, (g, me) => createOrder(g, me, { itemno: HERB, price: 20, count: 5, hours: 24 }));
+  w2.shops.find((x) => x.id === b22.id)!.item[HERB - 1] = BASE_ITEMS[HERB].limit;
+  act(w2, s2, T0 + 60, (g, me) => assert.deepEqual(wantedFor(g, me), []));
   // 期限が切れた募集も数えない
   act(world, seller, T0 + 3 * 3600, (g, me) => assert.deepEqual(wantedFor(g, me), []));
 });

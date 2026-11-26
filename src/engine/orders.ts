@@ -415,8 +415,15 @@ export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedIt
   for (const o of orders(g)) {
     if (o.shop === dt.id || !(o.left > 0) || o.expires <= g.now) continue;
     if (only && !only.has(o.item)) continue;
-    if (!(dt.item[o.item - 1] > 0) || !g.shopById(o.shop)) continue;
-    if (cur?.pairs[`${dt.id}>${o.shop}`]) continue;
+    const buyer = g.shopById(o.shop);
+    if (!buyer || cur?.pairs[`${dt.id}>${o.shop}`]) continue;
+    // deliver が通る数があるか: 最低納品数 (残りが少なければ残り) を、手持ちと買い手の倉庫の空き (預かり中も数える) の両方が満たすこと
+    const need = Math.min(o.min || 1, o.left);
+    if (dt.item[o.item - 1] < need) continue;
+    const held = orders(g)
+      .filter((x) => x.shop === buyer.id && x.item === o.item)
+      .reduce((a, x) => a + x.count - x.left, 0);
+    if (g.items[o.item].limit - buyer.item[o.item - 1] - held < need) continue;
     const w = out.get(o.item);
     if (!w) out.set(o.item, { item: o.item, name: g.items[o.item].name, orders: 1, price: o.price, left: o.left });
     else {
