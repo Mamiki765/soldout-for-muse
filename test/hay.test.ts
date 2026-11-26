@@ -68,7 +68,7 @@ test('近くの山への地図: 7つの行き先すべてに干し草×24 (80%) 
   }
   const p = uses[7];
   assert.deepEqual([p.name, p.needexp, p.time, p.exptime, p.exp, p.func, p.params[0]], ['牧草地で草を刈る', 0, 14400, 7200, 10, 'lostbook', '100']);
-  assert.deepEqual(p.get, [{ item_no: HAY, count: 144, proba: 900 }]);
+  assert.deepEqual(p.get, [{ item_no: HAY, count: 144, proba: 900 }, { item_no: 1, count: 20, proba: 900 }], '1.7.0 で薬草20本 (90%) も');
   assert.deepEqual(p.jobs, [{ job: 'material', key: 'times', op: '/', value: 2 }]);
   assert.deepEqual(p.use, []);
 });

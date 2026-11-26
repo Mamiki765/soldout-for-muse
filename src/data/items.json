@@ -64,7 +64,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.5.0"
+      "version" : "1.7.0"
    },
    "errors" : [],
    "events" : [
@@ -2831,7 +2831,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "魔力が封じ込められた鉱石",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -4065,7 +4065,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4131,7 +4131,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4197,7 +4197,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4281,6 +4281,11 @@
                      "count" : 24,
                      "item_no" : 138,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "樹脂林で樹液を採る",
@@ -4336,6 +4341,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "香木林を探索する",
@@ -4391,6 +4401,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "霊草の谷を探す",
@@ -4435,6 +4450,11 @@
                   {
                      "count" : 144,
                      "item_no" : 115,
+                     "proba" : 900
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
                      "proba" : 900
                   }
                ],
@@ -5544,7 +5564,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 81,
                      "proba" : 800
                   }
@@ -5610,7 +5630,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 82,
                      "proba" : 600
                   }
@@ -5681,7 +5701,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 83,
                      "proba" : 400
                   }
@@ -5742,7 +5762,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 85,
                      "proba" : 400
                   }
@@ -6173,7 +6193,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 87,
                      "proba" : 600
                   }
@@ -6300,7 +6321,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 135,
                      "proba" : 700
                   }
@@ -6361,7 +6383,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 136,
                      "proba" : 700
                   }
@@ -6422,7 +6445,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 137,
                      "proba" : 600
                   }
@@ -6472,6 +6496,68 @@
                   {
                      "count" : 10,
                      "item_no" : 138,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 1800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 143,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "木こりのオノを作成します",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "木こりのオノを作成する",
+               "needexp" : 300,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 11,
+               "okmsg" : "木こりのオノを作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 2,
+                     "item_no" : 4,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 5,
                      "proba" : 1000
                   }
                ]
@@ -7038,6 +7124,67 @@
                   {
                      "count" : 4,
                      "item_no" : 100,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 1800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 142,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "山師のツルハシを作成します",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "山師のツルハシを作成する",
+               "needexp" : null,
+               "ngmsg" : "鍛えるのに失敗しました…",
+               "no" : 8,
+               "okmsg" : "山師のツルハシを作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 6,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 4,
                      "proba" : 1000
                   }
                ]
@@ -9627,7 +9774,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "ミノ牛乳から作った高級ヨーグルト　ちょっとミノくさい",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -10941,7 +11088,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 7200,
+               "exptime" : 8928,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -10977,7 +11124,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 14400,
+               "time" : 17856,
                "use" : [
                   {
                      "count" : 1,
@@ -11002,7 +11149,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 10800,
+               "exptime" : 13392,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11038,7 +11185,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 18000,
+               "time" : 22320,
                "use" : [
                   {
                      "count" : 1,
@@ -11073,7 +11220,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 14400,
+               "exptime" : 17856,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11109,7 +11256,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 21600,
+               "time" : 26784,
                "use" : [
                   {
                      "count" : 1,
@@ -11144,7 +11291,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 16200,
+               "exptime" : 20088,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11180,7 +11327,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 25200,
+               "time" : 31248,
                "use" : [
                   {
                      "count" : 1,
@@ -11215,7 +11362,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 22320,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11251,7 +11398,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 28800,
+               "time" : 35712,
                "use" : [
                   {
                      "count" : 1,
@@ -11286,7 +11433,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 21600,
+               "exptime" : 26784,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11322,7 +11469,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 32400,
+               "time" : 40176,
                "use" : [
                   {
                      "count" : 1,
@@ -12807,7 +12954,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 67,
                      "proba" : 800
                   }
@@ -12878,7 +13025,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 68,
                      "proba" : 800
                   }
@@ -12944,7 +13091,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 69,
                      "proba" : 600
                   }
@@ -13009,13 +13156,14 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 7200,
                "func" : "lostbook",
                "func_before" : null,
                "func_info" : null,
                "get" : [
                   {
                      "count" : 1,
+                     "fraction" : 300,
                      "item_no" : 70,
                      "proba" : 1000
                   }
@@ -13045,7 +13193,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 21600,
+               "time" : 8640,
                "use" : [
                   {
                      "count" : 1,
@@ -13167,7 +13315,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 84,
                      "proba" : 600
                   }
@@ -13243,7 +13391,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 86,
                      "proba" : 400
                   }
@@ -13324,7 +13472,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 130,
                      "proba" : 900
                   }
@@ -13391,6 +13539,7 @@
                "get" : [
                   {
                      "count" : 1,
+                     "fraction" : 300,
                      "item_no" : 141,
                      "proba" : 900
                   }
@@ -13543,7 +13692,7 @@
          "funcsale" : null,
          "functurn" : "_local_",
          "info" : "伝説の英雄を称えた首飾り",
-         "limit" : 1,
+         "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -13553,7 +13702,7 @@
          "param" : null,
          "plus" : 0,
          "point" : 1000,
-         "popular" : 172800,
+         "popular" : 691200,
          "price" : 80000,
          "pricebase" : 0,
          "pricehalf" : 0,
@@ -13717,7 +13866,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "オリハルコン製の装備をまとめたセット商品",
-         "limit" : 10,
+         "limit" : 30,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -15648,7 +15797,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "ミノ牛乳から作った固めのプリン　カラメルは苦め",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -16296,7 +16445,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "漆を塗り重ねた小箱。指輪や髪飾りをしまうのにちょうどいい。",
-         "limit" : 50,
+         "limit" : 100,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -16496,6 +16645,66 @@
          "type" : 8,
          "uses" : [],
          "wslimit" : 0
+      },
+      {
+         "code" : "pickaxe",
+         "cost" : 2000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "山師の相棒。持っていると、近くの鉱山への地図のどの行き先（炭鉱も）でも、採れる量が1割増える。使うたびに少しずつ傷む。",
+         "limit" : 10,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "山師のツルハシ",
+         "no" : 142,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 20000,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "本",
+         "seedmarket" : 20,
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [],
+         "wslimit" : 1
+      },
+      {
+         "code" : "axe",
+         "cost" : 2000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "木こりの相棒。持っていると、近くの山への地図のどの行き先でも、採れる量が1割増える。使うたびに少しずつ傷む。",
+         "limit" : 10,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "木こりのオノ",
+         "no" : 143,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 20000,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "丁",
+         "seedmarket" : 20,
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [],
+         "wslimit" : 1
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",

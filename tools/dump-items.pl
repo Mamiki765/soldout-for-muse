@@ -743,6 +743,88 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			};
 		}
 		$define{version} = $v150->{version};
+
+		# 1.7.0 道具3職の梱包と自分の品 (tools/v170-tool-jobs.json)。梱包6種の時間を伸ばし、自分の品の取れる数を増やす。
+		# 取れる数は「個数＋端数 (fraction、1000分の1個)」の期待値に倍率を掛け、整数部を count、残りを fraction にする
+		open(my $v170_fh, '<:raw', "$FindBin::Bin/v170-tool-jobs.json") or die $!;
+		my $v170 = JSON::PP->new->utf8->decode(do { local $/; <$v170_fh> });
+		close $v170_fh;
+		$v170 = $as_bytes->($v170);
+		my $pack = $v170->{packing};
+		for my $name (@{ $pack->{uses} }) {
+			my @hit = grep { $_->{name} eq $name } @{ $by_no{$pack->{book}}{uses} };
+			die "v1.7.0: packing use not found: $name" if @hit != 1;
+			$hit[0]{$_} = int($hit[0]{$_} * $pack->{time_percent} / 100) for qw(time exptime);
+		}
+		# 薬草をふもと以外の行き先でも (あれば本数を変え、無ければ足す)
+		my $herbs = $v170->{herbs};
+		for my $route (@{ $herbs->{routes} }) {
+			my ($name, $count) = @$route;
+			my @hit = grep { $_->{name} eq $name } @{ $by_no{$herbs->{book}}{uses} };
+			die "v1.7.0: herb route not found" if @hit != 1;
+			my ($line) = grep { $_->{item_no} == $herbs->{item} } @{ $hit[0]{get} };
+			if ($line) { $line->{count} = $count; $line->{proba} = $herbs->{proba} }
+			else { push @{ $hit[0]{get} }, @{ $lines->([[$herbs->{item}, $count, $herbs->{proba}]], 1000) } }
+		}
+		my %own;
+		for my $job (keys %{ $v170->{own_yield_percent} }) {
+			my $spec = $v170->{own_yield_percent}{$job};
+			$own{$_} = $spec->{percent} for @{ $spec->{items} };
+		}
+		my %seen170;
+		for my $it (@items) {
+			for my $u (@{ $it->{uses} }) {
+				for my $get (@{ $u->{get} }) {
+					my $pct = $own{$get->{item_no}} or next;
+					my $milli = ($get->{count} * 1000 + ($get->{fraction} // 0)) * $pct;
+					$milli = int(($milli + 50) / 100);
+					$get->{count} = int($milli / 1000);
+					my $rest = $milli % 1000;
+					if ($rest) { $get->{fraction} = $rest } else { delete $get->{fraction} }
+					$seen170{$get->{item_no}}++;
+				}
+			}
+		}
+		for my $no (keys %own) { die "v1.7.0: no recipe makes $no" if !$seen170{$no} }
+		# 所持上限の見直し (1回で作れる数・1決算の需要に比べて低すぎる品)
+		for my $pair (@{ $v170->{limits}{items} }) {
+			my ($no, $limit) = @$pair;
+			my $it = $by_no{$no} or die "v1.7.0: unknown item $no";
+			die "v1.7.0: limit $no lowers" if $limit < $it->{limit};
+			$it->{limit} = $limit;
+		}
+		# ナユタの首飾りを強くする (作る時間を縮め、需要は popular で絞る)
+		my $nk = $v170->{necklace};
+		my @nk = grep { @{ $_->{get} } && $_->{get}[0]{item_no} == $nk->{item} } @{ $by_no{$nk->{book}}{uses} };
+		die 'v1.7.0: necklace recipe not found' if @nk != 1;
+		@{ $nk[0] }{qw(time exptime)} = @$nk{qw(time exptime)};
+		$by_no{$nk->{item}}{popular} = $nk->{popular};
+		# 採る2職の道具 (ツルハシ・オノ)。品を足し、作り方をほかの職の本に足す。効き目はエンジン (src/engine/gather-tools.ts)
+		my $gt = $v170->{gather_tools};
+		for my $spec (@{ $gt->{items} }) {
+			die "v1.7.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+			my $ref = $by_no{$spec->{reference}} or die 'v1.7.0: unknown item reference';
+			my $it = $copy->($ref);
+			@$it{keys %$spec} = values %$spec;
+			delete $it->{reference};
+			$it->{uses} = [];
+			push @items, $it;
+			$by_no{$it->{no}} = $it;
+		}
+		for my $spec (@{ $gt->{recipes} }) {
+			my $u = $copy->($find_use->($spec->{book}, $spec->{template_product}));
+			my $uses = $by_no{$spec->{book}}{uses};
+			my $name = $by_no{$spec->{product}}{name};
+			$u->{no} = scalar @$uses;
+			$u->{name} = $name . 'を作成する';
+			$u->{info} = $name . 'を作成します';
+			$u->{okmsg} = $name . 'を作りました';
+			@$u{qw(time exptime)} = @$spec{qw(time exptime)};
+			$u->{use} = [ (grep { !$_->{proba} } @{ $u->{use} }), @{ $lines->($spec->{materials}, 1000) } ];
+			$u->{get} = $lines->([[$spec->{product}, $spec->{count}, $spec->{proba}]], 1000);
+			push @$uses, $u;
+		}
+		$define{version} = $v170->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

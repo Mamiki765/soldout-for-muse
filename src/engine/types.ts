@@ -87,6 +87,10 @@ export interface Shop {
    * until=この時刻に自動で再開する。改装中の店は売れず・費用もかからず、街の店数・ランキング・賞から外れる (engine/rest.ts)
    */
   rest?: ShopRest;
+  /** 最後にモブ (街の客) に売れた時刻 (1.7.0 人口の見張り)。まだ記録がなければ無い */
+  lastmobsale?: number;
+  /** ほしい物リスト (品番、1.7.0)。上限なし */
+  wish?: number[];
   /** これまで改装中だった秒数の合計。不在閉店の延長 (営業日数ぶん) の計算から引く */
   resttotal?: number;
   /** 点数 (保存しない。SortDT で再計算) */
@@ -152,6 +156,8 @@ export interface World {
   periodLog: LogEntry[];
   /** 買い取り募集 (原作にない追加。古い保存データには無い) */
   orders?: BuyOrder[];
+  /** モブ売上の時刻を記録し始めた時刻 (1.7.0)。これより前の売上は lastmobsale に無い */
+  mobsaleSince?: number;
   /** 最後に付けた募集の番号 */
   orderSeq?: number;
   /** 募集・納品の今日の回数 (決算で空になる) */
@@ -225,6 +231,8 @@ export interface OrderStats {
   filled: Record<string, number>;
   /** "売り手>買い手" → 今日納品したか */
   pairs: Record<string, number>;
+  /** 店id → 今期受け取った納品のお礼の数 (1.7.0。古い保存データには無い) */
+  thanked?: Record<string, number>;
 }
 
 export function newShop(id: number, maxItem: number): Shop {

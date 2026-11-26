@@ -11,13 +11,17 @@
 import { CATALOG } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { addMerchantYen } from './merchant.js';
+import { addItemSub } from './scripts.js';
 import type { BuyOrder, OrderRenew, OrderStats, Shop } from './types.js';
 
 /** 募集まわりの決まり。数値はリカさん決定 (2026-11-14) */
 export const ORDER_RULES = {
   /** 単価の幅 (標準価格に対する %) */
   minPercent: 50,
-  maxPercent: 150,
+  /** 1.7.0 で 150 → 300。標準の3倍を超えると売却税が2割を超え、どちらにも得がない (税は (単価÷標準−1)²×5%、上限99%) */
+  maxPercent: 300,
+  /** これを超える単価で募集を出すと「採算に注意」と知らせる (1.7.0、リカさん 2026-11-26) */
+  warnPercent: 150,
   /** 期限 (時間) */
   minHours: 1,
   maxHours: 48,
@@ -27,6 +31,10 @@ export const ORDER_RULES = {
   fillsPerDay: 10,
   /** 1セット (1回の deliver) に入れられる募集の数 */
   linesPerSet: 8,
+  /** 納品のお礼 (1.7.0、リカさん案 2026-11-26): 1回の納品 (1セット) が標準価格の合計でこれ以上なら、納品した側にタイムシガレット1本 */
+  thanksMinStd: 5000,
+  /** 納品のお礼をもらえる回数 (1期に)。試験運用 (リカさん 2026-11-26「後から回数制限外せる」) */
+  thanksPerPeriod: 2,
   /** 回数を決めた自動再掲 (repost) の回数の上限 (int32 の最大) */
   maxRepeat: 2_147_483_647,
 };
@@ -35,7 +43,9 @@ export const ORDER_RULES = {
 export const ORDER_RULES_LINE =
   `買い取り募集のきまり: 単価は標準価格の${ORDER_RULES.minPercent}〜${ORDER_RULES.maxPercent}%、期限は${ORDER_RULES.minHours}〜${ORDER_RULES.maxHours}時間、` +
   `募集は同時に棚の数まで・1期に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
-  `納品は同じ店へ1期1セットまで (その店の募集なら${ORDER_RULES.linesPerSet}種類まで1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。回数は決算で戻る (1期=決算から次の決算まで)。`;
+  `標準価格の${ORDER_RULES.warnPercent}%を超える単価は出せるが採算に注意 (納品する側の売却税も上がる)、` +
+  `納品は同じ店へ1期1セットまで (その店の募集なら${ORDER_RULES.linesPerSet}種類まで1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。` +
+  `1セットが標準価格の合計で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上なら、納品した側にお礼のタイムシガレット1本 (試験運用、1期${ORDER_RULES.thanksPerPeriod}回まで)。回数は決算で戻る (1期=決算から次の決算まで)。`;
 
 /** 期限切れのときの自動の張り直しの一文。一覧ではきまりの後ろに続ける */
 export const ORDER_RENEW_LINE =
@@ -66,7 +76,7 @@ export function orderStats(g: Game): OrderStats {
 function statsAt(g: Game, no: number): OrderStats {
   const s = g.world.orderStats;
   if (s && s.period >= no) return s;
-  return (g.world.orderStats = { period: no, posted: {}, filled: {}, pairs: {} });
+  return (g.world.orderStats = { period: no, posted: {}, filled: {}, pairs: {}, thanked: {} });
 }
 
 function periodAt(g: Game, t: number): number {
@@ -82,6 +92,19 @@ function bump(map: Record<string, number>, key: string | number, n = 1): void {
 export function priceRange(g: Game, itemno: number): [number, number] {
   const std = g.items[itemno].price;
   return [Math.max(1, Math.ceil((std * ORDER_RULES.minPercent) / 100)), Math.max(1, Math.floor((std * ORDER_RULES.maxPercent) / 100))];
+}
+
+/**
+ * 標準価格の warnPercent% を超える単価のときの注意 (1.7.0)。出せるけれど、買う側は割高、納品する側は売却税が上がる。
+ * 超えていなければ null
+ */
+export function orderPriceWarning(g: Game, itemno: number, price: number): string | null {
+  const item = g.items[itemno];
+  if (!item?.price || price * 100 <= item.price * ORDER_RULES.warnPercent) return null;
+  const pct = Math.round((price / item.price) * 100);
+  const [rate] = g.saleTax(itemno, 1, price, 0);
+  const market = item.marketprice ? `、市場の単価は今￥${item.marketprice}` : '';
+  return `採算に注意: ${item.name}の単価￥${price}は標準価格￥${item.price}の${pct}%です${market}。この品を使って作る物の儲けが残るか確かめてください。納品する側には売却税が${rate}%かかります (標準の${ORDER_RULES.warnPercent}%を超えると上がる)`;
 }
 
 /** その店がこれから受け取る予定の数 (募集の残りと、預かり中の届いた品) */
@@ -365,6 +388,98 @@ export function sweepOrders(g: Game, upTo: number = g.now): boolean {
 
 const RENEW_LOOP = 1000;
 
+/** 納品のお礼の品 (タイムシガレット、1本で持ち時間+30分) */
+const THANKS_ITEM = 132;
+
+export interface WantedItem {
+  item: number;
+  name: string;
+  /** その品を欲しがっている、今納品できる募集の数 */
+  orders: number;
+  /** いちばん高い単価 */
+  price: number;
+  /** 残りの数の合計 */
+  left: number;
+}
+
+/**
+ * 自分の在庫 (items を渡せばその品だけ) を欲しがっている、ほかの店の募集。今この店が納品できるものだけ数える
+ * (期限内・残りあり・その店へ今期まだ納品していない・今期の応じる回数が残っている)。品番順。読むだけ (1.7.0)
+ */
+export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedItem[] {
+  const out = new Map<number, WantedItem>();
+  for (const o of deliverableOrders(g, dt, items)) {
+    const w = out.get(o.item);
+    if (!w) out.set(o.item, { item: o.item, name: g.items[o.item].name, orders: 1, price: o.price, left: o.left });
+    else {
+      w.orders++;
+      w.left += o.left;
+      if (o.price > w.price) w.price = o.price;
+    }
+  }
+  return [...out.values()].sort((a, b) => a.item - b.item);
+}
+
+/** wantedFor の中身: この店が今納品できる、ほかの店の募集 (1件ずつ) */
+export function deliverableOrders(g: Game, dt: Shop, items?: Iterable<number>): BuyOrder[] {
+  const only = items ? new Set(items) : null;
+  const stats = g.world.orderStats;
+  const cur = stats && stats.period >= periodNo(g) ? stats : undefined;
+  if ((cur?.filled[dt.id] ?? 0) >= ORDER_RULES.fillsPerDay) return [];
+  const out: BuyOrder[] = [];
+  for (const o of orders(g)) {
+    if (o.shop === dt.id || !(o.left > 0) || o.expires <= g.now) continue;
+    if (only && !only.has(o.item)) continue;
+    const buyer = g.shopById(o.shop);
+    if (!buyer || cur?.pairs[`${dt.id}>${o.shop}`]) continue;
+    // deliver が通る数があるか: 最低納品数 (残りが少なければ残り) を、手持ちと買い手の倉庫の空き (預かり中も数える) の両方が満たすこと
+    const need = Math.min(o.min || 1, o.left);
+    if (dt.item[o.item - 1] < need) continue;
+    const held = orders(g)
+      .filter((x) => x.shop === buyer.id && x.item === o.item)
+      .reduce((a, x) => a + x.count - x.left, 0);
+    if (g.items[o.item].limit - buyer.item[o.item - 1] - held < need) continue;
+    out.push(o);
+  }
+  return out;
+}
+
+/**
+ * 棚に並べた売値より高い買い取り募集があれば、その1行 (1.7.0 リカさん案)。今納品できる募集だけ。
+ * 単価がいちばん高い募集と、残りがいちばん多い募集の2つを出す (同じ募集なら1つ)
+ */
+export function shelfOrderHint(g: Game, dt: Shop, itemno: number, price: number): string | null {
+  if (!(itemno > 0) || !(price > 0)) return null;
+  const list = deliverableOrders(g, dt, [itemno]).filter((o) => o.price > price);
+  if (!list.length) return null;
+  const scale = g.items[itemno].scale;
+  const top = list.reduce((a, o) => (o.price > a.price || (o.price === a.price && o.left > a.left) ? o : a));
+  const most = list.reduce((a, o) => (o.left > a.left || (o.left === a.left && o.price > a.price) ? o : a));
+  const parts = [`最高￥${top.price} (残り${top.left}${scale})`];
+  if (most.id !== top.id) parts.push(`最多 残り${most.left}${scale} (￥${most.price})`);
+  return `その売値 (￥${price}) より高い買い取り募集があります: ${parts.join(' / ')} → GET /api/v1/orders?item=${itemno} を見て deliver で納品できます${thanksHint(g, dt)}`;
+}
+
+/** 今期あと何回、納品のお礼をもらえるか */
+export function thanksLeft(g: Game, dt: Shop): number {
+  const stats = g.world.orderStats;
+  const used = stats && stats.period >= periodNo(g) ? (stats.thanked?.[dt.id] ?? 0) : 0;
+  return Math.max(0, ORDER_RULES.thanksPerPeriod - used);
+}
+
+/** 募集の案内に添える、お礼のおまけの一言 (今期まだもらえるときだけ) */
+export function thanksHint(g: Game, dt: Shop): string {
+  const left = thanksLeft(g, dt);
+  return left > 0 ? ` (標準価格で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上の納品はタイムシガレットのおまけつき、今期あと${left}回)` : '';
+}
+
+/** 採取・生産から戻ったときの1行 (できた品を欲しがっている募集があるときだけ) */
+export function wantedLine(g: Game, dt: Shop, list: WantedItem[]): string | null {
+  if (!list.length) return null;
+  const parts = list.map((w) => `${w.name} ${w.orders}件 (最高￥${w.price}・残り${w.left}${g.items[w.item].scale})`);
+  return `募集中: ${parts.join(' / ')} → GET /api/v1/orders?item=品番 を見て deliver で納品できます${thanksHint(g, dt)}`;
+}
+
 export interface DeliverLine {
   order: number;
   count: number;
@@ -389,6 +504,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
   }
   const seen = new Set<number>();
   const msgs: string[] = [];
+  let stdValue = 0;
   for (const line of lines) {
     const id = Math.trunc(line.order);
     if (seen.has(id)) throw new GameError(`募集#${id}が2回入っています`);
@@ -413,6 +529,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     // 売り手: 陳列1回ぶんの手間と、棚で売れたのと同じ売却税
     g.useTime(CATALOG.timeEditShowcase);
     const amount = num * o.price;
+    stdValue += num * item.price;
     const [, tax] = g.saleTax(o.item, num, amount, g.userTaxRate(dt));
     dt.item[o.item - 1] -= num;
     dt.itemtoday[o.item] = (dt.itemtoday[o.item] ?? 0) + num;
@@ -435,6 +552,21 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     if (!o.left) closeOrder(g, o, buyer, '集め終わりました');
   }
   stats.pairs[pair] = 1;
+  // 納品のお礼 (1.7.0): 1セットが標準価格の合計で thanksMinStd 円以上なら、1期 thanksPerPeriod 回までタイムシガレット1本。
+  // 1本だけ投げてお礼をもらう遊び方にならないよう、額は買い手が決める単価ではなく標準価格で数える
+  if (stdValue >= ORDER_RULES.thanksMinStd) {
+    const thanked = (stats.thanked ??= {});
+    if ((thanked[dt.id] ?? 0) < ORDER_RULES.thanksPerPeriod) {
+      const got = addItemSub(g, dt, THANKS_ITEM, 1);
+      if (got > 0) {
+        bump(thanked, dt.id);
+        const left = ORDER_RULES.thanksPerPeriod - thanked[dt.id];
+        const msg = `納品のお礼に${g.items[THANKS_ITEM].name}を1本受け取りました (今期あと${left}回)`;
+        msgs.push(msg);
+        g.writeLog(0, dt.id, 0, msg);
+      }
+    }
+  }
   return msgs;
 }
 

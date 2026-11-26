@@ -19,7 +19,8 @@ import { addMerchantYen, MERCHANT_CAP_PER_PERIOD, settleMerchant } from '../src/
 import { newWorld } from '../src/engine/types.js';
 import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
-import { V140, V150 } from '../src/updates.js';
+import { V140, V150, V170 } from '../src/updates.js';
+import { v170Item, v170Line } from './v170.js';
 
 const T0 = 1_800_000_000;
 const WOODWORK = 17;
@@ -63,10 +64,11 @@ test('8本・地図の全レシピに出来高調整を適用し、指定の2価
         shortened.push(product);
       }
     }
+    v170Item(item); // 1.7.0 の梱包の時間と道具3職の自分の品の取れる数
     const current = BASE_ITEMS[item.no];
     assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
     // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した
-    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0), item.name);
+    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0) + (item.no === 17 || item.no === 20 ? 1 : 0), item.name); // 1.7.0 で木工細工入門にオノ、剣の鍛え方にツルハシ
   }
   assert.deepEqual(shortened.sort(), [...times.keys()].sort());
 });
@@ -84,13 +86,14 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
   seedWholeStore(buyer, [135, 136, 137, 138], 12);
   for (const { no, price, popular, time, exptime, chance, materials } of specs) {
     const item = BASE_ITEMS[no];
-    assert.deepEqual([item.price, item.popular, item.cost, item.limit, item.plus, item.type], [price, popular, 1000, 50, 0, 8]);
+    assert.deepEqual([item.price, item.popular, item.cost, item.limit, item.plus, item.type], [price, popular, 1000, no === 135 ? 100 : 50, 0, 8], '1.7.0 で漆塗りの小箱だけ 50→100');
     buy(buyer, buyerShop, { from: 0, itemno: no, count: 1 });
     assert.equal(buyerShop.item[no - 1], 1, '取引に熟練条件はない');
     const { g, dt } = fixture('drug'); // 熟練を積めば木工細工屋以外でも作れる
     const u = BASE_ITEMS[WOODWORK].uses.find((recipe) => recipe.get[0]?.item_no === no)!;
     assert.deepEqual([u.time, u.exptime, u.needexp, u.exp, u.func, u.params[0]], [time, exptime, 300, 10, 'lostbook', '50']);
-    assert.deepEqual(u.get, [{ item_no: no, count: 10, proba: chance }]);
+    const made: UseLine = v170Line<UseLine>({ item_no: no, count: 10, proba: chance });
+    assert.deepEqual(u.get, [made]);
     assert.deepEqual(u.use, materials.map(([item_no, count]) => ({ item_no, count, proba: 1000 })));
     assert.deepEqual(u.jobs, [{ job: 'tool', key: 'times', op: '/', value: 2 }]);
     dt.item[WOODWORK - 1] = 1;
@@ -101,7 +104,7 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
     assert.deepEqual(dt, before);
     dt.exp[WOODWORK] = 300;
     const result = useItemAction(g, dt, WOODWORK, u.no, { count: 1 });
-    assert.equal(dt.item[no - 1], 10);
+    assert.equal(dt.item[no - 1], made.count + (made.fraction ? 1 : 0)); // 乱数は 0.1 固定なので端数の抽選も当たる
     assert.equal(dt.exp[WOODWORK], 310);
     assert.ok(useResultMessages(g, dt, result).includes(item.name + 'を作りました'));
   }
@@ -146,14 +149,14 @@ test('商人ポイントは13職の補正を取引ごとに適用し、転職前
   assert.equal(dt.merchantpt, 2);
 });
 
-test('1.4.0・1.5.0の新しい品のアイコンは16×16のPNG。1.5.0の品は市場に初期投入しない', () => {
-  for (const { item } of [...V140.new_items!, ...V150.new_items!]) {
+test('1.4.0・1.5.0・1.7.0の新しい品のアイコンは16×16のPNG。1.5.0の品は市場に初期投入しない', () => {
+  for (const { item } of [...V140.new_items!, ...V150.new_items!, ...V170.new_items!]) {
     const png = readFileSync(`public/images/item-no-${item}.png`);
     assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
     assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [16, 16]);
   }
   // 1.4.0 の4品の初期投入 (漆24滴・木工品各1点) は上の seedWholeStore で確かめている。
-  // seed-market は品を足したいちばん新しい版 (1.5.0) を見る。石炭・黒玉は市場に湧かない品なので対象なし
+  // seed-market は品を足したいちばん新しい版 (1.7.0: ツルハシ・オノを20ずつ、ただし市場の上限まで) を見る。石炭・黒玉 (1.5.0) は市場に湧かない品なので0のまま
   const dir = mkdtempSync(join(tmpdir(), 'soldout-v140-balance-'));
   const db = join(dir, 'seed.sqlite');
   const seed = () => spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'dist/src/main.js', 'seed-market'], {
@@ -162,11 +165,11 @@ test('1.4.0・1.5.0の新しい品のアイコンは16×16のPNG。1.5.0の品�
   try {
     const first = seed();
     assert.equal(first.status, 0, first.stderr);
-    assert.match(first.stdout, /v1\.5\.0 では市場の初期投入対象がありません/);
+    assert.match(first.stdout, /142 山師のツルハシ: 0 → 1 \(\+1\)/, "店0の街では市場の上限 (wslimit×店数) で1本に収まる");
     const store = new Store(db);
     try {
       const w = store.loadWorld(T0);
-      assert.deepEqual(w.wholestore.slice(138), [0, 0, 0]);
+      assert.deepEqual(w.wholestore.slice(138), [0, 0, 0, 1, 1]);
     } finally {
       store.close();
     }
