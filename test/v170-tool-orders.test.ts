@@ -185,3 +185,11 @@ test('1.7.0: 棚の売値より高い募集があれば、単価がいちばん�
     assert.equal(shelfOrderHint(g, me, 0, 0), null, '棚を空にしたとき');
   });
 });
+
+test('1.7.0 ナユタの首飾り: 作る時間は熟練100%で2時間 (0%で2.4時間)、需要は popular×4 で絞る', () => {
+  const it = BASE_ITEMS[itemNoByName('ナユタの首飾り')];
+  assert.deepEqual([it.popular, it.limit], [691200, 10]);
+  const u = BASE_ITEMS[66].uses.find((x) => x.get[0]?.item_no === it.no)!;
+  assert.deepEqual([u.time, u.exptime], [8640, 7200]);
+  assert.deepEqual(u.get[0], { item_no: it.no, count: 1, proba: 1000, fraction: 300 }, '1.7.0 の装飾+30%はそのまま');
+});

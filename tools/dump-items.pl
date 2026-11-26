@@ -793,6 +793,12 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			die "v1.7.0: limit $no lowers" if $limit < $it->{limit};
 			$it->{limit} = $limit;
 		}
+		# ナユタの首飾りを強くする (作る時間を縮め、需要は popular で絞る)
+		my $nk = $v170->{necklace};
+		my @nk = grep { @{ $_->{get} } && $_->{get}[0]{item_no} == $nk->{item} } @{ $by_no{$nk->{book}}{uses} };
+		die 'v1.7.0: necklace recipe not found' if @nk != 1;
+		@{ $nk[0] }{qw(time exptime)} = @$nk{qw(time exptime)};
+		$by_no{$nk->{item}}{popular} = $nk->{popular};
 		# 採る2職の道具 (ツルハシ・オノ)。品を足し、作り方をほかの職の本に足す。効き目はエンジン (src/engine/gather-tools.ts)
 		my $gt = $v170->{gather_tools};
 		for my $spec (@{ $gt->{items} }) {
