@@ -421,7 +421,7 @@ export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedIt
 }
 
 /** wantedFor の中身: この店が今納品できる、ほかの店の募集 (1件ずつ) */
-function deliverableOrders(g: Game, dt: Shop, items?: Iterable<number>): BuyOrder[] {
+export function deliverableOrders(g: Game, dt: Shop, items?: Iterable<number>): BuyOrder[] {
   const only = items ? new Set(items) : null;
   const stats = g.world.orderStats;
   const cur = stats && stats.period >= periodNo(g) ? stats : undefined;

@@ -63,7 +63,7 @@ export function bookDurability(dt: Shop, itemno: number): number | undefined {
 }
 
 /** 結果に出す1行「薬調合入門の耐久: 46%」。0%なら「いつ壊れてもおかしくない」を添える */
-function durabilityLine(g: Game, dt: Shop, itemno: number, label: string, zero: string): string {
+export function durabilityLine(g: Game, dt: Shop, itemno: number, label: string, zero: string): string {
   const d = bookDurability(dt, itemno) ?? 100;
   return `${g.items[itemno].name}の${label}: ${d}%` + (d === 0 ? ` (${zero})` : '');
 }
@@ -73,7 +73,7 @@ function durabilityLine(g: Game, dt: Shop, itemno: number, label: string, zero: 
  * 品物は減らさない (呼び出し側で減らす)。持っている数が0になっても傷みは残す (売って買い直しても新品にならない)。
  * wear=0 で呼ぶと、たまった傷みでもう1個壊れるかだけを見る。
  */
-function wearStep(g: Game, dt: Shop, itemno: number, wear: number): boolean {
+export function wearStep(g: Game, dt: Shop, itemno: number, wear: number): boolean {
   dt.bookwear ??= {};
   const newLife = (): number => BOOK_LIFE_MIN + g.rand(BOOK_LIFE_MAX - BOOK_LIFE_MIN);
   const w = (dt.bookwear[itemno] ??= [0, newLife()]);

@@ -5,7 +5,8 @@
 import { HIDDEN_NAME, isPublicItem, makesHiddenItem, type UseDef } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { checkWholeStore } from './market.js';
-import { USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS } from './scripts.js';
+import { durabilityLine, USE_BEFORE_FUNCS, USE_CANCEL_CHECKS, USE_FUNCS, wearStep } from './scripts.js';
+import { gatherToolFor } from './gather-tools.js';
 import type { Shop } from './types.js';
 import { hasJobBonus } from './jobs.js';
 import { JOBLV_YIELD_PCT, joblvProgress } from './joblv.js';
@@ -286,10 +287,31 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   // 職レベルの出来高倍率はレシピの get 行だけ。搾乳や、exp 0 の「働く」など、スクリプトの直接追加には掛けない。
   // 酪農家は元から強いので搾乳は意図して据え置く。搾乳の点は入り、草刈り・乳製品のレシピには倍率が効く (2026-11-23)。
   // 搾乳にも掛ける場合は scripts.ts の mino:_local_1 / mino:_local_2 の val に同じ倍率を掛ける。
+  // 1.7.0 採る2職の道具 (ツルハシ・オノ): 持っていれば1回ごとに傷み、効いた回だけ取れる確率に +percent% (職レベルと足し算)。
+  // 壊れたら残りの回には効かない (まとめて採っても1回ずつ採っても同じ)
+  const tool = u.exp !== 0 && u.result.create.length ? gatherToolFor(u.itemno, u.name) : undefined;
+  let toolUnits = 0;
+  let toolBroken = 0;
+  if (tool) {
+    let have = dt.item[tool.tool - 1];
+    for (let i = 0; i < count && have > 0; i++) {
+      toolUnits++;
+      if (wearStep(g, dt, tool.tool, tool.wear)) {
+        have--;
+        toolBroken++;
+      }
+    }
+  }
+  const yieldPct = 100 + JOBLV_YIELD_PCT * joblv;
   for (const line of u.result.create) {
-    const proba = Math.max(0, Math.min(1000, line.proba)) * (100 + JOBLV_YIELD_PCT * joblv) / 100;
-    let itemcount = rollYield(g, line.count * count, proba);
-    if (line.fraction) itemcount += rollYield(g, count, proba * line.fraction / 1000);
+    const roll = (units: number, pct: number): number => {
+      const proba = Math.max(0, Math.min(1000, line.proba)) * pct / 100;
+      let n = rollYield(g, line.count * units, proba);
+      if (line.fraction) n += rollYield(g, units, proba * line.fraction / 1000);
+      return n;
+    };
+    let itemcount = roll(count - toolUnits, yieldPct);
+    if (toolUnits) itemcount += roll(toolUnits, yieldPct + tool!.percent);
     if (itemcount) {
       const item = g.items[line.no];
       if (itemcount + dt.item[line.no - 1] > item.limit) {
@@ -302,6 +324,15 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
       u.result.additem.push({ item_no: line.no, count: itemcount });
       u.result.addmsg.push(line.message);
     }
+  }
+  if (tool && toolUnits) {
+    const name = g.items[tool.tool].name;
+    if (toolBroken) {
+      dt.item[tool.tool - 1] -= toolBroken;
+      u.result.useitem.push({ item_no: tool.tool, count: toolBroken });
+      u.result.usemsg.push(`${name}が壊れました`);
+    }
+    u.result.addmsg.push(`${name}で+${tool.percent}% (${toolUnits}回)`, durabilityLine(g, dt, tool.tool, '耐久', 'いつ壊れてもおかしくない'));
   }
   checkWholeStore(g);
 

@@ -309,7 +309,7 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   if (on.has('on_shelf')) {
     for (const x of onShelf(g, dt, now)) {
       const it = g.items[x.item];
-      add({ type: 'on_shelf', level: 'low', key: `onshelf:${x.item}`, msg: `${x.why === 'order' ? '募集中の' : '材料の'}${it.name}がほかの店の棚に${x.shops}店 (最安 店${x.shop} ￥${x.cheapest})。GET /api/v1/shops?item=${x.item}` });
+      add({ type: 'on_shelf', level: 'low', key: `onshelf:${x.item}`, msg: `${x.why === 'order' ? '募集中の' : x.why === 'wish' ? 'ほしい物リストの' : '材料の'}${it.name}が` + (x.shops ? `ほかの店の棚に${x.shops}店 (最安 店${x.shop} ￥${x.cheapest})${x.market ? '・市場にも' : ''}。GET /api/v1/shops?item=${x.item}` : '市場にあります。GET /api/v1/market') });
     }
   }
   const somethingToDo = shelves.some((s) => !s.item || s.stock === 0) || wantedCount > 0;
