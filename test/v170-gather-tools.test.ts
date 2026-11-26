@@ -48,7 +48,7 @@ test('1.7.0 ツルハシ・木こりのオノ: データは tools/v170-tool-jobs
   assert.equal(axe.needexp, 300);
 });
 
-test('1.7.0 ツルハシ: 持っていれば取れる確率+10% (職レベルと足し算) で、1回ごとに傷む。炭鉱には効かない', () => {
+test('1.7.0 ツルハシ: 持っていれば取れる確率+10% (職レベルと足し算) で、1回ごとに傷む。炭鉱にも効く', () => {
   const { g, dt } = fixture('mine');
   const iron = useNo(MAP_MINE, '鉄鉱山へ行く');
   // 道具なし: 鉄塊 (800) は 850 の乱数で出ない
@@ -61,11 +61,9 @@ test('1.7.0 ツルハシ: 持っていれば取れる確率+10% (職レベルと
   assert.ok(msg.includes('ツルハシで+10% (3回)'), msg.join('\n'));
   assert.ok(msg.some((m) => /^ツルハシの耐久: \d+%$/.test(m)), msg.join('\n'));
   assert.ok(dt.bookwear![PICK][0] > 0.149 && dt.bookwear![PICK][0] < 0.151);
-  // 炭鉱は効かない (傷みもしない)
-  const before = dt.bookwear![PICK][0];
+  // 炭鉱にも効く
   const c = useItemAction(g, dt, MAP_MINE, useNo(MAP_MINE, '炭鉱に潜る'), { count: 1 });
-  assert.ok(!useResultMessages(g, dt, c).some((m) => m.startsWith('ツルハシで')));
-  assert.equal(dt.bookwear![PICK][0], before);
+  assert.ok(useResultMessages(g, dt, c).includes('ツルハシで+10% (1回)'));
 });
 
 test('1.7.0 ツルハシ: 寿命に届いた回で壊れ、そのあとの回には効かない', () => {

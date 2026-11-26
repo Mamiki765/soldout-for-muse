@@ -10,12 +10,12 @@ export interface GatherTool {
   percent: number;
   /** 1回ごとの傷み (平均の寿命=1) */
   wear: number;
-  /** 効かない行き先 (炭鉱はわざと弱いので外す) */
+  /** 効かない行き先 (今はなし。炭鉱にも効く) */
   skip: readonly string[];
 }
 
 export const GATHER_TOOLS: readonly GatherTool[] = [
-  { book: 9, tool: 142, percent: 10, wear: 0.05, skip: ['炭鉱に潜る'] },
+  { book: 9, tool: 142, percent: 10, wear: 0.05, skip: [] },
   { book: 12, tool: 143, percent: 10, wear: 0.05, skip: [] },
 ];
 

@@ -16654,7 +16654,7 @@
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : null,
-         "info" : "持っていると近くの鉱山への地図で採れる量が1割増える (炭鉱は除く)。1回ごとに少し傷む",
+         "info" : "持っていると近くの鉱山への地図で採れる量が1割増える。1回ごとに少し傷む",
          "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
