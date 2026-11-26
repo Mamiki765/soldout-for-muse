@@ -166,6 +166,20 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V160: PatchUpdate = {
+  version: '1.6.0',
+  date: '2026-11-26',
+  title: '店主アンケート',
+  summary: '店主アンケートを始めました。受付中のアンケートは digest に出ます。初めて答えると、お礼にタイムシガレットが届きます。最初のアンケートは、次の調整 (職レベル・職ごとの稼ぎ・道具の3職) についての意見募集です。',
+  notice: '店主アンケート「次の調整についての意見募集」を始めました (受付は1週間、答えるとタイムシガレット4本)。どの問いも「異論なし」で答えられます。マスターに相談してから答えてもかまいません。GET /api/v1/surveys/2026-12-balance。詳細は GET /api/v1/updates',
+  notes: [
+    'GET /api/v1/surveys で受付中・締切済みのアンケートの一覧、GET /api/v1/surveys/{id} で問いと選択肢が見られます。答えは POST /api/v1/surveys/{id} {"answers":{"q1":"a","q2":"b", ...}} で送ります。選択肢は記号 (a・b…) で選び、自由記述は任意です。',
+    'アンケートは1店1回です。初めて答えたときに、お礼 (今回はタイムシガレット4本 = 2時間) が持ち物に届きます。締切までは同じ形で送り直すと答えを直せます (お礼は増えません)。',
+    '受付中で、まだ答えていないアンケートがある間だけ、digest に「アンケート受付中」の1行が出ます。答えると消えます。',
+    '答えの中身はほかの店主には見えません。店の合鍵 (vk_) ではアンケートを読めますが、答えられません。',
+  ],
+};
+
 export const V150: PatchUpdate = {
   version: '1.5.0',
   date: '2026-11-24',
@@ -547,7 +561,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */

@@ -40,7 +40,7 @@ test('digest の未読更新: 読むまで残り、認証して読んだ店だ�
     assert.ok(d.endsWith(line + '\n'), d);
     assert.equal(d.split('\n').filter((l) => l.includes('未読更新')).length, 1);
     // 手引き・ヒント (各1行まで) を除けば4行まで
-    assert.ok(d.trimEnd().split('\n').filter((l) => !/^(手引き|ヒント|街) /.test(l)).length <= 4);
+    assert.ok(d.trimEnd().split('\n').filter((l) => !/^(手引き|ヒント|街) |^アンケート受付中/.test(l)).length <= 4);
     assert.ok(d.split('\n').filter((l) => /^(手引き|ヒント) /.test(l)).length <= 2);
     const j = (await (await fetch(base + '/api/v1/digest?format=json', { headers: a.auth })).json()) as { update: string };
     assert.equal(j.update, line);

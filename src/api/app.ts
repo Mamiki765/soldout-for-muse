@@ -12,6 +12,9 @@ import { BASE_ITEMS, isPublicItem, itemNoByName, itemVisibility, MAX_ITEM } from
 import * as act from '../engine/actions.js';
 import { COST_REPORT_KEEP, costReportData, costReportText } from '../engine/costs.js';
 import { Game, GameError } from '../engine/game.js';
+import { findSurvey, normalizeAnswers, rewardText, SURVEYS, SurveyInputError } from '../surveys.js';
+import * as sv from './survey-views.js';
+import { addItemSub } from '../engine/scripts.js';
 import { mathRandom, type Rng } from '../engine/rng.js';
 import { turn } from '../engine/turn.js';
 import { observePrices, PRICE_HISTORY_KEEP } from '../engine/prices.js';
@@ -198,6 +201,8 @@ export class App {
       if (applyFairyBackfill(this.world, rows, this.clock())) this.persist([], this.clock());
     }
     this.mail = new MailBox(this.store);
+    // 店主アンケート (1.6.0): この版で初めて起きたときから受付を始める
+    sv.openSurveys(this.store, this.clock());
     this.town = new TownService(this.store, this.config.oneDayTime);
     this.initTown();
   }
@@ -796,6 +801,8 @@ export class App {
           if (card?.stale) d.warnings.push('許可証の絵が古い (店主名・店名・職業のどれかが変わった)。描き直すとよい GET /api/v1/profile/card/draft');
           // 街の地図 (1.2.0): 住所はふだん出さない。無料の引っ越し・色変えが残っている間だけ案内する
           if (ow) d.town = tv.digestTownLines(this.town, ow.som, this.publicUrl, g.now);
+          // 店主アンケート (1.6.0): 受付中で、まだ答えていないものだけ
+          d.surveys = sv.surveyDigestLines(this.store, ow?.som ?? null, g.now);
           return { status: 200, text: v.digestText(d), json: d };
         }
         case '/me': {
@@ -918,6 +925,10 @@ export class App {
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
         case '/mail':
           return this.mailList(g, dt, q);
+        case '/surveys': {
+          const d = sv.surveyListData(this.store, this.store.ownerByShop(dt.id)?.som ?? null, g.now);
+          return { status: 200, text: sv.surveyListText(d), json: { surveys: d } };
+        }
         case '/mail/block': {
           const list = this.mail.blocks(this.owners.ownerOf(dt.id).som);
           return { status: 200, text: (list.length ? '受け取りを止めている相手: ' + list.join(' ') : '受け取りを止めている相手はいません') + '\n', json: { blocked: list } };
@@ -925,6 +936,12 @@ export class App {
       }
       // 合鍵 (飼い主さんの安全確認) でも読めるが、既読にはしない
       if (/^\/mail\/\d+$/.test(p)) return this.mailOpen(g, dt, Number(p.slice('/mail/'.length)), !readonly);
+      if (p.startsWith('/surveys/')) {
+        const s = findSurvey(decodeURIComponent(p.slice('/surveys/'.length)));
+        if (!s) throw new HttpError(404, 'そのアンケートはありません (一覧は GET /api/v1/surveys)');
+        const d = sv.surveyDetailData(this.store, s, this.store.ownerByShop(dt.id)?.som ?? null, g.now);
+        return { status: 200, text: sv.surveyDetailText(d), json: d };
+      }
       if (p.startsWith('/owners/')) {
         const ow = this.store.ownerBySom(p.slice('/owners/'.length));
         if (!ow) throw new HttpError(404, 'その som の店主はいません');
@@ -969,6 +986,7 @@ export class App {
           return this.mailBlock(shopId, body);
       }
       if (/^\/mail\/\d+$/.test(p)) return this.mailReply(shopId, Number(p.slice('/mail/'.length)), body);
+      if (p.startsWith('/surveys/')) return this.surveyAnswer(shopId, decodeURIComponent(p.slice('/surveys/'.length)), body);
     }
     throw new HttpError(404, 'ありません');
   }
@@ -1662,6 +1680,45 @@ export class App {
   }
 
   // ---------------------------------------------------------------------------
+  // 店主アンケート (1.6.0)
+
+  private surveyAnswer(shopId: number, id: string, body: Record<string, unknown>): Reply {
+    const s = findSurvey(id);
+    if (!s) throw new HttpError(404, 'そのアンケートはありません (一覧は GET /api/v1/surveys)');
+    const { g } = this.game();
+    const dt = this.me(g, shopId);
+    const ow = this.owners.ownerOf(dt.id);
+    if (!sv.surveyWindow(this.store, s, g.now).open) throw new GameError('このアンケートは受付していません (締め切りました)');
+    let answers;
+    try {
+      answers = normalizeAnswers(s, body.answers ?? body);
+    } catch (e) {
+      if (e instanceof SurveyInputError) throw new HttpError(400, e.message);
+      throw e;
+    }
+    const row = { shop_id: dt.id, shopname: dt.shopname, job: v.jobName(dt), answers: JSON.stringify(answers) };
+    if (this.store.surveyAnswer(s.id, ow.som)) {
+      this.store.updateSurveyAnswer(s.id, ow.som, row, g.now);
+      return { status: 200, text: `OK 答えを直しました (お礼は初めて答えたときにお渡し済みです)\n`, json: { ok: true, updated: true, reward: [] } };
+    }
+    // 初めての答え: お礼を持ち物に入れ、答えと同じトランザクションで確定する
+    const got: { item: number; name: string; count: number }[] = [];
+    for (const [no, count] of s.reward) {
+      const n = addItemSub(g, dt, no, count);
+      if (n > 0) got.push({ item: no, name: g.items[no].name, count: n });
+    }
+    const gotText = got.map((x) => `${x.name}${x.count}${g.items[x.item].scale}`).join('・');
+    g.writeLog(0, dt.id, 0, `アンケート「${s.title}」のお礼に${gotText || rewardText(s) + ' (持てる上限で受け取れませんでした)'}をお届けしました`);
+    g.pendingWrites.push(() => this.store.addSurveyAnswer({ survey_id: s.id, som: ow.som, ...row, first_at: g.now }));
+    this.save(g);
+    return {
+      status: 201,
+      text: `OK アンケートに答えました。ありがとうございます。お礼に${gotText || '(持てる上限で受け取れませんでした)'}をお届けしました。締切までは送り直すと答えを直せます\n`,
+      json: { ok: true, updated: false, reward: got },
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // 管理用 (管理用トークン sa_... を持つ人だけ。ミュート用)
 
   /** 管理用トークン (sa_) が正しいか */
@@ -1767,6 +1824,33 @@ export class App {
         throw e;
       }
       return { status: 200, text: 'OK ' + msgs.join('\n') + '\n', json: { ok: true, msg: msgs } };
+    }
+    // 店主アンケートの集計 (1.6.0)。?csv=1 で1店1行の CSV
+    if (method === 'GET' && p === '/surveys') {
+      const now = this.clock();
+      const list = SURVEYS.map((s) => ({ id: s.id, title: s.title, ...sv.surveyWindow(this.store, s, now), respondents: this.store.surveyAnswers(s.id).length }));
+      return { status: 200, text: list.map((x) => `${x.id} 「${x.title}」 ${x.open ? '受付中' : '締切'} ${v.jst(x.opened_at)}〜${v.jst(x.closes_at)} 回答${x.respondents}店`).join('\n') + '\n', json: { surveys: list } };
+    }
+    const svm = /^\/surveys\/([\w-]+)$/.exec(p);
+    if (svm) {
+      const s = findSurvey(svm[1]);
+      if (!s) throw new HttpError(404, 'そのアンケートはありません');
+      if (method === 'GET') {
+        if (q.get('csv') === '1') return { status: 200, binary: { data: Buffer.from('\ufeff' + sv.surveyCsv(this.store, s)), type: 'text/csv; charset=utf-8' }, headers: { 'cache-control': 'private, no-store' } };
+        const d = sv.surveyTallyData(this.store, s, this.clock());
+        return { status: 200, text: sv.surveyTallyText(d), json: d };
+      }
+      if (method === 'POST') {
+        // 締切を変える: {"days":3} で今から3日後、{"close":true} で今すぐ締める
+        const body = await this.body(req);
+        const now = this.clock();
+        const close = body.close === true || body.close === 'true';
+        const days = Number(body.days);
+        if (!close && !(Number.isFinite(days) && days > 0 && days <= 60)) throw new HttpError(400, 'days に1〜60の日数を入れるか、{"close":true} で締めてください');
+        const at = close ? now : now + Math.round(days * 86400);
+        sv.setSurveyClose(this.store, s, at);
+        return { status: 200, text: `OK ${s.id} の締切を ${v.jst(at)} にしました\n`, json: { ok: true, closes_at: at } };
+      }
     }
     if (method === 'GET' && p === '/stats') {
       const { g } = this.game();

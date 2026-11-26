@@ -93,6 +93,18 @@ export function newToken(prefix: string): string {
   return prefix + randomBytes(24).toString('base64url');
 }
 
+/** 店主アンケートの答え (1店主1行)。answers は JSON */
+export interface SurveyAnswerRow {
+  survey_id: string;
+  som: string;
+  shop_id: number;
+  shopname: string;
+  job: string;
+  answers: string;
+  first_at: number;
+  updated_at: number;
+}
+
 export class Store {
   readonly db: DatabaseSync;
 
@@ -155,6 +167,11 @@ export class Store {
         at INTEGER NOT NULL, item INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (item, at)
       );
       CREATE INDEX IF NOT EXISTS market_history_at ON market_history(at);
+      CREATE TABLE IF NOT EXISTS survey_answers (
+        survey_id TEXT NOT NULL, som TEXT NOT NULL, shop_id INTEGER NOT NULL, shopname TEXT NOT NULL,
+        job TEXT NOT NULL, answers TEXT NOT NULL, first_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+        PRIMARY KEY (survey_id, som)
+      );
     `);
     const columns = new Set(this.db.prepare('PRAGMA table_info(owners)').all().map((row) => row.name));
     if (!columns.has('fairy_name')) this.db.exec('ALTER TABLE owners ADD COLUMN fairy_name TEXT');
@@ -414,6 +431,28 @@ export class Store {
   countSuggestionsByStatus(): Record<string, number> {
     const rows = this.db.prepare('SELECT status, COUNT(*) AS c FROM suggestions GROUP BY status').all() as { status: string; c: number }[];
     return Object.fromEntries(rows.map((r) => [r.status, r.c]));
+  }
+
+  // ---- 店主アンケート (1.6.0) ----
+
+  surveyAnswer(surveyId: string, som: string): SurveyAnswerRow | undefined {
+    return this.db.prepare('SELECT * FROM survey_answers WHERE survey_id = ? AND som = ?').get(surveyId, som) as unknown as SurveyAnswerRow | undefined;
+  }
+
+  /** 初めての答え。街の保存と同じトランザクションの中で呼ぶ (お礼と一緒に確定させる) */
+  addSurveyAnswer(r: Omit<SurveyAnswerRow, 'updated_at'>): void {
+    this.db.prepare('INSERT INTO survey_answers(survey_id,som,shop_id,shopname,job,answers,first_at,updated_at) VALUES(?,?,?,?,?,?,?,?)')
+      .run(r.survey_id, r.som, r.shop_id, r.shopname, r.job, r.answers, r.first_at, r.first_at);
+  }
+
+  /** 答え直し (お礼は増やさない)。店名・職も今のものにする */
+  updateSurveyAnswer(surveyId: string, som: string, f: { shop_id: number; shopname: string; job: string; answers: string }, now: number): void {
+    this.db.prepare('UPDATE survey_answers SET shop_id = ?, shopname = ?, job = ?, answers = ?, updated_at = ? WHERE survey_id = ? AND som = ?')
+      .run(f.shop_id, f.shopname, f.job, f.answers, now, surveyId, som);
+  }
+
+  surveyAnswers(surveyId: string): SurveyAnswerRow[] {
+    return this.db.prepare('SELECT * FROM survey_answers WHERE survey_id = ? ORDER BY first_at ASC, som ASC').all(surveyId) as unknown as SurveyAnswerRow[];
   }
 
   // ---- Muse Party の人 (owner_id) とお店の対応 ----
