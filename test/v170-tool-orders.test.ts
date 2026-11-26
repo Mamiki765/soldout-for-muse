@@ -160,8 +160,9 @@ test('1.7.0: 自分の在庫を欲しがる募集は、今納品できるもの�
   act(world, seller, T0 + 3 * 3600, (g, me) => assert.deepEqual(wantedFor(g, me), []));
 });
 
-test('1.7.0 所持上限: 低すぎた14品だけ上げ、「1個だけ」がわざとの品はそのまま', () => {
-  assert.equal(v170.limits.items.length, 14);
+test('1.7.0 所持上限: 息苦しかった6品だけ上げ、「1個だけ」がわざとの品はそのまま', () => {
+  assert.equal(v170.limits.items.length, 6);
+  assert.equal(BASE_ITEMS[itemNoByName('オリハルコンの剣')].limit, 50, '需要より上限が大きい品は上げない');
   for (const [no, limit] of v170.limits.items) assert.equal(BASE_ITEMS[no].limit, limit, BASE_ITEMS[no].name);
   assert.equal(BASE_ITEMS[itemNoByName('ナユタの首飾り')].limit, 10);
   for (const name of ['禁断の書', '転居許可証', '店用ペンキ', '店番ロボット', 'お祝いセット', '転職のススメ']) assert.equal(BASE_ITEMS[itemNoByName(name)].limit, 1, name);
