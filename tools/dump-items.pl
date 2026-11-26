@@ -743,6 +743,40 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			};
 		}
 		$define{version} = $v150->{version};
+
+		# 1.7.0 道具3職の梱包と自分の品 (tools/v170-tool-jobs.json)。梱包6種の時間を伸ばし、自分の品の取れる数を増やす。
+		# 取れる数は「個数＋端数 (fraction、1000分の1個)」の期待値に倍率を掛け、整数部を count、残りを fraction にする
+		open(my $v170_fh, '<:raw', "$FindBin::Bin/v170-tool-jobs.json") or die $!;
+		my $v170 = JSON::PP->new->utf8->decode(do { local $/; <$v170_fh> });
+		close $v170_fh;
+		$v170 = $as_bytes->($v170);
+		my $pack = $v170->{packing};
+		for my $name (@{ $pack->{uses} }) {
+			my @hit = grep { $_->{name} eq $name } @{ $by_no{$pack->{book}}{uses} };
+			die "v1.7.0: packing use not found: $name" if @hit != 1;
+			$hit[0]{$_} = int($hit[0]{$_} * $pack->{time_percent} / 100) for qw(time exptime);
+		}
+		my %own;
+		for my $job (keys %{ $v170->{own_yield_percent} }) {
+			my $spec = $v170->{own_yield_percent}{$job};
+			$own{$_} = $spec->{percent} for @{ $spec->{items} };
+		}
+		my %seen170;
+		for my $it (@items) {
+			for my $u (@{ $it->{uses} }) {
+				for my $get (@{ $u->{get} }) {
+					my $pct = $own{$get->{item_no}} or next;
+					my $milli = ($get->{count} * 1000 + ($get->{fraction} // 0)) * $pct;
+					$milli = int(($milli + 50) / 100);
+					$get->{count} = int($milli / 1000);
+					my $rest = $milli % 1000;
+					if ($rest) { $get->{fraction} = $rest } else { delete $get->{fraction} }
+					$seen170{$get->{item_no}}++;
+				}
+			}
+		}
+		for my $no (keys %own) { die "v1.7.0: no recipe makes $no" if !$seen170{$no} }
+		$define{version} = $v170->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

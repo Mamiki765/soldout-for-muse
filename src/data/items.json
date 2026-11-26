@@ -64,7 +64,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.5.0"
+      "version" : "1.7.0"
    },
    "errors" : [],
    "events" : [
@@ -5544,7 +5544,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 81,
                      "proba" : 800
                   }
@@ -5610,7 +5610,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 82,
                      "proba" : 600
                   }
@@ -5681,7 +5681,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 83,
                      "proba" : 400
                   }
@@ -5742,7 +5742,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 12,
                      "item_no" : 85,
                      "proba" : 400
                   }
@@ -6173,7 +6173,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 87,
                      "proba" : 600
                   }
@@ -6300,7 +6301,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 135,
                      "proba" : 700
                   }
@@ -6361,7 +6363,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 136,
                      "proba" : 700
                   }
@@ -6422,7 +6425,8 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 11,
+                     "fraction" : 400,
                      "item_no" : 137,
                      "proba" : 600
                   }
@@ -10941,7 +10945,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 7200,
+               "exptime" : 8928,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -10977,7 +10981,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 14400,
+               "time" : 17856,
                "use" : [
                   {
                      "count" : 1,
@@ -11002,7 +11006,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 10800,
+               "exptime" : 13392,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11038,7 +11042,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 18000,
+               "time" : 22320,
                "use" : [
                   {
                      "count" : 1,
@@ -11073,7 +11077,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 14400,
+               "exptime" : 17856,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11109,7 +11113,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 21600,
+               "time" : 26784,
                "use" : [
                   {
                      "count" : 1,
@@ -11144,7 +11148,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 16200,
+               "exptime" : 20088,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11180,7 +11184,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 25200,
+               "time" : 31248,
                "use" : [
                   {
                      "count" : 1,
@@ -11215,7 +11219,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 18000,
+               "exptime" : 22320,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11251,7 +11255,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 28800,
+               "time" : 35712,
                "use" : [
                   {
                      "count" : 1,
@@ -11286,7 +11290,7 @@
                "argmessage" : null,
                "argselect" : null,
                "exp" : 10,
-               "exptime" : 21600,
+               "exptime" : 26784,
                "func" : null,
                "func_before" : null,
                "func_info" : null,
@@ -11322,7 +11326,7 @@
                   null
                ],
                "scale" : "セット",
-               "time" : 32400,
+               "time" : 40176,
                "use" : [
                   {
                      "count" : 1,
@@ -12807,7 +12811,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 67,
                      "proba" : 800
                   }
@@ -12878,7 +12882,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 68,
                      "proba" : 800
                   }
@@ -12944,7 +12948,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 20,
+                     "count" : 26,
                      "item_no" : 69,
                      "proba" : 600
                   }
@@ -13016,6 +13020,7 @@
                "get" : [
                   {
                      "count" : 1,
+                     "fraction" : 300,
                      "item_no" : 70,
                      "proba" : 1000
                   }
@@ -13167,7 +13172,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 84,
                      "proba" : 600
                   }
@@ -13243,7 +13248,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 86,
                      "proba" : 400
                   }
@@ -13324,7 +13329,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 10,
+                     "count" : 13,
                      "item_no" : 130,
                      "proba" : 900
                   }
