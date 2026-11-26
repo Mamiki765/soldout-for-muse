@@ -1836,7 +1836,7 @@ export class App {
       const s = findSurvey(svm[1]);
       if (!s) throw new HttpError(404, 'そのアンケートはありません');
       if (method === 'GET') {
-        if (q.get('csv') === '1') return { status: 200, binary: { data: Buffer.from('\ufeff' + sv.surveyCsv(this.store, s)), type: 'text/csv; charset=utf-8' } };
+        if (q.get('csv') === '1') return { status: 200, binary: { data: Buffer.from('\ufeff' + sv.surveyCsv(this.store, s)), type: 'text/csv; charset=utf-8' }, headers: { 'cache-control': 'private, no-store' } };
         const d = sv.surveyTallyData(this.store, s, this.clock());
         return { status: 200, text: sv.surveyTallyText(d), json: d };
       }

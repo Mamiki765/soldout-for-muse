@@ -154,7 +154,11 @@ export function surveyTallyText(d: ReturnType<typeof surveyTallyData>): string {
   return lines.join('\n');
 }
 
-const csvCell = (v: string) => (/[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
+/** 表計算ソフトで式として読まれないよう、= + - @ などで始まる値には ' を前に付けてから囲む */
+const csvCell = (raw: string) => {
+  const v = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
+  return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+};
 
 /** 1店1行の CSV (表計算ソフトで開く用) */
 export function surveyCsv(store: Store, s: Survey): string {

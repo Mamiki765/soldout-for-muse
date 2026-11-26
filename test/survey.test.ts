@@ -126,6 +126,11 @@ test('アンケート: 答えるとお礼が1回だけ届き、digest の案内�
     assert.match(csv, /^﻿?som,shop,job,first_at,updated_at,q1,q2,q3,q4,q5,q6\n/);
     assert.match(csv, /紅茶と栞,.*,b,b,c,d,a,"道具の3職は\n新しい品がほしい"/);
     assert.equal((await get(a, `/admin/surveys/${ID}`)).status, 403, '店のトークンでは集計を見られない');
+    // CSV はキャッシュさせない。式に見える答えは ' を付けて出す
+    await post(b, `/surveys/${ID}`, { answers: { q1: 'a', q2: 'a', q3: 'b', q4: 'a', q5: 'f', q6: '=1+1' } });
+    const csvRes = await fetch(base + `/api/v1/admin/surveys/${ID}?csv=1`, { headers: adm });
+    assert.equal(csvRes.headers.get('cache-control'), 'private, no-store');
+    assert.match(await csvRes.text(), /,'=1\+1\n/);
 
     // 締切: 7日たつと答えられず、digest の案内も出ない
     now += 7 * 86400;
