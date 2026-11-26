@@ -1275,7 +1275,8 @@ export class App {
       case 'order': {
         this.requireParty(dt);
         const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), renew: renewIn(a.renew), repeat: opt('repeat') });
-        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}`];
+        const warn = ord.orderPriceWarning(g, o.item, o.price);
+        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}`, ...(warn ? [warn] : [])];
       }
       case 'deliver': {
         this.requireParty(dt);
@@ -2099,6 +2100,9 @@ function newerVersion(a: string, b: string): boolean {
 function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
   const msg = useResultMessages(g, dt, u);
   if (!u.result.count) throw new GameError(msg.join(' / '));
+  // できた品を欲しがっている募集があれば知らせる (1.7.0)
+  const line = ord.wantedLine(g, dt, ord.wantedFor(g, dt, (u.result.additem ?? []).map((a) => a.item_no)));
+  if (line) msg.push(line);
   return msg;
 }
 

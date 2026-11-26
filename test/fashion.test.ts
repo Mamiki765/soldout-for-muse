@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { v170Item, v170Line } from './v170.js';
 import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 // 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく
@@ -196,6 +197,8 @@ test('既存79種は各版で指定した差分に収まり、対象外のイベ
       if (time) { u.time = time.time; u.exptime = time.exptime; }
       u.get = u.get.map((l) => ({ ...l, ...v140get(old.no, l.count) }));
     }
+    // 1.7.0 (tools/v170-tool-jobs.json): 梱包6種の時間×1.24、道具3職の自分の品の取れる数
+    v170Item(expected);
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
@@ -208,7 +211,7 @@ test('既存79種は各版で指定した差分に収まり、対象外のイベ
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
   assert.deepEqual(current.define, {
-    ...original.define, version: '1.5.0',
+    ...original.define, version: '1.7.0',
     'job-mine': '探鉱夫', 'job-wood': '木こり', 'job-leather': '革細工屋', 'job-woodwork': '木工細工屋', 'job-deco': '装飾細工屋',
     'job-sword': '剣屋', 'job-staff': '杖屋', 'job-shield': '盾屋', 'job-mail': '鎧屋',
   });
@@ -224,7 +227,7 @@ test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕
     const lostbook = lostbook100(book, lostbook0);
     assert.ok(u, BASE_ITEMS[product].name);
     assert.deepEqual(triples(u.use), [...toolsOf(book).map((n) => [n,1,0]), ...ingredients.map(([n,c]) => [n,c,1000])]);
-    assert.deepEqual(u.get, [{ item_no: product, proba, ...v140get(book, get) }]);
+    assert.deepEqual(u.get, [v170Line({ item_no: product, proba, ...v140get(book, get) })]);
     assert.deepEqual([u.time,u.exptime,u.func,u.params[0],u.needexp], [newTime?.time ?? time,exptime,'lostbook',String(lostbook),null]);
     assert.deepEqual(u.jobs, [{ job:book === 20 ? 'weapon' : 'tool', key:'times', op:'/', value:2 }]);
   }
@@ -314,7 +317,8 @@ test('新規生産は1セットごとの材料を消費し、一致職業の時�
     const u = useItemAction(g,dt,book,useNo,{count:2});
     assert.equal(u.result.count,2);
     assert.equal(dt.time-before,v140time(book, product)?.time ?? time); // (基礎時間/2) × 2セット
-    assert.equal(dt.item[product-1],v140get(book, get).count*2);
+    const made = v170Line({ item_no: product, ...v140get(book, get) });
+    assert.equal(dt.item[product-1],(made.count + (made.fraction ? 1 : 0))*2); // 乱数は 0.1 固定なので端数の抽選も当たる
     for (const [no] of ingredients) assert.equal(dt.item[no-1],0);
     for (const n of toolsOf(book)) assert.equal(dt.item[n-1],1, '工具は消費しない');
   }

@@ -14,7 +14,7 @@ import { maxDeposit } from '../engine/actions.js';
 import { shelfNoticeOn, tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { onShelf, onShelfLine } from '../engine/onshelf.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
-import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel } from '../engine/orders.js';
+import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel, thanksHint, wantedFor } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
@@ -146,8 +146,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
   const est = periodEstimate(g, dt);
   if (est.short > 0) warnings.push(`このままだと決算で倒産の恐れ (見込み支払い${est.total}に対し資金+入金庫${est.available}、不足${est.short})`);
-  // 自分の倉庫にある品を、ほかの店が募集しているか (品ごとに一番高い単価)
-  const wanted = new Map<number, { item: number; name: string; price: number; orders: number }>();
+  // 自分の募集 (締めたときの破棄の注意も)。ほかの店の募集で自分の在庫を欲しがるものは wantedFor (1.7.0)
   const myOrders: string[] = [];
   const discards = discardPlan(g, dt);
   for (const o of orders(g)) {
@@ -156,14 +155,6 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
       const over = discards.get(o.id) ?? 0;
       if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
       myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : '') + (o.renew ? `(${renewLabel(o)})` : ''));
-      continue;
-    }
-    if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
-    const w = wanted.get(o.item);
-    if (!w) wanted.set(o.item, { item: o.item, name: g.items[o.item].name, price: o.price, orders: 1 });
-    else {
-      w.orders++;
-      if (o.price > w.price) w.price = o.price;
     }
   }
   // 改装中 (休業) の店は売れず決算もしないので、棚・倒産などの注意は出さず、休みの案内だけにする (1.1.0)
@@ -198,8 +189,10 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     mail_from: n.mailFrom ?? [],
     events: g.eventMessages,
     warnings,
-    /** 自分が持っている品の買い取り募集 (GET /api/v1/orders で詳しく) */
-    wanted: [...wanted.values()],
+    /** 自分が持っている品の買い取り募集のうち、今納品できるもの (GET /api/v1/orders で詳しく)。left は残りの合計 (1.7.0) */
+    wanted: wantedFor(g, dt),
+    /** wanted に添える納品のお礼の一言 (今期まだもらえるときだけ。1.7.0 試験運用) */
+    wanted_bonus: thanksHint(g, dt).trim(),
     my_orders: myOrders,
     /** 欲しい品 (自分の募集の品・材料だけ足りない作り方の材料) がほかの店の棚にある (engine/onshelf.ts)。{"type":"tutorial","shelf":false} で出さない */
     on_shelves: shelfNoticeOn(dt) ? onShelf(g, dt, g.now) : [],
@@ -245,7 +238,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
   const ords: string[] = [];
-  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' '));
+  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' ') + ' → deliver' + (d.wanted_bonus ? ' ' + d.wanted_bonus : ''));
   if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
   if (ords.length) lines.push(ords.join(' | '));
   if (d.price_moves.length) {

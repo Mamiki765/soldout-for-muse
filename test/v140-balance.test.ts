@@ -20,6 +20,7 @@ import { newWorld } from '../src/engine/types.js';
 import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
 import { V140, V150 } from '../src/updates.js';
+import { v170Item, v170Line } from './v170.js';
 
 const T0 = 1_800_000_000;
 const WOODWORK = 17;
@@ -63,6 +64,7 @@ test('8本・地図の全レシピに出来高調整を適用し、指定の2価
         shortened.push(product);
       }
     }
+    v170Item(item); // 1.7.0 の梱包の時間と道具3職の自分の品の取れる数
     const current = BASE_ITEMS[item.no];
     assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
     // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した
@@ -90,7 +92,8 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
     const { g, dt } = fixture('drug'); // 熟練を積めば木工細工屋以外でも作れる
     const u = BASE_ITEMS[WOODWORK].uses.find((recipe) => recipe.get[0]?.item_no === no)!;
     assert.deepEqual([u.time, u.exptime, u.needexp, u.exp, u.func, u.params[0]], [time, exptime, 300, 10, 'lostbook', '50']);
-    assert.deepEqual(u.get, [{ item_no: no, count: 10, proba: chance }]);
+    const made: UseLine = v170Line<UseLine>({ item_no: no, count: 10, proba: chance });
+    assert.deepEqual(u.get, [made]);
     assert.deepEqual(u.use, materials.map(([item_no, count]) => ({ item_no, count, proba: 1000 })));
     assert.deepEqual(u.jobs, [{ job: 'tool', key: 'times', op: '/', value: 2 }]);
     dt.item[WOODWORK - 1] = 1;
@@ -101,7 +104,7 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
     assert.deepEqual(dt, before);
     dt.exp[WOODWORK] = 300;
     const result = useItemAction(g, dt, WOODWORK, u.no, { count: 1 });
-    assert.equal(dt.item[no - 1], 10);
+    assert.equal(dt.item[no - 1], made.count + (made.fraction ? 1 : 0)); // 乱数は 0.1 固定なので端数の抽選も当たる
     assert.equal(dt.exp[WOODWORK], 310);
     assert.ok(useResultMessages(g, dt, result).includes(item.name + 'を作りました'));
   }

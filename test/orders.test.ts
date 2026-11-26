@@ -50,7 +50,7 @@ test('募集→部分納品→取り下げで、代金と税・時間が棚売�
   const { world, buyer, seller } = setup();
   const [lo, hi] = priceRange(new Game(world, DEFAULT_CONFIG, seededRng(1), T0), LEATHER);
   assert.equal(lo, 50);
-  assert.equal(hi, 150);
+  assert.equal(hi, 300);
 
   const bt0 = buyer.time;
   const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 120, count: 300, hours: 24 }));
@@ -98,7 +98,7 @@ test('制限: 単価・期限・同時件数・同じ相手1期1セット (逆�
   const mk = (dt: Shop, req: Partial<{ price: number; count: number; hours: number; min: number; itemno: number }>) =>
     act(world, dt, T0, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24, ...req }));
   assert.throws(() => mk(buyer, { price: 49 }), GameError);
-  assert.throws(() => mk(buyer, { price: 151 }), GameError);
+  assert.throws(() => mk(buyer, { price: 301 }), GameError);
   assert.throws(() => mk(buyer, { hours: 49 }), GameError);
   assert.throws(() => mk(buyer, { count: 5000 }), /所持上限/);
   assert.equal(world.orders?.length ?? 0, 0, '失敗は何も残さない');

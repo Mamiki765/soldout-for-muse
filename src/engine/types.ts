@@ -225,6 +225,8 @@ export interface OrderStats {
   filled: Record<string, number>;
   /** "売り手>買い手" → 今日納品したか */
   pairs: Record<string, number>;
+  /** 店id → 今期受け取った納品のお礼の数 (1.7.0。古い保存データには無い) */
+  thanked?: Record<string, number>;
 }
 
 export function newShop(id: number, maxItem: number): Shop {
