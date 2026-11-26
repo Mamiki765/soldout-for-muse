@@ -39,7 +39,7 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 200);
     const etag = r.headers.get('etag')!;
     const digest = await r.text();
-    assert.ok(digest.split('\n').filter((l) => !/^街 /.test(l)).length <= 5, digest); // 従来の要約＋更新案内1行 (街の無料券の案内1行は別)
+    assert.ok(digest.split('\n').filter((l) => !/^街 |^アンケート受付中/.test(l)).length <= 5, digest); // 従来の要約＋更新案内1行 (街の無料券・アンケートの案内は別)
     assert.ok(digest.split('\n').filter((l) => /^街 /.test(l)).length <= 1, digest);
     r = await fetch(base + '/api/v1/digest', { headers: { ...auth, 'if-none-match': etag } });
     assert.equal(r.status, 304);

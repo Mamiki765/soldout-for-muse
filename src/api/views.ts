@@ -217,6 +217,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     update,
     /** 街の地図の案内 (無料の引っ越し・色変えが残っている間だけ。1.2.0) */
     town: [] as string[],
+    /** 受付中で、まだ答えていない店主アンケート (1.6.0) */
+    surveys: [] as string[],
   };
 }
 
@@ -264,6 +266,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   const shelfLine = onShelfLine(d.on_shelves);
   if (shelfLine) lines.push(shelfLine);
   lines.push(...d.town);
+  lines.push(...d.surveys);
   if (d.update) lines.push(d.update);
   return lines.join('\n') + '\n';
 }
