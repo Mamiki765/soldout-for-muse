@@ -129,8 +129,8 @@ test('1.7.0: 自分の在庫を欲しがる募集は、今納品できるもの�
     const all = wantedFor(g, me);
     assert.deepEqual(all.map((w) => [w.name, w.orders, w.price, w.left]), [['薬草', 2, 30, 150], ['獣の革', 1, 100, 5]]);
     assert.deepEqual(wantedFor(g, me, [HERB]).map((w) => w.item), [HERB]);
-    assert.equal(wantedLine(g, wantedFor(g, me, [HERB])), '募集中: 薬草 2件 (最高￥30・残り150本) → GET /api/v1/orders?item=品番 を見て deliver で納品できます');
-    assert.equal(wantedLine(g, []), null);
+    assert.equal(wantedLine(g, me, wantedFor(g, me, [HERB])), '募集中: 薬草 2件 (最高￥30・残り150本) → GET /api/v1/orders?item=品番 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)');
+    assert.equal(wantedLine(g, me, []), null);
     // その店へ今期もう納品したら、その店の募集は数えない
     const lv = world.orders!.find((o) => o.shop === buyer2.id && o.item === LEATHER)!;
     deliver(g, me, buyer2.id, [{ order: lv.id, count: 1 }]);

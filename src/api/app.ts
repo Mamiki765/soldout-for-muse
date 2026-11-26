@@ -2101,7 +2101,7 @@ function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {
   const msg = useResultMessages(g, dt, u);
   if (!u.result.count) throw new GameError(msg.join(' / '));
   // できた品を欲しがっている募集があれば知らせる (1.7.0)
-  const line = ord.wantedLine(g, ord.wantedFor(g, dt, (u.result.additem ?? []).map((a) => a.item_no)));
+  const line = ord.wantedLine(g, dt, ord.wantedFor(g, dt, (u.result.additem ?? []).map((a) => a.item_no)));
   if (line) msg.push(line);
   return msg;
 }

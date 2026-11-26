@@ -33,7 +33,7 @@ export const ORDER_RULES = {
   linesPerSet: 8,
   /** 納品のお礼 (1.7.0、リカさん案 2026-11-26): 1回の納品 (1セット) が標準価格の合計でこれ以上なら、納品した側にタイムシガレット1本 */
   thanksMinStd: 5000,
-  /** 納品のお礼をもらえる回数 (1期に) */
+  /** 納品のお礼をもらえる回数 (1期に)。試験運用 (リカさん 2026-11-26「後から回数制限外せる」) */
   thanksPerPeriod: 2,
   /** 回数を決めた自動再掲 (repost) の回数の上限 (int32 の最大) */
   maxRepeat: 2_147_483_647,
@@ -45,7 +45,7 @@ export const ORDER_RULES_LINE =
   `募集は同時に棚の数まで・1期に棚の数×${ORDER_RULES.postsPerShelf}回まで (取り下げても回数は戻らない)、` +
   `標準価格の${ORDER_RULES.warnPercent}%を超える単価は出せるが採算に注意 (納品する側の売却税も上がる)、` +
   `納品は同じ店へ1期1セットまで (その店の募集なら${ORDER_RULES.linesPerSet}種類まで1セットにまとめて届けられる)・応じられるのは全部で1期${ORDER_RULES.fillsPerDay}種類まで、受け取るとき所持上限を超えた分は破棄。` +
-  `1セットが標準価格の合計で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上なら、納品した側にお礼のタイムシガレット1本 (1期${ORDER_RULES.thanksPerPeriod}回まで)。回数は決算で戻る (1期=決算から次の決算まで)。`;
+  `1セットが標準価格の合計で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上なら、納品した側にお礼のタイムシガレット1本 (試験運用、1期${ORDER_RULES.thanksPerPeriod}回まで)。回数は決算で戻る (1期=決算から次の決算まで)。`;
 
 /** 期限切れのときの自動の張り直しの一文。一覧ではきまりの後ろに続ける */
 export const ORDER_RENEW_LINE =
@@ -435,11 +435,24 @@ export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedIt
   return [...out.values()].sort((a, b) => a.item - b.item);
 }
 
+/** 今期あと何回、納品のお礼をもらえるか */
+export function thanksLeft(g: Game, dt: Shop): number {
+  const stats = g.world.orderStats;
+  const used = stats && stats.period >= periodNo(g) ? (stats.thanked?.[dt.id] ?? 0) : 0;
+  return Math.max(0, ORDER_RULES.thanksPerPeriod - used);
+}
+
+/** 募集の案内に添える、お礼のおまけの一言 (今期まだもらえるときだけ) */
+export function thanksHint(g: Game, dt: Shop): string {
+  const left = thanksLeft(g, dt);
+  return left > 0 ? ` (標準価格で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上の納品はタイムシガレットのおまけつき、今期あと${left}回)` : '';
+}
+
 /** 採取・生産から戻ったときの1行 (できた品を欲しがっている募集があるときだけ) */
-export function wantedLine(g: Game, list: WantedItem[]): string | null {
+export function wantedLine(g: Game, dt: Shop, list: WantedItem[]): string | null {
   if (!list.length) return null;
   const parts = list.map((w) => `${w.name} ${w.orders}件 (最高￥${w.price}・残り${w.left}${g.items[w.item].scale})`);
-  return `募集中: ${parts.join(' / ')} → GET /api/v1/orders?item=品番 を見て deliver で納品できます`;
+  return `募集中: ${parts.join(' / ')} → GET /api/v1/orders?item=品番 を見て deliver で納品できます${thanksHint(g, dt)}`;
 }
 
 export interface DeliverLine {

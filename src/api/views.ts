@@ -14,7 +14,7 @@ import { maxDeposit } from '../engine/actions.js';
 import { shelfNoticeOn, tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { onShelf, onShelfLine } from '../engine/onshelf.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
-import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel, wantedFor } from '../engine/orders.js';
+import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel, thanksHint, wantedFor } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
 import { JOB_CHILDREN } from '../engine/jobs.js';
@@ -191,6 +191,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     warnings,
     /** 自分が持っている品の買い取り募集のうち、今納品できるもの (GET /api/v1/orders で詳しく)。left は残りの合計 (1.7.0) */
     wanted: wantedFor(g, dt),
+    /** wanted に添える納品のお礼の一言 (今期まだもらえるときだけ。1.7.0 試験運用) */
+    wanted_bonus: thanksHint(g, dt).trim(),
     my_orders: myOrders,
     /** 欲しい品 (自分の募集の品・材料だけ足りない作り方の材料) がほかの店の棚にある (engine/onshelf.ts)。{"type":"tutorial","shelf":false} で出さない */
     on_shelves: shelfNoticeOn(dt) ? onShelf(g, dt, g.now) : [],
@@ -236,7 +238,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.warnings.length) tail.push('注意 ' + d.warnings.join('/'));
   if (tail.length) lines.push(tail.join(' | '));
   const ords: string[] = [];
-  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' ') + ' → deliver');
+  if (d.wanted.length) ords.push('あなたの在庫が募集中 ' + d.wanted.map((w) => `${w.name}@${w.price}${w.orders > 1 ? `(${w.orders}件)` : ''}`).join(' ') + ' → deliver' + (d.wanted_bonus ? ' ' + d.wanted_bonus : ''));
   if (d.my_orders.length) ords.push('自分の募集 ' + d.my_orders.join(' '));
   if (ords.length) lines.push(ords.join(' | '));
   if (d.price_moves.length) {
