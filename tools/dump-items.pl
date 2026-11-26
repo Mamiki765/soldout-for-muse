@@ -756,6 +756,16 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			die "v1.7.0: packing use not found: $name" if @hit != 1;
 			$hit[0]{$_} = int($hit[0]{$_} * $pack->{time_percent} / 100) for qw(time exptime);
 		}
+		# 薬草をふもと以外の行き先でも (あれば本数を変え、無ければ足す)
+		my $herbs = $v170->{herbs};
+		for my $route (@{ $herbs->{routes} }) {
+			my ($name, $count) = @$route;
+			my @hit = grep { $_->{name} eq $name } @{ $by_no{$herbs->{book}}{uses} };
+			die "v1.7.0: herb route not found" if @hit != 1;
+			my ($line) = grep { $_->{item_no} == $herbs->{item} } @{ $hit[0]{get} };
+			if ($line) { $line->{count} = $count; $line->{proba} = $herbs->{proba} }
+			else { push @{ $hit[0]{get} }, @{ $lines->([[$herbs->{item}, $count, $herbs->{proba}]], 1000) } }
+		}
 		my %own;
 		for my $job (keys %{ $v170->{own_yield_percent} }) {
 			my $spec = $v170->{own_yield_percent}{$job};
@@ -776,6 +786,13 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			}
 		}
 		for my $no (keys %own) { die "v1.7.0: no recipe makes $no" if !$seen170{$no} }
+		# 所持上限の見直し (1回で作れる数・1決算の需要に比べて低すぎる品)
+		for my $pair (@{ $v170->{limits}{items} }) {
+			my ($no, $limit) = @$pair;
+			my $it = $by_no{$no} or die "v1.7.0: unknown item $no";
+			die "v1.7.0: limit $no lowers" if $limit < $it->{limit};
+			$it->{limit} = $limit;
+		}
 		$define{version} = $v170->{version};
 	}
 

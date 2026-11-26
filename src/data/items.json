@@ -2831,7 +2831,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "魔力が封じ込められた鉱石",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -4065,7 +4065,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4131,7 +4131,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4197,7 +4197,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4281,6 +4281,11 @@
                      "count" : 24,
                      "item_no" : 138,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "樹脂林で樹液を採る",
@@ -4336,6 +4341,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "香木林を探索する",
@@ -4391,6 +4401,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "霊草の谷を探す",
@@ -4435,6 +4450,11 @@
                   {
                      "count" : 144,
                      "item_no" : 115,
+                     "proba" : 900
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
                      "proba" : 900
                   }
                ],
@@ -9631,7 +9651,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "ミノ牛乳から作った高級ヨーグルト　ちょっとミノくさい",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -13549,7 +13569,7 @@
          "funcsale" : null,
          "functurn" : "_local_",
          "info" : "伝説の英雄を称えた首飾り",
-         "limit" : 1,
+         "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -13723,7 +13743,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "オリハルコン製の装備をまとめたセット商品",
-         "limit" : 10,
+         "limit" : 30,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -15654,7 +15674,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "ミノ牛乳から作った固めのプリン　カラメルは苦め",
-         "limit" : 100,
+         "limit" : 300,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,
@@ -16302,7 +16322,7 @@
          "funcsale" : null,
          "functurn" : null,
          "info" : "漆を塗り重ねた小箱。指輪や髪飾りをしまうのにちょうどいい。",
-         "limit" : 50,
+         "limit" : 100,
          "local_func" : null,
          "local_funcbuy" : null,
          "local_funcsale" : null,

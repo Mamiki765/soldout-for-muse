@@ -7,7 +7,7 @@ import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
-import { createOrder, deliver, ORDER_RULES, orderPriceWarning, wantedFor, wantedLine } from '../src/engine/orders.js';
+import { createOrder, deliver, ORDER_RULES, orderPriceWarning, shelfOrderHint, wantedFor, wantedLine } from '../src/engine/orders.js';
 import { seededRng } from '../src/engine/rng.js';
 import { newWorld, type Shop, type World } from '../src/engine/types.js';
 import { digestData } from '../src/api/views.js';
@@ -46,6 +46,18 @@ test('1.7.0: 道具3職の自分の品16種の取れる数 (革1.2・木工1.14�
     const lines = BASE_ITEMS.flatMap((it) => it?.uses ?? []).flatMap((u) => u.get).filter((l) => l.item_no === no);
     assert.ok(lines.length >= 1, name);
     for (const l of lines) assert.deepEqual([l.count, l.fraction], [count, fraction], name);
+  }
+});
+
+test('1.7.0: 近くの山への地図のふもと以外の行き先でも薬草が採れる', () => {
+  const want: Record<string, number> = { '山のふもとを探索': 120, '林道を探索': 40, '獣道を探索': 40, '雑木林の奥を探索': 40, '樹脂林で樹液を採る': 20, '香木林を探索する': 20, '霊草の谷を探す': 20, '牧草地で草を刈る': 20 };
+  const uses = BASE_ITEMS[12].uses;
+  assert.equal(uses.length, Object.keys(want).length);
+  for (const u of uses) {
+    const herb = u.get.filter((l) => l.item_no === HERB);
+    assert.equal(herb.length, 1, u.name!);
+    assert.deepEqual([herb[0].count, herb[0].proba], [want[u.name!], 900], u.name!);
+    assert.deepEqual(u.jobs, [{ job: 'material', key: 'times', op: '/', value: 2 }], '木こりの職業ボーナスつき');
   }
 });
 
@@ -146,4 +158,30 @@ test('1.7.0: 自分の在庫を欲しがる募集は、今納品できるもの�
   act(w2, s2, T0 + 60, (g, me) => assert.deepEqual(wantedFor(g, me), []));
   // 期限が切れた募集も数えない
   act(world, seller, T0 + 3 * 3600, (g, me) => assert.deepEqual(wantedFor(g, me), []));
+});
+
+test('1.7.0 所持上限: 息苦しかった6品だけ上げ、「1個だけ」がわざとの品はそのまま', () => {
+  assert.equal(v170.limits.items.length, 6);
+  assert.equal(BASE_ITEMS[itemNoByName('オリハルコンの剣')].limit, 50, '需要より上限が大きい品は上げない');
+  for (const [no, limit] of v170.limits.items) assert.equal(BASE_ITEMS[no].limit, limit, BASE_ITEMS[no].name);
+  assert.equal(BASE_ITEMS[itemNoByName('ナユタの首飾り')].limit, 10);
+  for (const name of ['禁断の書', '転居許可証', '店用ペンキ', '店番ロボット', 'お祝いセット', '転職のススメ']) assert.equal(BASE_ITEMS[itemNoByName(name)].limit, 1, name);
+});
+
+test('1.7.0: 棚の売値より高い募集があれば、単価がいちばん高い募集と残りがいちばん多い募集を知らせる', () => {
+  const { world, buyer, buyer2, buyer3, seller } = setup();
+  act(world, buyer, T0, (g, me) => createOrder(g, me, { itemno: HERB, price: 40, count: 30, hours: 24 }));
+  act(world, buyer2, T0, (g, me) => createOrder(g, me, { itemno: HERB, price: 25, count: 300, hours: 24 }));
+  act(world, buyer3, T0, (g, me) => createOrder(g, me, { itemno: HERB, price: 18, count: 900, hours: 24 }));
+  act(world, seller, T0 + 60, (g, me) => {
+    assert.equal(
+      shelfOrderHint(g, me, HERB, 20),
+      'その売値 (￥20) より高い買い取り募集があります: 最高￥40 (残り30本) / 最多 残り300本 (￥25) → GET /api/v1/orders?item=1 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)',
+      '￥18の募集は売値より安いので数えない',
+    );
+    assert.match(shelfOrderHint(g, me, HERB, 30)!, /: 最高￥40 \(残り30本\) → /, '高い募集が1件だけなら1つ');
+    assert.equal(shelfOrderHint(g, me, HERB, 40), null, '同じ値段は知らせない');
+    assert.equal(shelfOrderHint(g, me, LEATHER, 50), null, '募集のない品');
+    assert.equal(shelfOrderHint(g, me, 0, 0), null, '棚を空にしたとき');
+  });
 });

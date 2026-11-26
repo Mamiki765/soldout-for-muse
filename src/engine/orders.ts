@@ -407,11 +407,26 @@ export interface WantedItem {
  * (期限内・残りあり・その店へ今期まだ納品していない・今期の応じる回数が残っている)。品番順。読むだけ (1.7.0)
  */
 export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedItem[] {
+  const out = new Map<number, WantedItem>();
+  for (const o of deliverableOrders(g, dt, items)) {
+    const w = out.get(o.item);
+    if (!w) out.set(o.item, { item: o.item, name: g.items[o.item].name, orders: 1, price: o.price, left: o.left });
+    else {
+      w.orders++;
+      w.left += o.left;
+      if (o.price > w.price) w.price = o.price;
+    }
+  }
+  return [...out.values()].sort((a, b) => a.item - b.item);
+}
+
+/** wantedFor の中身: この店が今納品できる、ほかの店の募集 (1件ずつ) */
+function deliverableOrders(g: Game, dt: Shop, items?: Iterable<number>): BuyOrder[] {
   const only = items ? new Set(items) : null;
   const stats = g.world.orderStats;
   const cur = stats && stats.period >= periodNo(g) ? stats : undefined;
   if ((cur?.filled[dt.id] ?? 0) >= ORDER_RULES.fillsPerDay) return [];
-  const out = new Map<number, WantedItem>();
+  const out: BuyOrder[] = [];
   for (const o of orders(g)) {
     if (o.shop === dt.id || !(o.left > 0) || o.expires <= g.now) continue;
     if (only && !only.has(o.item)) continue;
@@ -424,15 +439,25 @@ export function wantedFor(g: Game, dt: Shop, items?: Iterable<number>): WantedIt
       .filter((x) => x.shop === buyer.id && x.item === o.item)
       .reduce((a, x) => a + x.count - x.left, 0);
     if (g.items[o.item].limit - buyer.item[o.item - 1] - held < need) continue;
-    const w = out.get(o.item);
-    if (!w) out.set(o.item, { item: o.item, name: g.items[o.item].name, orders: 1, price: o.price, left: o.left });
-    else {
-      w.orders++;
-      w.left += o.left;
-      if (o.price > w.price) w.price = o.price;
-    }
+    out.push(o);
   }
-  return [...out.values()].sort((a, b) => a.item - b.item);
+  return out;
+}
+
+/**
+ * 棚に並べた売値より高い買い取り募集があれば、その1行 (1.7.0 リカさん案)。今納品できる募集だけ。
+ * 単価がいちばん高い募集と、残りがいちばん多い募集の2つを出す (同じ募集なら1つ)
+ */
+export function shelfOrderHint(g: Game, dt: Shop, itemno: number, price: number): string | null {
+  if (!(itemno > 0) || !(price > 0)) return null;
+  const list = deliverableOrders(g, dt, [itemno]).filter((o) => o.price > price);
+  if (!list.length) return null;
+  const scale = g.items[itemno].scale;
+  const top = list.reduce((a, o) => (o.price > a.price || (o.price === a.price && o.left > a.left) ? o : a));
+  const most = list.reduce((a, o) => (o.left > a.left || (o.left === a.left && o.price > a.price) ? o : a));
+  const parts = [`最高￥${top.price} (残り${top.left}${scale})`];
+  if (most.id !== top.id) parts.push(`最多 残り${most.left}${scale} (￥${most.price})`);
+  return `その売値 (￥${price}) より高い買い取り募集があります: ${parts.join(' / ')} → GET /api/v1/orders?item=${itemno} を見て deliver で納品できます${thanksHint(g, dt)}`;
 }
 
 /** 今期あと何回、納品のお礼をもらえるか */

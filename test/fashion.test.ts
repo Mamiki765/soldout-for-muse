@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { v170Item, v170Line } from './v170.js';
+import { v170, v170Item, v170Limit, v170Line } from './v170.js';
 import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 // 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく
@@ -121,7 +121,7 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
   for (const [no,name,price,popular,cost,limit,plus] of itemSpecs) {
     const i = BASE_ITEMS[no];
     assert.deepEqual([i.no,i.name,i.price,i.popular,i.cost,i.limit,i.plus,i.point,i.type],
-      [no,name,price,popular,cost,limit,plus,1000,no >= 81 && no <= 87 ? 8 : 1]);
+      [no,name,price,popular,cost,v170Limit.get(no) ?? limit,plus,1000,no >= 81 && no <= 87 ? 8 : 1]); // 1.7.0 で上げた所持上限
     if (i.type === 8) assert.deepEqual([i.pricebase,i.pricehalf,i.wslimit], [20,30,0]);
   }
   for (const i of current.items) {
@@ -270,8 +270,12 @@ test('追加採取の5ゲート・複数産出・熟練と、既存の行き先�
     const u = BASE_ITEMS[book].uses.find((u) => u.name === name)!;
     assert.deepEqual([u.needexp,u.time,u.exptime,u.exp], [needexp,10800,5400,10]);
     // 山の行き先には 0.6.0 から副産物の干し草 (115) が末尾に付く
+    // 1.7.0: 近くの山への地図の行き先に薬草 (tools/v170-tool-jobs.json の herbs)
+    const herb = book === 12 ? v170.herbs.routes.find(([n]) => n === name) : undefined;
     const extras = book === 12 ? [[115, 20, 800], ...(u.no === 4 ? [[138, 20, 800]] : [])] : [];
-    assert.deepEqual(triples(u.get), [...products, ...extras].map(([no, count, p]) => [no, v140get(book, count).count, p]));
+    // 1.4.0 の出来高の倍率のあとに足すので、薬草には倍率が掛からない
+    const herbs = herb ? [[1, herb[1], v170.herbs.proba]] : [];
+    assert.deepEqual(triples(u.get), [...[...products, ...extras].map(([no, count, p]) => [no, v140get(book, count).count, p]), ...herbs]);
   }
   for (const book of [9,12]) assert.ok(BASE_ITEMS[book].uses.slice(0,originalByNo(book).uses.length).every((u) => u.needexp === null));
 });
