@@ -19,7 +19,7 @@ import { addMerchantYen, MERCHANT_CAP_PER_PERIOD, settleMerchant } from '../src/
 import { newWorld } from '../src/engine/types.js';
 import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
-import { V140, V150 } from '../src/updates.js';
+import { V140, V150, V170 } from '../src/updates.js';
 import { v170Item, v170Line } from './v170.js';
 
 const T0 = 1_800_000_000;
@@ -68,7 +68,7 @@ test('8本・地図の全レシピに出来高調整を適用し、指定の2価
     const current = BASE_ITEMS[item.no];
     assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
     // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した
-    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0), item.name);
+    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0) + (item.no === 17 || item.no === 20 ? 1 : 0), item.name); // 1.7.0 で木工細工入門にオノ、剣の鍛え方にツルハシ
   }
   assert.deepEqual(shortened.sort(), [...times.keys()].sort());
 });
@@ -149,14 +149,14 @@ test('商人ポイントは13職の補正を取引ごとに適用し、転職前
   assert.equal(dt.merchantpt, 2);
 });
 
-test('1.4.0・1.5.0の新しい品のアイコンは16×16のPNG。1.5.0の品は市場に初期投入しない', () => {
-  for (const { item } of [...V140.new_items!, ...V150.new_items!]) {
+test('1.4.0・1.5.0・1.7.0の新しい品のアイコンは16×16のPNG。1.5.0の品は市場に初期投入しない', () => {
+  for (const { item } of [...V140.new_items!, ...V150.new_items!, ...V170.new_items!]) {
     const png = readFileSync(`public/images/item-no-${item}.png`);
     assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
     assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [16, 16]);
   }
   // 1.4.0 の4品の初期投入 (漆24滴・木工品各1点) は上の seedWholeStore で確かめている。
-  // seed-market は品を足したいちばん新しい版 (1.5.0) を見る。石炭・黒玉は市場に湧かない品なので対象なし
+  // seed-market は品を足したいちばん新しい版 (1.7.0: ツルハシ・オノを20ずつ、ただし市場の上限まで) を見る。石炭・黒玉 (1.5.0) は市場に湧かない品なので0のまま
   const dir = mkdtempSync(join(tmpdir(), 'soldout-v140-balance-'));
   const db = join(dir, 'seed.sqlite');
   const seed = () => spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'dist/src/main.js', 'seed-market'], {
@@ -165,11 +165,11 @@ test('1.4.0・1.5.0の新しい品のアイコンは16×16のPNG。1.5.0の品�
   try {
     const first = seed();
     assert.equal(first.status, 0, first.stderr);
-    assert.match(first.stdout, /v1\.5\.0 では市場の初期投入対象がありません/);
+    assert.match(first.stdout, /142 ツルハシ: 0 → 1 \(\+1\)/, "店0の街では市場の上限 (wslimit×店数) で1本に収まる");
     const store = new Store(db);
     try {
       const w = store.loadWorld(T0);
-      assert.deepEqual(w.wholestore.slice(138), [0, 0, 0]);
+      assert.deepEqual(w.wholestore.slice(138), [0, 0, 0, 1, 1]);
     } finally {
       store.close();
     }

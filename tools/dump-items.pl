@@ -793,6 +793,31 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			die "v1.7.0: limit $no lowers" if $limit < $it->{limit};
 			$it->{limit} = $limit;
 		}
+		# 採る2職の道具 (ツルハシ・オノ)。品を足し、作り方をほかの職の本に足す。効き目はエンジン (src/engine/gather-tools.ts)
+		my $gt = $v170->{gather_tools};
+		for my $spec (@{ $gt->{items} }) {
+			die "v1.7.0: item $spec->{no} is not next" if $spec->{no} != @items + 1;
+			my $ref = $by_no{$spec->{reference}} or die 'v1.7.0: unknown item reference';
+			my $it = $copy->($ref);
+			@$it{keys %$spec} = values %$spec;
+			delete $it->{reference};
+			$it->{uses} = [];
+			push @items, $it;
+			$by_no{$it->{no}} = $it;
+		}
+		for my $spec (@{ $gt->{recipes} }) {
+			my $u = $copy->($find_use->($spec->{book}, $spec->{template_product}));
+			my $uses = $by_no{$spec->{book}}{uses};
+			my $name = $by_no{$spec->{product}}{name};
+			$u->{no} = scalar @$uses;
+			$u->{name} = $name . 'を作成する';
+			$u->{info} = $name . 'を作成します';
+			$u->{okmsg} = $name . 'を作りました';
+			@$u{qw(time exptime)} = @$spec{qw(time exptime)};
+			$u->{use} = [ (grep { !$_->{proba} } @{ $u->{use} }), @{ $lines->($spec->{materials}, 1000) } ];
+			$u->{get} = $lines->([[$spec->{product}, $spec->{count}, $spec->{proba}]], 1000);
+			push @$uses, $u;
+		}
 		$define{version} = $v170->{version};
 	}
 

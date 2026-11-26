@@ -6499,6 +6499,68 @@
                      "proba" : 1000
                   }
                ]
+            },
+            {
+               "action" : "作りまくる",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 1800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 143,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "木こりのオノを作成します",
+               "jobs" : [
+                  {
+                     "job" : "armor",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  },
+                  {
+                     "job" : "tool",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "木こりのオノを作成する",
+               "needexp" : 300,
+               "ngmsg" : "作成に失敗しました…",
+               "no" : 11,
+               "okmsg" : "木こりのオノを作りました",
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 2,
+                     "item_no" : 4,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 4,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  }
+               ]
             }
          ],
          "wslimit" : 1
@@ -7062,6 +7124,67 @@
                   {
                      "count" : 4,
                      "item_no" : 100,
+                     "proba" : 1000
+                  }
+               ]
+            },
+            {
+               "action" : "鍛える",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 20,
+               "exptime" : 1800,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 142,
+                     "proba" : 1000
+                  }
+               ],
+               "info" : "ツルハシを作成します",
+               "jobs" : [
+                  {
+                     "job" : "weapon",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "ツルハシを作成する",
+               "needexp" : null,
+               "ngmsg" : "鍛えるのに失敗しました…",
+               "no" : 8,
+               "okmsg" : "ツルハシを作りました",
+               "params" : [
+                  "78",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "セット",
+               "time" : 3600,
+               "use" : [
+                  {
+                     "count" : 1,
+                     "item_no" : 18,
+                     "proba" : 0
+                  },
+                  {
+                     "count" : 6,
+                     "item_no" : 5,
+                     "proba" : 1000
+                  },
+                  {
+                     "count" : 1,
+                     "item_no" : 4,
                      "proba" : 1000
                   }
                ]
@@ -16522,6 +16645,66 @@
          "type" : 8,
          "uses" : [],
          "wslimit" : 0
+      },
+      {
+         "code" : "pickaxe",
+         "cost" : 2000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "持っていると近くの鉱山への地図で採れる量が1割増える (炭鉱は除く)。1回ごとに少し傷む",
+         "limit" : 10,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "ツルハシ",
+         "no" : 142,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 20000,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "本",
+         "seedmarket" : 20,
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [],
+         "wslimit" : 1
+      },
+      {
+         "code" : "axe",
+         "cost" : 2000,
+         "flag" : "",
+         "func" : null,
+         "funcbuy" : null,
+         "funcsale" : null,
+         "functurn" : null,
+         "info" : "持っていると近くの山への地図で採れる量が1割増える。1回ごとに少し傷む",
+         "limit" : 10,
+         "local_func" : null,
+         "local_funcbuy" : null,
+         "local_funcsale" : null,
+         "local_functurn" : null,
+         "name" : "木こりのオノ",
+         "no" : 143,
+         "param" : null,
+         "plus" : -3600,
+         "point" : 1000,
+         "popular" : 259200,
+         "price" : 20000,
+         "pricebase" : 100,
+         "pricehalf" : 200,
+         "scale" : "本",
+         "seedmarket" : 20,
+         "sort" : 0,
+         "type" : 10,
+         "uses" : [],
+         "wslimit" : 1
       }
    ],
    "source" : "original/soldout/inc/inc-item-data.cgi",

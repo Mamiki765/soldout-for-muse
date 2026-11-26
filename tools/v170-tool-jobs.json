@@ -110,5 +110,102 @@
         100
       ]
     ]
+  },
+  "gather_tools": {
+    "note": "1.7.0 採る2職の道具 (リカさん 2026-11-26「ツルハシと斧は足します」、目安箱#11)。名前・文面は仮 (Muse が決める)。持っていると、その地図の行き先で採れる量 (取れる確率) が+10% (職レベルの出来高と足し算)。1回ごとに5%傷み (耐久の仕組みは本・地図・桶と同じ)、壊れたあとの回には効かない。炭鉱はわざと弱い (v150-coal.json) ので、ツルハシは炭鉱に効かない。作るのはほかの職 (ツルハシ=剣屋、オノ=木工細工屋) で、探鉱夫が掘った金属・木こりが切った丸太が道具になって戻る流れ。",
+    "items": [
+      {
+        "no": 142,
+        "reference": 131,
+        "code": "pickaxe",
+        "name": "ツルハシ",
+        "info": "持っていると近くの鉱山への地図で採れる量が1割増える (炭鉱は除く)。1回ごとに少し傷む",
+        "scale": "本",
+        "price": 20000,
+        "cost": 2000,
+        "popular": 259200,
+        "limit": 10,
+        "wslimit": 1,
+        "plus": -3600,
+        "pricebase": 100,
+        "pricehalf": 200,
+        "seedmarket": 20
+      },
+      {
+        "no": 143,
+        "reference": 131,
+        "code": "axe",
+        "name": "木こりのオノ",
+        "info": "持っていると近くの山への地図で採れる量が1割増える。1回ごとに少し傷む",
+        "scale": "本",
+        "price": 20000,
+        "cost": 2000,
+        "popular": 259200,
+        "limit": 10,
+        "wslimit": 1,
+        "plus": -3600,
+        "pricebase": 100,
+        "pricehalf": 200,
+        "seedmarket": 20
+      }
+    ],
+    "recipes": [
+      {
+        "book": 20,
+        "template_product": 41,
+        "product": 142,
+        "materials": [
+          [
+            5,
+            6
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "count": 1,
+        "proba": 1000,
+        "time": 3600,
+        "exptime": 1800
+      },
+      {
+        "book": 17,
+        "template_product": 46,
+        "product": 143,
+        "materials": [
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            4
+          ]
+        ],
+        "count": 1,
+        "proba": 1000,
+        "time": 3600,
+        "exptime": 1800
+      }
+    ],
+    "effect": [
+      {
+        "book": 9,
+        "tool": 142,
+        "percent": 10,
+        "wear": 0.05,
+        "skip": [
+          "炭鉱に潜る"
+        ]
+      },
+      {
+        "book": 12,
+        "tool": 143,
+        "percent": 10,
+        "wear": 0.05,
+        "skip": []
+      }
+    ]
   }
 }
