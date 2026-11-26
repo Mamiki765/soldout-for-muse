@@ -42,7 +42,7 @@ test('一覧: 入手の列・定義の価格・絞り込み。認証なしで読
   try {
     const { status, text } = await getText(base + '/api/v1/items');
     assert.equal(status, 200);
-    assert.match(text, /^114 固めプリン 薬 2600 70 100 ←26$/m);
+    assert.match(text, /^114 固めプリン 薬 2600 70 300 ←26$/m);
     assert.match(text, /^26 ミノ牛乳 薬 200 50 2000 ←25$/m, '手書きの補足 (ミノタウロス♀の乳搾り) も入手に出る');
     assert.match(text, /^22 鎧の作り方 本 64000 800 5 ←10,79 市場/m);
     assert.match(text, /^27 七面鳥の丸焼き .* 他/m);

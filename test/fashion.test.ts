@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { v170, v170Item, v170Line } from './v170.js';
+import { v170, v170Item, v170Limit, v170Line } from './v170.js';
 import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 // 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく
@@ -121,7 +121,7 @@ test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が�
   for (const [no,name,price,popular,cost,limit,plus] of itemSpecs) {
     const i = BASE_ITEMS[no];
     assert.deepEqual([i.no,i.name,i.price,i.popular,i.cost,i.limit,i.plus,i.point,i.type],
-      [no,name,price,popular,cost,limit,plus,1000,no >= 81 && no <= 87 ? 8 : 1]);
+      [no,name,price,popular,cost,v170Limit.get(no) ?? limit,plus,1000,no >= 81 && no <= 87 ? 8 : 1]); // 1.7.0 で上げた所持上限
     if (i.type === 8) assert.deepEqual([i.pricebase,i.pricehalf,i.wslimit], [20,30,0]);
   }
   for (const i of current.items) {

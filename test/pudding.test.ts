@@ -36,7 +36,7 @@ test('固めプリン: 品番114・甘いもの (薬) 枠・市場に自然入�
   assert.equal(it.price, 2600, '1.0.0 で 2200→2600');
   assert.equal(it.cost, 70);
   assert.equal(it.popular, 7200);
-  assert.equal(it.limit, 100);
+  assert.equal(it.limit, 300, '1.7.0 で 100→300');
   assert.equal(it.plus, 0);
   assert.equal(it.wslimit, BASE_ITEMS[35].wslimit, '市場の扱いはミノヨーグルトと同じ');
   assert.match(it.info, /苦め/);

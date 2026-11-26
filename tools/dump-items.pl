@@ -786,6 +786,13 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			}
 		}
 		for my $no (keys %own) { die "v1.7.0: no recipe makes $no" if !$seen170{$no} }
+		# 所持上限の見直し (1回で作れる数・1決算の需要に比べて低すぎる品)
+		for my $pair (@{ $v170->{limits}{items} }) {
+			my ($no, $limit) = @$pair;
+			my $it = $by_no{$no} or die "v1.7.0: unknown item $no";
+			die "v1.7.0: limit $no lowers" if $limit < $it->{limit};
+			$it->{limit} = $limit;
+		}
 		$define{version} = $v170->{version};
 	}
 

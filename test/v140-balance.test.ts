@@ -86,7 +86,7 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
   seedWholeStore(buyer, [135, 136, 137, 138], 12);
   for (const { no, price, popular, time, exptime, chance, materials } of specs) {
     const item = BASE_ITEMS[no];
-    assert.deepEqual([item.price, item.popular, item.cost, item.limit, item.plus, item.type], [price, popular, 1000, 50, 0, 8]);
+    assert.deepEqual([item.price, item.popular, item.cost, item.limit, item.plus, item.type], [price, popular, 1000, no === 135 ? 100 : 50, 0, 8], '1.7.0 で漆塗りの小箱だけ 50→100');
     buy(buyer, buyerShop, { from: 0, itemno: no, count: 1 });
     assert.equal(buyerShop.item[no - 1], 1, '取引に熟練条件はない');
     const { g, dt } = fixture('drug'); // 熟練を積めば木工細工屋以外でも作れる

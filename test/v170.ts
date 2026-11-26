@@ -9,7 +9,11 @@ export const v170 = JSON.parse(readFileSync('tools/v170-tool-jobs.json', 'utf8')
   packing: { book: number; uses: string[]; time_percent: number };
   own_yield_percent: Record<string, { percent: number; items: number[] }>;
   herbs: { book: number; item: number; proba: number; routes: [string, number][] };
+  limits: { items: [number, number][] };
 };
+
+/** 品番 → 1.7.0 の所持上限 */
+export const v170Limit = new Map(v170.limits.items);
 
 /** 品番 → 取れる数の倍率 (%) */
 export const v170Own = new Map(Object.values(v170.own_yield_percent).flatMap((s) => s.items.map((no) => [no, s.percent] as const)));
@@ -25,8 +29,9 @@ export function v170Line<T extends Pick<UseLine, 'item_no' | 'count'> & { fracti
   return out;
 }
 
-/** 品の定義に 1.7.0 の直しを当てる (梱包6種の時間、近くの山への地図の薬草、自分の品の取れる数)。その場で書き換える */
+/** 品の定義に 1.7.0 の直しを当てる (梱包6種の時間、近くの山への地図の薬草、自分の品の取れる数、所持上限)。その場で書き換える */
 export function v170Item(item: ItemDef): ItemDef {
+  item.limit = v170Limit.get(item.no) ?? item.limit;
   for (const u of item.uses) {
     if (item.no === v170.packing.book && v170.packing.uses.includes(u.name!)) {
       u.time = Math.trunc((u.time * v170.packing.time_percent) / 100);
