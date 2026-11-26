@@ -24,6 +24,7 @@ import { applyFairyBackfill, planFairyBackfill, type FairyBackfillSnapshot } fro
 import { loadUses, useItemAction, useResultMessages, type RtUse } from '../engine/use.js';
 import * as ord from '../engine/orders.js';
 import * as watch from '../engine/watch.js';
+import { idleShopLine, idleShopStat, IDLE_WARN_RATE } from '../engine/townwatch.js';
 import * as tut from '../engine/tutorial.js';
 import * as rest from '../engine/rest.js';
 import { newToken, sha256, Store, SUGGESTION_CATEGORY, SUGGESTION_STATUS } from '../store.js';
@@ -1412,7 +1413,7 @@ export class App {
       d.alerts.push({ type: 'mail', level: 'mid', key: `mail:${mu.mailLatest}`, msg: `未読の郵便${mu.newMail}通 (差出人: ${mu.mailFrom.join(', ')}) GET /api/v1/mail` });
     }
     // 管理者として許可した店 (ミュート・トパーズ) にだけ、管理の知らせを足す。ほかの店には出さない
-    if (this.adminShops().includes(dt.id) && watch.alertSetting(dt).mode !== 'off') d.alerts.push(...this.adminAlerts(g.now));
+    if (this.adminShops().includes(dt.id) && watch.alertSetting(dt).mode !== 'off') d.alerts.push(...this.adminAlerts(g));
     const marks = d.alerts.map((a) => watch.alertMark(a.key));
     const cursor = marks.join('.');
     const seenParam = q.get('seen');
@@ -1434,11 +1435,17 @@ export class App {
   }
 
   /**
-   * 管理者向けの知らせ (type "admin")。目安箱の未対応の案と、24時間以内の開店・閉店・倒産。
+   * 管理者向けの知らせ (type "admin")。人口の見張り (期ごと)、目安箱の未対応の案と、24時間以内の開店・閉店・倒産。
    * 鍵は案・記録ごとに変わるので、新しいものだけが番犬に「新着」として届く
    */
-  private adminAlerts(now: number): watch.Alert[] {
+  private adminAlerts(g: Game): watch.Alert[] {
+    const now = g.now;
     const out: watch.Alert[] = [];
+    // 人口の見張り (1.7.0 P0): 72時間モブ売上ゼロの営業店率。期ごとに1回だけ新着になる
+    const idle = idleShopStat(g);
+    if (idle.ready && idle.open) {
+      out.push({ type: 'admin', level: idle.rate > IDLE_WARN_RATE ? 'high' : 'low', key: `admin:idle:${ord.periodNo(g)}`, msg: idleShopLine(idle) });
+    }
     const { open, bugs, latest } = this.store.openSuggestionSummary();
     if (latest) {
       const head = [...latest.text.replace(/\s+/g, ' ')].slice(0, 40).join('');
