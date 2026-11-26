@@ -9,7 +9,7 @@ import type { Shop } from './types.js';
 
 export const MERCHANT_YEN_PER_POINT = 1000;
 export const MERCHANT_CAP_PER_PERIOD = 2000;
-export const MERCHANT_BALANCE_FINGERPRINT = '10911fab49c0a27cd67758855ecdd26920e7cd352d3907954b15483bc9ec0e16';
+export const MERCHANT_BALANCE_FINGERPRINT = '7bce06d8c8fae11fdc77caa860621d0c24b03f0f851e1e05d0514199099f5081';
 
 /** 計算に使う職バランスの数値。説明文や翻訳の更新では変わらない。 */
 export function merchantBalanceFingerprint(items: ItemDef[] = BASE_ITEMS): string {

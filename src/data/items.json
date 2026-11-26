@@ -13396,6 +13396,7 @@
                "get" : [
                   {
                      "count" : 1,
+                     "fraction" : 300,
                      "item_no" : 141,
                      "proba" : 900
                   }

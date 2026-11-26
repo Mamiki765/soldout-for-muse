@@ -32,14 +32,14 @@ test('1.7.0: 梱包6種だけ時間×1.24、職ボーナスは残し、お祝い
   assert.deepEqual([gift.time, gift.exptime], [28800, 28800]);
 });
 
-test('1.7.0: 道具3職の自分の品15種の取れる数 (革1.2・木工1.14・装飾1.3)、ほかの品は変えない', () => {
+test('1.7.0: 道具3職の自分の品16種の取れる数 (革1.2・木工1.14・装飾1.3)、ほかの品は変えない', () => {
   const want: Record<string, [number, number | undefined]> = {
     'ヒョウ柄ミニスカート': [12, undefined], '厚底ブーツ': [12, undefined], 'ルーズソックス': [12, undefined], '革のロングコート': [12, undefined],
     '寄木の髪飾り': [11, 400], '漆塗りの小箱': [11, 400], '揺り椅子': [11, 400], '木のリュート': [11, 400],
     '鉄のピアス': [26, undefined], 'ミスリルの指輪': [26, undefined], 'オリハルコンの腕輪': [26, undefined], 'ナユタの首飾り': [1, 300],
-    'ラメのチョーカー': [13, undefined], '宝石のブローチ': [13, undefined], '魔晶のペンダント': [13, undefined],
+    'ラメのチョーカー': [13, undefined], '宝石のブローチ': [13, undefined], '魔晶のペンダント': [13, undefined], '黒玉のブローチ': [1, 300],
   };
-  assert.equal(v170Own.size, 15);
+  assert.equal(v170Own.size, 16);
   for (const [name, [count, fraction]] of Object.entries(want)) {
     const no = itemNoByName(name);
     assert.ok(v170Own.has(no), name);
@@ -47,9 +47,6 @@ test('1.7.0: 道具3職の自分の品15種の取れる数 (革1.2・木工1.14�
     assert.ok(lines.length >= 1, name);
     for (const l of lines) assert.deepEqual([l.count, l.fraction], [count, fraction], name);
   }
-  // 黒玉のブローチ (1.5.0) は試算の対象外なのでそのまま
-  const jet = BASE_ITEMS[66].uses.find((u) => u.get[0]?.item_no === 141)!;
-  assert.deepEqual([jet.get[0].count, jet.get[0].fraction], [1, undefined]);
 });
 
 function setup() {
