@@ -165,7 +165,7 @@ test('1.4.0・1.5.0・1.7.0の新しい品のアイコンは16×16のPNG。1.5.0
   try {
     const first = seed();
     assert.equal(first.status, 0, first.stderr);
-    assert.match(first.stdout, /142 ツルハシ: 0 → 1 \(\+1\)/, "店0の街では市場の上限 (wslimit×店数) で1本に収まる");
+    assert.match(first.stdout, /142 山師のツルハシ: 0 → 1 \(\+1\)/, "店0の街では市場の上限 (wslimit×店数) で1本に収まる");
     const store = new Store(db);
     try {
       const w = store.loadWorld(T0);

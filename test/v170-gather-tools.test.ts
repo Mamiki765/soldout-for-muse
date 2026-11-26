@@ -58,12 +58,12 @@ test('1.7.0 ツルハシ: 持っていれば取れる確率+10% (職レベルと
   const u = useItemAction(g, dt, MAP_MINE, iron, { count: 3 });
   assert.equal(dt.item[IRON - 1], 90, '3往復×30個');
   const msg = useResultMessages(g, dt, u);
-  assert.ok(msg.includes('ツルハシで+10% (3回)'), msg.join('\n'));
-  assert.ok(msg.some((m) => /^ツルハシの耐久: \d+%$/.test(m)), msg.join('\n'));
+  assert.ok(msg.includes('山師のツルハシで+10% (3回)'), msg.join('\n'));
+  assert.ok(msg.some((m) => /^山師のツルハシの耐久: \d+%$/.test(m)), msg.join('\n'));
   assert.ok(dt.bookwear![PICK][0] > 0.149 && dt.bookwear![PICK][0] < 0.151);
   // 炭鉱にも効く
   const c = useItemAction(g, dt, MAP_MINE, useNo(MAP_MINE, '炭鉱に潜る'), { count: 1 });
-  assert.ok(useResultMessages(g, dt, c).includes('ツルハシで+10% (1回)'));
+  assert.ok(useResultMessages(g, dt, c).includes('山師のツルハシで+10% (1回)'));
 });
 
 test('1.7.0 ツルハシ: 寿命に届いた回で壊れ、そのあとの回には効かない', () => {
@@ -74,7 +74,7 @@ test('1.7.0 ツルハシ: 寿命に届いた回で壊れ、そのあとの回に
   assert.equal(dt.item[PICK - 1], 0);
   assert.equal(dt.item[IRON - 1], 30, '壊れた1回目だけ効く');
   const msg = useResultMessages(g, dt, u);
-  assert.ok(msg.includes('ツルハシが壊れました') && msg.includes('ツルハシで+10% (1回)'), msg.join('\n'));
+  assert.ok(msg.includes('山師のツルハシが壊れました') && msg.includes('山師のツルハシで+10% (1回)'), msg.join('\n'));
 });
 
 test('1.7.0 木こりのオノ: 近くの山への地図のどの行き先にも効く', () => {
