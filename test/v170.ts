@@ -8,6 +8,7 @@ export const v170 = JSON.parse(readFileSync('tools/v170-tool-jobs.json', 'utf8')
   version: string;
   packing: { book: number; uses: string[]; time_percent: number };
   own_yield_percent: Record<string, { percent: number; items: number[] }>;
+  herbs: { book: number; item: number; proba: number; routes: [string, number][] };
 };
 
 /** 品番 → 取れる数の倍率 (%) */
@@ -24,12 +25,18 @@ export function v170Line<T extends Pick<UseLine, 'item_no' | 'count'> & { fracti
   return out;
 }
 
-/** 品の定義に 1.7.0 の直しを当てる (梱包6種の時間と、自分の品の取れる数)。その場で書き換える */
+/** 品の定義に 1.7.0 の直しを当てる (梱包6種の時間、近くの山への地図の薬草、自分の品の取れる数)。その場で書き換える */
 export function v170Item(item: ItemDef): ItemDef {
   for (const u of item.uses) {
     if (item.no === v170.packing.book && v170.packing.uses.includes(u.name!)) {
       u.time = Math.trunc((u.time * v170.packing.time_percent) / 100);
       u.exptime = Math.trunc((u.exptime * v170.packing.time_percent) / 100);
+    }
+    const herb = item.no === v170.herbs.book && v170.herbs.routes.find(([name]) => name === u.name);
+    if (herb) {
+      const line = u.get.find((l) => l.item_no === v170.herbs.item);
+      if (line) Object.assign(line, { count: herb[1], proba: v170.herbs.proba });
+      else u.get.push({ item_no: v170.herbs.item, count: herb[1], proba: v170.herbs.proba });
     }
     u.get = u.get.map(v170Line);
   }

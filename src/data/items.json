@@ -4065,7 +4065,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4131,7 +4131,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4197,7 +4197,7 @@
                "func_info" : null,
                "get" : [
                   {
-                     "count" : 12,
+                     "count" : 40,
                      "item_no" : 1,
                      "proba" : 900
                   },
@@ -4281,6 +4281,11 @@
                      "count" : 24,
                      "item_no" : 138,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "樹脂林で樹液を採る",
@@ -4336,6 +4341,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "香木林を探索する",
@@ -4391,6 +4401,11 @@
                      "count" : 24,
                      "item_no" : 115,
                      "proba" : 800
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
                   }
                ],
                "info" : "霊草の谷を探す",
@@ -4435,6 +4450,11 @@
                   {
                      "count" : 144,
                      "item_no" : 115,
+                     "proba" : 900
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
                      "proba" : 900
                   }
                ],

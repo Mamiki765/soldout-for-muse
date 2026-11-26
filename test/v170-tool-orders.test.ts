@@ -49,6 +49,18 @@ test('1.7.0: 道具3職の自分の品16種の取れる数 (革1.2・木工1.14�
   }
 });
 
+test('1.7.0: 近くの山への地図のふもと以外の行き先でも薬草が採れる', () => {
+  const want: Record<string, number> = { '山のふもとを探索': 120, '林道を探索': 40, '獣道を探索': 40, '雑木林の奥を探索': 40, '樹脂林で樹液を採る': 20, '香木林を探索する': 20, '霊草の谷を探す': 20, '牧草地で草を刈る': 20 };
+  const uses = BASE_ITEMS[12].uses;
+  assert.equal(uses.length, Object.keys(want).length);
+  for (const u of uses) {
+    const herb = u.get.filter((l) => l.item_no === HERB);
+    assert.equal(herb.length, 1, u.name!);
+    assert.deepEqual([herb[0].count, herb[0].proba], [want[u.name!], 900], u.name!);
+    assert.deepEqual(u.jobs, [{ job: 'material', key: 'times', op: '/', value: 2 }], '木こりの職業ボーナスつき');
+  }
+});
+
 function setup() {
   const world = newWorld(T0, MAX_ITEM);
   const g0 = new Game(world, DEFAULT_CONFIG, seededRng(1), T0);
