@@ -1230,8 +1230,14 @@ export class App {
       case 'buy':
         return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price'), maxTime: minutes(opt('max_minutes')) })];
       case 'shelf':
-      case 'showcase':
-        return [act.editShowcase(g, dt, { slot: n('slot') - 1, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
+      case 'showcase': {
+        const slot = n('slot') - 1;
+        const msg = [act.editShowcase(g, dt, { slot, itemno: item('item', 0), price: opt('price'), percent: opt('percent') })];
+        // 売値より高い買い取り募集があれば知らせる (1.7.0)
+        const hint = ord.shelfOrderHint(g, dt, dt.showcase[slot] ?? 0, dt.price[slot] ?? 0);
+        if (hint) msg.push(hint);
+        return msg;
+      }
       case 'use': {
         const itemno = item('item');
         // 使い方は番号 (0始まり) か、使い方の名前 ("陳列棚を3つにする") で書ける (0.3.0)
