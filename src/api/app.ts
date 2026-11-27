@@ -1171,7 +1171,9 @@ export class App {
         if (e instanceof GameError && e.message.startsWith('確認:')) {
           // 確認待ち: そのまま送り直せる形を添える (confirm の書き方の揺れを防ぐ)
           const retry = { ...a, confirm: true };
-          results.push({ ok: false, type, msg: [e.message, '送り直し: ' + JSON.stringify(retry)], confirm_with: retry });
+          const msg = [e.message, '送り直し: ' + JSON.stringify(retry)];
+          if (req) msg.push('確認して送り直すときは、新しい request_id を使ってください');
+          results.push({ ok: false, type, msg, confirm_with: retry });
         } else if (e instanceof GameError || e instanceof HttpError) results.push({ ok: false, type, msg: [e.message] });
         else throw e;
         // 失敗した行動も「済んだ」に数える (送り直しで同じ答えを返す。何も変わっていないので書くのは記録だけ)
@@ -1319,7 +1321,7 @@ export class App {
         this.requireParty(dt);
         const o = ord.createOrder(g, dt, { itemno: item('item'), price: n('price'), count: n('count'), hours: n('hours', 24), min: opt('min'), renew: renewIn(a.renew), repeat: opt('repeat') });
         const warn = ord.orderPriceWarning(g, o.item, o.price);
-        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}`, ...(warn ? [warn] : [])];
+        return [`募集#${o.id}を出しました${o.renew ? ` (期限切れのとき: ${ord.renewLabel(o)})` : ''}。届いた品は預かり中になり、締めるか再掲すると倉庫に入ります`, ...(warn ? [warn] : [])];
       }
       case 'deliver': {
         this.requireParty(dt);
@@ -1420,7 +1422,7 @@ export class App {
         const hint = ACTION_HINTS[typeIn];
         throw new GameError(
           '知らない行動です: ' + typeIn + (hint ? ` (${hint})` : '') +
-            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order coupon alerts tutorial comment rename paint move rest reopen close。くわしくは GET /api/v1/help',
+            ' 使える type: buy shelf shelves use deposit(=withdraw) trash order deliver cancel_order renew_order wish unwish coupon alerts tutorial comment rename paint move rest reopen close。くわしくは GET /api/v1/help',
         );
       }
     }

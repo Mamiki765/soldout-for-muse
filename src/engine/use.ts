@@ -163,7 +163,8 @@ function checkUseItem(g: Game, dt: Shop, u: RtUse): number {
 
 /** 使えない理由を短く (熟練 → 材料・道具の順。どちらでもなければ条件) */
 function useNgReason(g: Game, dt: Shop, u: RtUse): string {
-  if ((dt.exp[u.expno] ?? 0) < u.needexp) return `熟練が足りません (要${Math.trunc(u.needexp / 10)}%、今${Math.trunc((dt.exp[u.expno] ?? 0) / 10)}%)`;
+  const exp = dt.exp[u.expno] ?? 0;
+  if (exp < u.needexp) return `熟練が足りません (${isPublicItem(u.expno) ? g.items[u.expno].name : HIDDEN_NAME}の熟練が要${u.needexp / 10}%、今${exp / 10}%)`;
   const short = u.use.filter((l) => dt.item[l.no - 1] < l.count).map((l) => `${isPublicItem(l.no) ? g.items[l.no].name : HIDDEN_NAME}x${l.count}${l.proba === 0 ? '(道具)' : ''}`);
   if (short.length) return '足りない: ' + short.join(',');
   return '今は条件に合いません';
@@ -381,7 +382,7 @@ export function useResultMessages(g: Game, dt: Shop, u: RtUse): string[] {
   const count = u.result.count;
   if (!count) return [u.result.failReason ? `実行できませんでした (${u.result.failReason})` : '実行できませんでした'];
   if (u.result.function_return) out.push(...u.result.function_return.split('<br>').filter(Boolean));
-  out.push(`${count}${u.scale}`);
+  out.push(`実行数: ${count}${u.scale}`);
   if (u.money * count) out.push(`費用:￥${u.money * count}`);
   const spent = itemUseTime(dt, u) * count;
   out.push(spent < 0 ? `持ち時間+${formatHms(-spent)}` : `時間:${formatHms(spent)}`);

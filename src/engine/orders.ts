@@ -103,8 +103,8 @@ export function orderPriceWarning(g: Game, itemno: number, price: number): strin
   if (!item?.price || price * 100 <= item.price * ORDER_RULES.warnPercent) return null;
   const pct = Math.round((price / item.price) * 100);
   const [rate] = g.saleTax(itemno, 1, price, 0);
-  const market = item.marketprice ? `、市場の単価は今￥${item.marketprice}` : '';
-  return `採算に注意: ${item.name}の単価￥${price}は標準価格￥${item.price}の${pct}%です${market}。この品を使って作る物の儲けが残るか確かめてください。納品する側には売却税が${rate}%かかります (標準の${ORDER_RULES.warnPercent}%を超えると上がる)`;
+  const market = item.marketprice ? `、店の棚の平均相場は今￥${item.marketprice}` : '';
+  return `採算に注意: ${item.name}の単価￥${price}は標準価格￥${item.price}の${pct}%です${market} (募集上限${ORDER_RULES.maxPercent}%)。納品側の売上税は、この単価による${rate}%に店ごとの基本税率が加わります`;
 }
 
 /** その店がこれから受け取る予定の数 (募集の残りと、預かり中の届いた品) */
@@ -148,7 +148,7 @@ export function checkRenew(renew: string | undefined, repeat: number | undefined
 
 /** 期限切れの扱いの短い説明 (一覧・ログ用) */
 export function renewLabel(o: { renew?: string; repeat?: number | null }): string {
-  if (o.renew === 'extend') return '未成立なら延長';
+  if (o.renew === 'extend') return '1個も届かなければ延長';
   if (o.renew === 'repost') return `再掲あと${o.repeat ?? 0}回`;
   if (o.renew === 'forever') return '再掲無期限';
   return '';
@@ -168,7 +168,7 @@ export function createOrder(g: Game, dt: Shop, req: OrderRequest): BuyOrder {
   const count = Math.trunc(req.count);
   if (!(count >= 1)) throw new GameError('数量を指定してください');
   const room = item.limit - dt.item[itemno - 1] - pendingOf(g, dt.id, itemno);
-  if (count > room) throw new GameError(`上限: ${item.name}の所持上限。今の在庫と募集中の残りを足すと、あと${Math.max(0, room)}${item.scale}までしか募集できません`);
+  if (count > room) throw new GameError(`所持上限: ${item.name}は今の在庫・預かり中・募集中の残りを含め、あと${Math.max(0, room)}${item.scale}まで募集できます`);
   const min = req.min === undefined ? 0 : Math.trunc(req.min);
   if (min < 0 || min > count) throw new GameError('最低納品数は 0〜数量 で指定してください');
   const renew = checkRenew(req.renew, req.repeat);
@@ -338,7 +338,7 @@ function closeOrder(g: Game, o: BuyOrder, buyer: Shop | undefined, reason: strin
     (put < got ? `、所持上限を超えた${got - put}${item.scale}は破棄` : '') +
     `、返金￥${o.escrow}` +
     (toStock ? ` うち￥${toStock}は資金の上限を超えたので入金庫へ` : '') +
-    (timeBack ? '、時間も戻しました' : '') +
+    (timeBack ? '、取引時間も返却 (クーポンで払った分は同じ週のみ)' : '') +
     ')';
   g.writeLog(0, buyer.id, 0, msg);
   return msg;
@@ -470,7 +470,7 @@ export function thanksLeft(g: Game, dt: Shop): number {
 /** 募集の案内に添える、お礼のおまけの一言 (今期まだもらえるときだけ) */
 export function thanksHint(g: Game, dt: Shop): string {
   const left = thanksLeft(g, dt);
-  return left > 0 ? ` (標準価格で${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円ぶん以上の納品はタイムシガレットのおまけつき、今期あと${left}回)` : '';
+  return left > 0 ? ` (1セットの標準価格合計が${ORDER_RULES.thanksMinStd.toLocaleString('en-US')}円以上で、所持上限に空きがあればタイムシガレット1本。今期あと${left}回)` : '';
 }
 
 /** 採取・生産から戻ったときの1行 (できた品を欲しがっている募集があるときだけ) */
@@ -524,7 +524,7 @@ export function deliver(g: Game, dt: Shop, toId: number, lines: DeliverLine[]): 
     const room = item.limit - buyer.item[o.item - 1] - held;
     if (room < num) num = Math.max(0, room);
     if (!num) throw new GameError(`上限: 募集#${id}は${buyer.shopname}の${item.name}が所持上限のため、あと0${item.scale}です`);
-    if (o.min && num < o.min && num < o.left) throw new GameError(`募集#${id}: 1回に${o.min}${item.scale}以上で納品してください`);
+    if (o.min && num < o.min && num < o.left) throw new GameError(`募集#${id}: 1回に${Math.min(o.min, o.left)}${item.scale}以上が必要です (残り${o.left}${item.scale}、倉庫の空き${room}${item.scale})`);
 
     // 売り手: 陳列1回ぶんの手間と、棚で売れたのと同じ売却税
     g.useTime(CATALOG.timeEditShowcase);

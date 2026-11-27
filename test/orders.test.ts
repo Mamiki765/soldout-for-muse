@@ -269,7 +269,7 @@ test('預かり中の品を受け取ると上限を超えるときは digest の
   const b = g.shopById(buyer.id)!;
   b.item[LEATHER - 1] = g.items[LEATHER].limit - 20;
   const n = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0, newReplies: 0 };
-  assert.match(digestText(digestData(g, b, n)), /募集#1を締めると獣の革が所持上限を40枚超えて破棄/);
+  assert.match(digestText(digestData(g, b, n)), /募集#1の獣の革は所持上限で40枚破棄の見込み/);
 });
 
 test('預かり中の品にも、受け取る店の維持費が掛かる', async () => {

@@ -275,7 +275,7 @@ test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', as
       { type: 'shelves', count: 2 },
       { type: 'shelves', count: 0 },
     ]);
-    assert.match(lines[0], /^OK withdraw: ￥5000入金しました/);
+    assert.match(lines[0], /^OK withdraw: 入金庫から資金へ￥5000引き出しました/);
     assert.match(lines[1], /^NG shelves: 棚は今も1個です。変更なし/);
     assert.match(lines[2], /^NG shelves: 確認: 棚 1→3: 陳列枠\+2.*増築費用/, '増やすときも確認だけ');
     assert.match(lines[3], /^OK shelves: 棚 1→3: 陳列枠\+2/);

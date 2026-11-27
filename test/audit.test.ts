@@ -138,7 +138,10 @@ test('A08: 決算の時刻を過ぎて未反映なら pending、倒産の鍵は�
   const a = d.alerts.find((x) => x.type === 'bankrupt_risk');
   assert.ok(a);
   assert.equal(a.key, `bankrupt:${next}:pending`);
-  assert.match(a.msg, /まだ反映されていません/);
+  assert.match(a.msg, /時刻を過ぎた決算が未反映です.*GET \/api\/v1\/digest/);
+  const later = new Game(world, DEFAULT_CONFIG, seededRng(1), next + DEFAULT_CONFIG.oneDayTime - 3600);
+  const periodSoon = peekData(later, dt).alerts.find((x) => x.type === 'period_soon');
+  assert.match(periodSoon?.msg ?? '', /^次の決算まで1時間0分。未反映の決算の見込み支払い/);
 });
 
 test('A02: 決算の時刻を過ぎた最初のアクセスでは、5分たっていなくても決算を先に済ませる', async () => {
