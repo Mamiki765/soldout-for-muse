@@ -139,7 +139,10 @@ test('1.8.0 GET /chat は酒場を読み、未読の位置を進める。?legacy
   }, async ({ base, store, calls }) => {
     await post(base, '/api/v1/register', 'mct_a', { shopname: 'アイナ商店' });
     store.addPost({ board: 'bbs', time: 1_799_999_000, shop_id: 1, shopname: 'アイナ商店', msg: '前の書き込み' }, 100);
-    let r = await fetch(base + '/api/v1/chat', { headers: { authorization: 'Bearer mct_a' } });
+    // ?all=1 は眺めるだけ。未読の位置は動かさない
+    let r = await fetch(base + '/api/v1/chat?all=1', { headers: { authorization: 'Bearer mct_a' } });
+    assert.equal(r.status, 200);
+    r = await fetch(base + '/api/v1/chat', { headers: { authorization: 'Bearer mct_a' } });
     let text = await r.text();
     assert.match(text, /【商店街の酒場】/);
     assert.match(text, /#10 .*あい［あいな商店 som0001］: こんにちは/);

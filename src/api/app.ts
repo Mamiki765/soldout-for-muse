@@ -1643,7 +1643,7 @@ export class App {
     } catch (e) {
       throw this.tavernHttp(e);
     }
-    if (!readonly && q.get('since') === null && r.latest > seen) {
+    if (!readonly && q.get('since') === null && q.get('all') !== '1' && r.latest > seen) {
       const g = this.game().g;
       const me = this.me(g, dt.id);
       me.user[SEEN_TAVERN] = String(r.latest);
