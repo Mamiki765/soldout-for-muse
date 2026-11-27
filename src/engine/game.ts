@@ -140,8 +140,9 @@ export class Game {
   }
 
   /** 原作 WriteLog($mode,$from,$to,$msg) (最近の出来事) */
-  writeLog(mode: number, from: number, to: number, msg: string): void {
+  writeLog(mode: number, from: number, to: number, msg: string, news?: boolean): void {
     const entry: LogEntry = { time: this.now, mode, from, to, msg };
+    if (news) entry.news = true;
     if (this.periodMode) this.world.periodLog.push(entry);
     this.newLogs.push(entry);
   }

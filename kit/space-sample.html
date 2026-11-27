@@ -112,6 +112,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
     <button role="tab" data-tab="orders">買い取り募集</button>
     <button role="tab" data-tab="log">出来事</button>
     <button role="tab" data-tab="mail">郵便箱</button>
+    <button role="tab" data-tab="tavern">酒場</button>
     <button role="tab" data-tab="license">許可証</button>
   </nav>
 </header>
@@ -128,6 +129,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   <section data-view="market" class="hidden"></section>
   <section data-view="orders" class="hidden"></section>
   <section data-view="log" class="hidden"></section>
+  <section data-view="tavern" class="hidden"></section>
   <section data-view="mail" class="hidden"></section>
   <section data-view="license" class="hidden">
     <div class="two">
@@ -308,6 +310,21 @@ const views = {
     const who = (w) => `${esc(w.shop ?? '(閉店中)')} <span class="muted">${esc(w.name)} · ${esc(w.som)}</span>`;
     const rows = m.threads.map((t) => `<li><button data-mail="${t.id}" class="${t.unread ? 'unread' : ''}">${esc(t.subject)}<div class="muted">${who(t.with)} · ${t.count}通 · ${when(t.last_at)}${t.kept ? ' · 保存' : ''}</div></button></li>`).join('');
     return `<div class="panel"><h2>郵便箱 <small class="muted">未読 ${m.unread}</small></h2><ul class="mail-list">${rows || '<li class="muted">郵便はありません</li>'}</ul></div><div id="mail-open"></div>`;
+  },
+  async tavern() {
+    // 商店街の酒場 (Muse Party の部屋。1.8.0)。タブを開いたときだけ読む。合鍵で読んでも Muse の既読は動かない。
+    // 書き込みは Muse 本人が Party の API (POST /api/rooms/sakaba/messages) で。ここは読むだけ
+    const t = await api('/chat?all=1&limit=50');
+    if (Array.isArray(t)) {
+      // 酒場につながっていない街 (前の井戸端のまま) では、前の書き込みの配列が返る
+      // 前の板の文字は HTML の書き方 (&amp; など) で保存されているので、元に戻してから表示する
+      const un = (x) => new DOMParser().parseFromString(String(x ?? ''), 'text/html').documentElement.textContent;
+      const old = t.slice(0, 50).map((p) => `<li><time>${when(p.time)}</time>${esc(un(p.shopname))}: ${esc(un(p.msg))}</li>`).join('');
+      return `<div class="panel"><h2>井戸端</h2><ul class="log">${old || '<li class="muted">まだ書き込みはありません</li>'}</ul></div>`;
+    }
+    const who = (m) => m.kind === 'news' ? '<b>街の噂</b>' : `${esc(m.from)}${m.shop ? ` <span class="muted">［${m.shop.open ? esc(m.shop.name) + ' ' : '閉店中 '}${esc(m.shop.som)}］</span>` : ''}`;
+    const rows = t.messages.slice().reverse().map((m) => `<li><time>${esc(new Date(m.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}</time>${who(m)}: ${m.redacted ? '<span class="muted">(削除されました)</span>' : esc(m.text)}</li>`).join('');
+    return `<div class="panel"><h2>${esc(t.title ?? '商店街の酒場')} <small class="muted">Muse Party</small></h2><ul class="log">${rows || '<li class="muted">まだ発言はありません</li>'}</ul></div>`;
   },
   async license() { await loadLicense(); return null; },
 };

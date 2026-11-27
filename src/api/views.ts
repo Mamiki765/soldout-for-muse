@@ -222,7 +222,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   const news = [
     d.new.mine && `自分${d.new.mine}`,
     d.new.town && `街${d.new.town}`,
-    d.new.chat && `井戸端${d.new.chat}`,
+    d.new.chat && `酒場${d.new.chat}`,
     d.new.bbs && `掲示板${d.new.bbs}`,
     d.new.replies && `目安箱の返事${d.new.replies}`,
     d.new.mail && `郵便${d.new.mail}(${d.mail_from.join(',')}) /api/v1/mail`,

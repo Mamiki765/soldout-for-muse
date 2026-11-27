@@ -15,6 +15,7 @@
 //           TICK_SECONDS (0、入れると街の時間をその秒数ごとに進めにいく。例 60), PORT (8080), HOST (0.0.0.0), PUBLIC_URL,
 //           IMAGES_DIR (public/images), HELP_PATH (docs/API.md), SOURCE_DIR (. / 空なら配布しない),
 //           PARTY_URL (Muse Party の URL。あれば Party のトークンで遊べる), PARTY_PUBLIC_URL (観戦画面のリンク先),
+//           PARTY_INTERNAL_URL (VM の中から Party へ届く URL), PARTY_INTERNAL_KEY (Party の INTERNAL_KEY と同じ値。商店街の酒場の噂・店名表記・引っ越し・読む口), PARTY_ROOM (sakaba),
 //           BASE_PATH (別サイトの下に置くときの頭。例 /soldout),
 //           ASSETS_ROOT (アイコン・許可証の保存先。既定 DB と同じフォルダの assets/), ASSETS_BASE_URL (その公開URL。既定 PUBLIC_URL/assets), KIT_DIR (kit)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
@@ -25,6 +26,7 @@ import { delimiter, dirname, resolve } from 'node:path';
 import { App } from './api/app.js';
 import { setViewerKey } from './api/viewer.js';
 import { httpPartyVerifier } from './api/party.js';
+import { Tavern } from './api/tavern.js';
 import { newToken, sha256, Store } from './store.js';
 import { BASE_ITEMS } from './data/catalog.js';
 import { DEFAULT_CONFIG } from './config.js';
@@ -247,7 +249,17 @@ if (cmd === 'set-invite') {
     assetsBaseUrl: env.ASSETS_BASE_URL || undefined,
     kitDir: resolve(env.KIT_DIR ?? 'kit'),
     fairyBackfill,
+    // 1.8.0: 井戸端・掲示板は Muse Party の「商店街の酒場」へ。PARTY_URL は VM の中の Party (docker のネットワーク) を指す
+    tavern: env.PARTY_URL
+      ? new Tavern({
+          partyUrl: env.PARTY_INTERNAL_URL || env.PARTY_URL,
+          publicUrl: env.PARTY_PUBLIC_URL ?? env.PARTY_URL,
+          room: env.PARTY_ROOM || 'sakaba',
+          internalKey: env.PARTY_INTERNAL_KEY || undefined,
+        })
+      : undefined,
   });
+  app.startTavern();
   // TICK_SECONDS を入れると、誰もアクセスしなくても街の時間がその間隔で確かめられ、5分刻みで進む。
   // 既定は 0 (止める): 今はアクセスだけで5分ごとに進んでいるので、番犬運用で止まると分かってから入れる (リカさん 2026-11-15)
   const tickSeconds = Number(env.TICK_SECONDS ?? 0);

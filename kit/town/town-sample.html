@@ -20,6 +20,9 @@ h2 { margin: 6px 0; font-size: 18px; }
 .direction { min-width: 0; border: 1px solid #c6af8a; border-radius: 5px; padding: 5px; }
 .direction strong { display: block; font-size: 12px; }
 .direction button { width: 100%; margin: 2px 0; overflow-wrap: anywhere; padding: 4px; }
+#alld { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+#alld button { padding: 3px 8px; }
+#alld button[aria-current="true"] { font-weight: bold; border-width: 2px; }
 #win { position: relative; overflow: hidden; height: min(67vh, 580px); min-height: 340px; width: 100%; border: 2px solid #8b6b3a; border-radius: 6px; background: #c9bfa9; touch-action: none; cursor: grab; }
 #win.dragging { cursor: grabbing; }
 #layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
@@ -62,6 +65,7 @@ small { color: #71553c; }
 <h2 id="district-title">街の地図</h2>
 <div id="msg" role="status">合鍵を入れて地図を開いてください。</div>
 <div id="neighbors" aria-label="隣の区"></div>
+<div id="alld" aria-label="区の一覧"></div>
 <div id="win">
   <div id="layer"><canvas id="cv" width="1" height="1"></canvas><div id="labels"></div></div>
   <div class="zoom"><button id="plus" type="button" aria-label="寄る">＋</button><button id="minus" type="button" aria-label="引く">－</button></div>
@@ -206,6 +210,21 @@ function makeNeighbors(map) {
     if (seen.size) host.appendChild(group);
   }
 }
+// 区の一覧ボタン。区は店が増えると増えるので、固定で並べず /town/map の all_districts から作る (1.8.0)
+function makeDistrictList(map) {
+  const host = $('alld');
+  host.replaceChildren();
+  const cur = map.districts[0].no;
+  for (const d of map.all_districts || []) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = d.no === 0 ? '中央' : d.no + '区';
+    if (d.name && d.no !== 0) btn.title = d.name;
+    if (d.no === cur) btn.setAttribute('aria-current', 'true');
+    btn.onclick = () => load(String(d.no), false);
+    host.appendChild(btn);
+  }
+}
 function draw(map, town) {
   const scale = Math.max(8, Math.min(32, Number($('s').value) || 16));
   const { x, y, w, h } = map.bounds;
@@ -221,6 +240,7 @@ function draw(map, town) {
   makeLabels(map, town, scale);
   $('district-title').textContent = map.districts.map(textDistrict).filter((x, i, a) => a.indexOf(x) === i).join(' / ');
   makeNeighbors(map);
+  makeDistrictList(map);
   closePopup();
   pan.fit();
 }

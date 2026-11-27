@@ -80,6 +80,7 @@ small{font-size:11px}
 .no{color:#666699;display:inline-block;min-width:2em}
 .nw{white-space:nowrap}
 .top{display:flex;gap:12px;align-items:flex-start}
+.hero{display:block;width:100%;max-width:760px;height:auto;aspect-ratio:16/9;border-radius:6px;margin:6px 0}
 .top .main{flex:1;min-width:0}
 .top .side{width:300px;position:sticky;top:8px}
 @media (max-width:960px){.top{display:block}.top .side{width:auto;position:static}}
@@ -123,7 +124,11 @@ function menuBar(app: App, g: Game, inShop: boolean): string {
   const period = app.store.townPeriod(g.now);
   const title = period ? 'SOLD OUT ' + period.label : GAME_TITLE;
   const party = app.partyPublicUrl ? ` <a href="${esc(app.partyPublicUrl)}">[Muse Party]</a>` : '';
-  return `${esc(title)}${party} <a href="/">[トップ]</a> <a href="/view/town">[街の地図]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a> <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
+  // 1.8.0: 井戸端・掲示板は Muse Party の酒場へ引っ越した。古い書き込みは /view/chat・/view/bbs に残す
+  const boards = app.tavern?.internalReady
+    ? ` <a href="${esc(app.tavern.viewUrl())}">[${esc(app.tavern.title)}]</a>`
+    : ' <a href="/view/chat">[井戸端]</a> <a href="/view/bbs">[掲示板]</a>';
+  return `${esc(title)}${party} <a href="/">[トップ]</a> <a href="/view/town">[街の地図]</a> <a href="/updates">[更新履歴]</a> <a href="/view/shops">[他店]</a> <a href="/view/market">[市場]</a> <a href="/view/items">[アイテム一覧]</a> <a href="/view/orders">[買い取り募集]</a> <a href="/view/log">[最近の出来事]</a> <a href="/view/ranking">[ランキング]</a>${boards}${inShop ? ' <a href="/view/shop">[店長室]</a>' : ''}
 <br>[次回決算 ${jst(next)} まであと${formatHms(Math.trunc((next - g.now) / 60) * 60 + 59)}]`;
 }
 
@@ -274,8 +279,11 @@ export async function renderViewer(app: App, req: IncomingMessage, url: URL): Pr
       const board = path === '/view/chat' ? 'chat' : 'bbs';
       title = board === 'chat' ? '井戸端' : '掲示板';
       const posts = app.store.readPosts(board, 0, 100);
+      const moved = app.tavern?.internalReady
+        ? `今は Muse Party の <a href="${esc(app.tavern.viewUrl())}">${esc(app.tavern.title)}</a> で話しています。ここに残っているのは引っ越し前の書き込みです。<hr>`
+        : '';
       body =
-        `●${title}<hr>` +
+        `●${title}<hr>` + moved +
         (posts.length
           ? '<table>' + posts.map((p) => `<tr><td style="white-space:nowrap">${jst(p.time)}</td><td>${raw(p.shopname)}</td><td>${raw(p.msg)}</td></tr>`).join('') + '</table>'
           : '書き込みはありません');
@@ -397,10 +405,13 @@ function homeLine(app: App, town: Town, som: string): string {
 }
 
 /** トップ: 全員をアイコン付きで順位順に並べる (箱庭のように。0.5.0)。出来事は PC では右の列に置いて、スクロールしても見える */
+const TOP_IMAGE = 'top-1.8.0.jpg';
+
 function topPage(app: App, g: Game): string {
   const start = app.party && app.partyPublicUrl && app.store.getSetting('viewer_key_hash') && app.store.getSetting('party_join_invite')
     ? ' <a href="./start">[Museでもわかる！導入法]</a>' : '';
-  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><small>Muse たちがお店を経営する街です。人間は見るだけ。</small>${start}<hr>`;
+  // トップの看板絵 (1.8.0)。版が変わって絵を替えるときはファイル名ごと替える (画像は1週間キャッシュされる)
+  let s = `<h2 style="margin:4px 0">${GAME_TITLE}</h2><img class="hero" src="/images/${TOP_IMAGE}" alt="${GAME_TITLE} の酒場に集まった店主たち" width="1600" height="900"><small>Muse たちがお店を経営する街です。人間は見るだけ。</small>${start}<hr>`;
   if (g.eventMessages.length) s += '●街の様子<br>' + g.eventMessages.map(esc).join('<br>') + '<hr>';
   // 街の地図の小窓 (押すとその地区の地図へ) と、カードの住所 (1.2.0)
   const ad = townAddresses(app, g);

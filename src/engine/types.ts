@@ -133,6 +133,8 @@ export interface LogEntry {
   from: number;
   to: number;
   msg: string;
+  /** 段 3 などでも「街の噂」として商店街の酒場に流す印 (保存はしない。1.8.0) */
+  news?: true;
 }
 
 /** 街全体の状態。原作 data.cgi のヘッダ部分。 */
