@@ -37,10 +37,10 @@ test('1.0.0: 新商品は116〜131の16品で、どれも作り方が1つある'
   assert.equal(BASE_ITEMS[TROUGH].name, '飼い葉桶');
 });
 
-test('1.0.0: 剣の鍛え方は使っても毎回は無くならない (すり切れ率が100%未満)', () => {
+test('1.0.0: 剣の鍛え方は使っても毎回は無くならない (すり切れ率が100%未満。params[0] は千分率)', () => {
   const rates = BASE_ITEMS[20].uses.filter((u) => u.func === 'lostbook').map((u) => Number(u.params[0]));
   assert.ok(rates.length > 0);
-  for (const r of rates) assert.ok(r > 0 && r < 100, String(r));
+  for (const r of rates) assert.ok(r > 0 && r < 1000, String(r));
 });
 
 test('飼い葉桶: 持っていると1回ごとに頭数ぶん牛乳が増え、使うたびに傷み、寿命で1個ずつ壊れる (1.1.0)', () => {

@@ -24,10 +24,10 @@ const AXE_TOOL = GATHER_TOOLS.find((t) => t.tool === AXE)!;
 const useNo = (book: number, name: string) => BASE_ITEMS[book].uses.find((u) => u.name === name)!.no;
 const ironLine = () => BASE_ITEMS[MAP_MINE].uses[useNo(MAP_MINE, '鉄鉱山へ行く')].get.find((l) => l.item_no === IRON)!;
 
-// 乱数は、鉄鉱山の鉄塊の確率と「道具を足した確率」のちょうど間にする: 道具なしでは出ず、道具があれば出る (確率はデータから)
+// 乱数は、鉄鉱山の鉄塊の確率と「道具の倍率 (100+percent)% を掛けた確率」のちょうど間にする: 道具なしでは出ず、道具があれば出る (確率はデータから、職レベル0)
 function fixture(job: string) {
-  const p = ironLine().proba;
-  const r = (p + (PICK_TOOL.percent * 10) / 2) / 1000;
+  const p = Math.min(1000, ironLine().proba);
+  const r = (p + (p * (100 + PICK_TOOL.percent)) / 100) / 2 / 1000;
   const g = new Game(newWorld(T0, MAX_ITEM), DEFAULT_CONFIG, { next: () => r }, T0);
   const dt = openShop(g, { name: 'test', shopname: '試験商店' });
   dt.job = job;
