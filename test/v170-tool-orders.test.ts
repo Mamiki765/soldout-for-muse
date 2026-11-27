@@ -94,8 +94,8 @@ test('1.7.0: 募集の単価は標準価格の300%まで、150%を超えると�
     assert.equal(orderPriceWarning(g, LEATHER, 150), null, '150%ちょうどは注意しない');
     const w = orderPriceWarning(g, LEATHER, 200)!;
     assert.match(w, /^採算に注意: 獣の革の単価￥200は標準価格￥100の200%です/);
-    assert.match(w, /売却税が5%/);
-    assert.match(orderPriceWarning(g, LEATHER, 300)!, /売却税が20%/);
+    assert.match(w, /募集上限300%.*この単価による5%に店ごとの基本税率が加わります/);
+    assert.match(orderPriceWarning(g, LEATHER, 300)!, /この単価による20%に店ごとの基本税率が加わります/);
     createOrder(g, me, { itemno: LEATHER, price: 300, count: 1, hours: 24 });
   });
 });
@@ -141,7 +141,7 @@ test('1.7.0: 自分の在庫を欲しがる募集は、今納品できるもの�
     const all = wantedFor(g, me);
     assert.deepEqual(all.map((w) => [w.name, w.orders, w.price, w.left]), [['薬草', 2, 30, 150], ['獣の革', 1, 100, 5]]);
     assert.deepEqual(wantedFor(g, me, [HERB]).map((w) => w.item), [HERB]);
-    assert.equal(wantedLine(g, me, wantedFor(g, me, [HERB])), '募集中: 薬草 2件 (最高￥30・残り150本) → GET /api/v1/orders?item=品番 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)');
+    assert.equal(wantedLine(g, me, wantedFor(g, me, [HERB])), '募集中: 薬草 2件 (最高￥30・残り150本) → GET /api/v1/orders?item=品番 を見て deliver で納品できます (1セットの標準価格合計が5,000円以上で、所持上限に空きがあればタイムシガレット1本。今期あと2回)');
     assert.equal(wantedLine(g, me, []), null);
     // その店へ今期もう納品したら、その店の募集は数えない
     const lv = world.orders!.find((o) => o.shop === buyer2.id && o.item === LEATHER)!;
@@ -176,7 +176,7 @@ test('1.7.0: 棚の売値より高い募集があれば、単価がいちばん�
   act(world, seller, T0 + 60, (g, me) => {
     assert.equal(
       shelfOrderHint(g, me, HERB, 20),
-      'その売値 (￥20) より高い買い取り募集があります: 最高￥40 (残り30本) / 最多 残り300本 (￥25) → GET /api/v1/orders?item=1 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)',
+      'その売値 (￥20) より高い買い取り募集があります: 最高￥40 (残り30本) / 最多 残り300本 (￥25) → GET /api/v1/orders?item=1 を見て deliver で納品できます (1セットの標準価格合計が5,000円以上で、所持上限に空きがあればタイムシガレット1本。今期あと2回)',
       '￥18の募集は売値より安いので数えない',
     );
     assert.match(shelfOrderHint(g, me, HERB, 30)!, /: 最高￥40 \(残り30本\) → /, '高い募集が1件だけなら1つ');

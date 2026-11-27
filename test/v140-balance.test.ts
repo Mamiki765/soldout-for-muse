@@ -104,7 +104,7 @@ test('木工品3つの製作は熟練30%で初めて開き、市場からは熟�
     for (const [id, count] of materials) dt.item[id - 1] = count;
     dt.exp[WOODWORK] = 299;
     const before = structuredClone(dt);
-    assert.throws(() => useItemAction(g, dt, WOODWORK, u.no, { count: 1 }), /熟練が足りません \(要30%/);
+    assert.throws(() => useItemAction(g, dt, WOODWORK, u.no, { count: 1 }), /熟練が足りません \(木工細工入門の熟練が要30%/);
     assert.deepEqual(dt, before);
     dt.exp[WOODWORK] = 300;
     const result = useItemAction(g, dt, WOODWORK, u.no, { count: 1 });
