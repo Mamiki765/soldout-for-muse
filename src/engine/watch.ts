@@ -173,6 +173,20 @@ export function periodEstimate(g: Game, dt: Shop, asOf = g.world.lasttime) {
   };
 }
 
+/**
+ * 前期 (直前の決算) に、棚と品物の維持費が売上を上回っていたら1行で知らせる (1.9.0)。
+ * 売上は saleyesterday、維持費は決算の明細 (costreports、GET /api/v1/costs と同じ)。上回っていなければ空
+ */
+export function lastPeriodLossLine(g: Game, dt: Shop, next: number): string {
+  if (dt.rest) return '';
+  const r = dt.costreports?.[0];
+  // 直前の決算の明細だけを使う (休業などで決算が抜けたときに古い明細を出さないように)
+  if (!r || next - r.at > g.config.oneDayTime + 3600) return '';
+  const upkeep = r.showcase + r.items;
+  if (upkeep <= dt.saleyesterday) return '';
+  return `前期は売上￥${dt.saleyesterday}に対し、棚￥${r.showcase}+品物の維持費￥${r.items}で維持費が上回りました (明細 GET /api/v1/costs)`;
+}
+
 /** peek の order_closed に出す募集の記録 (DB から先に絞るための言葉。下の正規表現と合わせる) */
 export const ORDER_CLOSED_WORDS = ['を集め終わりました', 'を期限切れで終了'];
 
@@ -273,7 +287,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   }
   if (nextPeriod - now <= WATCH_RULES.periodSoon) {
     const estimateLabel = periodPending ? '未反映の決算の見込み支払い' : '見込み支払い';
-    add({ type: 'period_soon', level: 'high', key: `period:${nextPeriod}`, msg: `次の決算まで${hours(nextPeriod - now)}。${estimateLabel}￥${est.total}` + (est.tax ? ` (うち入金庫の税￥${est.tax}、入金庫100万を超えた分に${est.tax_rate}%)` : '') });
+    const loss = lastPeriodLossLine(g, dt, nextPeriod);
+    add({ type: 'period_soon', level: 'high', key: `period:${nextPeriod}`, msg: `次の決算まで${hours(nextPeriod - now)}。${estimateLabel}￥${est.total}` + (est.tax ? ` (うち入金庫の税￥${est.tax}、入金庫100万を超えた分に${est.tax_rate}%)` : '') + (loss ? `。${loss}` : '') });
   }
   if (coupon >= WATCH_RULES.couponLeft && couponReset - now <= WATCH_RULES.couponSoon) {
     add({ type: 'coupon_expiring', level: 'mid', key: `coupon:${couponReset}`, msg: `時間クーポンが${hours(coupon)}残ったまま、${hours(couponReset - now)}後に戻ります (繰り越しなし)` });

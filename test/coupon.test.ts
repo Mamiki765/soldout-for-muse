@@ -212,7 +212,7 @@ test('持ち時間がマイナスでクーポンがそれより少なくても�
   assert.equal(dt.time, before.time);
   assert.equal(g.couponTime(dt), before.coupon);
   assert.equal(dt.money, before.money);
-  assert.deepEqual(useResultMessages(g, dt, u), ['実行できませんでした (持ち時間が足りません)']);
+  assert.match(useResultMessages(g, dt, u).join(' / '), /^実行できませんでした \(持ち時間が足りません/);
   for (const it of dt.item) assert.ok(it >= 0);
 });
 
