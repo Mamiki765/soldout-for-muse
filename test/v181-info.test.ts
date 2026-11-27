@@ -1,0 +1,53 @@
+// SOLD OUT for Muse — 1.8.1 アイテム説明の書き足し: 説明に書いた数字が、データ (params) と合っているか。
+// This program is free software under the GNU GPL v2 or later. See LICENSE.
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { BASE_ITEMS, itemNoByName } from '../src/data/catalog.js';
+import { v181Info } from './v181-info.js';
+
+const use = (item: string, name: string) => {
+  const u = BASE_ITEMS[itemNoByName(item)].uses.find((x) => x.name === name);
+  if (!u) throw new Error(`${item}/${name}`);
+  return u;
+};
+
+test('1.8.1: 書き足した説明が items.json に入っている', () => {
+  assert.equal(v181Info.info_changes.length, 27);
+  for (const ch of v181Info.info_changes) {
+    const it = BASE_ITEMS[ch.item];
+    const info = ch.use_name === undefined ? it.info : it.uses.find((u) => u.name === ch.use_name)?.info;
+    assert.equal(info, ch.after, `${it.name}/${ch.use_name ?? ''}`);
+  }
+});
+
+test('1.8.1: 説明の数字がデータと合っている (データを変えたら説明も直す)', () => {
+  // 資金調達の方法: 「1回で N円」 = params[0]
+  for (const name of ['ティッシュ配りで資金稼ぎ', '日雇い土木作業で資金稼ぎ']) {
+    const u = use('資金調達の方法', name);
+    const yen = Number(u.info!.match(/1回で([\d,]+)円/)![1].replace(/,/g, ''));
+    assert.equal(yen, Number(u.params[0]), name);
+  }
+  // 広告 (popup): 「人気50%のとき+N%」 = params[0]/100
+  for (const [item, name] of [['広告パック', 'ビラ配りで広告する'], ['広告パック', 'ポスターで広告する'], ['広告パック', 'キャンペーンで広告する'], ['お祝いセット', 'お祝いパーティ']]) {
+    const u = use(item, name);
+    const pct = Number(u.info!.match(/人気50%のとき\+([\d.]+)%/)![1]);
+    assert.equal(pct, Number(u.params[0]) / 100, name);
+  }
+  // 乳を搾る: 「寿命が N%減り」 = params[0]² / 10 (%)
+  for (const name of ['乳を搾る', 'ハードに乳を搾る']) {
+    const u = use('ミノタウロス♀', name);
+    const pct = Number(u.info!.match(/寿命が([\d.]+)%減り/)![1]);
+    const p = Number(u.params[0]);
+    assert.equal(pct, (p * p) / 10, name);
+  }
+  // 剣市の2倍は剣の市場の使い方だけ
+  assert.equal(use('剣市への地図', '剣の市場へ仕入に行く').func_before, '_local_b1');
+  // 効果なしと書いた使い方は、関数も成果物も無い
+  for (const [item, name] of [['七面鳥の丸焼き', '食べる'], ['こだわりのラム酒', '飲む'], ['おしゃれブーツ', '履いてお出かけする'], ['ミノヨーグルト', '食べる'], ['ミノチーズ', '食べる']]) {
+    const u = use(item, name);
+    assert.match(u.info!, /ほかの効果はありません/, item);
+    assert.equal(u.func, null, item);
+    assert.equal(u.get.length, 0, item);
+  }
+});

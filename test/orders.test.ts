@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
-import { CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
+import { BASE_ITEMS, CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { enterShop, openShop } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
 import { cancelOrder, createOrder, deliver, ORDER_RULES, orders, periodNo, priceRange, setOrderRenew, sweepOrders } from '../src/engine/orders.js';
@@ -16,6 +16,9 @@ import { digestData, digestText, ordersData, ordersText } from '../src/api/views
 const DEFAULT_CONFIG = { ...BASE_CONFIG, couponTime: 0 };
 const T0 = 1_800_000_000;
 const LEATHER = itemNoByName('獣の革');
+/** 獣の革の標準価格と、その何%かの単価 (数字はデータと ORDER_RULES から) */
+const STD = BASE_ITEMS[LEATHER].price;
+const pct = (p: number) => Math.round((STD * p) / 100);
 
 function setup() {
   const world = newWorld(T0, MAX_ITEM);
@@ -49,14 +52,16 @@ function act<T>(world: World, dt: Shop, now: number, fn: (g: Game) => T): T {
 test('募集→部分納品→取り下げで、代金と税・時間が棚売買と同じに動き、差額が戻る', () => {
   const { world, buyer, seller } = setup();
   const [lo, hi] = priceRange(new Game(world, DEFAULT_CONFIG, seededRng(1), T0), LEATHER);
-  assert.equal(lo, 50);
-  assert.equal(hi, 300);
+  assert.equal(lo, Math.ceil((STD * ORDER_RULES.minPercent) / 100));
+  assert.equal(hi, Math.floor((STD * ORDER_RULES.maxPercent) / 100));
+  assert.ok(lo < STD && STD < hi);
 
+  const price = pct(120);
   const bt0 = buyer.time;
-  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 120, count: 300, hours: 24 }));
+  const o = act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price, count: 300, hours: 24 }));
   const b = () => world.shops.find((s) => s.id === buyer.id)!;
   const s = () => world.shops.find((x) => x.id === seller.id)!;
-  assert.equal(b().money, 1_000_000 - 36000, '代金は全額預ける');
+  assert.equal(b().money, 1_000_000 - price * 300, '代金は全額預ける');
   assert.ok(b().time > bt0, '取引時間を先に使う');
   const prepaid = b().time - bt0;
 
@@ -66,15 +71,15 @@ test('募集→部分納品→取り下げで、代金と税・時間が棚売�
   assert.equal(b().item[LEATHER - 1], 0, '届いた品は締めるまで預かり');
   assert.ok(st0 <= T0 - 48 * 3600);
   assert.equal(s().time, T0 + 10 - 48 * 3600 + CATALOG.timeEditShowcase, '陳列1回ぶんの手間 (持ち時間は満タンから)');
-  assert.equal(s().saletoday, 12000, '売上に入る');
-  assert.ok(s().moneystock > 0 && s().moneystock <= 12000, '代金は入金庫へ (税を引く)');
+  assert.equal(s().saletoday, price * 100, '売上に入る');
+  assert.ok(s().moneystock > 0 && s().moneystock <= price * 100, '代金は入金庫へ (税を引く)');
   assert.equal(orders(new Game(world, DEFAULT_CONFIG, seededRng(1), T0)).find((x) => x.id === o.id)!.left, 200);
 
   // 取り下げ: 残り200個ぶんが戻る。1個でも買えたので時間は戻らない
   const before = b().money;
   const btime = b().time;
   act(world, buyer, T0 + 20, (g) => cancelOrder(g, g.shopById(buyer.id)!, o.id));
-  assert.equal(b().money - before, 24000);
+  assert.equal(b().money - before, price * 200);
   assert.equal(b().item[LEATHER - 1], 100, '取り下げで届いた分をまとめて受け取る');
   assert.equal(b().time, btime);
   assert.equal(world.orders!.length, 0);
@@ -96,11 +101,12 @@ test('1個も届かずに期限切れなら、代金も時間も全部戻る', (
 test('制限: 単価・期限・同時件数・同じ相手1期1セット (逆向きは別)・まとめ納品・最低納品数', () => {
   const { world, buyer, seller, other } = setup();
   const mk = (dt: Shop, req: Partial<{ price: number; count: number; hours: number; min: number; itemno: number }>) =>
-    act(world, dt, T0, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: 100, count: 10, hours: 24, ...req }));
-  assert.throws(() => mk(buyer, { price: 49 }), GameError);
-  assert.throws(() => mk(buyer, { price: 301 }), GameError);
-  assert.throws(() => mk(buyer, { hours: 49 }), GameError);
-  assert.throws(() => mk(buyer, { count: 5000 }), /所持上限/);
+    act(world, dt, T0, (g) => createOrder(g, g.shopById(dt.id)!, { itemno: LEATHER, price: STD, count: 10, hours: 24, ...req }));
+  const [lo, hi] = priceRange(new Game(world, DEFAULT_CONFIG, seededRng(1), T0), LEATHER);
+  assert.throws(() => mk(buyer, { price: lo - 1 }), GameError);
+  assert.throws(() => mk(buyer, { price: hi + 1 }), GameError);
+  assert.throws(() => mk(buyer, { hours: ORDER_RULES.maxHours + 1 }), GameError);
+  assert.throws(() => mk(buyer, { count: BASE_ITEMS[LEATHER].limit + 1 }), /所持上限/);
   assert.equal(world.orders?.length ?? 0, 0, '失敗は何も残さない');
 
   // 棚1つ → 同時に1件
@@ -109,7 +115,7 @@ test('制限: 単価・期限・同時件数・同じ相手1期1セット (逆�
   // 棚を2つにして2件目 (別の品)
   world.shops.find((s) => s.id === buyer.id)!.showcasecount = 2;
   const wood = itemNoByName('木の枝');
-  const o2 = mk(buyer, { itemno: wood, price: 200 });
+  const o2 = mk(buyer, { itemno: wood, price: BASE_ITEMS[wood].price });
   world.shops.find((s) => s.id === seller.id)!.item[wood - 1] = 50;
 
   // 最低納品数
@@ -167,14 +173,15 @@ test('応じられる募集は1期10種類、出せる募集は棚×3回 (決算
 
 test('digest に「あなたの在庫が募集中」が出て、一覧が読める', () => {
   const { world, buyer, seller } = setup();
-  act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price: 130, count: 50, hours: 24 }));
+  const price = pct(130);
+  act(world, buyer, T0, (g) => createOrder(g, g.shopById(buyer.id)!, { itemno: LEATHER, price, count: 50, hours: 24 }));
   const g = new Game(world, DEFAULT_CONFIG, seededRng(1), T0 + 1);
   const n = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0, newReplies: 0 };
   const txt = digestText(digestData(g, g.shopById(seller.id)!, n));
-  assert.match(txt, /あなたの在庫が募集中 獣の革@130/);
+  assert.match(txt, new RegExp(`あなたの在庫が募集中 獣の革@${price}`));
   assert.match(digestText(digestData(g, g.shopById(buyer.id)!, n)), /自分の募集 #1獣の革残50/);
   const list = ordersText(ordersData(g, g.shopById(seller.id)!, {}));
-  assert.match(list, /#1 獣の革@130\(130%\) 残50\/50 瑠璃のしおり堂/);
+  assert.match(list, new RegExp(`#1 獣の革@${price}\\(130%\\) 残50/50 瑠璃のしおり堂`));
   assert.match(list, /今期 募集0\/3回/);
 });
 
@@ -269,7 +276,7 @@ test('預かり中の品を受け取ると上限を超えるときは digest の
   const b = g.shopById(buyer.id)!;
   b.item[LEATHER - 1] = g.items[LEATHER].limit - 20;
   const n = { newMine: 0, newTown: 0, newChat: 0, newBbs: 0, newReplies: 0 };
-  assert.match(digestText(digestData(g, b, n)), /募集#1を締めると獣の革が所持上限を40枚超えて破棄/);
+  assert.match(digestText(digestData(g, b, n)), /募集#1の獣の革は所持上限で40枚破棄の見込み/);
 });
 
 test('預かり中の品にも、受け取る店の維持費が掛かる', async () => {

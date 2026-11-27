@@ -30,7 +30,7 @@ test('1.7.0 人口の見張り: 改装中と開店72時間以内の店は数え�
   const g = new Game(world, DEFAULT_CONFIG, seededRng(2), now);
   const s = idleShopStat(g);
   assert.deepEqual(s, { open: 3, idle: 2, rate: 2 / 3, ready: true });
-  assert.equal(idleShopLine(s), '人口の見張り: 72時間モブ売上ゼロの営業店 2/3店 (66.7%) 30%超え。止まっている店を自然減に数えない案 (P1) を考える目安です');
+  assert.equal(idleShopLine(s), '人口の見張り: 過去72時間に街のお客への売上ゼロ 2/3店 (66.7%、開店から72時間以上の営業店) 30%超え');
   // 記録を始めて72時間たつまでは ready でない
   world.mobsaleSince = now - 10 * H;
   assert.equal(idleShopStat(g).ready, false);

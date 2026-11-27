@@ -825,6 +825,41 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			push @$uses, $u;
 		}
 		$define{version} = $v170->{version};
+
+		# 1.8.1 転職のススメの説明に、熟練の持ち越しと職レベルのことを書き足す (tools/v181.json)。文言だけ
+		open(my $v181_fh, '<:raw', "$FindBin::Bin/v181.json") or die $!;
+		my $v181 = JSON::PP->new->utf8->decode(do { local $/; <$v181_fh> });
+		close $v181_fh;
+		$v181 = $as_bytes->($v181);
+		my $n181 = 0;
+		for my $u (@{ $by_no{78}{uses} }) {
+			my $book = $u->{params} && $u->{params}[0];
+			next if !$book;
+			die "v1.8.1: 78/$u->{no} has no rate" if ($u->{params}[2] // '') ne '0.5';
+			my $suffix = $v181->{job_change_info_suffix};
+			$suffix =~ s/\{book\}/$by_no{$book}{name}/g;
+			$u->{info} .= $suffix;
+			$n181++;
+		}
+		die "v1.8.1: job changes $n181" if $n181 != 13;
+		$define{version} = $v181->{version};
+
+		# 1.8.1 アイテム説明の書き足し (tools/v181-item-info.json)。実際の動きと合っていない所・肝心な効果が無い所だけ。文言だけ
+		open(my $vinfo_fh, '<:raw', "$FindBin::Bin/v181-item-info.json") or die $!;
+		my $vinfo = JSON::PP->new->utf8->decode(do { local $/; <$vinfo_fh> });
+		close $vinfo_fh;
+		$vinfo = $as_bytes->($vinfo);
+		for my $ch (@{ $vinfo->{info_changes} }) {
+			my $it = $by_no{$ch->{item}} or die "v1.8.1 info: unknown item $ch->{item}";
+			my $t = $it;
+			if (defined $ch->{use_name}) {
+				my @u = grep { ($_->{name} // '') eq $ch->{use_name} } @{ $it->{uses} };
+				die "v1.8.1 info: unknown use $ch->{item}/$ch->{use_name}" if @u != 1;
+				$t = $u[0];
+			}
+			die "v1.8.1 info: $ch->{item} info changed" if ($t->{info} // '') ne $ch->{before};
+			$t->{info} = $ch->{after};
+		}
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

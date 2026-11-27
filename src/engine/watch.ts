@@ -253,14 +253,14 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
   const periodPending = est.next_period <= now;
   if (est.short > 0) {
     const key = periodPending ? `bankrupt:${est.next_period}:pending` : `bankrupt:${nextPeriod}:${stage(nextPeriod - now, [6 * 3600, 2 * 3600])}`;
-    const head = periodPending ? '決算の時刻を過ぎていて、まだ反映されていません (次のアクセスで計算)。倒産の恐れ' : 'このままだと決算で倒産の恐れ';
+    const head = periodPending ? '時刻を過ぎた決算が未反映です (状況を確かめるには GET /api/v1/digest)。倒産の恐れ' : 'このままだと決算で倒産の恐れ';
     add({ type: 'bankrupt_risk', level: 'critical', key, msg: `${head}: 見込み支払い￥${est.total} (維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax}) に対し資金+入金庫￥${est.available}、不足￥${est.short}` });
   }
   if (closeAt - now <= WATCH_RULES.closingSoon) {
     // 期限を過ぎていれば、次の街の計算で閉店する。行動がその計算より先に届けば間に合うが、確かではない (監査 A08)
     const msg = closeAt <= now
-      ? '不在閉店の期限を過ぎています。次の街の計算で閉店します (すぐ行動すれば間に合うこともありますが、確かではありません)'
-      : `行動が無いまま${hours(closeAt - now)}で不在閉店します (見るだけでは延びません。何か1つ行動してください)`;
+      ? '不在閉店の期限を過ぎています。街の計算が先なら閉店します'
+      : `行動が成功しないままあと${hours(closeAt - now)}で不在閉店します (digest・peek を読むだけでは延びません)`;
     add({ type: 'closing_soon', level: 'critical', key: `closing:${dt.lastlogin}:${closeAt <= now ? 'past' : stage(closeAt - now, [86400, 6 * 3600])}`, msg });
   }
   const s1 = shelves[0];
@@ -272,7 +272,8 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     add({ type: 'shelves_empty', level: 'mid', key: `shelves:${emptyOthers.map((s) => s.slot).join(',')}`, msg: `棚${emptyOthers.map((s) => s.slot).join('・')}が空/売切` });
   }
   if (nextPeriod - now <= WATCH_RULES.periodSoon) {
-    add({ type: 'period_soon', level: 'high', key: `period:${nextPeriod}`, msg: `決算まで${hours(nextPeriod - now)}` + (est.tax ? ` 入金庫の税の見込み￥${est.tax} (${est.tax_rate}%、入金庫100万を超えた分)` : '') + ` 見込み支払い￥${est.total}` });
+    const estimateLabel = periodPending ? '未反映の決算の見込み支払い' : '見込み支払い';
+    add({ type: 'period_soon', level: 'high', key: `period:${nextPeriod}`, msg: `次の決算まで${hours(nextPeriod - now)}。${estimateLabel}￥${est.total}` + (est.tax ? ` (うち入金庫の税￥${est.tax}、入金庫100万を超えた分に${est.tax_rate}%)` : '') });
   }
   if (coupon >= WATCH_RULES.couponLeft && couponReset - now <= WATCH_RULES.couponSoon) {
     add({ type: 'coupon_expiring', level: 'mid', key: `coupon:${couponReset}`, msg: `時間クーポンが${hours(coupon)}残ったまま、${hours(couponReset - now)}後に戻ります (繰り越しなし)` });
@@ -297,13 +298,13 @@ export function peekData(g: Game, dt: Shop, myLogs: PeekLog[] = []) {
     const it = g.items[o.item];
     if (o.shop === dt.id) {
       const over = discards.get(o.id) ?? 0;
-      if (over > 0) add({ type: 'order_discard', level: 'mid', key: `discard:${o.id}`, msg: `募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄` });
+      if (over > 0) add({ type: 'order_discard', level: 'mid', key: `discard:${o.id}`, msg: `募集#${o.id}の${it.name}は所持上限で${over}${it.scale}破棄の見込み (同じ品の募集を締める順で変わります)` });
       continue;
     }
     if (!dt.item[o.item - 1] || !g.shopById(o.shop)) continue;
     if (o.price * 100 < it.price * WATCH_RULES.wantedPercent) continue;
     wantedCount++;
-    add({ type: 'wanted', level: 'low', key: `wanted:${o.id}`, msg: `あなたの在庫の${it.name}を募集#${o.id}が単価￥${o.price}で募集中 (残り${o.left}${it.scale})` });
+    add({ type: 'wanted', level: 'low', key: `wanted:${o.id}`, msg: `あなたの在庫の${it.name}を募集#${o.id}が単価￥${o.price}で募集中 (残り${o.left}${it.scale})。最低数・今期の納品状況は GET /api/v1/orders?item=${o.item}` });
   }
   // 欲しい品 (自分の募集の品・材料だけ足りない作り方の材料) がほかの店の棚にある。仕入れのチャンス (Power向けだけ)
   if (on.has('on_shelf')) {

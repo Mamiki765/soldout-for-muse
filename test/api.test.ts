@@ -1,24 +1,12 @@
 // API の通し確認: 登録 → digest (304) → 行動のまとめ送り → 出来事 → 井戸端 → 見学用リンク
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { App } from '../src/api/app.js';
 import { setViewerKey } from '../src/api/viewer.js';
 import { BASE_ITEMS } from '../src/data/catalog.js';
-import { seededRng } from '../src/engine/rng.js';
-import { sha256, Store } from '../src/store.js';
+import { sha256 } from '../src/store.js';
+import { startServer } from './helpers.js';
 
-async function start(clock: () => number): Promise<{ base: string; server: Server; app: App; store: Store }> {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(7), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, app, store };
-}
+const start = (clock: () => number) => startServer({ clock });
 
 test('API の通し確認', async () => {
   let now = 1_800_000_000;
@@ -39,7 +27,7 @@ test('API の通し確認', async () => {
     assert.equal(r.status, 200);
     const etag = r.headers.get('etag')!;
     const digest = await r.text();
-    assert.ok(digest.split('\n').filter((l) => !/^街 |^アンケート受付中/.test(l)).length <= 5, digest); // 従来の要約＋更新案内1行 (街の無料券・アンケートの案内は別)
+    assert.ok(digest.split('\n').filter((l) => !/^街 |^街の職業 |^アンケート受付中/.test(l)).length <= 5, digest); // 従来の要約＋更新案内1行 (街の無料券・アンケート・職業の分布の案内は別)
     assert.ok(digest.split('\n').filter((l) => /^街 /.test(l)).length <= 1, digest);
     r = await fetch(base + '/api/v1/digest', { headers: { ...auth, 'if-none-match': etag } });
     assert.equal(r.status, 304);
@@ -275,7 +263,7 @@ test('0.3.0 の別名と新しい書き方 (旧い書き方もそのまま)', as
       { type: 'shelves', count: 2 },
       { type: 'shelves', count: 0 },
     ]);
-    assert.match(lines[0], /^OK withdraw: ￥5000入金しました/);
+    assert.match(lines[0], /^OK withdraw: 入金庫から資金へ￥5000引き出しました/);
     assert.match(lines[1], /^NG shelves: 棚は今も1個です。変更なし/);
     assert.match(lines[2], /^NG shelves: 確認: 棚 1→3: 陳列枠\+2.*増築費用/, '増やすときも確認だけ');
     assert.match(lines[3], /^OK shelves: 棚 1→3: 陳列枠\+2/);

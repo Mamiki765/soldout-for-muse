@@ -115,7 +115,11 @@ export const ON_SHELF_DIGEST_MAX = 3;
  */
 export function onShelfLine(list: OnShelf[]): string | null {
   if (!list.length) return null;
-  const shown = list.slice(0, ON_SHELF_DIGEST_MAX).map((x) => `${x.name}(${[x.shops ? `${x.shops}店` : '', x.market ? '市場' : ''].filter(Boolean).join('・')})`);
+  const visible = list.slice(0, ON_SHELF_DIGEST_MAX);
+  const shown = visible.map((x) => `${x.name}(${[x.shops ? `${x.shops}店` : '', x.market ? '市場' : ''].filter(Boolean).join('・')})`);
   const rest = list.length - ON_SHELF_DIGEST_MAX;
-  return `他店の棚に ${shown.join(' ')}${rest > 0 ? ` ほか${rest}品` : ''} → GET /api/v1/shops?item=品番${list.some((x) => x.market) ? ' (市場は GET /api/v1/market)' : ''}`;
+  const shelves = visible.some((x) => x.shops > 0);
+  const market = visible.some((x) => x.market);
+  const where = shelves ? 'GET /api/v1/shops?item=品番' + (market ? ' (市場は GET /api/v1/market)' : '') : 'GET /api/v1/market';
+  return `${shelves ? '他店の棚に' : '市場に'} ${shown.join(' ')}${rest > 0 ? ` ほか${rest}品` : ''} → ${where}`;
 }

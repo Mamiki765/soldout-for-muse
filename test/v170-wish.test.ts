@@ -63,14 +63,14 @@ test('1.7.0 ほしい物リスト: 採る側には店の数だけ (うち募集�
     assert.deepEqual(list.map((w) => [w.name, w.shops, w.ordering, w.price]), [['薬草', 3, 1, 30]]);
     assert.equal(
       wishedLine(g, me, list),
-      'ほしい物リスト: 薬草 3店 (うち募集中 1店・最高￥30) → 募集は GET /api/v1/orders?item=品番 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)',
+      'ほしい物リスト: 薬草 3店 (うち募集中 1店・最高￥30) → 募集は GET /api/v1/orders?item=品番 を見て deliver で納品できます (1セットの標準価格合計が5,000円以上で、所持上限に空きがあればタイムシガレット1本。今期あと2回)',
     );
     assert.equal(wishedLine(g, me, wishedFor(g, me, [LEATHER])), null);
   });
   // 一の店から見ると、二の店・採る店 (リスト) と三の店 (募集) の3店
   act(world, a, (g, me) => {
     me.item[HERB - 1] = 10;
-    assert.equal(wishedLine(g, me, wishedFor(g, me, [HERB])), 'ほしい物リスト: 薬草 3店 (うち募集中 1店・最高￥30) → 募集は GET /api/v1/orders?item=品番 を見て deliver で納品できます (標準価格で5,000円ぶん以上の納品はタイムシガレットのおまけつき、今期あと2回)');
+    assert.equal(wishedLine(g, me, wishedFor(g, me, [HERB])), 'ほしい物リスト: 薬草 3店 (うち募集中 1店・最高￥30) → 募集は GET /api/v1/orders?item=品番 を見て deliver で納品できます (1セットの標準価格合計が5,000円以上で、所持上限に空きがあればタイムシガレット1本。今期あと2回)');
     me.item[HERB - 1] = 0;
     assert.equal(wishedLine(g, me, wishedFor(g, me, [HERB])), 'ほしい物リスト: 薬草 2店 → 棚に並べると売れるかもしれません', '手持ちがないと募集には納品できないので、リストの2店だけ');
   });
@@ -90,4 +90,5 @@ test('1.7.0 ほしい物リスト: 作る側は digest の「他店の棚に」�
   const list = act(world, a, (g, me) => onShelf(g, me, g.now));
   assert.deepEqual(list.map((x) => [x.name, x.why, x.shops, x.market ?? false]), [['獣の革', 'wish', 1, false], ['鉄塊', 'wish', 0, true]]);
   assert.equal(onShelfLine(list), '他店の棚に 獣の革(1店) 鉄塊(市場) → GET /api/v1/shops?item=品番 (市場は GET /api/v1/market)');
+  assert.equal(onShelfLine(list.filter((x) => x.shops === 0)), '市場に 鉄塊(市場) → GET /api/v1/market');
 });

@@ -3,15 +3,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { App } from '../src/api/app.js';
 import { setViewerKey } from '../src/api/viewer.js';
 import { mapData } from '../src/api/town-view.js';
-import { seededRng } from '../src/engine/rng.js';
-import { sha256, Store } from '../src/store.js';
+import { Store } from '../src/store.js';
 import { FREE_DAYS, HOLD_DAYS, MOVE_ITEM, PAINT_ITEM, TownService } from '../src/town/town.js';
+import { startServer } from './helpers.js';
 
 const T0 = 1_800_000_000;
 const PERIOD = 97200;
@@ -150,16 +146,7 @@ test('色変え: 番号の範囲、今と同じ色、片方だけは今の色の
   }
 });
 
-async function start(clock: () => number): Promise<{ base: string; server: Server; app: App; store: Store }> {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('inv'));
-  setViewerKey({ store }, 'key');
-  const app = new App({ store, rng: seededRng(3), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, app, store };
-}
+const start = (clock: () => number) => startServer({ clock, seed: 3, invite: 'inv', prepare: (store) => setViewerKey({ store }, 'key') });
 
 test('API: 住所・digest の案内・無料の色変えと引っ越し、そのあとはペンキと許可証・時間・待ち', async () => {
   let now = T0;

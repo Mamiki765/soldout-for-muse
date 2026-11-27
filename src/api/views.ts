@@ -153,8 +153,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     if (o.shop === dt.id) {
       const it = g.items[o.item];
       const over = discards.get(o.id) ?? 0;
-      if (over > 0) warnings.push(`募集#${o.id}を締めると${it.name}が所持上限を${over}${it.scale}超えて破棄`);
-      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(届${o.count - o.left})` : '') + (o.renew ? `(${renewLabel(o)})` : ''));
+      if (over > 0) warnings.push(`募集#${o.id}の${it.name}は所持上限で${over}${it.scale}破棄の見込み (同じ品の募集を締める順で変わります)`);
+      myOrders.push(`#${o.id}${g.items[o.item].name}残${o.left}` + (o.count > o.left ? `(預かり中${o.count - o.left})` : '') + (o.renew ? `(${renewLabel(o)})` : ''));
     }
   }
   // 改装中 (休業) の店は売れず決算もしないので、棚・倒産などの注意は出さず、休みの案内だけにする (1.1.0)
@@ -251,7 +251,7 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   if (d.merchant_raised !== null) {
     const { lv, name } = d.merchant_raised;
     const who = name ? `お手伝い妖精の${name}さん` : 'お手伝い妖精';
-    lines.push(`${who}が決算で育ちました（商人レベル${lv}、引き出し・品物の取引が少し速くなります）`);
+    lines.push(`${who}が決算で育ちました（商人レベル${lv}、引き出し・仕入れ・買い取り募集を出す時間が少し短くなります）`);
   }
   if (d.fairy_backfilled) lines.push('今までの働きぶんを入れました');
   lines.push(...tutorialDigestLines(d.tutorial));

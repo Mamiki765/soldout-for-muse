@@ -90,7 +90,7 @@ function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number):
   if (!(wear > 0) || !(dt.item[itemno - 1] > 0)) return '';
   const name = g.items[itemno].name;
   if (wearStep(g, dt, itemno, wear)) itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
-  return durabilityLine(g, dt, itemno, '耐久', 'いつ壊れてもおかしくない');
+  return durabilityLine(g, dt, itemno, '耐久', 'いつ壊れてもおかしくない。同じ品を買い足しても耐久は戻りません');
 }
 
 const ROBOT = (): number => itemNoByName('店番ロボット');

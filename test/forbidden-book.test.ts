@@ -37,16 +37,18 @@ test('禁断の書: 元の3つの使い方と品の定義 (処分不可・譲渡
   assert.equal(it.uses.length, 4);
 });
 
-test('禁断の書: 届け出は5分、標的なし、熟練なし', () => {
+test('禁断の書: 届け出は標的なし・1回ずつ・熟練なしで、熟練で時間が変わらず、本を1冊必ず使う', () => {
   const u = report();
   assert.equal(u.no, 3);
-  assert.deepEqual([u.time, u.exptime, u.exp], [300, 300, 0]);
+  assert.ok(u.time > 0);
+  assert.equal(u.exptime, u.time);
+  assert.equal(u.exp, 0);
   assert.equal(u.arg, 'nocount', '標的の店を選ばず、1回ずつ');
   assert.deepEqual(u.get, []);
   assert.deepEqual(u.use.map((l) => [l.item_no, l.count, l.proba]), [[BOOK, 1, 1000]], '本を1冊必ず消費');
 });
 
-test('禁断の書: 届け出ると本がなくなり、人気が1%上がり、街の出来事に出る', () => {
+test('禁断の書: 届け出ると本がなくなり、人気が上がり、定義の時間を使い、街の出来事に出る', () => {
   const { g, dt } = fixture();
   dt.item[BOOK - 1] = 1;
   dt.rank = 3000;
@@ -54,9 +56,9 @@ test('禁断の書: 届け出ると本がなくなり、人気が1%上がり、�
   const r = useItemAction(g, dt, BOOK, report().no, { count: 1 });
   assert.equal(r.result.count, 1);
   assert.equal(dt.item[BOOK - 1], 0, '本は手元に残らない (維持費が止まる)');
-  assert.equal(dt.rank, 3100);
-  assert.equal(dt.time, time + 300, '持ち時間を5分使う');
-  assert.match(r.result.function_return ?? '', /人気1%アップ/);
+  assert.ok(dt.rank > 3000);
+  assert.match(r.result.function_return ?? '', new RegExp(`人気${(dt.rank - 3000) / 100}%アップ`), '上がった分が返事に出る');
+  assert.equal(dt.time, time + report().time);
   assert.ok(g.newLogs.some((l) => l.mode === 3 && l.msg === '試験商店が禁断の書を警察に届け出ました'));
 });
 

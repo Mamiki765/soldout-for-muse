@@ -8,6 +8,10 @@ import { App } from '../src/api/app.js';
 import { httpPartyVerifier } from '../src/api/party.js';
 import { seededRng } from '../src/engine/rng.js';
 import { Store } from '../src/store.js';
+import { BASE_ITEMS } from '../src/data/catalog.js';
+
+/** 獣の革を標準価格の120%で募集する単価 (標準価格はデータから) */
+const LEATHER_ORDER = Math.round(BASE_ITEMS[2].price * 1.2);
 
 test('Muse Party のトークンで遊べる', async () => {
   // 本物の Party の代わり: トークン → owner_id
@@ -123,11 +127,11 @@ test('金庫の設定ゆれ・招待コードの取り違え・Party の 403 を
     // 買い取り募集は Party でつながった店だけ。一覧は誰でも見られる
     const post = (auth: string, body: unknown) =>
       fetch(base + '/api/v1/actions', { method: 'POST', headers: { authorization: auth }, body: JSON.stringify(body) }).then((x) => x.text());
-    assert.match(await post('Bearer mct_ok', { type: 'order', item: 2, price: 120, count: 10, hours: 24 }), /^OK order: 募集#1を出しました/);
-    assert.match(await post('Bearer ' + soTok, { type: 'order', item: 2, price: 120, count: 10 }), /^NG order: 買い取り募集は Muse Party/);
+    assert.match(await post('Bearer mct_ok', { type: 'order', item: 2, price: LEATHER_ORDER, count: 10, hours: 24 }), /^OK order: 募集#1を出しました/);
+    assert.match(await post('Bearer ' + soTok, { type: 'order', item: 2, price: LEATHER_ORDER, count: 10 }), /^NG order: 買い取り募集は Muse Party/);
     assert.match(await post('Bearer ' + soTok, { type: 'deliver', order: 1, count: 1 }), /^NG deliver: 買い取り募集は Muse Party/);
     const list = await (await fetch(base + '/api/v1/orders', { headers: { authorization: 'Bearer ' + soTok } })).text();
-    assert.match(list, /^買い取り募集のきまり: .*\n#1 獣の革@120\(120%\) 残10\/10 ゆれ商店/);
+    assert.match(list, new RegExp(`^買い取り募集のきまり: .*\\n#1 獣の革@${LEATHER_ORDER}\\(120%\\) 残10/10 ゆれ商店`));
     assert.match(await (await get('Bearer mct_ok')).text(), /自分の募集 #1獣の革残10/);
     assert.match(await (await fetch(base + '/view/orders')).text(), /獣の革/);
     r = await fetch(base + '/api/v1/register', { method: 'POST', headers: { authorization: 'mct_cocoa' }, body: JSON.stringify({ shopname: 'だめ商店' }) });

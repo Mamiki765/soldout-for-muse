@@ -26,15 +26,16 @@ function fixture(job: string) {
   return { g, dt };
 }
 
-test('石炭・黒玉の原石・黒玉のブローチの名前と値段', () => {
+test('石炭・黒玉の原石は原料、黒玉のブローチは装飾品。市場には湧かず、初期投入もしない', () => {
   assert.deepEqual([COAL, JET, BROOCH].map((no) => {
     const it = BASE_ITEMS[no];
-    return [it.name, it.scale, it.type, it.price, it.popular, it.plus, it.seedmarket];
+    return [it.name, it.type, it.plus <= 0, it.seedmarket];
   }), [
-    ['石炭', '個', 1, 300, 900, -1200, 0],
-    ['黒玉の原石', '個', 1, 1500, 21600, -1200, 0],
-    ['黒玉のブローチ', '個', 8, 12000, 172800, 0, 0],
+    ['石炭', 1, true, 0],
+    ['黒玉の原石', 1, true, 0],
+    ['黒玉のブローチ', 8, true, 0],
   ]);
+  assert.ok(BASE_ITEMS[COAL].price < BASE_ITEMS[JET].price && BASE_ITEMS[JET].price < BASE_ITEMS[BROOCH].price, '石炭 < 原石 < ブローチ');
 });
 
 test('石炭と黒玉は寒波のほかのどのイベントの対象でもない', () => {
@@ -43,11 +44,11 @@ test('石炭と黒玉は寒波のほかのどのイベントの対象でもな�
     assert.equal(touches, code === 'coldwave', code);
   }
   const cold = EVENTS.get('coldwave')!;
-  // 寒波は石炭の値段1.5倍・客2倍、革のロングコート (85) の客1.5倍
-  assert.deepEqual(cold.params.map((p) => [p.item_no, p.key, p.op, p.value]),
-    [[COAL, 'price', '*', 1.5], [COAL, 'popular', '/', 2], [85, 'popular', '/', 1.5]]);
-  assert.deepEqual([cold.startproba, cold.basetime, cold.plustime, cold.startmsg, cold.info, cold.endmsg],
-    [40, 86400, 86400, '北から寒波がやってきました', '寒波で石炭がよく売れ、値も上がっています', '寒波が去りました']);
+  // 寒波は石炭の値段と客を上げ (値段は * 1より大、客は popular を 1より大で割る)、革のロングコート (85) の客も上げる
+  const up = (no: number, key: string, op: string) => cold.params.some((p) => p.item_no === no && p.key === key && p.op === op && p.value > 1);
+  assert.ok(up(COAL, 'price', '*') && up(COAL, 'popular', '/') && up(85, 'popular', '/'));
+  assert.ok(cold.startproba > 0 && cold.basetime > 0, '起こりうる');
+  assert.deepEqual([cold.startmsg, cold.info, cold.endmsg], ['北から寒波がやってきました', '寒波で石炭がよく売れ、値も上がっています', '寒波が去りました']);
   assert.equal([...EVENTS.values()].filter((e) => e.group === cold.group).length, 1);
 });
 
@@ -63,31 +64,40 @@ test('炭鉱は熟練100%・職ボーナスで鉄・ミスリル鉱山の9割未
   }
 });
 
-test('炭鉱に潜るは熟練なしで行け、探鉱夫は時間が半分', () => {
+test('炭鉱に潜るは熟練なし・材料なしで行け、石炭と黒玉の原石が取れ、探鉱夫・木こりは時間が半分', () => {
   const u = BASE_ITEMS[MINE_MAP].uses.find((u) => u.name === '炭鉱に潜る')!;
-  assert.deepEqual([u.needexp, u.time, u.exptime, u.exp, u.func, u.params[0]], [null, 14400, 7200, 10, 'lostbook', '100']);
-  assert.deepEqual(u.get.map((l) => [l.item_no, l.count, l.proba]), [[COAL, 80, 900], [JET, 1, 400]]);
-  for (const [job, hours] of [['mine', 2], ['wood', 2], ['book', 4]] as const) {
+  assert.ok(!u.needexp);
+  assert.deepEqual(u.use, []);
+  assert.ok(u.exptime <= u.time);
+  assert.deepEqual(u.get.map((l) => l.item_no), [COAL, JET]);
+  const spent = (job: string) => {
     const { g, dt } = fixture(job);
     dt.item[MINE_MAP - 1] = 1;
     const before = dt.time;
     useItemAction(g, dt, MINE_MAP, u.no, { count: 1 });
-    assert.equal(dt.time - before, hours * 3600, job);
-    assert.ok(dt.item[COAL - 1] >= 70, job);
-  }
+    assert.ok(dt.item[COAL - 1] > 0, job);
+    return dt.time - before;
+  };
+  assert.equal(spent('mine') * 2, spent('book'));
+  assert.equal(spent('wood') * 2, spent('book'));
 });
 
-test('黒玉のブローチは装飾の道具2つと黒玉の原石3・鉄塊1で作れ、装飾細工屋は時間が半分', () => {
+test('黒玉のブローチは装飾の道具2つ (減らない) と黒玉の原石・鉄塊で作れ、装飾細工屋は時間が半分', () => {
   const u = BASE_ITEMS[DECO_BOOK].uses.find((u) => u.name === '黒玉のブローチを作成する')!;
-  assert.deepEqual(u.use.map((l) => [l.item_no, l.count, l.proba]), [[18, 1, 0], [19, 1, 0], [JET, 3, 1000], [5, 1, 1000]]);
-  assert.deepEqual(u.get.map((l) => [l.item_no, l.count, l.proba]), [[BROOCH, 1, 900]]);
-  const { g, dt } = fixture('deco');
-  dt.item[DECO_BOOK - 1] = 1;
-  dt.item[17] = dt.item[18] = 1;
-  dt.item[JET - 1] = 6;
-  dt.item[4] = 2;
-  const before = dt.time;
-  useItemAction(g, dt, DECO_BOOK, u.no, { count: 2 });
-  assert.equal(dt.time - before, 3600);
-  assert.deepEqual([dt.item[JET - 1], dt.item[4], dt.item[17], dt.item[18]], [0, 0, 1, 1]);
+  assert.deepEqual(u.use.map((l) => [l.item_no, l.proba > 0]), [[18, false], [19, false], [JET, true], [5, true]]);
+  assert.deepEqual(u.get.map((l) => l.item_no), [BROOCH]);
+  const jet = u.use.find((l) => l.item_no === JET)!.count;
+  const iron = u.use.find((l) => l.item_no === 5)!.count;
+  const spent = (job: string) => {
+    const { g, dt } = fixture(job);
+    dt.item[DECO_BOOK - 1] = 1;
+    dt.item[17] = dt.item[18] = 1;
+    dt.item[JET - 1] = jet * 2;
+    dt.item[4] = iron * 2;
+    const before = dt.time;
+    useItemAction(g, dt, DECO_BOOK, u.no, { count: 2 });
+    assert.deepEqual([dt.item[JET - 1], dt.item[4], dt.item[17], dt.item[18]], [0, 0, 1, 1], job);
+    return dt.time - before;
+  };
+  assert.equal(spent('deco') * 2, spent(''));
 });

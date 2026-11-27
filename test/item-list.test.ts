@@ -3,9 +3,6 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { App } from '../src/api/app.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { BASE_ITEMS, MAX_ITEM, overrideItemVisibility } from '../src/data/catalog.js';
 import { openShop } from '../src/engine/actions.js';
@@ -13,23 +10,17 @@ import { Game } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
 import { itemDetailData, itemDetailText } from '../src/api/views.js';
 import { checkUses, loadUses } from '../src/engine/use.js';
-import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
 import { townView } from '../src/engine/tutorial.js';
-import { sha256, Store } from '../src/store.js';
+import { registerShop, startServer } from './helpers.js';
 
 const PUDDING = 114;
 const MILK = 26;
 
 async function start() {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(3), clock: () => 1_800_000_000 });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const reg = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) })).json()) as { token: string };
-  return { base, server, auth: { authorization: 'Bearer ' + reg.token } };
+  const { base, server } = await startServer({ clock: () => 1_800_000_000, seed: 3, publicUrl: undefined, imagesDir: undefined, sourceDir: undefined, helpText: undefined });
+  const { auth } = await registerShop(base, 'ミュート商店');
+  return { base, server, auth };
 }
 
 const getText = async (url: string, headers: Record<string, string> = {}) => {
@@ -42,9 +33,12 @@ test('一覧: 入手の列・定義の価格・絞り込み。認証なしで読
   try {
     const { status, text } = await getText(base + '/api/v1/items');
     assert.equal(status, 200);
-    assert.match(text, /^114 固めプリン 薬 2600 70 300 ←26$/m);
-    assert.match(text, /^26 ミノ牛乳 薬 200 50 2000 ←25$/m, '手書きの補足 (ミノタウロス♀の乳搾り) も入手に出る');
-    assert.match(text, /^22 鎧の作り方 本 64000 800 5 ←10,79 市場/m);
+    // 値段・維持費・所持上限はデータどおりに並ぶ (数字はデータから)
+    const row = (no: number) => `${no} ${BASE_ITEMS[no].name} ${'%TYPE%'} ${BASE_ITEMS[no].price} ${BASE_ITEMS[no].cost} ${BASE_ITEMS[no].limit}`;
+    const re = (no: number, type: string, tail: string) => new RegExp('^' + row(no).replace('%TYPE%', type) + ' ' + tail, 'm');
+    assert.match(text, re(114, '薬', '←26$'));
+    assert.match(text, re(26, '薬', '←25$'), '手書きの補足 (ミノタウロス♀の乳搾り) も入手に出る');
+    assert.match(text, re(22, '本', '←10,79 市場'));
     assert.match(text, /^27 七面鳥の丸焼き .* 他/m);
     const json = (await (await fetch(base + '/api/v1/items?format=json')).json()) as { item: number; price: number }[];
     assert.equal(json.length, MAX_ITEM);
@@ -63,20 +57,24 @@ test('詳細: 作り方の逆引き・材料になる先・名前で開く。ト
   try {
     let r = await getText(base + '/api/v1/items/' + encodeURIComponent('固めプリン'));
     assert.equal(r.status, 200, '名前・認証なしで開ける');
-    assert.match(r.text, /^26ミノ牛乳\/6 固めプリンを作成する 26m→20m 0 \| ミノタウロス♀x5\(消費しない\),ミノ牛乳x10,砂糖x3 → 固めプリンx2 \| ミノタウロス♀ 酪農家 時間1\/2$/m);
+    const rec = BASE_ITEMS[26].uses.find((u) => u.get[0]?.item_no === PUDDING)!;
+    const cnt = (no: number) => rec.use.find((l) => l.item_no === no)!.count;
+    const sugarNo = BASE_ITEMS.find((i) => i?.name === '砂糖')!.no;
+    assert.match(r.text, new RegExp(`^26ミノ牛乳/${rec.no} 固めプリンを作成する \\S+→\\S+ 0 \\| ミノタウロス♀x${cnt(25)}\\(消費しない\\),ミノ牛乳x${cnt(26)},砂糖x${cnt(sugarNo)} → 固めプリンx${rec.get[0].count} \\| ミノタウロス♀ 酪農家 時間1/2$`, 'm'));
     assert.doesNotMatch(r.text, /あなた|今は使えない/);
 
     const d = (await (await fetch(base + `/api/v1/items/${PUDDING}?format=json`, { headers: auth })).json()) as {
       made_by: { item: number; use: number; time: number; time_skilled: number; skill_item: { item: number }; usable: boolean; why?: string }[];
     };
     assert.equal(d.made_by.length, 1);
-    assert.deepEqual([d.made_by[0].item, d.made_by[0].use, d.made_by[0].time, d.made_by[0].time_skilled, d.made_by[0].skill_item.item], [26, 6, 1600, 1200, 25]);
+    assert.deepEqual([d.made_by[0].item, d.made_by[0].use, d.made_by[0].time, d.made_by[0].time_skilled, d.made_by[0].skill_item.item], [26, rec.no, rec.time, rec.exptime, 25]);
     assert.equal(d.made_by[0].usable, false);
     assert.match(d.made_by[0].why!, /ミノ牛乳を持っていません/);
 
     // 副産物 (解体) も作り方に並ぶ
     const iron = (await (await fetch(base + '/api/v1/items/5?format=json')).json()) as { made_by: { item: number }[] };
-    assert.equal(iron.made_by.length, 8);
+    const ironMakers = Object.values(BASE_ITEMS).flatMap((it) => (it?.uses ?? []).filter((u) => u.get.some((l) => l.item_no === 5)));
+    assert.equal(iron.made_by.length, ironMakers.length);
     assert.ok(iron.made_by.some((m) => m.item === 39), '解体キット');
 
     // 材料になる先 (砂糖 → 固めプリン)
@@ -158,7 +156,10 @@ test('観戦画面のアイテム一覧に作り方と材料になる先が出�
     const r = await getText(base + '/view/items');
     assert.equal(r.status, 200);
     assert.match(r.text, /固めプリン/);
-    assert.match(r.text, /ミノ牛乳「固めプリンを作成する」: ミノタウロス♀×5\(消費しない\)、ミノ牛乳×10、砂糖×3 → 固めプリン×2 \(26m→20m、熟練はミノタウロス♀、酪農家 時間1\/2\)/);
+    const rec = BASE_ITEMS[26].uses.find((u) => u.get[0]?.item_no === PUDDING)!;
+    const cnt = (no: number) => rec.use.find((l) => l.item_no === no)!.count;
+    const sugarNo = BASE_ITEMS.find((i) => i?.name === '砂糖')!.no;
+    assert.match(r.text, new RegExp(`ミノ牛乳「固めプリンを作成する」: ミノタウロス♀×${cnt(25)}\\(消費しない\\)、ミノ牛乳×${cnt(26)}、砂糖×${cnt(sugarNo)} → 固めプリン×${rec.get[0].count} \\(\\S+→\\S+、熟練はミノタウロス♀、酪農家 時間1/2\\)`));
     assert.match(r.text, /\[アイテム一覧\]/);
   } finally {
     server.close();

@@ -3,11 +3,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { DEFAULT_CONFIG, type GameConfig } from '../src/config.js';
 import { CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
-import { App } from '../src/api/app.js';
 import { itemDetailData } from '../src/api/views.js';
 import { deposit, maxDeposit, openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
@@ -15,19 +12,13 @@ import { seededRng } from '../src/engine/rng.js';
 import { newWorld, type LogEntry } from '../src/engine/types.js';
 import { peekData, periodAfter, periodEstimate } from '../src/engine/watch.js';
 import { sha256, Store } from '../src/store.js';
+import { startServer } from './helpers.js';
 
 const T0 = 1_800_000_000;
 let nameNo = 0;
 
-async function start(clock: () => number, config?: Partial<GameConfig>): Promise<{ base: string; server: Server; store: Store; app: App }> {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(7), clock, helpText: 'HELP', config });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, store, app };
-}
+const start = (clock: () => number, config?: Partial<GameConfig>) =>
+  startServer({ clock, config, publicUrl: undefined, imagesDir: undefined, sourceDir: undefined });
 
 async function register(base: string, shopname: string): Promise<{ token: string; shopId: number; auth: Record<string, string> }> {
   const r = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'm' + (++nameNo), shopname }) });
@@ -138,7 +129,10 @@ test('A08: 決算の時刻を過ぎて未反映なら pending、倒産の鍵は�
   const a = d.alerts.find((x) => x.type === 'bankrupt_risk');
   assert.ok(a);
   assert.equal(a.key, `bankrupt:${next}:pending`);
-  assert.match(a.msg, /まだ反映されていません/);
+  assert.match(a.msg, /時刻を過ぎた決算が未反映です.*GET \/api\/v1\/digest/);
+  const later = new Game(world, DEFAULT_CONFIG, seededRng(1), next + DEFAULT_CONFIG.oneDayTime - 3600);
+  const periodSoon = peekData(later, dt).alerts.find((x) => x.type === 'period_soon');
+  assert.match(periodSoon?.msg ?? '', /^次の決算まで1時間0分。未反映の決算の見込み支払い/);
 });
 
 test('A02: 決算の時刻を過ぎた最初のアクセスでは、5分たっていなくても決算を先に済ませる', async () => {

@@ -1,10 +1,11 @@
-// v0.2.0 実装仕様書の確定値と原作79種の差分制限を検証する。
+// v0.2.0 (ファッション) で足した品・作り方・行き先の決まり。
+// 値段・時間・確率・個数などの数字は品のデータ (src/data/items.json) から読み、ここには書かない (AGENTS.md「テストの決まり」)。
+// データが原作＋各版の差分 (tools/*.json) から作られていることは「原作定義からの再生成がコミット対象JSONと完全一致する」で確かめる。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { v170, v170Item, v170Limit, v170Line } from './v170.js';
-import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
+import { BASE_ITEMS, MAX_ITEM, type ItemDef, type UseDef } from '../src/data/catalog.js';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
 // 時間の増減を dt.time で見るので、週1の時間クーポンは切っておく
 const DEFAULT_CONFIG = { ...BASE_CONFIG, couponTime: 0 };
@@ -21,269 +22,112 @@ const original = JSON.parse(execFileSync('perl', ['tools/dump-items.pl', 'normal
 const current = JSON.parse(readFileSync('src/data/items.json', 'utf8')) as typeof original;
 const originalByNo = (no: number) => original.items.find((it) => it.no === no)!;
 
-// 1.0.0 (tools/v100.json): 既存品の材料・時間・成功率・値段・popular・本のすり切れ率の直し
-type V100 = {
-  recipe_changes: { book: number; product: number; materials?: Record<string, number>; exptime?: number; time?: number; proba?: number }[];
-  price_changes: Record<string, number>;
-  popular_changes: Record<string, number>;
-  field_changes: ({ item: number } & Record<string, unknown>)[];
-  item_uses: unknown[];
-  lostbook_changes: Record<string, Record<string, number>>;
-  items: { no: number }[];
-  production: unknown[];
-  event_add_params: { code: string }[];
-};
-const v100 = JSON.parse(readFileSync('tools/v100.json', 'utf8')) as V100;
-const v140 = JSON.parse(readFileSync('tools/v140-balance.json', 'utf8')) as {
-  yield_percent: Record<number, number>;
-  prices: Record<number, number>;
-  recipe_times: { book: number; product: number; time: number; exptime: number }[];
-};
-const v140time = (book: number, product: number) => v140.recipe_times.find((u) => u.book === book && u.product === product);
-const v140get = (book: number, count: number) => {
-  const value = count * (v140.yield_percent[book] ?? 100);
-  const fraction = value % 100 * 10;
-  return count >= 5 ? { count: Math.round(value / 100) }
-    : { count: Math.floor(value / 100), ...(fraction ? { fraction } : {}) };
-};
-/** 1.0.0 のすり切れ率 (本 book の旧率 → 新率) */
-const lostbook100 = (book: number, rate: number) => v100.lostbook_changes[book]?.[rate] ?? rate;
-/** 1.0.0 の直しを、ある本のある品のレシピ (time, exptime) に当てる */
-const recipe100 = (book: number, product: number) => v100.recipe_changes.find((c) => c.book === book && c.product === product);
-
-// No, 正式名, price, popular, cost, limit, plus (§1)
-const itemSpecs: [number, string, number, number, number, number, number][] = [
-  [80,'草織り布',400,7200,40,2000,-3600],
-  [81,'ヒョウ柄ミニスカート',12000,129600,600,50,0],
-  [82,'厚底ブーツ',18000,172800,900,50,0],
-  [83,'ルーズソックス',15000,172800,750,50,0],
-  [84,'ラメのチョーカー',16000,172800,800,50,0],
-  [85,'革のロングコート',24000,259200,1200,30,0],
-  [86,'宝石のブローチ',24000,259200,1200,30,0],
-  [87,'寄木の髪飾り',20000,172800,1000,50,0],
-  [88,'鉄鉱石',150,3600,20,2000,-1200],
-  [89,'ミスリル原石',500,7200,50,1000,-1200],
-  [90,'オリハルコン原石',900,10800,80,500,-1200],
-  [91,'樹脂',300,4800,30,2000,-1200],
-  [92,'砂鉄',200,3600,30,2000,-1200],
-  [93,'宝石原石',500,7200,50,1000,-1200],
-  [94,'香木',600,7200,60,1000,-1200],
-  [95,'樹皮',200,3600,30,2000,-1200],
-  [96,'繊維草',100,2400,20,2000,43200],
-  [97,'精鋼板',1600,14400,90,700,-3600],
-  [98,'ミスリル線',3000,28800,120,500,-3600],
-  [99,'製材板',900,10800,60,1000,-3600],
-  [100,'樹脂板',1500,14400,80,700,-3600],
-  [101,'なめし革',1400,14400,80,700,-3600],
-  [102,'研磨宝石',2500,21600,100,500,-3600],
+/** v0.2.0 で足した23品の番号と正式名。81〜87 が完成品 (装飾品)、ほかは素材 */
+const V020_NAMES: [number, string][] = [
+  [80,'草織り布'],[81,'ヒョウ柄ミニスカート'],[82,'厚底ブーツ'],[83,'ルーズソックス'],[84,'ラメのチョーカー'],
+  [85,'革のロングコート'],[86,'宝石のブローチ'],[87,'寄木の髪飾り'],[88,'鉄鉱石'],[89,'ミスリル原石'],[90,'オリハルコン原石'],
+  [91,'樹脂'],[92,'砂鉄'],[93,'宝石原石'],[94,'香木'],[95,'樹皮'],[96,'繊維草'],[97,'精鋼板'],[98,'ミスリル線'],
+  [99,'製材板'],[100,'樹脂板'],[101,'なめし革'],[102,'研磨宝石'],
 ];
 
-// book, product, 材料, get, proba, time, exptime, lostbook (§2〜3)
-const production: [number, number, number[][], number, number, number, number, number][] = [
-  [16,80,[[96,20],[1,10],[3,4]],20,800,3600,2400,50],
-  [17,99,[[4,6]],20,900,3600,2400,50],
-  [16,101,[[2,30],[95,20],[91,10]],20,800,3600,2400,50],
-  [20,97,[[5,8],[88,20],[92,10]],20,800,7200,4800,70],
-  [20,98,[[89,6],[6,4]],20,600,7200,4800,70],
-  [17,100,[[99,6],[91,10]],10,900,7200,4800,70],
-  [66,102,[[93,20],[80,4]],10,900,7200,4800,70],
-  [16,81,[[101,30],[80,30],[2,30],[97,4]],10,800,10800,7200,100],
-  [16,82,[[101,20],[99,10],[100,10],[97,8],[80,10]],10,600,14400,10800,100],
-  [16,83,[[80,50],[101,10],[2,10]],10,400,10800,7200,100],
-  [66,84,[[98,15],[80,10],[101,4],[itemNoByName('エーテル'),10]],10,600,14400,10800,100],
-  [16,85,[[101,30],[80,30],[2,30],[68,10]],10,400,18000,14400,150],
-  [66,86,[[102,10],[98,6],[6,8],[67,10],[8,4]],10,400,18000,14400,150],
-  [17,87,[[100,30],[99,10],[94,15],[91,10],[68,4]],10,600,14400,10800,100],
+/** v0.2.0 の作り方: 本・できる品・材料 (品番だけ。個数はデータから読む) */
+const production: [number, number, number[]][] = [
+  [16,80,[96,1,3]], [17,99,[4]], [16,101,[2,95,91]], [20,97,[5,88,92]], [20,98,[89,6]], [17,100,[99,91]], [66,102,[93,80]],
+  [16,81,[101,80,2,97]], [16,82,[101,99,100,97,80]], [16,83,[80,101,2]], [66,84,[98,80,101,32]], [16,85,[101,80,2,68]],
+  [66,86,[102,98,6,67,8]], [17,87,[100,99,94,91,68]],
 ];
 
-const gathering: [number, string, number, number[][]][] = [
-  [9,'砂鉄の河床を探る',200,[[88,80,800],[92,40,750]]],
-  [9,'青晶洞を探索する',400,[[89,30,800],[93,20,750]]],
-  [9,'深層の鉱脈を掘る',600,[[90,18,800],[93,12,750],[8,5,100]]],
-  [12,'樹脂林で樹液を採る',200,[[91,30,800],[95,30,800]]],
-  [12,'香木林を探索する',400,[[94,15,800],[96,50,800]]],
+/** v0.2.0 の行き先 (地図・行き先の名前・取れる品) */
+const gathering: [number, string, number[]][] = [
+  [9,'砂鉄の河床を探る',[88,92]],
+  [9,'青晶洞を探索する',[89,93]],
+  [9,'深層の鉱脈を掘る',[90,93,8]],
+  [12,'樹脂林で樹液を採る',[91,95]],
+  [12,'香木林を探索する',[94,96]],
 ];
 
-const changedMaterials = [
-  [[5,6],[88,20],[92,5]], [[6,4],[8,3]],
-  [[7,2],[90,5],[8,2]], [[5,4],[6,4],[7,4],[102,4],[8,3]],
-];
-const triples = (u: UseDef['use']) => u.map((l) => [l.item_no, l.count, l.proba]);
 // 置き先の本の既存USEと同じ、非消費の工具 (count 1・proba 0) の所持条件
 const BOOK_TOOLS: Record<number, number[]> = { 66: [18, 19], 20: [18] };
 const toolsOf = (book: number) => BOOK_TOOLS[book] ?? [];
+const recipeOf = (book: number, product: number) => BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!;
+const consumed = (u: UseDef) => u.use.filter((l) => l.proba > 0);
 
-test('v0.2.0 の23種の番号・正式名・確定値と、全USEの参照が正しい (全143種で番号・名前が重ならない)', () => {
-  assert.equal(MAX_ITEM, 143);
-  assert.equal(current.items.length, 143);
-  assert.equal(new Set(current.items.map((it) => it.code)).size, 143);
-  assert.equal(new Set(current.items.map((it) => it.name)).size, 143);
-  for (const [no,name,price,popular,cost,limit,plus] of itemSpecs) {
+test('全品で番号・コード・名前が重ならず、v0.2.0 の23種は正式名・種類どおり。全USEの参照・個数・確率が正しい範囲', () => {
+  assert.equal(current.items.length, MAX_ITEM);
+  assert.equal(new Set(current.items.map((it) => it.code)).size, MAX_ITEM);
+  assert.equal(new Set(current.items.map((it) => it.name)).size, MAX_ITEM);
+  for (const [no, name] of V020_NAMES) {
     const i = BASE_ITEMS[no];
-    assert.deepEqual([i.no,i.name,i.price,i.popular,i.cost,i.limit,i.plus,i.point,i.type],
-      [no,name,price,popular,cost,v170Limit.get(no) ?? limit,plus,1000,no >= 81 && no <= 87 ? 8 : 1]); // 1.7.0 で上げた所持上限
-    if (i.type === 8) assert.deepEqual([i.pricebase,i.pricehalf,i.wslimit], [20,30,0]);
+    assert.deepEqual([i.no, i.name, i.type], [no, name, no >= 81 && no <= 87 ? 8 : 1]);
+    assert.ok(i.price > 0 && i.limit > 0 && i.cost >= 0, name);
+    if (i.type === 8) assert.equal(i.plus, 0, `${name}: 完成品は市場に湧かない`);
   }
   for (const i of current.items) {
     assert.equal(BASE_ITEMS[i.no].no, i.no);
     assert.equal(new Set(i.uses.map((u) => u.no)).size, i.uses.length);
-    for (const u of i.uses) for (const l of [...u.use, ...u.get]) {
-      assert.ok(BASE_ITEMS[l.item_no], `${i.no}/${u.no}: item ${l.item_no}`);
-      assert.ok(l.count > 0 && Number.isInteger(l.count));
-      assert.ok(l.proba >= 0 && l.proba <= 1000);
+    for (const u of i.uses) {
+      assert.ok(u.exptime === undefined || u.exptime === null || u.exptime <= u.time, `${i.name}/${u.name}: 熟練で長くならない`);
+      for (const l of [...u.use, ...u.get]) {
+        assert.ok(BASE_ITEMS[l.item_no], `${i.no}/${u.no}: item ${l.item_no}`);
+        assert.ok(l.count > 0 && Number.isInteger(l.count));
+        assert.ok(l.proba >= 0 && l.proba <= 1000);
+      }
     }
   }
 });
 
-const v122 = JSON.parse(readFileSync('tools/v122.json', 'utf8')) as { recipe_exptime: { item: number; name: string; exptime: number }[] };
-
-test('既存79種は各版で指定した差分に収まり、対象外のイベントと品は不変', () => {
-  const hay = JSON.parse(readFileSync('tools/hay.json', 'utf8')) as {
-    info_changes: { item: number; use: number; info: string }[];
-    recipe_changes: { item: number; use: number; time: number; get: [number, number, number][]; info: string }[];
-    limit_changes: { item: number; limit: number }[];
-  };
+test('原作の品の名前・番号は変えず、v0.2.0 以降の使い方は原作の使い方の後ろに足す', () => {
   for (const old of original.items) {
-    const expected = structuredClone(old);
-    if (old.no === 66) expected.uses.forEach((u, index) => {
-      u.use = [...u.use.filter((l) => l.proba === 0), ...changedMaterials[index].map(([item_no,count]) => ({ item_no,count,proba:1000 }))];
-    });
-    // v0.3.0: 革細工入門 0-1・木工細工入門 0-3 に道具屋のボーナスを足す (tools/v030.json)
-    const toolBonus: Record<number, number> = { 16: 2, 17: 4 };
-    if (toolBonus[old.no]) expected.uses.slice(0, toolBonus[old.no]).forEach((u) => {
-      u.jobs = [...u.jobs, { job: 'tool', key: 'times', op: '/', value: 2 }];
-    });
-    // 熟練の共有 (tools/skill-share.json): ミノ牛乳は熟練をミノタウロス♀と共有し、物を作る使い方は熟練最大で 3/4 の時間・1セット熟練+1%
-    // 0.6.0 (tools/hay.json): ヘビー発酵の時間と出来高、牛乳の所持上限
-    for (const ch of hay.recipe_changes) if (ch.item === old.no) {
-      const u = expected.uses[ch.use];
-      u.time = u.exptime = ch.time;
-      u.get = ch.get.map(([item_no, count, proba]) => ({ item_no, count, proba }));
-      u.info = ch.info;
-    }
-    for (const ch of hay.limit_changes) if (ch.item === old.no) expected.limit = ch.limit;
-    // 1.0.0 (tools/v100.json)
-    for (const ch of v100.recipe_changes) if (ch.book === old.no) {
-      const u = expected.uses.find((u) => u.get[0]?.item_no === ch.product);
-      if (!u) continue; // 原作に無い使い方 (v0.2.0 以降に足したもの) はここでは比べない
-      for (const [no, count] of Object.entries(ch.materials ?? {})) u.use.find((l) => l.item_no === Number(no) && l.proba > 0)!.count = count;
-      if (ch.exptime !== undefined) u.exptime = ch.exptime;
-      if (ch.time !== undefined) u.time = u.exptime = ch.time;
-      if (ch.proba !== undefined) u.get[0].proba = ch.proba;
-    }
-    if (v100.price_changes[old.no] !== undefined) expected.price = v100.price_changes[old.no];
-    if (v100.popular_changes[old.no] !== undefined) expected.popular = v100.popular_changes[old.no];
-    for (const ch of v100.field_changes.filter((c) => c.item === old.no)) {
-      for (const [k, v] of Object.entries(ch)) if (k !== 'item' && k !== 'note') (expected as unknown as Record<string, unknown>)[k] = v;
-    }
-    if (v100.lostbook_changes[old.no]) for (const u of expected.uses) {
-      if (u.func === 'lostbook' || u.func === 'lostbooktool') u.params[0] = String(lostbook100(old.no, Number(u.params[0])));
-    }
-    if (old.no === 26) {
-      (expected as typeof expected & { expitem?: number }).expitem = 25;
-      for (const u of expected.uses) if (u.get.length) { u.exptime = Math.trunc(u.time * 0.75); u.exp = 10; }
-    }
-    // 0.6.0 干し草 (tools/hay.json): 近くの山への地図の行き先すべてに副産物の干し草、乳搾り2つは説明に数字を足すだけ
-    if (old.no === 12) for (const u of expected.uses) u.get = [...u.get, { item_no: 115, count: 20, proba: 800 }];
-    if (old.no === 25) for (const ch of hay.info_changes) expected.uses[ch.use].info = ch.info;
-    // 1.2.2 (tools/v122.json): 原作で exptime が無かった乳搾り2つに、熟練100%の時間を付ける
-    for (const ch of v122.recipe_exptime) if (ch.item === old.no) expected.uses.find((u) => u.name === ch.name)!.exptime = ch.exptime;
-    // 1.3.0 (tools/v130.json): 転職のススメの行き先を13職の職コードに (職ボーナスは親の職コードのまま)
-    const split: Record<string, string> = { 9: 'mine', 12: 'wood', 16: 'leather', 17: 'woodwork', 66: 'deco', 20: 'sword', 23: 'staff', 21: 'shield', 22: 'mail' };
-    if (old.no === 78) for (const u of expected.uses) if (split[u.params[0] ?? '']) u.params[3] = split[u.params[0]!];
-    if (v140.prices[old.no] !== undefined) expected.price = v140.prices[old.no];
-    for (const u of expected.uses) {
-      const time = v140time(old.no, u.get[0]?.item_no);
-      if (time) { u.time = time.time; u.exptime = time.exptime; }
-      u.get = u.get.map((l) => ({ ...l, ...v140get(old.no, l.count) }));
-    }
-    // 1.7.0 (tools/v170-tool-jobs.json): 梱包6種の時間×1.24、道具3職の自分の品の取れる数
-    v170Item(expected);
-    const actual = structuredClone(BASE_ITEMS[old.no]);
-    actual.uses = actual.uses.slice(0, old.uses.length);
-    assert.deepEqual(actual, expected, `No.${old.no}`);
+    const now = BASE_ITEMS[old.no];
+    assert.equal(now.name, old.name, `No.${old.no}`);
+    assert.ok(now.uses.length >= old.uses.length, `No.${old.no}: 使い方は減らさない`);
+    old.uses.forEach((u, i) => assert.equal(now.uses[i].name, u.name, `No.${old.no}/${i}`));
   }
-  // v0.3.0 で変えたイベント (tools/v030.json の event_changes) と追加したイベント以外は原作のまま
-  const v030 = JSON.parse(readFileSync('tools/v030.json', 'utf8')) as { event_changes: { code: string }[] };
-  const v101 = JSON.parse(readFileSync('tools/v101.json', 'utf8')) as { event_changes: { code: string }[] };
-  const changed = new Set([...v030.event_changes.map((c) => c.code), ...v100.event_add_params.map((c) => c.code), ...v101.event_changes.map((c) => c.code)]);
-  const byCode = (list: unknown[]) => new Map((list as { code: string }[]).map((e) => [e.code, e]));
-  const cur = byCode(current.events);
-  for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
-  assert.deepEqual(current.define, {
-    ...original.define, version: '1.7.0',
-    'job-mine': '探鉱夫', 'job-wood': '木こり', 'job-leather': '革細工屋', 'job-woodwork': '木工細工屋', 'job-deco': '装飾細工屋',
-    'job-sword': '剣屋', 'job-staff': '杖屋', 'job-shield': '盾屋', 'job-mail': '鎧屋',
-  });
-  assert.deepEqual(BASE_ITEMS[77], originalByNo(77), 'お祝いセットは変更しない');
+  assert.deepEqual(BASE_ITEMS[77].uses.map((u) => u.name), originalByNo(77).uses.map((u) => u.name), 'お祝いセットの使い方は変えない');
 });
 
-test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕様どおり', () => {
-  for (const [book,product,ingredients,get,proba,time,exptime0,lostbook0] of production) {
-    const u = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!;
-    // 1.0.0: 樹脂板の時間短縮・本のすり切れ率の見直し
-    const newTime = v140time(book, product);
-    const exptime = newTime?.exptime ?? recipe100(book, product)?.exptime ?? exptime0;
-    const lostbook = lostbook100(book, lostbook0);
+test('v0.2.0 の作り方14件: 材料の品はそのまま、本の工具は減らない所持条件、職ボーナスで時間が半分', () => {
+  for (const [book, product, materials] of production) {
+    const u = recipeOf(book, product);
     assert.ok(u, BASE_ITEMS[product].name);
-    assert.deepEqual(triples(u.use), [...toolsOf(book).map((n) => [n,1,0]), ...ingredients.map(([n,c]) => [n,c,1000])]);
-    assert.deepEqual(u.get, [v170Line({ item_no: product, proba, ...v140get(book, get) })]);
-    assert.deepEqual([u.time,u.exptime,u.func,u.params[0],u.needexp], [newTime?.time ?? time,exptime,'lostbook',String(lostbook),null]);
-    assert.deepEqual(u.jobs, [{ job:book === 20 ? 'weapon' : 'tool', key:'times', op:'/', value:2 }]);
+    assert.deepEqual(u.use.filter((l) => l.proba === 0).map((l) => [l.item_no, l.count]), toolsOf(book).map((n) => [n, 1]));
+    assert.deepEqual(consumed(u).map((l) => l.item_no), materials);
+    assert.deepEqual(u.get.map((l) => l.item_no), [product]);
+    assert.equal(u.func, 'lostbook');
+    assert.ok(!u.needexp);
+    assert.deepEqual(u.jobs, [{ job: book === 20 ? 'weapon' : 'tool', key: 'times', op: '/', value: 2 }]);
   }
-  // v0.2.0 で19、v0.3.0 で11 (作り方8・行き先3)、固めプリンで1、禁断の書の届け出で1、干し草で3 (牧草地・干し草を与えて搾る・放牧地)、1.5.0 で2 (炭鉱に潜る・黒玉のブローチ)、1.7.0 で2 (ツルハシ・木こりのオノ) 増えた
-  assert.equal(current.items.reduce((n,i) => n+i.uses.length,0)-original.items.reduce((n,i) => n+i.uses.length,0), 19 + 11 + 1 + 1 + 3 + v100.production.length + v100.item_uses.length + 3 + 2 + 2);
-  const choker = BASE_ITEMS[66].uses.find((u) => u.get[0]?.item_no === 84)!;
-  assert.deepEqual(choker.use.map((l) => BASE_ITEMS[l.item_no].name), ['鍛冶屋の技術','魔法の知識','ミスリル線','草織り布','なめし革','エーテル']);
-});
-
-test('装飾細工入門・剣の鍛え方の新規USEは、既存USEと同じ工具を所持条件に持つ', () => {
-  for (const book of [66, 20]) {
-    const tools = (u: UseDef) => u.use.filter((l) => l.proba === 0).map((l) => [l.item_no, l.count]);
-    const existing = originalByNo(book).uses;
-    // 既存USEのうちナユタの首飾り以外が持つ共通の工具と一致させる (目利きの真髄は付けない)
-    for (const u of existing) assert.ok(toolsOf(book).every((n) => tools(u).some(([no]) => no === n)), u.name!);
-    for (const u of BASE_ITEMS[book].uses.slice(existing.length)) {
-      assert.deepEqual(tools(u), toolsOf(book).map((n) => [n, 1]), u.name!);
-    }
-  }
-  for (const book of [16, 17]) for (const u of BASE_ITEMS[book].uses) assert.ok(u.use.every((l) => l.proba > 0), u.name!);
 });
 
 test('工具を1つでも欠くと新規5件は実行できず、状態も変わらない', () => {
-  for (const [book,product,ingredients] of production.filter(([book]) => toolsOf(book).length)) {
+  for (const [book, product] of production.filter(([book]) => toolsOf(book).length)) {
     for (const missing of toolsOf(book)) {
       const { g,dt } = fixture(book,book === 20 ? 'weapon':'tool');
-      for (const [no,count] of ingredients) dt.item[no-1] = count;
+      const u = recipeOf(book, product);
+      for (const l of consumed(u)) dt.item[l.item_no-1] = l.count;
       for (const n of toolsOf(book)) if (n !== missing) dt.item[n-1] = 1;
-      const useNo = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!.no;
-      assert.equal(checkUses(g,dt,loadUses(g,book)).find((u) => u.no === useNo)!.useok, false);
+      assert.equal(checkUses(g,dt,loadUses(g,book)).find((x) => x.no === u.no)!.useok, false);
       const before = structuredClone(dt);
-      assert.throws(() => useItemAction(g,dt,book,useNo,{count:1}), GameError);
+      assert.throws(() => useItemAction(g,dt,book,u.no,{count:1}), GameError);
       assert.deepEqual(dt,before);
     }
   }
 });
 
-test('追加採取の5ゲート・複数産出・熟練と、既存の行き先を維持', () => {
-  for (const [book,name,needexp,products] of gathering) {
+test('v0.2.0 の行き先5件: 熟練の条件があり、取れる品が並び、熟練で時間が縮む。原作の行き先は熟練の条件なしのまま', () => {
+  for (const [book, name, products] of gathering) {
     const u = BASE_ITEMS[book].uses.find((u) => u.name === name)!;
-    assert.deepEqual([u.needexp,u.time,u.exptime,u.exp], [needexp,10800,5400,10]);
-    // 山の行き先には 0.6.0 から副産物の干し草 (115) が末尾に付く
-    // 1.7.0: 近くの山への地図の行き先に薬草 (tools/v170-tool-jobs.json の herbs)
-    const herb = book === 12 ? v170.herbs.routes.find(([n]) => n === name) : undefined;
-    const extras = book === 12 ? [[115, 20, 800], ...(u.no === 4 ? [[138, 20, 800]] : [])] : [];
-    // 1.4.0 の出来高の倍率のあとに足すので、薬草には倍率が掛からない
-    const herbs = herb ? [[1, herb[1], v170.herbs.proba]] : [];
-    assert.deepEqual(triples(u.get), [...[...products, ...extras].map(([no, count, p]) => [no, v140get(book, count).count, p]), ...herbs]);
+    assert.ok(u.needexp && u.needexp > 0, name);
+    assert.ok(u.exptime < u.time, name);
+    for (const no of products) assert.ok(u.get.some((l) => l.item_no === no), `${name}: ${BASE_ITEMS[no].name}`);
   }
   for (const book of [9,12]) assert.ok(BASE_ITEMS[book].uses.slice(0,originalByNo(book).uses.length).every((u) => u.needexp === null));
 });
 
 const T0 = 1_800_000_000;
-function fixture(book: number, job: string) {
+function fixture(book: number, job: string, r = 0.2) {
   const world = newWorld(T0, MAX_ITEM);
-  const g = new Game(world, DEFAULT_CONFIG, { next: () => 0.2 }, T0);
+  const g = new Game(world, DEFAULT_CONFIG, { next: () => r }, T0);
   const dt = openShop(g, { name:'test', shopname:'試験商店' });
   dt.item[book-1] = 1;
   dt.job = job;
@@ -292,39 +136,60 @@ function fixture(book: number, job: string) {
   return { g,dt };
 }
 
-test('5ゲートを1未満では拒否し、閾値ちょうどでは複数素材を得て熟練+10', () => {
-  for (const [book,name,threshold,products] of gathering) {
-    const { g,dt } = fixture(book, 'material');
-    const useNo = BASE_ITEMS[book].uses.find((u) => u.name === name)!.no;
+test('行き先の熟練の条件: 1足りないと断って何も変えず、ちょうどなら行けて熟練が付き、取れる品が手に入る', () => {
+  for (const [book, name] of gathering) {
+    const def = BASE_ITEMS[book].uses.find((u) => u.name === name)!;
+    const threshold = def.needexp!;
+    const { g,dt } = fixture(book, 'material', 0);
     dt.exp[book] = threshold-1;
-    assert.equal(checkUses(g,dt,loadUses(g,book)).find((u) => u.no === useNo)!.useok, false);
+    assert.equal(checkUses(g,dt,loadUses(g,book)).find((u) => u.no === def.no)!.useok, false);
     const before = structuredClone(dt);
-    assert.throws(() => useItemAction(g,dt,book,useNo,{count:1}), GameError);
+    assert.throws(() => useItemAction(g,dt,book,def.no,{count:1}), GameError);
     assert.deepEqual(dt,before);
     dt.exp[book] = threshold;
-    const time = dt.time;
-    const u = useItemAction(g,dt,book,useNo,{count:1});
+    const u = useItemAction(g,dt,book,def.no,{count:1});
     assert.equal(u.result.count,1);
-    assert.equal(dt.exp[book],threshold+10);
-    assert.equal(dt.time-time,5400-Math.trunc(2700*threshold/1000));
-    for (const [no,get,proba] of products) assert.equal(dt.item[no-1], proba > 200 ? v140get(book, get).count : 0);
+    assert.equal(dt.exp[book], threshold + def.exp);
+    for (const l of def.get) assert.ok(dt.item[l.item_no-1] >= l.count, `${name}: 乱数が当たれば ${BASE_ITEMS[l.item_no].name} が定義の数以上`);
   }
 });
 
-test('新規生産は1セットごとの材料を消費し、一致職業の時間が半分になる', () => {
-  for (const [book,product,ingredients,get,,time] of production) {
-    const { g,dt } = fixture(book,book === 20 ? 'weapon':'tool');
-    for (const [no,count] of ingredients) dt.item[no-1] = count*2;
-    for (const n of toolsOf(book)) dt.item[n-1] = 1;
-    const useNo = BASE_ITEMS[book].uses.find((u) => u.get[0]?.item_no === product)!.no;
-    const before = dt.time;
-    const u = useItemAction(g,dt,book,useNo,{count:2});
-    assert.equal(u.result.count,2);
-    assert.equal(dt.time-before,v140time(book, product)?.time ?? time); // (基礎時間/2) × 2セット
-    const made = v170Line({ item_no: product, ...v140get(book, get) });
-    assert.equal(dt.item[product-1],(made.count + (made.fraction ? 1 : 0))*2); // 乱数は 0.1 固定なので端数の抽選も当たる
-    for (const [no] of ingredients) assert.equal(dt.item[no-1],0);
-    for (const n of toolsOf(book)) assert.equal(dt.item[n-1],1, '工具は消費しない');
+test('行き先の時間: 熟練が高いほど短く (長くならず)、職ボーナスで半分', () => {
+  for (const [book, name] of gathering) {
+    const def = BASE_ITEMS[book].uses.find((u) => u.name === name)!;
+    const spent = (job: string, exp: number) => {
+      const { g,dt } = fixture(book, job, 0.999);
+      dt.exp[book] = exp;
+      const before = dt.time;
+      useItemAction(g,dt,book,def.no,{count:1});
+      return dt.time - before;
+    };
+    const lo = def.needexp!;
+    assert.ok(spent('', 1000) < spent('', lo), name);
+    assert.ok(spent('', 600) <= spent('', lo) && spent('', 600) >= spent('', 1000), name);
+    assert.equal(spent('material', lo) * 2, spent('', lo), name);
+  }
+});
+
+test('新規生産は1セットごとの材料を消費し、工具は減らず、一致職業の時間が半分になる', () => {
+  for (const [book, product] of production) {
+    const u = recipeOf(book, product);
+    const job = book === 20 ? 'weapon' : 'tool';
+    const run = (jobName: string) => {
+      const { g,dt } = fixture(book, jobName, 0);
+      for (const l of consumed(u)) dt.item[l.item_no-1] = l.count*2;
+      for (const n of toolsOf(book)) dt.item[n-1] = 1;
+      const before = dt.time;
+      const r = useItemAction(g,dt,book,u.no,{count:2});
+      assert.equal(r.result.count,2);
+      for (const l of consumed(u)) assert.equal(dt.item[l.item_no-1],0);
+      for (const n of toolsOf(book)) assert.equal(dt.item[n-1],1, '工具は消費しない');
+      // 乱数 0 なので成功と端数の抽選はみな当たる
+      const made = u.get[0];
+      assert.equal(dt.item[product-1], (made.count + (made.fraction ? 1 : 0)) * 2, BASE_ITEMS[product].name);
+      return dt.time - before;
+    };
+    assert.equal(run(job) * 2, run(''), BASE_ITEMS[product].name);
   }
 });
 
@@ -353,7 +218,7 @@ test('新素材の市場初期投入: plus が正の品だけに一度、上限�
   const { g,dt } = fixture(16,'tool');
   g.world.people = 300000;
   const before = structuredClone(g.world);
-  const withPlus = itemSpecs.map(([no]) => no).filter((no) => BASE_ITEMS[no].plus !== 0);
+  const withPlus = V020_NAMES.map(([no]) => no).filter((no) => BASE_ITEMS[no].plus !== 0);
   const targets = withPlus.filter((no) => BASE_ITEMS[no].plus > 0);
   assert.deepEqual(targets,[96],'v0.2.0 で市場に湧くのは繊維草だけ');
   assert.ok(withPlus.every((no) => no < 81 || no > 87), '完成品は plus 0 なので対象外');
