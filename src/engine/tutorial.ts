@@ -7,6 +7,7 @@
 import { BASE_ITEMS, CATALOG, isPublicItem, itemNoByName } from '../data/catalog.js';
 import { newerVersion, UPDATES_READ } from '../updates.js';
 import type { Game } from './game.js';
+import { surplusHintText, surplusItems } from './surplus.js';
 import type { Shop } from './types.js';
 
 /** 店ごとの手引きの記録 (dt.user に JSON で持つ) */
@@ -408,7 +409,7 @@ export function jobOpenLines(g: Game): string[] {
 // ヒント (1回に1つ)
 
 export interface Hint {
-  type: 'crowded' | 'not_selling' | 'stuck';
+  type: 'crowded' | 'not_selling' | 'surplus' | 'stuck';
   msg: string;
 }
 
@@ -435,7 +436,10 @@ export function tutorialHint(g: Game, dt: Shop): Hint | null {
   if (shelved.length && age >= NOT_SELLING_PERIODS * period && dt.saletoday === 0 && dt.saleyesterday === 0) {
     return { type: 'not_selling', msg: '前の決算から売上がありません。値段 (棚1は標準より高くないか)・同じ品を売る店 (GET /api/v1/shops?item=品番) を調べて、売る品を見直してみましょう' };
   }
-  // 3. 止まっている: 開店からしばらくたっても、職業が無く、自分で品を手に入れたことが無い (手引きを出している店には手引きが同じことを言うので出さない)
+  // 3. 使わない素材 (1.8.2): 自分の本・道具では使わない素材の倉庫の維持費がかさんでいる → 棚か買い取り募集へ
+  const surplus = surplusItems(g, dt);
+  if (surplus.length) return { type: 'surplus', msg: surplusHintText(g, surplus) };
+  // 4. 止まっている: 開店からしばらくたっても、職業が無く、自分で品を手に入れたことが無い (手引きを出している店には手引きが同じことを言うので出さない)
   if (s.off && !dt.job && !s.d.includes(2) && age >= STUCK_PERIODS * period) {
     return { type: 'stuck', msg: '開店からしばらくたちましたが、まだ自分で品を手に入れていません。市場の地図 (品番9・12) は材料なしで採れます。GET /api/v1/tutorial の2〜3も参考に' };
   }

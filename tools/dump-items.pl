@@ -860,6 +860,30 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			die "v1.8.1 info: $ch->{item} info changed" if ($t->{info} // '') ne $ch->{before};
 			$t->{info} = $ch->{after};
 		}
+
+		# 1.8.2 地図と干し草の品不足 (tools/v182.json): 市場の天井 (wslimit) を上げ、鉱山・山の地図の傷みを下げる
+		open(my $v182_fh, '<:raw', "$FindBin::Bin/v182.json") or die $!;
+		my $v182 = JSON::PP->new->utf8->decode(do { local $/; <$v182_fh> });
+		close $v182_fh;
+		for my $pair (@{ $v182->{wslimit} }) {
+			my ($no, $ws) = @$pair;
+			my $it = $by_no{$no} or die "v1.8.2: unknown item $no";
+			die "v1.8.2: wslimit $no lowers" if $ws <= $it->{wslimit};
+			$it->{wslimit} = $ws;
+		}
+		my $mw = $v182->{map_wear};
+		for my $no (@{ $mw->{items} }) {
+			my $n = 0;
+			for my $u (@{ $by_no{$no}{uses} }) {
+				next if ($u->{func} // '') ne 'lostbook';
+				my $p = $u->{params}[0];
+				die "v1.8.2: $no/$u->{no} has no wear" if !$p;
+				$u->{params}[0] = '' . int($p * $mw->{percent} / 100 + 0.5);
+				$n++;
+			}
+			die "v1.8.2: no wear on $no" if !$n;
+		}
+		$define{version} = $v182->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

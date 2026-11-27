@@ -82,7 +82,7 @@ test('1.1.0: 耐久は作った結果と me の倉庫 (durability%) に出る。
   const r = useItemAction(g, dt, BOOK, u.no, { count: 1 });
   const msgs = useResultMessages(g, dt, r);
   // 傷み 0.5+0.038=0.538、0.7 で耐久0 → 100×(1-0.538/0.7) を切り上げて 24%
-  assert.ok(msgs.includes('薬調合入門の耐久: 24%'), msgs.join('\n'));
+  assert.ok(msgs.some((m) => m.startsWith('薬調合入門の耐久: 24%')), msgs.join('\n'));
   const row = meData(g, dt).stock.find((s) => s.item === BOOK)!;
   assert.equal(row.durability, 24);
   // 0.7 を越えたら 0% (寿命1.2なのでまだ壊れない)
@@ -92,7 +92,7 @@ test('1.1.0: 耐久は作った結果と me の倉庫 (durability%) に出る。
   const before = dt.item[BOOK - 1];
   const r2 = useItemAction(g, dt, BOOK, u.no, { count: 1 });
   assert.equal(dt.item[BOOK - 1], before);
-  assert.ok(useResultMessages(g, dt, r2).includes('薬調合入門の耐久: 0% (いつ壊れてもおかしくない。同じ品を買い足しても耐久は戻りません)'));
+  assert.ok(useResultMessages(g, dt, r2).some((m) => m.startsWith('薬調合入門の耐久: 0% (いつ壊れてもおかしくない。同じ品を買い足しても耐久は戻りません)')));
   dt.item[BOOK - 1] = 0;
   assert.equal(meData(g, dt).stock.find((s) => s.item === BOOK)?.durability, 0);
   // 使ったことのない本には durability を出さない
