@@ -35,7 +35,7 @@ import { dropViewSessions, renderViewer } from './viewer.js';
 import { renderOnboarding } from './onboarding.js';
 import { SourceTree, sourceText } from './source.js';
 import { PartyAuth, PartyBlocked, type PartyVerifier, type PartyWho } from './party.js';
-import { APP_VERSION, UPDATE_NOTICE, UPDATES, updatesText } from '../updates.js';
+import { APP_VERSION, newerVersion, UPDATE_NOTICE, UPDATES, UPDATES_READ, updatesText } from '../updates.js';
 import { checkOwnerName, OwnerHub } from './owners.js';
 import { MailBox, mailListData, mailListText, mailThreadData, mailThreadText } from './mail.js';
 import { MOVE_ITEM, MOVE_TIME, PAINT_ITEM, PAINT_TIME, TownService, type ShopInfo } from '../town/town.js';
@@ -128,7 +128,7 @@ const SEEN_SUGGEST = '_api_seen_suggest';
 /** 店に【更新】の通知を出した版 (届けたかどうか。読んだかどうかとは別) */
 const SEEN_VERSION = '_seen_version';
 /** 認証して GET /api/v1/updates で最新版まで読んだ版 (digest の「未読更新」を消す) */
-const READ_VERSION = '_updates_read';
+const READ_VERSION = UPDATES_READ;
 /** 目安箱: 1店あたり 24 時間に出せる案の数と、1件の長さ (文字) */
 const SUGGEST_PER_DAY = 5;
 const SUGGEST_MAX_CHARS = 800;
@@ -1070,7 +1070,8 @@ export class App {
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       `token ${token}\n` +
       'このトークンは二度と表示されません。Authorization: Bearer <token> で使います。\n' +
-      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n';
+      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n' +
+      tut.jobOpenLines(g).join('\n') + '\n';
     return { status: 201, text, json: { ok: true, token, shop_id: shop.id, name: shop.name, shopname: shop.shopname } };
   }
 
@@ -1112,6 +1113,7 @@ export class App {
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
       'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n' +
+      tut.jobOpenLines(g).join('\n') + '\n' +
       (this.tavern?.internalReady ? this.tavern.guide() + ' (酒場には入っておきました)\n' : '');
     // 開店したら酒場に入れておく (失敗しても開店は止めない。Party のルールを了承していなければ、了承したあと自分で入れる)
     if (this.tavern?.internalReady) void this.tavern.join(token).catch(() => undefined);
@@ -2249,16 +2251,6 @@ export function withBase(html: string, base: string): string {
   return html.replace(/\b(href|src|action)="\/(?!\/)/g, `$1="${base}/`).replace(/this\.src='\/(?!\/)/g, `this.src='${base}/`);
 }
 
-/** a が b より新しい版か (0.2.1 > 0.2.0) */
-function newerVersion(a: string, b: string): boolean {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] || 0) - (pb[i] || 0);
-    if (d) return d > 0;
-  }
-  return false;
-}
 
 /** use の結果。0回で終わったときは成功扱いにせず NG で返す (何も変わっていない) */
 function usedOrFail(g: Game, dt: Shop, u: RtUse): string[] {

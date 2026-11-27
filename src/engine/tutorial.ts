@@ -4,7 +4,8 @@
 // 数値の表やレシピは書かず、街のその時の様子 (誰も出していない品・混んでいる品) をサーバーが入れる。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
-import { isPublicItem } from '../data/catalog.js';
+import { BASE_ITEMS, CATALOG, isPublicItem, itemNoByName } from '../data/catalog.js';
+import { newerVersion, UPDATES_READ } from '../updates.js';
 import type { Game } from './game.js';
 import type { Shop } from './types.js';
 
@@ -179,6 +180,7 @@ export const STEPS: Step[] = [
     goal: '職業に就く (転職)、または市場で湧かない品を棚に並べる',
     body: [
       '街のお客は品ごとに別々にいて、同じ品を並べる店どうしで分け合います。誰も出していない品なら、そのお客を独り占めできます。下の「いまの街」を見て、何を売るかを決めましょう。',
+      'どの職を選んでもかまいません。作りたい品・好きな職で決めて大丈夫です。下の「職業の分布」は、決めるときの材料の1つとして見てください。店の少ない職はお客を分け合う相手が少なく、店の多い職は材料を欲しがる店が多い、という見方もできます。',
       '採る (地図) か、採った素材から作る (本) か。素材が足りなければ、ほかの店の棚から買ったり、買い取り募集で集めたりできます。',
       'ほかの店から買うには: GET /api/v1/shops?item=品番 でその品を並べている店の id・棚番号・単価を見て、buy に from (店id) を付けます。例: {"type":"buy","item":6,"count":10,"from":店id,"slot":棚番号,"price":単価}。相手がその品を棚に出していれば在庫まで買えます。棚に出していない品は買い取り募集で頼みます。',
       '作るものが決まったら、転職のススメ (市場、品番78) でその職業になると、その職業の作業が半分の時間になります (転職そのものに6時間かかります)。職業が無くても商売はできます。大事なのは、何を売るかがはっきりしていることです。',
@@ -274,6 +276,135 @@ function townLines(t: TownView): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// 職業の分布 (1.8.1)
+// 新しい店が同じ職に寄りやすいので、職を決める前に街全体の分布と「多い職の材料を採る職」を見せる。
+// 見せるだけで、どの職を選んでもかまわない (誘導・強制はしない)。
+
+/** 全店に一度だけ見せる版 (この版の更新を読むまで digest に出す) */
+export const JOBS_SHOWN_FROM = '1.8.1';
+
+/** 13職 [職コード, 熟練を集める本・地図] (転職のススメの並び) */
+const JOB_BOOKS: [string, number][] = BASE_ITEMS[itemNoByName('転職のススメ')].uses
+  .filter((u) => Number(u.params[0]) > 0 && u.params[3] && CATALOG.jobTypes[u.params[3]])
+  .map((u) => [u.params[3]!, Number(u.params[0])]);
+
+/**
+ * 職どうしの材料の流れ: 作る職 → (採る職 → 材料の品番)。
+ * 本・地図 (と熟練を共有する品) の使い方の材料 (use) と成果 (get) から作る。
+ * 「採る職」は、ほかの職の品を材料にしない職 (探鉱夫・木こり・行商人)。材料は市場で湧かない品だけ
+ */
+const SUPPLY: Map<string, Map<string, number[]>> = (() => {
+  const group = (book: number) => BASE_ITEMS.filter((it) => it && (it.expitem ?? it.no) === book);
+  const makes = new Map<number, Set<string>>();
+  for (const [job, book] of JOB_BOOKS)
+    for (const it of group(book)) for (const u of it.uses) for (const x of u.get) {
+      if (!makes.has(x.item_no)) makes.set(x.item_no, new Set());
+      makes.get(x.item_no)!.add(job);
+    }
+  const needs = new Map<string, Map<string, Set<number>>>();
+  for (const [job, book] of JOB_BOOKS) {
+    const m = new Map<string, Set<number>>();
+    for (const it of group(book)) for (const u of it.uses) for (const x of u.use) {
+      if (x.item_no === it.no) continue;
+      for (const from of makes.get(x.item_no) ?? []) if (from !== job) {
+        if (!m.has(from)) m.set(from, new Set());
+        m.get(from)!.add(x.item_no);
+      }
+    }
+    needs.set(job, m);
+  }
+  const gatherers = new Set([...needs].filter(([, m]) => m.size === 0).map(([job]) => job));
+  const out = new Map<string, Map<string, number[]>>();
+  for (const [job, m] of needs) {
+    if (gatherers.has(job)) continue;
+    const row = new Map<string, number[]>();
+    for (const [from, items] of m) {
+      if (!gatherers.has(from)) continue;
+      const list = [...items]
+        .filter((no) => isPublicItem(no) && BASE_ITEMS[no].plus <= 0)
+        .sort((a, b) => BASE_ITEMS[a].sort - BASE_ITEMS[b].sort || a - b);
+      if (list.length) row.set(from, list);
+    }
+    out.set(job, row);
+  }
+  return out;
+})();
+
+/** 採る職 (ほかの職の品を材料にしない職) か */
+export function isGatherJob(job: string): boolean {
+  return !!job && JOB_BOOKS.some(([j]) => j === job) && !SUPPLY.has(job);
+}
+
+export interface JobView {
+  /** 数えた店 (営業中) */
+  shops: number;
+  /** 13職と、分けられなかった親の職 (山師など、いるときだけ)。店の多い順 */
+  jobs: { job: string; name: string; shops: number }[];
+  /** 職なしの店 */
+  none: number;
+  /** 店の多い作る職 (上位2つ) と、その材料を採る職 */
+  supply: { job: string; name: string; shops: number; from: { job: string; name: string; shops: number; items: string[] }[] }[];
+}
+
+/** 材料の流れに出す、店の多い作る職の数 */
+const SUPPLY_TOP = 2;
+/** 1つの採る職に並べる材料の数 */
+const SUPPLY_ITEMS = 3;
+
+export function jobView(g: Game): JobView {
+  const count = new Map<string, number>(JOB_BOOKS.map(([j]) => [j, 0]));
+  let none = 0;
+  for (const s of g.shops) {
+    if (!s.job) none++;
+    else count.set(s.job, (count.get(s.job) ?? 0) + 1);
+  }
+  const order = new Map(JOB_BOOKS.map(([j], i) => [j, i]));
+  const jobs = [...count.entries()]
+    .filter(([j, n]) => n > 0 || order.has(j))
+    .map(([job, n]) => ({ job, name: CATALOG.jobTypes[job] ?? job, shops: n }))
+    .sort((a, b) => b.shops - a.shops || (order.get(a.job) ?? 99) - (order.get(b.job) ?? 99));
+  const supply = jobs
+    .filter((x) => x.shops > 0 && (SUPPLY.get(x.job)?.size ?? 0) > 0)
+    .slice(0, SUPPLY_TOP)
+    .map((x) => ({
+      ...x,
+      from: [...SUPPLY.get(x.job)!].map(([from, items]) => ({
+        job: from,
+        name: CATALOG.jobTypes[from] ?? from,
+        shops: count.get(from) ?? 0,
+        items: items.slice(0, SUPPLY_ITEMS).map((no) => BASE_ITEMS[no].name),
+      })),
+    }));
+  return { shops: g.shops.length, jobs, none, supply };
+}
+
+function jobCounts(v: JobView): string {
+  return v.jobs.map((x) => `${x.name}${x.shops}`).join(' ') + ` 職なし${v.none}`;
+}
+
+function jobLines(v: JobView): string[] {
+  const out = [`職業の分布 (営業中の${v.shops}店): ${jobCounts(v)}`];
+  if (v.supply.length) {
+    out.push(
+      '店の多い職と、その材料を採る職: ' +
+        v.supply.map((x) => `${x.name} ${x.shops}店 ← ` + x.from.map((f) => `${f.name} ${f.shops}店 (${f.items.join('・')})`).join('・')).join(' / '),
+    );
+  }
+  out.push('どの職を選んでもかまいません。分布は決めるときの参考の1つです。');
+  return out;
+}
+
+/** digest の1行 */
+function jobShortLine(v: JobView): string {
+  return `街の職業 ${jobCounts(v)} (どの職も選べます。材料の流れは GET /api/v1/tutorial)`;
+}
+
+/** 開店の返事に添える行 */
+export function jobOpenLines(g: Game): string[] {
+  return jobLines(jobView(g));
+}
+
+// ---------------------------------------------------------------------------
 // ヒント (1回に1つ)
 
 export interface Hint {
@@ -318,6 +449,8 @@ export interface TutorialDigest {
   /** 次の段 (手引きが OFF か、全部済んだら null) */
   step: { no: number; total: number; title: string } | null;
   hint: Hint | null;
+  /** 街の職業の分布 (職を決める前の店と、1.8.1 の更新をまだ読んでいない店だけ。ほかは null) */
+  jobs: JobView | null;
 }
 
 export function currentStep(dt: Shop): Step | null {
@@ -331,7 +464,20 @@ export function tutorialDigest(g: Game, dt: Shop): TutorialDigest {
   return {
     step: st ? { no: st.no, total: STEP_COUNT, title: st.title } : null,
     hint: tutorialHint(g, dt),
+    jobs: showJobs(dt) ? jobView(g) : null,
   };
+}
+
+/**
+ * digest に職業の分布を出すか。
+ * - 職を決める前の店 (職が無く、手引きの3段目「売るものを決める」がまだで、手引きが ON)
+ * - 1.8.1 の更新をまだ読んでいない店 (全店に一度だけ見せる。更新を読むと消える)
+ */
+export function showJobs(dt: Shop): boolean {
+  const seen = dt.user[UPDATES_READ];
+  if (!seen || newerVersion(JOBS_SHOWN_FROM, seen)) return true;
+  const s = read(dt);
+  return !s.off && !dt.job && !s.d.includes(3);
 }
 
 /** digest に足す行 (ヒント → 手引き の順。どちらも無ければ空) */
@@ -339,6 +485,7 @@ export function tutorialDigestLines(d: TutorialDigest): string[] {
   const out: string[] = [];
   if (d.hint) out.push('ヒント ' + d.hint.msg);
   if (d.step) out.push(`手引き ${d.step.no}/${d.step.total} ${d.step.title} (GET /api/v1/tutorial)`);
+  if (d.jobs) out.push(jobShortLine(d.jobs));
   return out;
 }
 
@@ -352,6 +499,7 @@ export function tutorialData(g: Game, dt: Shop) {
     current: cur?.no ?? null,
     steps: STEPS.map((x) => ({ ...x, done: s.d.includes(x.no) })),
     town: townView(g),
+    jobs: jobView(g),
     hint: tutorialHint(g, dt),
   };
 }
@@ -370,12 +518,13 @@ export function tutorialText(d: ReturnType<typeof tutorialData>): string {
       continue;
     }
     lines.push(...st.body.map((b) => '- ' + b));
-    if (st.no === 3) lines.push(...townLines(d.town).map((b) => '- ' + b));
+    if (st.no === 3) lines.push(...townLines(d.town).map((b) => '- ' + b), ...jobLines(d.jobs).map((b) => '- ' + b));
     lines.push(`- 済んだとみなすこと: ${st.goal}`, '');
   }
   if (d.current === null && d.on) lines.push('手引きはここまでです。おつかれさまでした。', '');
   lines.push('## いまの街');
   lines.push(...townLines(d.town).map((b) => '- ' + b));
+  lines.push(...jobLines(d.jobs).map((b) => '- ' + b));
   lines.push('');
   if (d.hint) lines.push('## ヒント', '- ' + d.hint.msg, '');
   lines.push(

@@ -166,6 +166,21 @@ export const V032: PatchUpdate = {
 /** 1.0.0 で足した16品 (短剣〜飼い葉桶) */
 const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 
+export const V181: PatchUpdate = {
+  version: '1.8.1',
+  date: '2026-11-27',
+  title: '街の職業の分布',
+  summary: '街のお店がどの職業にどれだけいるかを、手引き・開店の返事・digest で見られるようにしました。店の多い作る職と、その材料を採る職も並べます。どの職を選んでもかまいません。決めるときの参考の1つにしてください。',
+  notice: '街の職業の分布 (13職それぞれの店数と職なしの店数) と、店の多い作る職の材料を採る職を GET /api/v1/tutorial の「いまの街」で見られるようにしました。どの職を選んでもかまいません。詳細は GET /api/v1/updates',
+  notes: [
+    'GET /api/v1/tutorial の「いまの街」と手引きの3段目 (売るものを決めよう) に「職業の分布」を足しました。営業中のお店を、13職それぞれと職なしで数えたものです。改装中 (休業) のお店は数えません。',
+    'あわせて「店の多い職と、その材料を採る職」を出します。店の多い作る職の上位2つについて、その職が使う材料 (市場では湧かない品) を採る探鉱夫・木こり・行商人と、その店数・材料の名前です。JSON では tutorial の jobs (jobs・none・supply) です。',
+    'どの職を選んでもかまいません。作りたい品や好きな職で決めて大丈夫です。分布は、決めるときの参考の1つです。',
+    'digest にも「街の職業」の1行を出します。出るのは、職を決める前のお店 (職が無く、手引きの3段目がまだ) と、この更新 (1.8.1) をまだ読んでいないお店です。この更新を読んでいないことで出ている分は、GET /api/v1/updates を読むと消えます。職を決める前で出ている分は、職に就くか、市場で湧かない品を棚に並べるか、手引きを OFF にすると消えます。',
+    '開店したときの返事にも、その時の職業の分布を添えます。',
+  ],
+};
+
 export const V180: PatchUpdate = {
   version: '1.8.0',
   date: '2026-11-27',
@@ -605,9 +620,23 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
+
+/** 店ごとの「どの版の更新まで読んだか」(dt.user のキー) */
+export const UPDATES_READ = '_updates_read';
+
+/** a が b より新しい版か (0.2.1 > 0.2.0) */
+export function newerVersion(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
 /** 店ごとに一度だけ届く通知と観戦画面の案内 (全文) */
 export const UPDATE_NOTICE = `v${APP_VERSION}: ${UPDATES[0].notice}`;
 
