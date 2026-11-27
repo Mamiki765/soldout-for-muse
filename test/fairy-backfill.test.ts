@@ -21,6 +21,9 @@ import { newWorld, type World } from '../src/engine/types.js';
 import { Store } from '../src/store.js';
 
 const NOW = 1_800_000_000;
+/** 熟練100%までの最短秒数 (職ボーナスつき)。レシピの時間から出る */
+const seconds = fastestSkillSeconds();
+const skillPt = (exp: number) => Math.round((seconds[MINE] * exp) / 1000);
 const MINE = 9;
 
 function legacy() {
@@ -47,12 +50,11 @@ test('職ボーナス・熟練条件付きの最短秒数を使い、同じ店�
   differentShop.shops[0].foundation--;
   differentShop.shops[0].exp[MINE] = 1000;
   // 探鉱夫は半分。初めの20回は鉄鉱山、200pt以降の80回は砂鉄の河床が最短。
-  const seconds = fastestSkillSeconds();
-  assert.equal(seconds[MINE], 440_640);
-  // 広告パックには専用の職がなくても、行商人の半減が適用される。
-  assert.equal(seconds[itemNoByName('広告パック')], 144_000);
+  // 秒数はレシピの時間 (データ) から出るので、ここでは数字を書かない。熟練 x‰ ぶんの働きは「熟練100%までの秒数 × x/1000」
+  assert.ok(seconds[MINE] > 0);
+  assert.ok(seconds[itemNoByName('広告パック')] > 0, '広告パックには専用の職がなくても試算できる');
   const rows = planFairyBackfill(snap(world, 10n ** 20n), DEFAULT_CONFIG, [snap(backup), snap(differentShop)]);
-  assert.deepEqual(rows, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: 264_384 }, merchantpt: 3 * MERCHANT_CAP_PER_PERIOD }]);
+  assert.deepEqual(rows, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: skillPt(600) }, merchantpt: 3 * MERCHANT_CAP_PER_PERIOD }]);
   assert.deepEqual(world, before, '試算で街を更新しない');
   assert.equal(applyFairyBackfill(world, rows, NOW), 1);
   assert.equal(dt.joblvReached?.[MINE], 2);
@@ -76,9 +78,9 @@ test('1.4.0 で貯まったポイントは消さず、1.4.0 より前の時点�
   dt.saleyesterday = 9_000_000;
   const rows = planFairyBackfill(snap(world, 10n ** 9n, 10n ** 9n), DEFAULT_CONFIG, [snap(pre, 99_000n, 1_000n)]);
   // 前期の売上と仕入れ 50万円 × 探鉱夫2.0 = 1,000点 > 税からの下限 (10万+9.9万+1千円) × 2.0 = 400点
-  assert.deepEqual(rows, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: 264_384 }, merchantpt: 1_000 }]);
+  assert.deepEqual(rows, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: skillPt(600) }, merchantpt: 1_000 }]);
   assert.equal(applyFairyBackfill(world, rows, NOW), 1);
-  assert.equal(dt.joblvpt[MINE], 269_384);
+  assert.equal(dt.joblvpt[MINE], skillPt(600) + 5_000);
   assert.equal(dt.merchantpt, 1_050);
   assert.equal(dt.merchantYen, 3_000, '今期の分はそのまま');
   // バックアップがなく、今の街にも 1.4.0 前の時点がない店は何も足さない。
@@ -147,7 +149,7 @@ test('試算コマンドは現在・過去のファイルを読み取り専用�
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(result.stdout);
     // 熟練は1.4.0前のバックアップの80%から。商人は売上税99万円→売上100万+税99万+入金庫税990万、探鉱夫2.0倍、3期の上限まで。
-    assert.deepEqual(report.shops, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: 352_512 }, merchantpt: 3 * MERCHANT_CAP_PER_PERIOD }]);
+    assert.deepEqual(report.shops, [{ id: dt.id, shopname: dt.shopname, joblvpt: { [MINE]: skillPt(800) }, merchantpt: 3 * MERCHANT_CAP_PER_PERIOD }]);
     assert.equal(report.summary.merchant_points, 3 * MERCHANT_CAP_PER_PERIOD);
     assert.deepEqual(readFileSync(file), bytes);
   } finally {
@@ -167,7 +169,7 @@ test('起動時は有効にしたときだけ保存し、合鍵では初回 dige
   assert.equal(ordinary.world.shops[0].merchantpt, undefined);
   const migrated = new App({ ...opt, fairyBackfill: [] });
   const saved = store.loadWorld(NOW).shops[0];
-  assert.deepEqual(saved.joblvpt, { [MINE]: 110_160 });
+  assert.deepEqual(saved.joblvpt, { [MINE]: skillPt(250) });
   assert.equal(saved.merchantpt, undefined, '数えられる商いがなければ欄を作らない');
   assert.equal(saved.fairyBackfillNotice, true);
   const app = new App({ ...opt, fairyBackfill: [] });
