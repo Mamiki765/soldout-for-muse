@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — Party #4 固めプリン (案) のテスト
+// SOLD OUT for Muse — Party #4 固めプリンの決まり。数字は品のデータから読む (AGENTS.md「テストの決まり」)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';
@@ -29,66 +29,73 @@ const recipe = () => {
   return uses[0];
 };
 
-test('固めプリン: 品番114・甘いもの (薬) 枠・市場に自然入荷しない', () => {
+const MINO = 25;
+const MILK = 26;
+const SUGAR = 103;
+const need = (no: number) => recipe().use.find((l) => l.item_no === no)!;
+/** 1回 (1セット) の材料をそろえる */
+const stock = (dt: ReturnType<typeof fixture>['dt'], sets: number) => {
+  dt.item[MINO - 1] = need(MINO).count;
+  dt.item[MILK - 1] = need(MILK).count * sets;
+  dt.item[SUGAR - 1] = need(SUGAR).count * sets;
+};
+
+test('固めプリン: 甘いもの (薬) 枠で、市場に自然入荷せず、市場の扱いはミノヨーグルトと同じ。使う効果は無し', () => {
   const it = BASE_ITEMS[PUDDING];
   assert.equal(it.name, '固めプリン');
   assert.equal(it.type, 3);
-  assert.equal(it.price, 2600, '1.0.0 で 2200→2600');
-  assert.equal(it.cost, 70);
-  assert.equal(it.popular, 7200);
-  assert.equal(it.limit, 300, '1.7.0 で 100→300');
   assert.equal(it.plus, 0);
-  assert.equal(it.wslimit, BASE_ITEMS[35].wslimit, '市場の扱いはミノヨーグルトと同じ');
+  assert.equal(it.wslimit, BASE_ITEMS[35].wslimit);
+  assert.ok(it.price > 0 && it.limit > 1);
   assert.match(it.info, /苦め/);
-  assert.deepEqual(it.uses, [], '使う効果は無し');
+  assert.deepEqual(it.uses, []);
 });
 
-test('固めプリン: 本も熟練も要らず、ミノ5頭は減らずに牛乳10・砂糖3が減って2個できる', () => {
+test('固めプリン: 本も熟練も要らず、ミノは減らない道具で、牛乳と砂糖が回数ぶん減り、失敗なしで定義の数できる', () => {
   const u = recipe();
   assert.ok(!u.needexp);
   assert.deepEqual([u.name, u.action, u.scale], ['固めプリンを作成する', '作る', 'セット'], '「飲む」「本」を引き継がない');
-  assert.deepEqual([u.exp, u.time, u.exptime], [10, 1600, 1200], '熟練はミノタウロス♀と共有。1.0.0 で熟練0は26分40秒、最大で20分');
+  assert.equal(need(MINO).proba, 0, 'ミノは減らない');
+  assert.ok(u.exptime <= u.time);
+  const per = u.get.find((l) => l.item_no === PUDDING)!;
+  assert.equal(per.proba, 1000, '失敗なし');
   const { g, dt } = fixture();
-  dt.item[25 - 1] = 5;
-  dt.item[26 - 1] = 30;
-  dt.item[103 - 1] = 9;
-  const r = useItemAction(g, dt, 26, u.no, { count: 3 });
+  stock(dt, 3);
+  const r = useItemAction(g, dt, MILK, u.no, { count: 3 });
   assert.equal(r.result.count, 3);
-  assert.equal(dt.item[25 - 1], 5, 'ミノタウロスは道具');
-  assert.equal(dt.item[26 - 1], 0);
-  assert.equal(dt.item[103 - 1], 0);
-  assert.equal(dt.item[PUDDING - 1], 6, '失敗なしで1回2個');
+  assert.equal(dt.item[MINO - 1], need(MINO).count);
+  assert.equal(dt.item[MILK - 1], 0);
+  assert.equal(dt.item[SUGAR - 1], 0);
+  assert.equal(dt.item[PUDDING - 1], per.count * 3);
   assert.equal(dt.item[113 - 1], 0, '『乳菓のレシピ』は要らない');
 });
 
-test('固めプリン: ミノが4頭だと作れない・材料ぶんしか作らない', () => {
+test('固めプリン: ミノが1頭足りないと作れず、材料ぶんしか作らない', () => {
   const u = recipe();
   const { g, dt } = fixture();
-  dt.item[25 - 1] = 4;
-  dt.item[26 - 1] = 30;
-  dt.item[103 - 1] = 9;
-  assert.throws(() => useItemAction(g, dt, 26, u.no, { count: 1 }));
-  dt.item[25 - 1] = 5;
-  dt.item[103 - 1] = 4; // 砂糖は1回分だけ
-  const r = useItemAction(g, dt, 26, u.no, { count: 3 });
+  stock(dt, 3);
+  dt.item[MINO - 1]--;
+  assert.throws(() => useItemAction(g, dt, MILK, u.no, { count: 1 }));
+  stock(dt, 3);
+  dt.item[SUGAR - 1] = need(SUGAR).count; // 砂糖は1回分だけ
+  const r = useItemAction(g, dt, MILK, u.no, { count: 3 });
   assert.equal(r.result.count, 1);
-  assert.equal(dt.item[26 - 1], 20);
-  assert.equal(dt.item[103 - 1], 1);
-  assert.equal(dt.item[PUDDING - 1], 2);
+  assert.equal(dt.item[MILK - 1], need(MILK).count * 2);
+  assert.equal(dt.item[SUGAR - 1], 0);
 });
 
-test('固めプリン: 1回26分40秒 (1.0.0)、酪農家は13分20秒', () => {
+test('固めプリン: 回数に比例して時間がかかり、酪農家は半分', () => {
   const u = recipe();
-  for (const [job, sec] of [['', 1600], ['cow', 800]] as const) {
+  const spent = (job: string, count: number) => {
     const { g, dt } = fixture();
     dt.job = job;
-    dt.item[25 - 1] = 5;
-    dt.item[26 - 1] = 20;
-    dt.item[103 - 1] = 6;
+    stock(dt, count);
     const before = dt.time - g.couponTime(dt);
-    useItemAction(g, dt, 26, u.no, { count: 2 });
-    assert.equal(dt.time - g.couponTime(dt) - before, 2 * sec, job || '職業なし');
-  }
+    useItemAction(g, dt, MILK, u.no, { count });
+    return dt.time - g.couponTime(dt) - before;
+  };
+  assert.equal(spent('', 2), spent('', 1) * 2);
+  assert.equal(spent('cow', 2) * 2, spent('', 2));
 });
 
 test('固めプリン: 乳製品ブームで需要が増える (他の乳製品と同じ ÷1.5・人気×2)', () => {
