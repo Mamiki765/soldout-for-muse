@@ -4,7 +4,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BASE_ITEMS, itemNoByName } from '../src/data/catalog.js';
+import { readFileSync } from 'node:fs';
 import { v181Info } from './v181-info.js';
+
+/** 1.8.4 で説明を書き直した品 (tools/v184.json)。1.8.1 の文を土台にしている */
+const v184 = JSON.parse(readFileSync('tools/v184.json', 'utf8')) as { nayuta: { item: number; info_before: string; info_after: string } };
 
 const use = (item: string, name: string) => {
   const u = BASE_ITEMS[itemNoByName(item)].uses.find((x) => x.name === name);
@@ -17,6 +21,12 @@ test('1.8.1: 書き足した説明が items.json に入っている', () => {
   for (const ch of v181Info.info_changes) {
     const it = BASE_ITEMS[ch.item];
     const info = ch.use_name === undefined ? it.info : it.uses.find((u) => u.name === ch.use_name)?.info;
+    if (ch.use_name === undefined && ch.item === v184.nayuta.item) {
+      // 1.8.4 が 1.8.1 の文を書き直している
+      assert.equal(v184.nayuta.info_before, ch.after, it.name);
+      assert.equal(info, v184.nayuta.info_after, it.name);
+      continue;
+    }
     assert.equal(info, ch.after, `${it.name}/${ch.use_name ?? ''}`);
   }
 });

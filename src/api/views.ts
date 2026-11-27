@@ -292,7 +292,7 @@ export function meData(g: Game, dt: Shop) {
     // std=標準価格 cost=維持費(1個24時間) balance=需要供給 (110以上で飽和・90以下で不足) shelves=並べている棚 (観戦画面の倉庫と同じ項目。0.5.0)
     const shelves: number[] = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(k + 1);
-    // durability=本・地図・牛・桶の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
+    // durability=本・地図・牛・桶・ナユタの首飾り (1.8.4) の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
     const durability = bookDurability(dt, no);
     stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves, ...(durability !== undefined ? { durability } : {}) });
   }

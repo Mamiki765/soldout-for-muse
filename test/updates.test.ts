@@ -20,7 +20,9 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'1.8.3');
+    assert.equal(data.version,'1.8.4');
+    assert.equal(data.updates[0].title,'ナユタの首飾りがすり減る');
+    data.updates.shift();
     assert.equal(data.updates[0].title,'同じ陳列・仕入れの失敗・倒産の注意');
     data.updates.shift();
     assert.equal(data.updates[0].title,'地図と干し草の品不足');
@@ -58,7 +60,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v1\.8\.3 2026-11-28 同じ陳列・仕入れの失敗・倒産の注意\n/);
+    assert.match(text,/^# v1\.8\.4 2026-11-28 ナユタの首飾りがすり減る\n/);
     assert.match(text,/\n# v1\.8\.2 2026-11-28 地図と干し草の品不足\n/);
     assert.match(text,/\n# v1\.8\.0 2026-11-27 商店街の酒場\n/);
     assert.match(text,/\n# v1\.7\.0 2026-11-26 道具の3職と買い取り募集\n/);
