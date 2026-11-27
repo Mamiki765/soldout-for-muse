@@ -3,26 +3,17 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { App } from '../src/api/app.js';
-import { seededRng } from '../src/engine/rng.js';
 import { newToken, sha256, Store } from '../src/store.js';
 import { normalizeAnswers, SURVEY_2026_12_BALANCE, SURVEYS, SurveyInputError } from '../src/surveys.js';
+import { startServer } from './helpers.js';
 
 const CIG = 132;
 const ID = SURVEY_2026_12_BALANCE.id;
 
-async function start(clock: () => number, store = new Store(':memory:')): Promise<{ base: string; server: Server; store: Store; admin: string }> {
-  store.setSetting('invite_hash', sha256('muse-invite'));
+async function start(clock: () => number, store = new Store(':memory:')) {
   const admin = newToken('sa_');
-  store.setSetting('admin_token_hash', sha256(admin));
-  const app = new App({ store, rng: seededRng(7), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, store, admin };
+  const s = await startServer({ clock, store, prepare: (st) => st.setSetting('admin_token_hash', sha256(admin)) });
+  return { ...s, admin };
 }
 
 const full = { q1: 'a', q2: 'b', q3: 'c', q4: 'd', q5: 'a', q6: '道具の3職は\n新しい品がほしい' };

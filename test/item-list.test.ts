@@ -3,9 +3,6 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { App } from '../src/api/app.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
 import { BASE_ITEMS, MAX_ITEM, overrideItemVisibility } from '../src/data/catalog.js';
 import { openShop } from '../src/engine/actions.js';
@@ -13,23 +10,17 @@ import { Game } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
 import { itemDetailData, itemDetailText } from '../src/api/views.js';
 import { checkUses, loadUses } from '../src/engine/use.js';
-import { seededRng } from '../src/engine/rng.js';
 import { newWorld } from '../src/engine/types.js';
 import { townView } from '../src/engine/tutorial.js';
-import { sha256, Store } from '../src/store.js';
+import { registerShop, startServer } from './helpers.js';
 
 const PUDDING = 114;
 const MILK = 26;
 
 async function start() {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(3), clock: () => 1_800_000_000 });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const reg = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) })).json()) as { token: string };
-  return { base, server, auth: { authorization: 'Bearer ' + reg.token } };
+  const { base, server } = await startServer({ clock: () => 1_800_000_000, seed: 3, publicUrl: undefined, imagesDir: undefined, sourceDir: undefined, helpText: undefined });
+  const { auth } = await registerShop(base, 'ミュート商店');
+  return { base, server, auth };
 }
 
 const getText = async (url: string, headers: Record<string, string> = {}) => {
