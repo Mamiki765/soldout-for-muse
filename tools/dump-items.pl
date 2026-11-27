@@ -825,6 +825,24 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			push @$uses, $u;
 		}
 		$define{version} = $v170->{version};
+
+		# 1.8.1 転職のススメの説明に、熟練の持ち越しと職レベルのことを書き足す (tools/v181.json)。文言だけ
+		open(my $v181_fh, '<:raw', "$FindBin::Bin/v181.json") or die $!;
+		my $v181 = JSON::PP->new->utf8->decode(do { local $/; <$v181_fh> });
+		close $v181_fh;
+		$v181 = $as_bytes->($v181);
+		my $n181 = 0;
+		for my $u (@{ $by_no{78}{uses} }) {
+			my $book = $u->{params} && $u->{params}[0];
+			next if !$book;
+			die "v1.8.1: 78/$u->{no} has no rate" if ($u->{params}[2] // '') ne '0.5';
+			my $suffix = $v181->{job_change_info_suffix};
+			$suffix =~ s/\{book\}/$by_no{$book}{name}/g;
+			$u->{info} .= $suffix;
+			$n181++;
+		}
+		die "v1.8.1: job changes $n181" if $n181 != 13;
+		$define{version} = $v181->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

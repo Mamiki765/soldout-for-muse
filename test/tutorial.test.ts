@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { App } from '../src/api/app.js';
-import { itemNoByName } from '../src/data/catalog.js';
+import { BASE_ITEMS, itemNoByName } from '../src/data/catalog.js';
 import { seededRng } from '../src/engine/rng.js';
 import { TUTORIAL_SETTING } from '../src/engine/tutorial.js';
 import { sha256, Store } from '../src/store.js';
@@ -258,5 +258,16 @@ test('職業の分布 (1.8.1): 手引き・開店の返事・digest に出す。
     assert.doesNotMatch(await t.get('/api/v1/digest', c.auth), /^街の職業 /m);
   } finally {
     await t.close();
+  }
+});
+
+test('転職のススメの説明 (1.8.1): 熟練の持ち越し (半分・上限100%) と職レベルが減らないことを書いてある', () => {
+  const uses = BASE_ITEMS[itemNoByName('転職のススメ')].uses.filter((u) => Number(u.params[0]) > 0);
+  assert.equal(uses.length, 13);
+  for (const u of uses) {
+    assert.equal(u.params[2], '0.5');
+    const book = BASE_ITEMS[Number(u.params[0])].name;
+    assert.ok(u.info!.includes(`合計の半分が${book}の熟練に足されます (上限100%)`), u.info!);
+    assert.ok(u.info!.includes('職レベルは減りません'), u.info!);
   }
 });

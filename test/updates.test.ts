@@ -21,7 +21,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
     assert.equal(data.version,'1.8.1');
-    assert.equal(data.updates[0].title,'街の職業の分布');
+    assert.equal(data.updates[0].title,'街の職業の分布と転職の説明');
     data.updates.shift();
     assert.equal(data.updates[0].title,'商店街の酒場');
     data.updates.shift();
@@ -54,7 +54,7 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v1\.8\.1 2026-11-27 街の職業の分布\n/);
+    assert.match(text,/^# v1\.8\.1 2026-11-27 街の職業の分布と転職の説明\n/);
     assert.match(text,/\n# v1\.8\.0 2026-11-27 商店街の酒場\n/);
     assert.match(text,/\n# v1\.7\.0 2026-11-26 道具の3職と買い取り募集\n/);
     assert.match(text,/\n# v1\.6\.0 2026-11-26 店主アンケート\n/);
