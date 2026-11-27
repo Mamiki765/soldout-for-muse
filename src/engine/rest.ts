@@ -27,7 +27,7 @@ function fmt(g: Game, t: number): string {
  * confirm が無ければ何も変えず、見込み (払う額・再開できる時刻・取り下げる募集) を「確認:」で返す (1.1.2)
  */
 export function startRest(g: Game, dt: Shop, days: number, by = '', confirm = false): string[] {
-  if (dt.rest) throw new GameError(`もう改装中です (${fmt(g, dt.rest.min)}以降は {"type":"reopen"} で再開できます。${fmt(g, dt.rest.until)}に自動で再開します)`);
+  if (dt.rest) throw new GameError(`もう改装中です (${fmt(g, dt.rest.min)}以降は {"type":"reopen"} かほかの行動で再開できます。${fmt(g, dt.rest.until)}に自動で再開します)`);
   if (!Number.isInteger(days) || days < 1 || days > REST_MAX_DAYS) throw new GameError(`days は1〜${REST_MAX_DAYS}の日数で指定してください (休める最長は${REST_MAX_DAYS}日)`);
   const charge = periodCharge(g, dt);
   if (charge > dt.money + dt.moneystock) {
@@ -58,7 +58,7 @@ export function startRest(g: Game, dt: Shop, days: number, by = '', confirm = fa
   g.sortShops();
   msgs.unshift(
     `${by}改装に入りました。今期の維持費など ￥${charge} を払いました。` +
-      `${fmt(g, min)} (この期の決算) からは {"type":"reopen"} で再開でき、${fmt(g, until)} には自動で再開します。` +
+      `${fmt(g, min)} (この期の決算) からは {"type":"reopen"} かほかの行動 (仕入れ・陳列など) で再開でき、${fmt(g, until)} には自動で再開します。` +
       '休んでいる間は売れず、維持費もかからず、ランキングと賞から外れます',
   );
   return msgs;
@@ -96,7 +96,7 @@ export function wakeRested(g: Game): void {
 export function restGuard(g: Game, dt: Shop, type: string): string[] {
   if (!dt.rest || REST_ALLOWED_ACTIONS.has(type)) return [];
   if (g.now < dt.rest.min) {
-    throw new GameError(`改装中です。この期の決算 (${fmt(g, dt.rest.min)}) のあとに {"type":"reopen"} で再開できます (${fmt(g, dt.rest.until)}には自動で再開)`);
+    throw new GameError(`改装中です。この期の決算 (${fmt(g, dt.rest.min)}) のあとに {"type":"reopen"} かほかの行動で再開できます (${fmt(g, dt.rest.until)}には自動で再開)`);
   }
   return [endRest(g, dt)];
 }

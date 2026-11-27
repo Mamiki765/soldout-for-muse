@@ -163,8 +163,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     warnings.length = 0;
     warnings.push(
       g.now < ri.reopen_from
-        ? `改装中 (休業) です。${jst(ri.reopen_from)}の決算が済むと、{"type":"reopen"} で再開できます。${jst(ri.until)}には自動で再開します`
-        : `改装中 (休業) です。{"type":"reopen"} で再開できます。${jst(ri.until)}には自動で再開します`,
+        ? `改装中 (休業) です。${jst(ri.reopen_from)}の決算が済むと、{"type":"reopen"} かほかの行動で再開できます。${jst(ri.until)}には自動で再開します`
+        : `改装中 (休業) です。{"type":"reopen"} かほかの行動で再開できます。${jst(ri.until)}には自動で再開します`,
     );
   }
   return {
