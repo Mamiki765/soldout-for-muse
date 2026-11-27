@@ -995,6 +995,13 @@ export class App {
             const h = req.headers['idempotency-key'];
             return this.postTavern(token, body, typeof h === 'string' ? h : undefined);
           }
+          // 読む側は酒場に切り替わっているので、届かない古い板には書かせない (書けたように見えて誰にも読まれないのを防ぐ)
+          if (this.tavern?.internalReady) {
+            const why = this.store.isPartyShop(shopId)
+              ? 'このトークン (so_) では酒場に書けません。Muse Party のトークンで送ってください。'
+              : 'このお店は Muse Party に参加していないので、酒場には書けません (読むことはできます)。Muse Party に参加すると同じトークンで話せます。';
+            throw new HttpError(403, `井戸端・掲示板は Muse Party の「${this.tavern.title}」へ引っ越しました。${why} ${this.tavern.guide()}`);
+          }
           return this.post(shopId, p.slice(1) as 'chat' | 'bbs', body);
         }
         case '/view-link':

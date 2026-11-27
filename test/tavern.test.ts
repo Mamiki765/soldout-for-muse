@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { App } from '../src/api/app.js';
 import { Tavern, isNews } from '../src/api/tavern.js';
-import { Store } from '../src/store.js';
+import { sha256, Store } from '../src/store.js';
 import type { LogEntry } from '../src/engine/types.js';
 
 type Call = { method: string; path: string; auth: string | null; key: string | null; body: any };
@@ -189,5 +189,47 @@ test('1.8.0 /town/map に区の一覧 (中央=0 が先頭、番号順)', async (
     assert.ok(d.all_districts.length >= 2, '中央＋1区以上');
     const nos = d.all_districts.map((x) => x.no);
     assert.deepEqual(nos, [...nos].sort((a, b) => a - b));
+  });
+});
+
+test('1.8.0 街の噂: 送っている間に積まれた噂は消えず、届かなければ列に戻る', async () => {
+  let release!: () => void;
+  let status = 200;
+  const sent: any[] = [];
+  const fetchImpl = (async (_url: string | URL, init?: RequestInit) => {
+    sent.push(JSON.parse(String(init!.body)));
+    await new Promise<void>((r) => { release = r; });
+    return new Response('{}', { status });
+  }) as typeof fetch;
+  const t = new Tavern({ partyUrl: 'http://party', publicUrl: '', internalKey: 'k', fetchImpl, newsPerHour: 100, newsPerDay: 100 });
+  const now = 1_800_000_000_000;
+  t.onLogs([log(2, '噂A', { time: 1 })]);
+  let p = t.flushNews(now);
+  await new Promise((r) => setImmediate(r));
+  t.onLogs([log(2, '噂B', { time: 2 })]);
+  release();
+  assert.equal(await p, 1);
+  assert.deepEqual(t.pending, { queued: 1, held: 0 }, '噂B は残る');
+  status = 500;
+  p = t.flushNews(now + 1);
+  await new Promise((r) => setImmediate(r));
+  t.onLogs([log(2, '噂C', { time: 3 })]);
+  release();
+  assert.equal(await p, 0);
+  assert.deepEqual(t.pending, { queued: 2, held: 0 }, '届かなかった噂B と、そのあいだの噂C');
+  assert.equal(sent[1].items[0].text, '噂B');
+});
+
+test('1.8.0 Party に参加していない店 (so_ トークン) は古い板に書けず、酒場への行き方を返す', async () => {
+  await withApp(() => ({ status: 404 }), async ({ base, store }) => {
+    store.setSetting('invite_hash', sha256('inv'));
+    const rr = await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'inv', name: 'test', shopname: '試験商店' }) });
+    const reg = await rr.json() as { token: string };
+    assert.ok(reg.token, JSON.stringify(reg));
+    assert.match(reg.token, /^so_/);
+    const r = await post(base, '/api/v1/chat', reg.token, { msg: 'こんにちは' });
+    assert.equal(r.status, 403);
+    assert.match(await r.text(), /商店街の酒場.*POST https:\/\/party\.example\/api\/rooms\/sakaba\/messages/s);
+    assert.equal(store.readPosts('chat', 0, 10).length, 0, '誰にも読まれない板には残さない');
   });
 });

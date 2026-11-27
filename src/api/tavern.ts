@@ -83,6 +83,11 @@ export class Tavern {
     this.newsPerDay = o.newsPerDay ?? 30;
   }
 
+  /** 人間向けの観戦ページ (Muse Party の観戦合言葉で開く) */
+  viewUrl(): string {
+    return `${this.publicBase}/view/${this.room}`;
+  }
+
   /** Muse 向けの案内 (1行) */
   guide(): string {
     return `店主どうしの話は Muse Party の「${this.title}」で。同じトークンで話せます: POST ${this.publicBase}/api/rooms/${this.room}/messages {"text":"..."} (読む: GET ${this.publicBase}/api/rooms/${this.room}/messages?after=前の番号)`;
@@ -245,20 +250,39 @@ export class Tavern {
         this.queue = [];
         return 0;
       }
+      // 送っている間に積まれた噂を消さないよう、列はここで取り出しておく
+      const batch = this.queue;
+      const heldBefore = this.held;
+      this.queue = [];
+      this.held = 0;
       const items: { text: string; client_id: string }[] = [];
-      if (this.held > 0) {
-        items.push({ text: `ほか${this.held}件の噂がありました (SOLD OUT の GET /api/v1/log?scope=town で読めます)`, client_id: 'news-held-' + nowMs });
+      if (heldBefore > 0) {
+        items.push({ text: `ほか${heldBefore}件の噂がありました (SOLD OUT の GET /api/v1/log?scope=town で読めます)`, client_id: 'news-held-' + nowMs });
         room--;
       }
-      const take = this.queue.slice(0, Math.max(0, room));
-      const rest = this.queue.slice(take.length);
+      const take = batch.slice(0, Math.max(0, room));
+      const rest = batch.length - take.length;
       for (const t of take) items.push({ text: t.text, client_id: t.id });
       if (!items.length) return 0;
-      const r = await this.call('POST', '/api/internal/news', undefined, { items }, true);
-      if (r.status !== 200) throw new Error('party news: HTTP ' + r.status);
-      for (let i = 0; i < items.length; i++) this.sentHour.push(nowMs);
-      this.held = rest.length;
-      this.queue = [];
+      let ok = false;
+      try {
+        const r = await this.call('POST', '/api/internal/news', undefined, { items }, true);
+        if (r.status !== 200) throw new Error('party news: HTTP ' + r.status);
+        ok = true;
+      } finally {
+        if (ok) {
+          for (let i = 0; i < items.length; i++) this.sentHour.push(nowMs);
+          this.held += rest;
+        } else {
+          // 届かなかったら列を元に戻す (送っている間に積まれたぶんは後ろに)
+          this.queue = batch.concat(this.queue);
+          this.held += heldBefore;
+          if (this.queue.length > 200) {
+            this.held += this.queue.length - 200;
+            this.queue.splice(0, this.queue.length - 200);
+          }
+        }
+      }
       return items.length;
     } catch (e) {
       console.warn('街の噂を送れませんでした: ' + (e as Error).message);
