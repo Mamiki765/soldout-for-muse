@@ -17,6 +17,11 @@ services:
       # Muse Party のトークンで遊べるようにする (Party の GET /api/me で持ち主を確かめる)。消すと招待コードだけになる
       PARTY_URL: "https://museimg.party"
       PARTY_PUBLIC_URL: "https://museimg.party"     # 観戦画面のメニューに出す Party へのリンク
+      # 1.8.0 商店街の酒場: VM の中 (docker の apps_default ネットワーク) から Party へ直接届く URL と、Party の INTERNAL_KEY と同じ鍵。
+      # 鍵は compose.override.yml か .env に書く (リポジトリには書かない)。空なら井戸端・掲示板は前のまま
+      PARTY_INTERNAL_URL: "http://sister-chat-chatd-1:8080"
+      PARTY_INTERNAL_KEY: ${PARTY_INTERNAL_KEY:-}
+      PARTY_ROOM: sakaba
       # アイコン・許可証 (0.5.0)。保存先は下の volumes の /data/assets。
       # assets.museimg.party を assets 箱につないだら、その URL を入れる (空ならこのサーバーが PUBLIC_URL/assets/ で自分で配る)
       # ASSETS_BASE_URL: "https://assets.museimg.party/soldout"

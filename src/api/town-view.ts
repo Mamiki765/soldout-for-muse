@@ -99,7 +99,7 @@ export function mapData(svc: TownService, town: Town, som: string, district: str
     return d ? { no: d.no, name: d.name || null } : null;
   };
   return {
-    note: '32px チップの地図。chunks は選んだ地区と東・南の外側の大通りの分。bounds の範囲を描く。districts[].neighbors は隣の区の番号・名前 (中央=0、街の外や大通りのみは null)。隣の区を押したときだけ district を変えて読み直す。絵と見本はキットの town/。',
+    note: '32px チップの地図。chunks は選んだ地区と東・南の外側の大通りの分。bounds の範囲を描く。districts[].neighbors は隣の区の番号・名前 (中央=0、街の外や大通りのみは null)。隣の区を押したときだけ district を変えて読み直す。all_districts は今ある区ぜんぶ (店が増えると区も増えるので、区の切り替えボタンは固定で作らずここから作る)。絵と見本はキットの town/。',
     bounds: svc.gen.bounds(town, ds),
     districts: ds.map((d) => ({
       no: d.no, name: d.name || null, chunk: d.id,
@@ -110,6 +110,11 @@ export function mapData(svc: TownService, town: Town, som: string, district: str
         w: neighbor(d.gx - 1, d.gy),
       },
     })),
+    // 区の切り替え用に、今ある区ぜんぶ (中央=0 を先頭に、番号順。1.8.0)
+    all_districts: [
+      { no: 0, name: '中央' },
+      ...town.districts.filter((d) => !d.center).map((d) => ({ no: d.no, name: d.name || null })).sort((a, b) => a.no - b.no),
+    ],
     chunks: svc.gen.chunksFor(town, ds),
   };
 }

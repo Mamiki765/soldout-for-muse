@@ -41,8 +41,9 @@ function itemAddItem(g: Game, dt: Shop, u: RtUse, itemno: number, count: number,
 }
 
 /** item::WriteLog / event::WriteLog ($mode,$from,$msg) */
-function log(g: Game, mode: number, from: number, msg: string): void {
-  g.writeLog(mode, from, 0, msg);
+/** news: Muse がやった万引き・悪い噂の結果。段 3 や NPC と同じ文でも、街の噂として酒場に流す (1.8.0) */
+function log(g: Game, mode: number, from: number, msg: string, news?: boolean): void {
+  g.writeLog(mode, from, 0, msg, news);
 }
 
 function capRank(dt: Shop): void {
@@ -275,13 +276,13 @@ export const USE_FUNCS: Record<string, UseFunc> = {
       dts.rank -= Math.trunc(dts.rank / 4);
       ret = dts.shopname + 'の悪い噂を流す作戦が成功しました';
       log(g, 0, dt.id, ret);
-      log(g, 3, 0, dts.shopname + 'の悪い噂が広まり人気が下がりました');
+      log(g, 3, 0, dts.shopname + 'の悪い噂が広まり人気が下がりました', true);
       if (u.arg.message) log(g, 2, 0, dt.shopname + 'からの犯行声明:「' + u.arg.message + '」');
     } else {
       dt.rank -= Math.trunc(dt.rank / 2);
       ret = dts.shopname + 'の悪い噂を流す作戦が失敗しました';
       log(g, 0, dt.id, ret);
-      log(g, 3, 0, dt.shopname + 'が' + dts.shopname + 'の悪い噂を流そうと画策していたようです');
+      log(g, 3, 0, dt.shopname + 'が' + dts.shopname + 'の悪い噂を流そうと画策していたようです', true);
     }
     return ret;
   },
@@ -300,9 +301,9 @@ export const USE_FUNCS: Record<string, UseFunc> = {
         dt.rank -= Math.trunc(dt.rank / 2);
         if (g.rand(1000) < 700) {
           dts.item[robot - 1]--;
-          log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入り${g.items[robot].name}を破壊しましたが結局捕まりました`);
+          log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入り${g.items[robot].name}を破壊しましたが結局捕まりました`, true);
         } else {
-          log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入りましたが${g.items[robot].name}に捕まりました`);
+          log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入りましたが${g.items[robot].name}に捕まりました`, true);
         }
       } else {
         let manbikiCount = 0;
@@ -317,13 +318,13 @@ export const USE_FUNCS: Record<string, UseFunc> = {
           }
         }
         ret = '万引きは成功しました';
-        if (manbikiCount) log(g, 2, 0, `${dts.shopname}が総額￥${manbikiCount}の万引き被害に遭いました`);
+        if (manbikiCount) log(g, 2, 0, `${dts.shopname}が総額￥${manbikiCount}の万引き被害に遭いました`, true);
         if (u.arg.message && manbikiCount) log(g, 2, 0, dt.shopname + 'からの犯行声明:「' + u.arg.message + '」');
-        if (!manbikiCount) log(g, 2, 0, dts.shopname + 'に入った万引き犯は何も取らずに逃げました');
+        if (!manbikiCount) log(g, 2, 0, dts.shopname + 'に入った万引き犯は何も取らずに逃げました', true);
       }
     } else {
       dt.rank -= Math.trunc(dt.rank / 3);
-      log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入りましたが失敗しました`);
+      log(g, 3, 0, `${dt.shopname}が${dts.shopname}へ万引きに入りましたが失敗しました`, true);
     }
     log(g, 0, dt.id, ret);
     return ret;

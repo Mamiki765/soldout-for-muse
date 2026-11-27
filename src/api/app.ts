@@ -40,6 +40,7 @@ import { checkOwnerName, OwnerHub } from './owners.js';
 import { MailBox, mailListData, mailListText, mailThreadData, mailThreadText } from './mail.js';
 import { MOVE_ITEM, MOVE_TIME, PAINT_ITEM, PAINT_TIME, TownService, type ShopInfo } from '../town/town.js';
 import * as tv from './town-view.js';
+import { Tavern, TavernError, type TavernMessage } from './tavern.js';
 
 export interface AppOptions {
   store: Store;
@@ -81,6 +82,8 @@ export interface AppOptions {
   assetsBaseUrl?: string;
   /** 許可証の枠とキット (kit/) */
   kitDir?: string;
+  /** Muse Party の「商店街の酒場」とのつなぎ (1.8.0)。無ければ井戸端・掲示板は前のまま */
+  tavern?: Tavern;
   /** 指定した起動時だけ、欠けている職・商人ポイントを移し替える。空配列なら現在の保存だけで試算する。 */
   fairyBackfill?: readonly FairyBackfillSnapshot[];
 }
@@ -119,6 +122,8 @@ const SEEN_LOG_ME = '_api_seen_log_me';
 const SEEN_LOG_TOWN = '_api_seen_log_town';
 const SEEN_CHAT = '_api_seen_chat';
 const SEEN_BBS = '_api_seen_bbs';
+/** 商店街の酒場 (Party) の既読の位置。Party の発言番号 (1.8.0) */
+const SEEN_TAVERN = '_api_seen_tavern';
 const SEEN_SUGGEST = '_api_seen_suggest';
 /** 店に【更新】の通知を出した版 (届けたかどうか。読んだかどうかとは別) */
 const SEEN_VERSION = '_seen_version';
@@ -151,6 +156,8 @@ export class App {
   readonly mail: MailBox;
   /** 街の地図と住所 (1.2.0) */
   readonly town: TownService;
+  /** 商店街の酒場 (1.8.0) */
+  readonly tavern: Tavern | undefined;
   world: World;
   private images = new Map<string, Buffer>();
   private buckets = new Map<string, { tokens: number; at: number; cap: number }>();
@@ -178,6 +185,7 @@ export class App {
           this.rateLimit('party', this.partyChecksPerMinute, '混み合っています (Muse Party への確認が集中しています)'))
       : undefined;
     this.partyPublicUrl = (o.partyPublicUrl ?? '').replace(/\/$/, '');
+    this.tavern = o.tavern;
     this.basePath = (o.basePath ?? '').replace(/\/+$/, '');
     if (this.basePath && !this.basePath.startsWith('/')) this.basePath = '/' + this.basePath;
     this.world = this.store.loadWorld(this.clock());
@@ -347,6 +355,8 @@ export class App {
     try {
       if (this.worldNeedsReload) throw new Error('保存済みの街を読み直せていません');
       this.store.saveWorld(this.world, newLogs, now, this.config.logExpireTime * 2, extra);
+      // 保存できた出来事のうち大きいものを、街の噂として酒場へ (送るのは後でまとめて)
+      this.tavern?.onLogs(newLogs);
     } catch (e) {
       this.reloadWorld();
       throw e;
@@ -924,6 +934,8 @@ export class App {
         }
         case '/chat':
         case '/bbs':
+          // 1.8.0: 井戸端・掲示板は商店街の酒場 (Party) へ引っ越し。?legacy=1 で前の書き込みを読める
+          if (this.tavern?.internalReady && q.get('legacy') !== '1') return this.readTavern(dt, q, readonly);
           return this.readBoard(dt, p.slice(1) as 'chat' | 'bbs', q);
         case '/mail':
           return this.mailList(g, dt, q);
@@ -976,8 +988,15 @@ export class App {
           return this.actions(shopId, body, wantJson, typeof h === 'string' ? h : undefined);
         }
         case '/chat':
-        case '/bbs':
+        case '/bbs': {
+          // 1.8.0: Party のトークンなら、そのまま商店街の酒場へ送る (前の書き方のままでも届く)
+          const token = this.bearer(req);
+          if (this.tavern?.internalReady && token && !token.startsWith('so_') && this.store.isPartyShop(shopId)) {
+            const h = req.headers['idempotency-key'];
+            return this.postTavern(token, body, typeof h === 'string' ? h : undefined);
+          }
           return this.post(shopId, p.slice(1) as 'chat' | 'bbs', body);
+        }
         case '/view-link':
           return this.viewLink(shopId, body);
         case '/suggest':
@@ -1023,7 +1042,7 @@ export class App {
     // 招待コードで開店する人の金庫が、別の値 (ココア鯖のトークンなど) を勝手に付けて送ってくることがある。
     // 招待コードが入っていれば、そちらで開店できるようにする (v0.2.1 までの厳しい読み方では、Bearer なしの値は無視されて通っていた)
     if (bearer && this.party && !bearer.startsWith('so_') && !who && !body.invite) throw this.badToken(bearer, true);
-    if (who) return this.registerParty(who, body);
+    if (who) return this.registerParty(who, body, bearer!);
     const inviteFail = `招待コードの失敗は全体で1分${this.inviteFailPerMinute}回まで`;
     this.rateLimit('invite-fail', this.inviteFailPerMinute, inviteFail, false);
     const invite = String(body.invite ?? '');
@@ -1062,7 +1081,7 @@ export class App {
   }
 
   /** Muse Party の人の開店。招待コードは要らず、トークンも Party のものをそのまま使う */
-  private registerParty(who: PartyWho, body: Record<string, unknown>): Reply {
+  private registerParty(who: PartyWho, body: Record<string, unknown>, token: string): Reply {
     const had = this.store.shopIdByPartyOwner(who.ownerId);
     const open = had !== undefined ? this.world.shops.find((s) => s.id === had && s.status) : undefined;
     if (open) {
@@ -1085,8 +1104,15 @@ export class App {
     const text =
       `OK ${GAME_TITLE} に ${shop.shopname} を開店しました (店id ${shop.id})\n` +
       'Muse Party のトークンをそのまま Authorization: Bearer に入れて遊べます。\n' +
-      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n';
-    return { status: 201, text, json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party' } };
+      'まず GET /api/v1/tutorial (はじめかた) と GET /api/v1/help (操作のしかた) を読んでください。コツ集 GET /api/v1/tips もあります。\n' +
+      (this.tavern?.internalReady ? this.tavern.guide() + ' (酒場には入っておきました)\n' : '');
+    // 開店したら酒場に入れておく (失敗しても開店は止めない。Party のルールを了承していなければ、了承したあと自分で入れる)
+    if (this.tavern?.internalReady) void this.tavern.join(token).catch(() => undefined);
+    return {
+      status: 201,
+      text,
+      json: { ok: true, shop_id: shop.id, name: shop.name, shopname: shop.shopname, token: 'party', ...(this.tavern?.internalReady ? { tavern: { room: this.tavern.room, title: this.tavern.title, guide: this.tavern.guide() } } : {}) },
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -1506,9 +1532,11 @@ export class App {
     return {
       newMine: this.store.countLogsSince(dt.id, seen.me, 'me'),
       newTown: this.store.countLogsSince(dt.id, seen.town, 'town'),
-      newChat: countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
+      newChat: this.tavern?.internalReady
+        ? this.tavernUnread(dt)
+        : countAbove(this.store.lastPostId('chat'), Number(dt.user[SEEN_CHAT] ?? 0), () => this.store.readPosts('chat', Number(dt.user[SEEN_CHAT] ?? 0), 100).length),
       newReplies: this.store.countSuggestionUpdates(dt.id, Number(dt.user[SEEN_SUGGEST] ?? 0)),
-      newBbs: countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
+      newBbs: this.tavern?.internalReady ? 0 : countAbove(this.store.lastPostId('bbs'), Number(dt.user[SEEN_BBS] ?? 0), () => this.store.readPosts('bbs', Number(dt.user[SEEN_BBS] ?? 0), 100).length),
       ...this.mailUnread(dt.id),
     };
   }
@@ -1580,6 +1608,114 @@ export class App {
     const left = this.store.lastPostId(board) > Math.max(seen, last) ? this.store.readPosts(board, Math.max(seen, last), 100).length : 0;
     const text = v.postsText(posts) + (left ? `(まだ未読が${left}件あります。もう一度 GET すると続きを読めます)\n` : '');
     return { status: 200, text, json: posts, headers: { 'x-unread-left': String(left) } };
+  }
+
+  // ---- 商店街の酒場 (1.8.0) ----
+
+  /** digest の「酒場N」: 覚えている最近の発言のうち未読の数 (Party には1分に1回だけ聞く) */
+  private tavernUnread(dt: Shop): number {
+    const t = this.tavern!;
+    void t.refreshRecent();
+    const seen = Number(dt.user[SEEN_TAVERN] ?? 0);
+    // まだ一度も読んでいない店は、今ある分を未読と数えない (引っ越し直後に全部が未読に見えないように)
+    if (!seen) return 0;
+    return t.unreadSince(seen);
+  }
+
+  /** GET /chat /bbs: 酒場を読む。since・all が無ければ未読ぶんを古い順に返して既読にする */
+  private async readTavern(dt: Shop, q: URLSearchParams, readonly: boolean): Promise<Reply> {
+    const t = this.tavern!;
+    const limit = clampNum(q.get('limit'), 1, 100, 30);
+    const seen = Number(dt.user[SEEN_TAVERN] ?? 0);
+    let after: number | undefined;
+    if (q.get('since') !== null) after = clampNum(q.get('since'), 0, Number.MAX_SAFE_INTEGER, 0);
+    else if (q.get('all') !== '1' && !readonly && seen) after = seen;
+    let r: { messages: TavernMessage[]; latest: number };
+    try {
+      r = await t.read(after, limit);
+    } catch (e) {
+      throw this.tavernHttp(e);
+    }
+    if (!readonly && q.get('since') === null && r.latest > seen) {
+      const g = this.game().g;
+      const me = this.me(g, dt.id);
+      me.user[SEEN_TAVERN] = String(r.latest);
+      this.persist([], this.clock());
+    }
+    const lines = r.messages.map((m) => {
+      const shop = m.shop ? `［${m.shop.open ? m.shop.name + ' ' : '閉店中 '}${m.shop.som}］` : '';
+      const time = new Date(m.at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return `#${m.id} ${time} ${m.from}${shop}: ${m.redacted ? '(削除されました)' : m.text}`;
+    });
+    const text =
+      `【${t.title}】(Muse Party) ${lines.length ? '' : '新しい発言はありません'}\n` +
+      (lines.length ? lines.join('\n') + '\n' : '') +
+      `次の差分: ?since=${r.latest}\n${t.guide()}\n`;
+    return {
+      status: 200,
+      text,
+      json: { room: t.room, title: t.title, messages: r.messages, latest: r.latest, post: `${t.publicBase}/api/rooms/${t.room}/messages`, legacy: '?legacy=1 で SOLD OUT の前の書き込み' },
+    };
+  }
+
+  /** POST /chat /bbs: 本人の Party トークンで酒場へ送る */
+  private async postTavern(token: string, body: Record<string, unknown>, idem?: string): Promise<Reply> {
+    const t = this.tavern!;
+    const text = String(body.text ?? body.msg ?? '').trim();
+    if (!text) throw new GameError('書き込む内容がありません');
+    let id: number;
+    try {
+      ({ id } = await t.post(token, text, idem ? 'so-' + idem.slice(0, 60) : undefined));
+    } catch (e) {
+      throw this.tavernHttp(e);
+    }
+    return {
+      status: 200,
+      text: `OK Muse Party の「${t.title}」に送りました (Party の発言 ${id})\n次からは Party に直接書けます: POST ${t.publicBase}/api/rooms/${t.room}/messages {"text":"..."}\n`,
+      json: { ok: true, id, room: t.room, title: t.title, post: `${t.publicBase}/api/rooms/${t.room}/messages` },
+    };
+  }
+
+  private tavernHttp(e: unknown): HttpError {
+    if (e instanceof TavernError) return new HttpError(e.status, e.message, e.retryAfter);
+    return new HttpError(503, 'Muse Party の酒場とつなげませんでした。少し待ってからもう一度', 30);
+  }
+
+  /** 店名表記の表 (Party の owner_id → 店主ID・店名。閉店中は店名なし) */
+  tavernBadges(): { owner_id: string; som: string; shop: string }[] {
+    const open = new Map(this.world.shops.filter((s) => s.status).map((s) => [s.id, s.shopname]));
+    return this.store
+      .ownersSince(0)
+      .filter((o) => o.party_owner_id)
+      .map((o) => ({ owner_id: o.party_owner_id!, som: o.som, shop: o.shop_id != null ? open.get(o.shop_id) ?? '' : '' }));
+  }
+
+  /** 井戸端・掲示板に残っている書き込みを、酒場へ本人の発言として一度だけ移す (Party にいない店は店名を頭に) */
+  async importLegacyBoards(): Promise<{ posted: number; skipped: number } | null> {
+    const t = this.tavern;
+    if (!t?.internalReady || this.store.getSetting('tavern_imported') === '1') return null;
+    const posts = [...this.store.readPosts('chat', 0, 1000), ...this.store.readPosts('bbs', 0, 1000)].sort((a, b) => a.time - b.time || a.id - b.id);
+    const unescape = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    const items = posts.map((p) => {
+      const owner = this.store.partyOwnerOfShop(p.shop_id) ?? this.store.ownerByShop(p.shop_id)?.party_owner_id ?? '';
+      return { owner_id: owner, text: unescape(p.msg), created_at: p.time, client_id: `so-${p.board}-${p.id}`, name: p.shopname };
+    });
+    const r = items.length ? await t.importLegacy(items) : { posted: 0, skipped: 0 };
+    this.store.setSetting('tavern_imported', '1');
+    return r;
+  }
+
+  /** 酒場とのやり取りを回す (起動のときに1回呼ぶ)。噂は1分ごと、店名表記は5分ごと */
+  startTavern(): void {
+    const t = this.tavern;
+    if (!t?.internalReady) return;
+    const badges = () => t.sendBadges(this.tavernBadges()).catch((e) => console.warn('店名表記を送れませんでした: ' + (e as Error).message));
+    void this.importLegacyBoards()
+      .then((r) => r && console.log(`井戸端・掲示板を酒場へ移しました: ${r.posted}件 (重複 ${r.skipped}件)`))
+      .catch((e) => console.warn('井戸端・掲示板を移せませんでした (次の起動でもう一度): ' + (e as Error).message));
+    void badges();
+    setInterval(() => void t.flushNews(), 60 * 1000).unref();
+    setInterval(() => void badges(), 5 * 60 * 1000).unref();
   }
 
   /** 原作 WriteBBS: 掲示板・井戸端への書き込み */
