@@ -146,7 +146,14 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   if (tw) warnings.push(tw);
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
   const est = periodEstimate(g, dt);
-  if (est.short > 0) warnings.push(`このままだと決算で倒産の恐れ (見込み支払い${est.total}に対し資金+入金庫${est.available}、不足${est.short})`);
+  if (est.short > 0) {
+    // 決算は資金+入金庫の合計から払うので、引き出しでは不足は縮まない (縮むのは入金庫の税だけ)。何を減らせば縮むかを添える (1.8.3)
+    const cuts = ['棚を減らして棚の維持費を下げる', '売れない在庫を処分するか棚に並べて維持費を下げる', ...(est.tax > 0 ? ['入金庫の税は決算前に資金へ移すと減る'] : [])];
+    warnings.push(
+      `このままだと決算で倒産の恐れ (見込み支払い${est.total} = 維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax} に対し資金+入金庫${est.available}、不足${est.short})。` +
+        `決算は資金と入金庫の合計から払うので、入金庫から資金へ移しても不足は縮みません。縮めるには: ${cuts.join('、')}`,
+    );
+  }
   // 自分の募集 (締めたときの破棄の注意も)。ほかの店の募集で自分の在庫を欲しがるものは wantedFor (1.7.0)
   const myOrders: string[] = [];
   const discards = discardPlan(g, dt);

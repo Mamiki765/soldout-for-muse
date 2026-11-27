@@ -137,18 +137,26 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
     const s = dts;
     stockOf = (no) => s.item[no - 1] ?? 0;
   }
+  // 失敗したとき、何を読み直せばよいか (1.8.3。同じ注文を送り直して同じ失敗を繰り返さないように)
+  const lookAgain = isWhole
+    ? `今の市場は GET /api/v1/market、ほかの店の棚は GET /api/v1/shops?item=${itemno} で確かめてください`
+    : `今その品を並べている店は GET /api/v1/shops?item=${itemno}、市場は GET /api/v1/market で確かめてください`;
+  if (itemno < 1 || itemno > g.maxItem) throw new GameError('そんなアイテムはないです。');
   let slot = req.slot ?? showcase.indexOf(itemno);
   slot = Math.trunc(slot);
-  if (slot < 0 || slot >= showcase.length) throw new GameError('そんな陳列棚はありません');
-  if (itemno < 1 || itemno > g.maxItem) throw new GameError('そんなアイテムはないです。');
-  if (!stockOf(itemno)) throw new GameError('アイテムの在庫がありません。');
+  if (slot < 0 || slot >= showcase.length) {
+    throw new GameError(req.slot === undefined
+      ? `${isWhole ? '市場' : dts!.shopname + 'の棚'}に${g.items[itemno].name}は今並んでいません。${lookAgain}`
+      : `そんな陳列棚はありません (${isWhole ? '市場' : dts!.shopname}の棚は1〜${showcase.length}番です)`);
+  }
+  if (!stockOf(itemno)) throw new GameError(`アイテムの在庫がありません (${g.items[itemno].name}は売り切れです)。${lookAgain}`);
   if (!isWhole && g.itemFlag(itemno, 'nobuy')) throw new GameError('この商品は購入不可です');
 
   const baseprice = prices[slot];
   // ギルドはこの移植では未実装 (常に「片方または双方ギルド無所属」扱い)
   const price = baseprice;
   if (itemno !== showcase[slot] || (req.expectPrice !== undefined && req.expectPrice !== price)) {
-    throw new GameError(`商品や価格が変化したようです (今は ${showcase[slot] ? g.items[showcase[slot]].name : '空'} ￥${price}。確かめてから送り直してください)`);
+    throw new GameError(`商品や価格が変化したようです (今は ${showcase[slot] ? g.items[showcase[slot]].name : '空'} ￥${price}。${itemno === showcase[slot] ? `この値段で買うなら price を ${price} にして送り直してください。` : ''}${lookAgain})`);
   }
 
   // 買える数が0になった理由を原作の文に添える (何を直せばよいか分かるように)
@@ -231,7 +239,6 @@ export function editShowcase(g: Game, dt: Shop, req: ShowcaseRequest): string {
   const itemno = Math.trunc(req.itemno);
   const per = clampInt(req.percent ?? 100, 1, 200);
   const yen = clampInt(req.price ?? 0, 0, g.maxMoney);
-  g.useTime(CATALOG.timeEditShowcase);
   if (no < 0 || no >= dt.showcasecount) throw new GameError(`不正な要求です (棚は1〜${dt.showcasecount}番です)`);
   if (itemno < 0 || itemno > g.maxItem) throw new GameError(`不正な要求です (品番は1〜${g.maxItem}、棚を空にするときは0です)`);
   if (per <= 0 && yen <= 0) throw new GameError('不正な要求です (price か percent を指定してください)');
@@ -242,15 +249,22 @@ export function editShowcase(g: Game, dt: Shop, req: ShowcaseRequest): string {
     price = yen !== 0 ? yen : Math.trunc((g.items[itemno].price / 100) * per);
   }
   if (price > g.maxMoney) price = g.maxMoney;
+  if (!(itemno && price)) price = 0;
+  const setItem = price ? itemno : 0;
+  // 今と同じ品・同じ値段 (やめるときは、もう空) なら何も変えず、時間も使わない (1.8.3)。
+  // 成功した行動なので、ほかの行動と同じく不在閉店までの日数は延びる
+  if (dt.showcase[no] === setItem && dt.price[no] === price) {
+    return setItem
+      ? `棚${no + 1}には今も${g.items[setItem].name}が${price}円で並んでいます。変更なし (時間は使っていません)`
+      : `棚${no + 1}は今も空です。変更なし (時間は使っていません)`;
+  }
+  g.useTime(CATALOG.timeEditShowcase);
   let ret: string;
-  let setItem = itemno;
-  if (itemno && price) {
+  if (setItem) {
     ret = `棚${no + 1}に${g.items[itemno].name}を${price}円で陳列`;
     g.writeLog(0, dt.id, 0, ret);
     g.writeLog(0, 0, 0, `${dt.shopname}で${g.items[itemno].name}が${price}円にて陳列されました`);
   } else {
-    setItem = 0;
-    price = 0;
     ret = `棚${no + 1}への陳列をやめました`;
     g.writeLog(0, dt.id, 0, ret);
   }
@@ -273,8 +287,16 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   if (!(money > 0)) throw new GameError('金額が不正です');
   if (dt.money + money > g.maxMoney) money = g.maxMoney - dt.money;
   if (money > dt.moneystock) money = dt.moneystock;
+  if (!(money > 0)) throw new GameError(dt.moneystock > 0 ? `資金がもう上限 (￥${g.maxMoney}) です` : '入金庫は空です');
   const usetime = g.timeDeal(money, undefined, undefined, dt);
-  if (g.usableTime(dt) < usetime) throw new GameError('時間が足りません');
+  if (g.usableTime(dt) < usetime) {
+    // 何度送っても同じなので、今引き出せる額を添える (1.8.3)
+    const max = maxDeposit(g, dt);
+    throw new GameError(
+      `時間が足りません (￥${money}の引き出しには${formatHms(usetime)}、使える持ち時間は${formatHms(g.usableTime(dt))})。` +
+        (max > 0 ? `今引き出せるのは￥${max}までです ("amount":"max" で同じ額)` : '今は1円も引き出せません。持ち時間が戻ってから送ってください'),
+    );
+  }
   dt.money += money;
   dt.moneystock -= money;
   g.useTime(usetime);
