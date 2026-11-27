@@ -13,6 +13,7 @@ import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { shelfNoticeOn, tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { onShelf, onShelfLine } from '../engine/onshelf.js';
+import { inWarehouseLine, inWarehouses } from '../engine/surplus.js';
 import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel, thanksHint, wantedFor } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
@@ -196,6 +197,8 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
     my_orders: myOrders,
     /** 欲しい品 (自分の募集の品・材料だけ足りない作り方の材料) がほかの店の棚にある (engine/onshelf.ts)。{"type":"tutorial","shelf":false} で出さない */
     on_shelves: shelfNoticeOn(dt) ? onShelf(g, dt, g.now) : [],
+    /** 足りない材料が棚にも市場にも無いが、ほかの店の倉庫にはある (品と店数。1.8.2、engine/surplus.ts)。on_shelves と同じスイッチ */
+    in_warehouses: shelfNoticeOn(dt) ? inWarehouses(g, dt) : [],
     /** 手引きの次の段と、状況別のヒント (どちらも OFF にできる。engine/tutorial.ts) */
     tutorial: tutorialDigest(g, dt),
     /** 自分の品で、前の決算から相場・市場の単価が ±20% 以上動いたもの (0.6.0) */
@@ -258,6 +261,8 @@ export function digestText(d: ReturnType<typeof digestData>): string {
   // 欲しい品がほかの店の棚にある (品と店数だけ。単価は /shops で)
   const shelfLine = onShelfLine(d.on_shelves);
   if (shelfLine) lines.push(shelfLine);
+  const whLine = inWarehouseLine(d.in_warehouses);
+  if (whLine) lines.push(whLine);
   lines.push(...d.town);
   lines.push(...d.surveys);
   if (d.update) lines.push(d.update);

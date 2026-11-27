@@ -64,7 +64,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.8.1"
+      "version" : "1.8.2"
    },
    "errors" : [],
    "events" : [
@@ -2924,7 +2924,7 @@
                "no" : 0,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -2979,7 +2979,7 @@
                "no" : 1,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3034,7 +3034,7 @@
                "no" : 2,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3084,7 +3084,7 @@
                "no" : 3,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3134,7 +3134,7 @@
                "no" : 4,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3189,7 +3189,7 @@
                "no" : 5,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3239,7 +3239,7 @@
                "no" : 6,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -3249,7 +3249,7 @@
                "use" : []
             }
          ],
-         "wslimit" : 0.7
+         "wslimit" : 1.5
       },
       {
          "code" : "book-make",
@@ -4044,7 +4044,7 @@
                "no" : 0,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4110,7 +4110,7 @@
                "no" : 1,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4176,7 +4176,7 @@
                "no" : 2,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4242,7 +4242,7 @@
                "no" : 3,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4307,7 +4307,7 @@
                "no" : 4,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4367,7 +4367,7 @@
                "no" : 5,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4427,7 +4427,7 @@
                "no" : 6,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4477,7 +4477,7 @@
                "no" : 7,
                "okmsg" : null,
                "params" : [
-                  "100",
+                  "50",
                   null,
                   null,
                   null
@@ -4487,7 +4487,7 @@
                "use" : []
             }
          ],
-         "wslimit" : 1
+         "wslimit" : 2
       },
       {
          "code" : "book-work",
@@ -12368,7 +12368,7 @@
                ]
             }
          ],
-         "wslimit" : 0.1
+         "wslimit" : 0.3
       },
       {
          "code" : "edit-showcase",
@@ -15844,7 +15844,7 @@
          "sort" : 0,
          "type" : 1,
          "uses" : [],
-         "wslimit" : 50
+         "wslimit" : 300
       },
       {
          "code" : "dagger",

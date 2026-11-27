@@ -85,12 +85,15 @@ export function wearStep(g: Game, dt: Shop, itemno: number, wear: number): boole
   return true;
 }
 
-/** 本・地図を wear だけ傷め、寿命に届いたら1冊破棄する。結果に耐久の%を出す */
-function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number): string {
+/** 1回に1セット (1往復) だけ使ったときに耐久の行へ添える一言 (1.8.2)。置き場の本・地図は何セットまとめても傷むのは1回分 */
+export const BATCH_WEAR_TIP = 'まとめて実行しても傷むのは1回分';
+
+/** 本・地図を wear だけ傷め、寿命に届いたら1冊破棄する。結果に耐久の%を出す。tip は耐久の行に添える一言 */
+function addBookWear(g: Game, dt: Shop, u: RtUse, itemno: number, wear: number, tip = ''): string {
   if (!(wear > 0) || !(dt.item[itemno - 1] > 0)) return '';
   const name = g.items[itemno].name;
   if (wearStep(g, dt, itemno, wear)) itemUseItem(dt, u, itemno, 1, name + 'が読めない程ボロボロになりましたので破棄しました');
-  return durabilityLine(g, dt, itemno, '耐久', 'いつ壊れてもおかしくない。同じ品を買い足しても耐久は戻りません');
+  return durabilityLine(g, dt, itemno, '耐久', 'いつ壊れてもおかしくない。同じ品を買い足しても耐久は戻りません') + (tip ? ` (${tip})` : '');
 }
 
 const ROBOT = (): number => itemNoByName('店番ロボット');
@@ -114,9 +117,10 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // ★本or地図がボロボロになって破棄するという処理
   // 1.1.0: 原作は毎回 rand(1000)<param1 で壊れていたが、運の偏りで続けて壊れることがあったので耐久値制にした。
   // 1回ごとに param1/1000 だけ傷み、寿命 (0.7〜1.3、平均1) に届いたら壊れる。長い目で見た壊れる冊数は原作と同じ。
-  lostbook(g, dt, u) {
+  // 1.8.2: 1セット (1往復) だけのときは、まとめても傷みは1回分だと耐久の行に添える
+  lostbook(g, dt, u, { count }) {
     const itemno = u.itemno;
-    return addBookWear(g, dt, u, itemno, Number(u.params[0]) / 1000);
+    return addBookWear(g, dt, u, itemno, Number(u.params[0]) / 1000, count === 1 ? BATCH_WEAR_TIP : '');
   },
 
   // v0.3.0: 置き場の本のすり切れ (lostbook と同じ) に加え、道具の本 params[1] が1セットごとに params[2]/1000 ですり切れる。

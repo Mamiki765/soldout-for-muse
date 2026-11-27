@@ -81,12 +81,16 @@ test('v0.3.0/1.1.0: 調香の手引き・乳菓のレシピは1回の実行で 1
   }
 });
 
-test('v0.3.0/1.1.0: 新しい行き先は費用0円、港町・隊商は地図が15%、霊草の谷は10%ずつ傷む', () => {
+test('v0.3.0/1.1.0: 新しい行き先は費用0円、港町・隊商は剣の市場より地図が傷み、霊草の谷は山の地図のほかの行き先と同じだけ傷む', () => {
+  // 傷みの量そのものはデータ (1.8.2 で鉱山・山の地図は半分) にだけ置き、ここでは行き先どうしの大小を確かめる
+  const base = (book: number, name: string) => Number(BASE_ITEMS[book].uses.find((x) => x.name === name)!.params[0]);
+  const old = BASE_ITEMS[14].uses.find((x) => x.name === '剣の市場へ仕入に行く')!;
   for (const spec of v030.gathering) {
     const u = BASE_ITEMS[spec.book].uses.find((x) => x.name === spec.name)!;
     assert.equal(u.money, 0, spec.name);
-    const wear = spec.name === '霊草の谷を探す' ? 100 : 150;
-    assert.equal(Number(u.params[0]), wear, spec.name);
+    const wear = Number(u.params[0]);
+    if (spec.name === '霊草の谷を探す') assert.equal(wear, base(12, '山のふもとを探索'), spec.name);
+    else assert.ok(wear > Number(old.params[0]), spec.name);
     for (const lost of [true, false]) {
       const { g, dt } = fixture(0.5);
       dt.job = u.jobs[0].job;
@@ -97,8 +101,7 @@ test('v0.3.0/1.1.0: 新しい行き先は費用0円、港町・隊商は地図�
       assert.equal(dt.item[spec.book - 1], lost ? 1 : 2, `${spec.name}`);
     }
   }
-  const old = BASE_ITEMS[14].uses.find((x) => x.name === '剣の市場へ仕入に行く')!;
-  assert.deepEqual([old.money, Number(old.params[0])], [5000, 100], '既存の剣市はそのまま');
+  assert.ok(old.money > 0, '既存の剣市は費用がかかる');
 });
 
 test('v0.3.0: 開催中のイベントは新しい品の値を書き換える (エリクシルはポーションブームに乗る)', () => {
