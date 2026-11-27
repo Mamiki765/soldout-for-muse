@@ -91,3 +91,21 @@ test('1.8.4: すり減って在庫がなくなると効果は止まり、在庫�
   assert.equal(a.rank, after, '首飾りが無ければ人気は上がらない');
   assert.equal(a.item[NAYUTA - 1], 0);
 });
+
+test('1.8.4: 長い間をまとめて計算しても、尽きた首飾りは全部なくなる (1回の計算で1個に限らない)', () => {
+  const { g, shops } = fixture();
+  const [a] = shops;
+  const limit = g.items[NAYUTA].limit;
+  display(a, 0, g.items[NAYUTA].price, limit);
+  // 寿命のいちばん短い首飾りが続く場合でも、1決算ぶんを1回で計算して、尽きた分が全部減るか
+  a.bookwear = { [NAYUTA]: [BOOK_LIFE_MIN - 1e-6, BOOK_LIFE_MIN] };
+  const item = g.items[NAYUTA];
+  const rand = g.rand.bind(g);
+  g.rand = (n: number) => 0 * n; // 新しい寿命は BOOK_LIFE_MIN
+  const lifeWear = Number(item.param) / 1000; // 1決算の傷み
+  turnFn(g, item, [a], PERIOD);
+  g.rand = rand;
+  const expected = 1 + Math.floor(lifeWear / BOOK_LIFE_MIN);
+  assert.equal(limit - a.item[NAYUTA - 1], Math.min(limit, expected));
+  assert.ok(a.item[NAYUTA - 1] >= 0);
+});

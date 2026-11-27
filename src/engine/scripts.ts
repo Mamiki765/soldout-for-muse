@@ -498,9 +498,13 @@ export const TURN_FUNCS: Record<string, TurnFunc> = {
         dt.rank += rankup;
         capRank(dt);
       }
-      if (wear > 0 && dt.item[item.no - 1] > 0 && wearStep(g, dt, item.no, wear)) {
-        dt.item[item.no - 1]--;
-        log(g, 0, dt.id, item.name + 'が1つすり減ってなくなりました');
+      const have = dt.item[item.no - 1];
+      if (wear > 0 && have > 0 && wearStep(g, dt, item.no, wear)) {
+        // まとめて計算したとき (長く誰も来なかったあと) は、寿命の短い首飾りが続けて尽きることがある。牛と同じく残りも数える
+        let lost = 1;
+        while (lost < have && wearStep(g, dt, item.no, 0)) lost++;
+        dt.item[item.no - 1] -= lost;
+        log(g, 0, dt.id, `${item.name}が${lost}つすり減ってなくなりました`);
       }
     }
   },
