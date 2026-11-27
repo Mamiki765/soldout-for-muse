@@ -129,7 +129,7 @@ test('棚の陳列などふつうの行動でもクーポンが減る', () => {
   const { g, dt } = setup();
   g.dt = dt;
   const time0 = dt.time;
-  // 1.8.3 から、今と同じ陳列 (空の棚を空に) は時間を使わないので、品を並べる
+  // 1.9.0 から、今と同じ陳列 (空の棚を空に) は時間を使わないので、品を並べる
   dt.item[0] = 1;
   editShowcase(g, dt, { slot: 0, itemno: 1 });
   assert.ok(g.couponTime(dt) < 48 * H);

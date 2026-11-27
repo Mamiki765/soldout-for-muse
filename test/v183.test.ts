@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 1.8.3 AI がはまる落とし穴 (同じ陳列・仕入れの失敗・倒産警告と引き出し) の決まりのテスト。
+// SOLD OUT for Muse — 1.9.0 AI がはまる落とし穴 (同じ陳列・仕入れの失敗・倒産警告と引き出し) の決まりのテスト。
 // 時間や値段の数字はデータの1か所だけに置き、ここでは「減らない」「変わらない」「次の一手が書いてある」を確かめる。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
@@ -30,7 +30,7 @@ function fixture(noCoupon = false) {
   return { g, a, b };
 }
 
-test('1.8.3: 同じ棚に同じ品・同じ値段で並べ直しても、持ち時間は減らず棚も変わらない', () => {
+test('1.9.0: 同じ棚に同じ品・同じ値段で並べ直しても、持ち時間は減らず棚も変わらない', () => {
   const { g, a } = fixture();
   a.item[HERB - 1] = 5;
   editShowcase(g, a, { slot: 0, itemno: HERB, percent: 100 });
@@ -56,7 +56,7 @@ test('1.8.3: 同じ棚に同じ品・同じ値段で並べ直しても、持ち�
   assert.equal(a.time, time3);
 });
 
-test('1.8.3: 同じ陳列は時間待ちの最中でも失敗しない (変えるときは今までどおり待ちが要る)', () => {
+test('1.9.0: 同じ陳列は時間待ちの最中でも失敗しない (変えるときは今までどおり待ちが要る)', () => {
   const { g, a } = fixture(true);
   a.item[HERB - 1] = 5;
   editShowcase(g, a, { slot: 0, itemno: HERB, percent: 100 });
@@ -65,7 +65,7 @@ test('1.8.3: 同じ陳列は時間待ちの最中でも失敗しない (変え�
   assert.throws(() => editShowcase(g, a, { slot: 0, itemno: HERB, price: a.price[0] + 1 }), GameError);
 });
 
-test('1.8.3: 仕入れの失敗は時間を使わず、何を読み直すか (棚・市場の調べ方) を返す', () => {
+test('1.9.0: 仕入れの失敗は時間を使わず、何を読み直すか (棚・市場の調べ方) を返す', () => {
   const { g, a, b } = fixture();
   const time0 = a.time;
   const money0 = a.money;
@@ -84,7 +84,7 @@ test('1.8.3: 仕入れの失敗は時間を使わず、何を読み直すか (�
   assert.equal(a.money, money0);
 });
 
-test('1.8.3: 引き出しが時間不足で失敗したら、今引き出せる額が書いてあり、その額なら引き出せる', () => {
+test('1.9.0: 引き出しが時間不足で失敗したら、今引き出せる額が書いてあり、その額なら引き出せる', () => {
   const { g, a } = fixture(true);
   a.moneystock = g.maxMoney - a.money;
   // 引き出しの基本の時間は使えて、全額には足りない持ち時間にする
@@ -101,7 +101,7 @@ test('1.8.3: 引き出しが時間不足で失敗したら、今引き出せる�
   assert.doesNotThrow(() => deposit(g, a, max));
 });
 
-test('1.8.3: 入金庫の税が無いとき、入金庫から資金へ移しても決算の不足は縮まない。注意は引き出しを勧めない', () => {
+test('1.9.0: 入金庫の税が無いとき、入金庫から資金へ移しても決算の不足は縮まない。注意は引き出しを勧めない', () => {
   const { g, a } = fixture();
   a.showcasecount = 8;
   a.money = 0;

@@ -147,7 +147,7 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
   const est = periodEstimate(g, dt);
   if (est.short > 0) {
-    // 決算は資金+入金庫の合計から払うので、引き出しでは不足は縮まない (縮むのは入金庫の税だけ)。何を減らせば縮むかを添える (1.8.3)
+    // 決算は資金+入金庫の合計から払うので、引き出しでは不足は縮まない (縮むのは入金庫の税だけ)。何を減らせば縮むかを添える (1.9.0)
     const cuts = ['棚を減らして棚の維持費を下げる', '売れない在庫を処分するか棚に並べて維持費を下げる', ...(est.tax > 0 ? ['入金庫の税は決算前に資金へ移すと減る'] : [])];
     warnings.push(
       `このままだと決算で倒産の恐れ (見込み支払い${est.total} = 維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax} に対し資金+入金庫${est.available}、不足${est.short})。` +
@@ -297,7 +297,7 @@ export function meData(g: Game, dt: Shop) {
     // std=標準価格 cost=維持費(1個24時間) balance=需要供給 (110以上で飽和・90以下で不足) shelves=並べている棚 (観戦画面の倉庫と同じ項目。0.5.0)
     const shelves: number[] = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(k + 1);
-    // durability=本・地図・牛・桶の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
+    // durability=本・地図・牛・桶・ナユタの首飾り (1.9.0) の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
     const durability = bookDurability(dt, no);
     stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves, ...(durability !== undefined ? { durability } : {}) });
   }

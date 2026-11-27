@@ -55,7 +55,7 @@ export const BOOK_LIFE_MIN = 0.7;
 export const BOOK_LIFE_MAX = 1.3;
 
 /**
- * 本・地図・牛・桶の耐久の表示 (100〜0%)。新品が100%、寿命のいちばん短い場合 (BOOK_LIFE_MIN) に届くと0%。
+ * 本・地図・牛・桶・ナユタの首飾り (1.9.0) の耐久の表示 (100〜0%)。新品が100%、寿命のいちばん短い場合 (BOOK_LIFE_MIN) に届くと0%。
  * 0%になるまでは壊れず、0%のあとはいつ壊れてもおかしくない (寿命の幅そのものは見せない。リカさん案)
  */
 export function bookDurability(dt: Shop, itemno: number): number | undefined {
@@ -516,14 +516,26 @@ export type TurnFunc = (g: Game, item: RtItem, shops: Shop[], timespan: number) 
 /** キーは商品コード */
 export const TURN_FUNCS: Record<string, TurnFunc> = {
   // ナユタの首飾り: 一押し棚に標準価格以下で並べていると人気が上がる
+  // 1.9.0: 効いている間は本と同じ耐久の仕組みで首飾りがすり減る。item.param = 1決算あたりの傷み (1000 = 平均1個)。
+  // 原作は所持上限1・材料が売値より高く、売れたら効果が止まる「お金で人気を買う」品だったので、効果にだけ値段をつけ直す
   'sousyoku-nayuta'(g, item, shops, timespan) {
     let rankup = timespan / 86.4;
     rankup = rankup < 1 && g.rand(1) < rankup ? 1 : Math.trunc(rankup);
-    if (!rankup) return;
+    const wear = ((Number(item.param) || 0) / 1000) * (timespan / g.config.oneDayTime);
     for (const dt of shops) {
       if (dt.showcase[0] !== item.no || dt.price[0] > item.price) continue;
-      dt.rank += rankup;
-      capRank(dt);
+      if (rankup) {
+        dt.rank += rankup;
+        capRank(dt);
+      }
+      const have = dt.item[item.no - 1];
+      if (wear > 0 && have > 0 && wearStep(g, dt, item.no, wear)) {
+        // まとめて計算したとき (長く誰も来なかったあと) は、寿命の短い首飾りが続けて尽きることがある。牛と同じく残りも数える
+        let lost = 1;
+        while (lost < have && wearStep(g, dt, item.no, 0)) lost++;
+        dt.item[item.no - 1] -= lost;
+        log(g, 0, dt.id, `${item.name}が${lost}つすり減ってなくなりました`);
+      }
     }
   },
 };
