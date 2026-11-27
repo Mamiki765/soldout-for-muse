@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { App } from '../src/api/app.js';
-import { itemNoByName } from '../src/data/catalog.js';
+import { BASE_ITEMS, itemNoByName } from '../src/data/catalog.js';
 import { seededRng } from '../src/engine/rng.js';
 import { TUTORIAL_SETTING } from '../src/engine/tutorial.js';
 import { sha256, Store } from '../src/store.js';
@@ -208,5 +208,66 @@ test('手引き5: 売上のある状態で決算を越えたら、その場で�
     assert.ok(done(t, a.id).includes(5), '次の決算で前期の売上が0になっても済みのまま');
   } finally {
     await t.close();
+  }
+});
+
+test('職業の分布 (1.8.1): 手引き・開店の返事・digest に出す。職を決めた店と更新を読んだ店は digest から消える', async () => {
+  const t = await setup();
+  try {
+    const a = await t.open('alice', '試験商店');
+    const b = await t.open('bob', '見本商店');
+    const c = await t.open('carol', '三番商店');
+    t.shop(a.id).job = 'drug';
+    t.shop(b.id).job = 'drug';
+
+    // 手引き: 13職がそろって並び、多い順。職なしも数える。どの職でもよいと添える
+    const text = await t.get('/api/v1/tutorial', c.auth);
+    assert.match(text, /職業の分布 \(営業中の3店\): 薬屋2 革細工屋0 /);
+    assert.match(text, / 行商人0 職なし1/);
+    assert.match(text, /店の多い職と、その材料を採る職: 薬屋 2店 ← 木こり 0店 \([^)]*霊草[^)]*\)/);
+    assert.match(text, /どの職を選んでもかまいません/);
+    const j = JSON.parse(await t.get('/api/v1/tutorial?format=json', c.auth)) as {
+      jobs: { shops: number; none: number; jobs: { job: string; shops: number }[]; supply: { job: string; from: { job: string; items: string[] }[] }[] };
+    };
+    assert.equal(j.jobs.shops, 3);
+    assert.equal(j.jobs.none, 1);
+    assert.equal(j.jobs.jobs.length, 13);
+    assert.deepEqual(j.jobs.jobs[0], { job: 'drug', name: '薬屋', shops: 2 });
+    assert.equal(j.jobs.supply[0].job, 'drug');
+    // 採る職は探鉱夫・木こり・行商人だけ。材料は市場で湧かない品だけ (薬草・魔石は市場に湧くので出さない)
+    for (const f of j.jobs.supply[0].from) {
+      assert.ok(['mine', 'wood', 'peddle'].includes(f.job), f.job);
+      assert.ok(!f.items.includes('薬草') && !f.items.includes('魔石'), f.items.join());
+    }
+
+    // 開店の返事にも添える
+    const r = await fetch(t.base + '/api/v1/register', { method: 'POST', body: JSON.stringify({ invite: 'inv', name: 'dave', shopname: '四番商店' }) });
+    assert.match(await r.text(), /職業の分布 \(営業中の4店\): 薬屋2 /);
+
+    // digest: 職を決める前の店には出る
+    assert.match(await t.get('/api/v1/digest', c.auth), /^街の職業 薬屋2 .* 職なし2 \(どの職も選べます。材料の流れは GET \/api\/v1\/tutorial\)$/m);
+    // 職を決めた店 (更新は読んだ扱いで開店) には出ない
+    assert.doesNotMatch(await t.get('/api/v1/digest', a.auth), /^街の職業 /m);
+    // 1.8.1 より前の更新までしか読んでいない店には、職があっても一度だけ出て、更新を読むと消える
+    t.shop(a.id).user._updates_read = '1.8.0';
+    assert.match(await t.get('/api/v1/digest', a.auth), /^街の職業 /m);
+    await t.get('/api/v1/updates', a.auth);
+    assert.doesNotMatch(await t.get('/api/v1/digest', a.auth), /^街の職業 /m);
+    // 手引きを OFF にした職なしの店には出ない
+    await t.act(c.auth, { type: 'tutorial', on: false });
+    assert.doesNotMatch(await t.get('/api/v1/digest', c.auth), /^街の職業 /m);
+  } finally {
+    await t.close();
+  }
+});
+
+test('転職のススメの説明 (1.8.1): 熟練の持ち越し (半分・上限100%) と職レベルが減らないことを書いてある', () => {
+  const uses = BASE_ITEMS[itemNoByName('転職のススメ')].uses.filter((u) => Number(u.params[0]) > 0);
+  assert.equal(uses.length, 13);
+  for (const u of uses) {
+    assert.equal(u.params[2], '0.5');
+    const book = BASE_ITEMS[Number(u.params[0])].name;
+    assert.ok(u.info!.includes(`合計の半分が${book}の熟練に足されます (上限100%)`), u.info!);
+    assert.ok(u.info!.includes('職レベルは減りません'), u.info!);
   }
 });

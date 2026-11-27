@@ -36,5 +36,5 @@ export function idleShopStat(g: Game): IdleShopStat {
 
 /** 管理者向けの1行 */
 export function idleShopLine(s: IdleShopStat): string {
-  return `人口の見張り: 72時間モブ売上ゼロの営業店 ${s.idle}/${s.open}店 (${(s.rate * 100).toFixed(1)}%)${s.rate > IDLE_WARN_RATE ? ` ${IDLE_WARN_RATE * 100}%超え。止まっている店を自然減に数えない案 (P1) を考える目安です` : ''}`;
+  return `人口の見張り: 過去72時間に街のお客への売上ゼロ ${s.idle}/${s.open}店 (${(s.rate * 100).toFixed(1)}%、開店から72時間以上の営業店)${s.rate > IDLE_WARN_RATE ? ` ${IDLE_WARN_RATE * 100}%超え` : ''}`;
 }

@@ -278,7 +278,7 @@ export function deposit(g: Game, dt: Shop, amount: number): string {
   dt.money += money;
   dt.moneystock -= money;
   g.useTime(usetime);
-  const ret = '￥' + money + '入金しました';
+  const ret = `入金庫から資金へ￥${money}引き出しました`;
   g.writeLog(0, dt.id, 0, ret);
   return ret;
 }
@@ -341,7 +341,7 @@ export function setComment(g: Game, dt: Shop, comment: string): string {
 /** 原作 user.cgi: 改名 (20万円) */
 export function renameShop(g: Game, dt: Shop, newName: string): string {
   if (/[,:;\t\r\n<>&]/.test(newName)) throw new GameError('名前・店名・パスワードに使用できない文字が含まれています。');
-  if (sjisLength(newName) > 40) throw new GameError('店名は20文字以内です。');
+  if (sjisLength(newName) > 40) throw new GameError('店名は全角20文字相当までです。');
   if (sjisLength(newName) < 4) throw new GameError('店名が短すぎます。');
   if (/^[\s　]+$/.test(newName)) throw new GameError('名前・店名が空白になっているか、使用不可文字が使用されています。');
   if (dt.money < 200000) throw new GameError('資金が足りません。');

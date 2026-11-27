@@ -244,13 +244,14 @@ test('API: rest / reopen の行動と、管理人の代理', async () => {
     const reg = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'mute', shopname: 'ミュート商店' }) })).json()) as { token: string; shop_id: number };
     const reg2 = (await (await fetch(base + '/api/v1/register?format=json', { method: 'POST', body: JSON.stringify({ invite: 'muse-invite', name: 'aki', shopname: 'アキ商店' }) })).json()) as { token: string; shop_id: number };
     // confirm が無ければ見込みだけ (何も変わらない)
-    let r = await post('/api/v1/actions?format=json', reg.token, { type: 'rest', days: 7 });
+    let r = await post('/api/v1/actions?format=json', reg.token, { type: 'rest', days: 7, request_id: 'rest-preview' });
     const j = (await r.json()) as { results: { ok: boolean; msg: string[]; confirm_with?: Record<string, unknown> }[] };
     assert.equal(j.results[0].ok, false);
     assert.match(j.results[0].msg[0], /確認: 改装中 \(休業\) に入ると、今期の維持費など ￥\d+ をすぐ払い/);
-    assert.deepEqual(j.results[0].confirm_with, { type: 'rest', days: 7, confirm: true });
+    assert.ok(j.results[0].msg.some((m) => m.includes('新しい request_id')));
+    assert.deepEqual(j.results[0].confirm_with, { type: 'rest', days: 7, request_id: 'rest-preview', confirm: true });
     assert.doesNotMatch(await (await get('/api/v1/digest', reg.token)).text(), /改装中/);
-    r = await post('/api/v1/actions', reg.token, { type: 'rest', days: 7, confirm: true });
+    r = await post('/api/v1/actions', reg.token, { ...j.results[0].confirm_with, request_id: 'rest-confirmed' });
     assert.match(await r.text(), /OK rest: 改装に入りました/);
     assert.match(await (await get('/api/v1/digest', reg.token)).text(), /ミュート商店 改装中\/1/);
     assert.match(await (await get('/api/v1/town', reg2.token)).text(), /改装中: ミュート商店/);
