@@ -144,3 +144,25 @@ test('1.9.0: 決算が近く、前期に維持費が売上を上回った店だ�
   assert.ok(!digestData(far, a, N0).warnings.some((w: string) => w.startsWith('前期は売上')));
   assert.ok(digestData(near, a, N0).warnings.some((w: string) => w.startsWith('前期は売上')));
 });
+
+test('1.9.0: 本の傷みだけを足す作り方 (lostbook) も、所持上限を超えるなら確かめる', () => {
+  const { g, a } = fixture();
+  let found: RtUse | undefined;
+  for (let no = 1; no <= MAX_ITEM && !found; no++) {
+    for (const u of loadUses(g, no)) {
+      if (u.result.function !== 'lostbook' || u.money > 0) continue;
+      if (!u.result.create.some((l) => l.proba >= 1000)) continue;
+      a.item[no - 1] = Math.max(1, a.item[no - 1]);
+      a.exp[u.expno] = 1000;
+      for (const l of u.use) a.item[l.no - 1] = Math.max(a.item[l.no - 1], l.count * 3);
+      const ok = checkUses(g, a, loadUses(g, no)).find((x) => x.no === u.no);
+      if (ok?.useok) { found = ok; break; }
+    }
+  }
+  assert.ok(found, '傷みつきで確実に品ができる作り方がある');
+  const product = found!.result.create.find((l) => l.proba >= 1000)!.no;
+  a.item[product - 1] = g.items[product].limit;
+  const before = snapshot(a);
+  assert.throws(() => useItemAction(g, a, found!.itemno, found!.no, { count: 1 }), isConfirm);
+  assert.equal(snapshot(a), before);
+});

@@ -24,11 +24,13 @@ function fixture(seed: number) {
   return { g, dt };
 }
 
-/** 1回作る (材料はその都度足す。時間は気にしない) */
+/** 1回作る (材料はその都度足し、できた品は倉庫から出しておく。時間は気にしない) */
 function brew(g: Game, dt: ReturnType<typeof fixture>['dt'], name: string): boolean {
   const u = BASE_ITEMS[BOOK].uses.find((x) => x.name === name)!;
   dt.exp[BOOK] = 1000;
   for (const l of u.use) if (l.item_no !== BOOK) dt.item[l.item_no - 1] = Math.max(dt.item[l.item_no - 1], l.count);
+  // 1.9.0 から所持上限を超える製作は確認が要るので、上限に積もらないようにする (調べたいのは本の傷み)
+  for (const l of u.get) if (l.item_no !== BOOK) dt.item[l.item_no - 1] = 0;
   dt.time = g.now - 48 * 3600;
   enterShop(g, dt, true);
   const before = dt.item[BOOK - 1];

@@ -269,13 +269,16 @@ export function runLimit(g: Game, dt: Shop, u: RtUse): { max: number; why: strin
   return { max, why };
 }
 
+/** 本・地図の傷みだけを足すスクリプト。作る品は get 行のとおりなので、上限の確認をする */
+const WEAR_ONLY_FUNCS = new Set(['lostbook', 'lostbooktool']);
+
 /**
  * 確実にできる品だけで所持上限を超えるなら、実行前に確かめる (1.9.0)。
  * 超えた分は捨てられ、材料と時間は使ってしまうため。熟練上げなどでわざと作るときは confirm で続けられる。
- * スクリプトで何かする使い方 (搾乳・転職など) は、作る品の行だけでは結果が決まらないので見ない
+ * スクリプトで何かする使い方 (搾乳・転職など) は、作る品の行だけでは結果が決まらないので見ない (傷みだけのものは見る)
  */
 function overflowCheck(g: Game, dt: Shop, u: RtUse, countIn: number): string | undefined {
-  if (u.result.function) return undefined;
+  if (u.result.function && !WEAR_ONLY_FUNCS.has(u.result.function)) return undefined;
   const count = Math.min(countIn, runLimit(g, dt, u).max);
   if (!(count > 0)) return undefined;
   const over: string[] = [];
