@@ -1646,8 +1646,11 @@ export class App {
     if (!readonly && q.get('since') === null && q.get('all') !== '1' && r.latest > seen) {
       const g = this.game().g;
       const me = this.me(g, dt.id);
-      me.user[SEEN_TAVERN] = String(r.latest);
-      this.persist([], this.clock());
+      // 同時に読んだ別の返事が先に進めていたら戻さない (待っている間に変わっているかもしれない)
+      if (r.latest > Number(me.user[SEEN_TAVERN] ?? 0)) {
+        me.user[SEEN_TAVERN] = String(r.latest);
+        this.persist([], this.clock());
+      }
     }
     const lines = r.messages.map((m) => {
       const shop = m.shop ? `［${m.shop.open ? m.shop.name + ' ' : '閉店中 '}${m.shop.som}］` : '';
