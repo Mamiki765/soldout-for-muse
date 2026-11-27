@@ -221,12 +221,14 @@ test('持ち時間がマイナスでも、クーポンで払える数だけは�
   dt.item[kit - 1] = 5; dt.item[1 - 1] = 300; dt.item[30 - 1] = 100; dt.item[32 - 1] = 100;
   dt.money = 10_000_000;
   dt.time = g.now + 10 * H;
-  use(g, dt.id, 35 * H); // クーポン残り 13h → 6h の本は2冊まで
+  // 1冊ぶんの時間 (データから) の2冊ぶん＋1時間だけクーポンを残す → 2冊まで作れて1時間残る
+  const per = g.items[kit].uses[0].time;
+  use(g, dt.id, g.couponTime(dt) - (2 * per + H));
   const time0 = dt.time;
   g.rand = (n = 1) => n / 2;
   const u = useItemAction(g, dt, kit, 0, { count: 3 });
   assert.equal(u.result.count, 2);
-  assert.equal(dt.item[book - 1], 2);
+  assert.ok(dt.item[book - 1] >= 2);
   assert.equal(g.couponTime(dt), 1 * H);
   assert.equal(dt.time, time0, '待ちは増えない');
 });

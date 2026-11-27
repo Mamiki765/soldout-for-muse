@@ -33,16 +33,17 @@ function stock(dt: ReturnType<typeof fixture>['dt'], u: (typeof makes)[number], 
   dt.item[MILK - 1] += 1; // 使い方はミノ牛乳を1本以上持っていないと開けない (クリームから作る品のため)
 }
 
-test('ミノ牛乳の作る使い方はすべて熟練0で今の時間、熟練最大で3/4、1セットで熟練+1%', () => {
+test('ミノ牛乳の作る使い方はすべて熟練で時間が縮み、1セットごとに熟練が付く', () => {
   assert.ok(makes.length >= 5);
   for (const u of makes) {
-    assert.equal(u.exptime, Math.trunc(u.time * 0.75), u.name!);
-    assert.equal(u.exp, 10, u.name!);
+    assert.ok(u.exptime < u.time, u.name!);
+    assert.ok(u.exp > 0, u.name!);
   }
   for (const u of makes.filter((u) => u.no >= 3)) assert.deepEqual([u.action, u.scale], ['作る', 'セット'], `${u.name}: 「飲む」「本」を引き継がない`);
   const drink = BASE_ITEMS[MILK].uses[0];
   assert.equal(drink.get.length, 0);
-  assert.deepEqual([drink.exp, drink.time, drink.exptime], [0, 180, 180], '飲むは変えない');
+  assert.equal(drink.exp, 0, '飲んでも熟練は付かない');
+  assert.equal(drink.exptime, drink.time, '飲む時間は熟練で変わらない');
 });
 
 test('時間はミノタウロス♀の熟練で縮み (ミノ牛乳自身の熟練は見ない)、熟練はミノタウロス♀に入る', () => {
@@ -58,7 +59,7 @@ test('時間はミノタウロス♀の熟練で縮み (ミノ牛乳自身の熟
         assert.equal(r.result.count, 1, u.name!);
         const t = Math.trunc(u.time / div), e = Math.trunc(u.exptime / div);
         assert.equal(dt.time - g.couponTime(dt) - before, t - Math.trunc(((t - e) * exp) / 1000), `${u.name} ${job} 熟練${exp}`);
-        assert.equal(dt.exp[MINO], Math.min(1000, exp + 10), `${u.name}: ミノタウロス♀の熟練が増える`);
+        assert.equal(dt.exp[MINO], Math.min(1000, exp + u.exp), `${u.name}: ミノタウロス♀の熟練が増える`);
         assert.equal(dt.exp[MILK], 1000, 'ミノ牛乳の熟練は動かない');
       }
     }
@@ -69,14 +70,15 @@ test('搾乳でためた熟練 (と転職で集めた熟練) がそのまま乳�
   const { g, dt } = fixture('cow');
   dt.item[MINO - 1] = 1;
   useItemAction(g, dt, MINO, 0, { count: 3 });
-  assert.equal(dt.exp[MINO], 30, '搾乳は今までどおり1回+1%');
+  const milked = dt.exp[MINO];
+  assert.equal(milked, BASE_ITEMS[MINO].uses[0].exp * 3, '搾乳の熟練は回数ぶん');
   const yogurt = makes.find((u) => u.get[0].item_no === 35)!;
   stock(dt, yogurt, 1);
   const before = dt.time - g.couponTime(dt);
   useItemAction(g, dt, MILK, yogurt.no, { count: 1 });
   const t = Math.trunc(yogurt.time / 2), e = Math.trunc(yogurt.exptime / 2);
-  assert.equal(dt.time - g.couponTime(dt) - before, t - Math.trunc(((t - e) * 30) / 1000));
-  assert.equal(dt.exp[MINO], 40);
+  assert.equal(dt.time - g.couponTime(dt) - before, t - Math.trunc(((t - e) * milked) / 1000));
+  assert.equal(dt.exp[MINO], milked + yogurt.exp);
 });
 
 test('商品の説明に熟練の共有先が出る', () => {

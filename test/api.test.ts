@@ -1,24 +1,12 @@
 // API の通し確認: 登録 → digest (304) → 行動のまとめ送り → 出来事 → 井戸端 → 見学用リンク
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { App } from '../src/api/app.js';
 import { setViewerKey } from '../src/api/viewer.js';
 import { BASE_ITEMS } from '../src/data/catalog.js';
-import { seededRng } from '../src/engine/rng.js';
-import { sha256, Store } from '../src/store.js';
+import { sha256 } from '../src/store.js';
+import { startServer } from './helpers.js';
 
-async function start(clock: () => number): Promise<{ base: string; server: Server; app: App; store: Store }> {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(7), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, app, store };
-}
+const start = (clock: () => number) => startServer({ clock });
 
 test('API の通し確認', async () => {
   let now = 1_800_000_000;

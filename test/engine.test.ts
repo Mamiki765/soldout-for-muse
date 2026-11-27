@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_CONFIG } from '../src/config.js';
-import { BASE_ITEMS, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
+import { BASE_ITEMS, CATALOG, itemNoByName, MAX_ITEM } from '../src/data/catalog.js';
 import { buy, editShowcase, enterShop, openShop, deposit } from '../src/engine/actions.js';
 import { Game, GameError } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
@@ -148,6 +148,9 @@ test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセ
   enterShop(g, a, true);
   const kit = itemNoByName('陳列棚増築取壊キット');
   const before = { money: a.money, time: a.time };
+  // 棚3つの維持費と増築費用はデータから (数字はここに書かない)
+  const fee3 = `￥${CATALOG.showcaseCost[2]}`;
+  const build3 = BASE_ITEMS[kit].uses[2];
 
   // use:0 は「棚を1つにする」。今も1つなのでキャンセル
   assert.throws(() => useItemAction(g, a, kit, 0, { count: 1 }), (e: unknown) => e instanceof GameError && /変更なし/.test(e.message));
@@ -158,12 +161,12 @@ test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセ
   // 増やすときも、confirm が無ければ見込みだけ
   assert.throws(
     () => useItemAction(g, a, kit, 2, { count: 1 }),
-    (e: unknown) => e instanceof GameError && e.message.startsWith('確認: 棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000、増築費用￥50000 時間4時間') && /confirm/.test(e.message),
+    (e: unknown) => e instanceof GameError && e.message.startsWith(`確認: 棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→${fee3}、増築費用￥${build3.money} 時間`) && /confirm/.test(e.message),
   );
   assert.deepEqual([a.showcasecount, a.item[kit - 1], a.money, a.time], [1, 1, before.money, before.time]);
   const u = useItemAction(g, a, kit, 2, { count: 1, confirm: true });
   assert.equal(a.showcasecount, 3);
-  assert.equal(u.result.function_return, '棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→￥5000');
+  assert.equal(u.result.function_return, `棚 1→3: 陳列枠+2、棚の維持費(決算ごと) ￥0→${fee3}`);
   assert.equal(a.item[kit - 1], 0);
 
   // 取り壊し: confirm が無ければ見込みだけ返して何も変えない
@@ -172,12 +175,12 @@ test('陳列棚増築取壊キット: 同じ数なら何も使わずキャンセ
   const money = a.money;
   assert.throws(
     () => useItemAction(g, a, kit, 0, { count: 1 }),
-    (e: unknown) => e instanceof GameError && e.message.startsWith('確認: 棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0 (外れる: 棚2:薬草。在庫は倉庫に残ります)') && /confirm/.test(e.message),
+    (e: unknown) => e instanceof GameError && e.message.startsWith(`確認: 棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ${fee3}→￥0 (外れる: 棚2:薬草。在庫は倉庫に残ります)`) && /confirm/.test(e.message),
   );
   assert.deepEqual([a.showcasecount, a.item[kit - 1], a.money], [3, 1, money]);
   const d = useItemAction(g, a, kit, 0, { count: 1, confirm: true });
   assert.equal(a.showcasecount, 1);
-  assert.equal(d.result.function_return, '棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ￥5000→￥0');
+  assert.equal(d.result.function_return, `棚 3→1: 陳列枠-2、棚の維持費(決算ごと) ${fee3}→￥0`);
 });
 
 test('ランキングに職業と「○専門店」を出す (原作 inc-html-ranking.cgi)', async () => {

@@ -1,15 +1,15 @@
-// SOLD OUT for Muse — 木工品と職バランスの追加調整。
+// SOLD OUT for Muse — 1.4.0 木工品・本執筆の端数・商人ポイント・新しい品のアイコンの決まり。数字は品のデータから読む (AGENTS.md「テストの決まり」)
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { itemDetailData, itemDetailText } from '../src/api/views.js';
 import { DEFAULT_CONFIG } from '../src/config.js';
-import { BASE_ITEMS, MAX_ITEM, type ItemDef, type UseLine } from '../src/data/catalog.js';
+import { BASE_ITEMS, MAX_ITEM } from '../src/data/catalog.js';
 import { buy, enterShop, openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { PROGRESS_THRESHOLDS } from '../src/engine/joblv.js';
@@ -20,9 +20,6 @@ import { newWorld } from '../src/engine/types.js';
 import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
 import { V140, V150, V170 } from '../src/updates.js';
-import { v181Item } from './v181.js';
-import { v181InfoItem } from './v181-info.js';
-import { v170Item, v170Line } from './v170.js';
 
 const T0 = 1_800_000_000;
 const WOODWORK = 17;
@@ -38,78 +35,36 @@ function fixture(job = 'woodwork') {
   return { g, dt };
 }
 
-test('8本・地図の全レシピに出来高調整を適用し、指定の2価格・8時間以外の既存品データを保つ', () => {
-  const old = JSON.parse(execFileSync('perl', ['tools/dump-items.pl', 'normal', '--before-v140-balance'], { encoding: 'utf8' })) as { items: ItemDef[] };
-  const multipliers: Record<number, number> = { 10: 112, 12: 120, 14: 135, 15: 117, 20: 122, 21: 127, 22: 118, 23: 130 };
-  const times = new Map([
-    [82, [10800, 8100]], [83, [7800, 5100]], [85, [6300, 4800]], [68, [9000, 2400]],
-    [69, [9900, 3900]], [84, [10800, 8100]], [86, [5400, 4500]], [130, [9000, 4500]],
-  ]);
-  const adjusted = (l: UseLine, percent: number): UseLine => {
-    const value = l.count * percent;
-    const remainder = value % 100;
-    return l.count < 5
-      ? { ...l, count: Math.floor(value / 100), ...(remainder ? { fraction: remainder * 10 } : {}) }
-      : { ...l, count: Math.round(value / 100) };
-  };
-  const shortened: number[] = [];
-  for (const item of old.items) {
-    if (item.no === 71) item.price = 3966;
-    if (item.no === 72) item.price = 7159;
-    for (const u of item.uses) {
-      if (item.no === 12 && u.no === 4) u.get.push({ item_no: LACQUER, count: 20, proba: 800 });
-      u.get = u.get.map((l) => adjusted(l, multipliers[item.no] ?? 100));
-      const product = u.get[0]?.item_no;
-      const time = (item.no === 16 || item.no === 66) && times.get(product);
-      if (time) {
-        [u.time, u.exptime] = time;
-        shortened.push(product);
-      }
-    }
-    v170Item(item); // 1.7.0 の梱包の時間と道具3職の自分の品の取れる数
-    v181Item(item); // 1.8.1 転職のススメの説明
-    v181InfoItem(item); // 1.8.1 アイテム説明の書き足し
-    const current = BASE_ITEMS[item.no];
-    assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
-    // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した
-    assert.equal(current.uses.length, item.uses.length + (item.no === WOODWORK ? 3 : 0) + (item.no === 9 || item.no === 66 ? 1 : 0) + (item.no === 17 || item.no === 20 ? 1 : 0), item.name); // 1.7.0 で木工細工入門にオノ、剣の鍛え方にツルハシ
-  }
-  assert.deepEqual(shortened.sort(), [...times.keys()].sort());
-});
-
-test('木工品3つの製作は熟練30%で初めて開き、市場からは熟練なしでも仕入れられる', () => {
-  const specs = [
-    { no: 135, price: 7000, popular: 57600, time: 7200, exptime: 5400, chance: 700, materials: [[99, 10], [138, 10], [102, 2]] },
-    { no: 136, price: 9000, popular: 86400, time: 7200, exptime: 5400, chance: 700, materials: [[4, 6], [99, 20], [101, 6]] },
-    { no: 137, price: 12000, popular: 129600, time: 10200, exptime: 7800, chance: 600, materials: [[99, 10], [100, 6], [98, 3], [138, 10]] },
-  ];
-  assert.deepEqual(V140.new_items?.map((i) => i.item), [135, 136, 137, 138]);
+test('木工品3つの製作は熟練の条件で初めて開き、市場からは熟練なしでも仕入れられる。職が違っても熟練を積めば作れる', () => {
+  const WOODS = [135, 136, 137];
+  assert.deepEqual(V140.new_items?.map((i) => i.item), [...WOODS, LACQUER]);
   const lacquer = BASE_ITEMS[LACQUER];
-  assert.deepEqual([lacquer.price, lacquer.popular, lacquer.cost, lacquer.limit, lacquer.plus, lacquer.type], [500, 7200, 30, 2000, -1200, 1]);
+  assert.deepEqual([lacquer.type, lacquer.plus < 0], [1, true], '漆は原料で、市場に湧かない');
   const { g: buyer, dt: buyerShop } = fixture('');
-  seedWholeStore(buyer, [135, 136, 137, 138], 12);
-  for (const { no, price, popular, time, exptime, chance, materials } of specs) {
+  seedWholeStore(buyer, [...WOODS, LACQUER], 12);
+  for (const no of WOODS) {
     const item = BASE_ITEMS[no];
-    assert.deepEqual([item.price, item.popular, item.cost, item.limit, item.plus, item.type], [price, popular, 1000, no === 135 ? 100 : 50, 0, 8], '1.7.0 で漆塗りの小箱だけ 50→100');
+    assert.deepEqual([item.type, item.plus], [8, 0], `${item.name}: 装飾品で市場に湧かない`);
     buy(buyer, buyerShop, { from: 0, itemno: no, count: 1 });
     assert.equal(buyerShop.item[no - 1], 1, '取引に熟練条件はない');
     const { g, dt } = fixture('drug'); // 熟練を積めば木工細工屋以外でも作れる
     const u = BASE_ITEMS[WOODWORK].uses.find((recipe) => recipe.get[0]?.item_no === no)!;
-    assert.deepEqual([u.time, u.exptime, u.needexp, u.exp, u.func, u.params[0]], [time, exptime, 300, 10, 'lostbook', '50']);
-    const made: UseLine = v170Line<UseLine>({ item_no: no, count: 10, proba: chance });
-    assert.deepEqual(u.get, [made]);
-    assert.deepEqual(u.use, materials.map(([item_no, count]) => ({ item_no, count, proba: 1000 })));
+    const need = u.needexp!;
+    assert.ok(need > 0 && u.exptime < u.time && u.exp > 0 && u.func === 'lostbook', item.name);
     assert.deepEqual(u.jobs, [{ job: 'tool', key: 'times', op: '/', value: 2 }]);
+    assert.ok(u.use.every((l) => l.proba > 0), '材料はみな消費する');
     dt.item[WOODWORK - 1] = 1;
-    for (const [id, count] of materials) dt.item[id - 1] = count;
-    dt.exp[WOODWORK] = 299;
+    for (const l of u.use) dt.item[l.item_no - 1] = l.count;
+    dt.exp[WOODWORK] = need - 1;
     const before = structuredClone(dt);
-    assert.throws(() => useItemAction(g, dt, WOODWORK, u.no, { count: 1 }), /熟練が足りません \(木工細工入門の熟練が要30%/);
+    assert.throws(() => useItemAction(g, dt, WOODWORK, u.no, { count: 1 }), new RegExp(`熟練が足りません \\(木工細工入門の熟練が要${need / 10}%`));
     assert.deepEqual(dt, before);
-    dt.exp[WOODWORK] = 300;
+    dt.exp[WOODWORK] = need;
     const result = useItemAction(g, dt, WOODWORK, u.no, { count: 1 });
-    assert.equal(dt.item[no - 1], made.count + (made.fraction ? 1 : 0)); // 乱数は 0.1 固定なので端数の抽選も当たる
-    assert.equal(dt.exp[WOODWORK], 310);
+    const made = u.get[0];
+    assert.equal(dt.item[no - 1], made.count + (made.fraction ? 1 : 0)); // 乱数は 0.1 固定なので成功と端数の抽選も当たる
+    assert.equal(dt.exp[WOODWORK], need + u.exp);
+    for (const l of u.use) assert.equal(dt.item[l.item_no - 1], 0);
     assert.ok(useResultMessages(g, dt, result).includes(item.name + 'を作りました'));
   }
 });

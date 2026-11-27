@@ -1,23 +1,11 @@
 // 値動きの記録 (0.6.0): 今期の最安・最高、決算ごとの記録、/market の前期比、/market/history、digest の値動き
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { App } from '../src/api/app.js';
-import { seededRng } from '../src/engine/rng.js';
 import { PRICE_HISTORY_KEEP, type PeriodPriceRow } from '../src/engine/prices.js';
-import { sha256, Store } from '../src/store.js';
+import { Store } from '../src/store.js';
+import { startServer } from './helpers.js';
 
-async function start(clock: () => number): Promise<{ base: string; server: Server; store: Store; app: App }> {
-  const store = new Store(':memory:');
-  store.setSetting('invite_hash', sha256('muse-invite'));
-  const app = new App({ store, rng: seededRng(11), clock, publicUrl: 'https://so.example', imagesDir: resolve('public/images'), sourceDir: resolve('.'), helpText: 'HELP' });
-  const server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
-  const { port } = server.address() as AddressInfo;
-  return { base: `http://127.0.0.1:${port}`, server, store, app };
-}
+const start = (clock: () => number) => startServer({ clock, seed: 11 });
 
 type Prices = {
   market: number; shelf_lo: number; shelf_hi: number; shops: number;

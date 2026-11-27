@@ -21,23 +21,32 @@ test('1.8.1: 書き足した説明が items.json に入っている', () => {
   }
 });
 
-test('1.8.1: 説明の数字がデータと合っている', () => {
-  // 資金調達の方法: params[0] 円 × 回数
-  assert.equal(use('資金調達の方法', 'ティッシュ配りで資金稼ぎ').params[0], '3000');
-  assert.equal(use('資金調達の方法', '日雇い土木作業で資金稼ぎ').params[0], '10000');
-  // 広告 (popup): 人気50% (rank 5000) で params[0]/100 %
-  assert.equal(use('広告パック', 'ビラ配りで広告する').params[0], '200');
-  assert.equal(use('広告パック', 'ポスターで広告する').params[0], '400');
-  assert.equal(use('広告パック', 'キャンペーンで広告する').params[0], '1000');
-  assert.equal(use('お祝いセット', 'お祝いパーティ').params[0], '1000');
-  // 乳を搾る: 寿命は1回 p1*p1/1000 (0.1% と 0.4%)
-  assert.equal(use('ミノタウロス♀', '乳を搾る').params[0], '1');
-  assert.equal(use('ミノタウロス♀', 'ハードに乳を搾る').params[0], '2');
+test('1.8.1: 説明の数字がデータと合っている (データを変えたら説明も直す)', () => {
+  // 資金調達の方法: 「1回で N円」 = params[0]
+  for (const name of ['ティッシュ配りで資金稼ぎ', '日雇い土木作業で資金稼ぎ']) {
+    const u = use('資金調達の方法', name);
+    const yen = Number(u.info!.match(/1回で([\d,]+)円/)![1].replace(/,/g, ''));
+    assert.equal(yen, Number(u.params[0]), name);
+  }
+  // 広告 (popup): 「人気50%のとき+N%」 = params[0]/100
+  for (const [item, name] of [['広告パック', 'ビラ配りで広告する'], ['広告パック', 'ポスターで広告する'], ['広告パック', 'キャンペーンで広告する'], ['お祝いセット', 'お祝いパーティ']]) {
+    const u = use(item, name);
+    const pct = Number(u.info!.match(/人気50%のとき\+([\d.]+)%/)![1]);
+    assert.equal(pct, Number(u.params[0]) / 100, name);
+  }
+  // 乳を搾る: 「寿命が N%減り」 = params[0]² / 10 (%)
+  for (const name of ['乳を搾る', 'ハードに乳を搾る']) {
+    const u = use('ミノタウロス♀', name);
+    const pct = Number(u.info!.match(/寿命が([\d.]+)%減り/)![1]);
+    const p = Number(u.params[0]);
+    assert.equal(pct, (p * p) / 10, name);
+  }
   // 剣市の2倍は剣の市場の使い方だけ
   assert.equal(use('剣市への地図', '剣の市場へ仕入に行く').func_before, '_local_b1');
   // 効果なしと書いた使い方は、関数も成果物も無い
   for (const [item, name] of [['七面鳥の丸焼き', '食べる'], ['こだわりのラム酒', '飲む'], ['おしゃれブーツ', '履いてお出かけする'], ['ミノヨーグルト', '食べる'], ['ミノチーズ', '食べる']]) {
     const u = use(item, name);
+    assert.match(u.info!, /ほかの効果はありません/, item);
     assert.equal(u.func, null, item);
     assert.equal(u.get.length, 0, item);
   }

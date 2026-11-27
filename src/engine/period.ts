@@ -178,7 +178,7 @@ function topGetItem(g: Game, dt: Shop, list: Prize[], head: string): void {
 }
 
 /** @@FUNCUPDATE UpdateResetAfter: 決算直後の処理 (熟練度の合計が多すぎると技術書を失う) */
-function updateResetAfter(g: Game): void {
+export function updateResetAfter(g: Game): void {
   const techs = ['鍛冶屋の技術', '魔法の知識', '解体屋の魂', '目利きの真髄'].map(itemNoByName);
   for (const dt of g.shops) {
     let expsum = 0;
