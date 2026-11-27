@@ -1,10 +1,10 @@
-// SOLD OUT for Muse — 1.8.2 アイテム説明の書き足し: 説明に書いた数字が、データ (params) と合っているか。
+// SOLD OUT for Muse — 1.8.1 アイテム説明の書き足し: 説明に書いた数字が、データ (params) と合っているか。
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BASE_ITEMS, itemNoByName } from '../src/data/catalog.js';
-import { v182 } from './v182.js';
+import { v181Info } from './v181-info.js';
 
 const use = (item: string, name: string) => {
   const u = BASE_ITEMS[itemNoByName(item)].uses.find((x) => x.name === name);
@@ -12,16 +12,16 @@ const use = (item: string, name: string) => {
   return u;
 };
 
-test('1.8.2: 書き足した説明が items.json に入っている', () => {
-  assert.equal(v182.info_changes.length, 27);
-  for (const ch of v182.info_changes) {
+test('1.8.1: 書き足した説明が items.json に入っている', () => {
+  assert.equal(v181Info.info_changes.length, 27);
+  for (const ch of v181Info.info_changes) {
     const it = BASE_ITEMS[ch.item];
     const info = ch.use_name === undefined ? it.info : it.uses.find((u) => u.name === ch.use_name)?.info;
     assert.equal(info, ch.after, `${it.name}/${ch.use_name ?? ''}`);
   }
 });
 
-test('1.8.2: 説明の数字がデータと合っている', () => {
+test('1.8.1: 説明の数字がデータと合っている', () => {
   // 資金調達の方法: params[0] 円 × 回数
   assert.equal(use('資金調達の方法', 'ティッシュ配りで資金稼ぎ').params[0], '3000');
   assert.equal(use('資金調達の方法', '日雇い土木作業で資金稼ぎ').params[0], '10000');

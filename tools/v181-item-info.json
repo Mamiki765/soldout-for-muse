@@ -1,6 +1,6 @@
 {
- "note": "1.8.2 アイテム説明の書き足し。実際の動き (src/engine/scripts.ts・items.json の params) と合っていない所と、肝心な効果が書かれていない所だけ。before が今の説明と違えば dump-items.pl が止まる。中身 (エンジン) は変えない",
- "version": "1.8.2",
+ "note": "1.8.1 アイテム説明の書き足し。実際の動き (src/engine/scripts.ts・items.json の params) と合っていない所と、肝心な効果が書かれていない所だけ。before が今の説明と違えば dump-items.pl が止まる。中身 (エンジン) は変えない",
+ "version": "1.8.1",
  "info_changes": [
   {
    "item": 11,

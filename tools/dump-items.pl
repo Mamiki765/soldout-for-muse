@@ -844,23 +844,22 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		die "v1.8.1: job changes $n181" if $n181 != 13;
 		$define{version} = $v181->{version};
 
-		# 1.8.2 アイテム説明の書き足し (tools/v182.json)。実際の動きと合っていない所・肝心な効果が無い所だけ。文言だけ
-		open(my $v182_fh, '<:raw', "$FindBin::Bin/v182.json") or die $!;
-		my $v182 = JSON::PP->new->utf8->decode(do { local $/; <$v182_fh> });
-		close $v182_fh;
-		$v182 = $as_bytes->($v182);
-		for my $ch (@{ $v182->{info_changes} }) {
-			my $it = $by_no{$ch->{item}} or die "v1.8.2: unknown item $ch->{item}";
+		# 1.8.1 アイテム説明の書き足し (tools/v181-item-info.json)。実際の動きと合っていない所・肝心な効果が無い所だけ。文言だけ
+		open(my $vinfo_fh, '<:raw', "$FindBin::Bin/v181-item-info.json") or die $!;
+		my $vinfo = JSON::PP->new->utf8->decode(do { local $/; <$vinfo_fh> });
+		close $vinfo_fh;
+		$vinfo = $as_bytes->($vinfo);
+		for my $ch (@{ $vinfo->{info_changes} }) {
+			my $it = $by_no{$ch->{item}} or die "v1.8.1 info: unknown item $ch->{item}";
 			my $t = $it;
 			if (defined $ch->{use_name}) {
 				my @u = grep { ($_->{name} // '') eq $ch->{use_name} } @{ $it->{uses} };
-				die "v1.8.2: unknown use $ch->{item}/$ch->{use_name}" if @u != 1;
+				die "v1.8.1 info: unknown use $ch->{item}/$ch->{use_name}" if @u != 1;
 				$t = $u[0];
 			}
-			die "v1.8.2: $ch->{item} info changed" if ($t->{info} // '') ne $ch->{before};
+			die "v1.8.1 info: $ch->{item} info changed" if ($t->{info} // '') ne $ch->{before};
 			$t->{info} = $ch->{after};
 		}
-		$define{version} = $v182->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

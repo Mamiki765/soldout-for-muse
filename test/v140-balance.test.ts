@@ -21,7 +21,7 @@ import { useItemAction, useResultMessages } from '../src/engine/use.js';
 import { Store } from '../src/store.js';
 import { V140, V150, V170 } from '../src/updates.js';
 import { v181Item } from './v181.js';
-import { v182Item } from './v182.js';
+import { v181InfoItem } from './v181-info.js';
 import { v170Item, v170Line } from './v170.js';
 
 const T0 = 1_800_000_000;
@@ -68,7 +68,7 @@ test('8本・地図の全レシピに出来高調整を適用し、指定の2価
     }
     v170Item(item); // 1.7.0 の梱包の時間と道具3職の自分の品の取れる数
     v181Item(item); // 1.8.1 転職のススメの説明
-    v182Item(item); // 1.8.2 アイテム説明の書き足し
+    v181InfoItem(item); // 1.8.1 アイテム説明の書き足し
     const current = BASE_ITEMS[item.no];
     assert.deepEqual({ ...current, uses: current.uses.slice(0, item.uses.length) }, item, item.name);
     // 1.5.0 (tools/v150-coal.json) で鉱山の地図に炭鉱、装飾細工入門に黒玉のブローチを1つずつ足した

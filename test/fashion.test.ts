@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { v181Item } from './v181.js';
-import { v182Item } from './v182.js';
+import { v181InfoItem } from './v181-info.js';
 import { v170, v170Item, v170Limit, v170Line } from './v170.js';
 import { BASE_ITEMS, MAX_ITEM, itemNoByName, type ItemDef, type UseDef } from '../src/data/catalog.js';
 import { DEFAULT_CONFIG as BASE_CONFIG } from '../src/config.js';
@@ -202,7 +202,7 @@ test('既存79種は各版で指定した差分に収まり、対象外のイベ
     // 1.7.0 (tools/v170-tool-jobs.json): 梱包6種の時間×1.24、道具3職の自分の品の取れる数
     v170Item(expected);
     v181Item(expected);
-    v182Item(expected);
+    v181InfoItem(expected);
     const actual = structuredClone(BASE_ITEMS[old.no]);
     actual.uses = actual.uses.slice(0, old.uses.length);
     assert.deepEqual(actual, expected, `No.${old.no}`);
@@ -215,11 +215,11 @@ test('既存79種は各版で指定した差分に収まり、対象外のイベ
   const cur = byCode(current.events);
   for (const [code, ev] of byCode(original.events)) if (!changed.has(code)) assert.deepEqual(cur.get(code), ev, code);
   assert.deepEqual(current.define, {
-    ...original.define, version: '1.8.2',
+    ...original.define, version: '1.8.1',
     'job-mine': '探鉱夫', 'job-wood': '木こり', 'job-leather': '革細工屋', 'job-woodwork': '木工細工屋', 'job-deco': '装飾細工屋',
     'job-sword': '剣屋', 'job-staff': '杖屋', 'job-shield': '盾屋', 'job-mail': '鎧屋',
   });
-  assert.deepEqual(BASE_ITEMS[77], v182Item(structuredClone(originalByNo(77))), 'お祝いセットは変更しない (1.8.2 の説明の書き足しだけ)');
+  assert.deepEqual(BASE_ITEMS[77], v181InfoItem(structuredClone(originalByNo(77))), 'お祝いセットは変更しない (1.8.1 の説明の書き足しだけ)');
 });
 
 test('中間7種・完成7種の材料、時間、確率、摩耗、職業は仕様どおり', () => {
