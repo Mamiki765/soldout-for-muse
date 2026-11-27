@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_CONFIG } from '../src/config.js';
-import { MAX_ITEM } from '../src/data/catalog.js';
+import { BASE_ITEMS, MAX_ITEM } from '../src/data/catalog.js';
 import { openShop } from '../src/engine/actions.js';
 import { Game } from '../src/engine/game.js';
 import { getWholeStore } from '../src/engine/market.js';
@@ -22,16 +22,22 @@ function priceAt(shops: number, stock: number): number {
 }
 
 test('1.0.2/1.0.4: 市場の値段は 50店までは原作どおり、それを超えると pricebase/pricehalf が 店数÷50 倍に伸びる', () => {
-  // 魔石: 標準1000円、pricebase 100、pricehalf 500
-  assert.equal(priceAt(1, 1348), 286);
-  assert.equal(priceAt(50, 1348), 286);
-  assert.equal(priceAt(51, 1348), Math.trunc(1000 / ((1348 - 102) / 510 + 1)));
-  assert.equal(priceAt(115, 1346), 507);
-  assert.equal(priceAt(150, 1348), Math.trunc(1000 / ((1348 - 300) / 1500 + 1)));
+  // 魔石の標準価格・pricebase・pricehalf はデータから読む
+  const it = BASE_ITEMS[MASEKI];
+  const formula = (shops: number, stock: number) => {
+    const k = Math.max(1, shops / 50);
+    return Math.trunc(it.price / ((stock - it.pricebase * k) / (it.pricehalf * k) + 1));
+  };
+  const stock = it.pricebase * 4 + 948;
+  assert.equal(priceAt(1, stock), priceAt(50, stock), '50店までは店数で変わらない');
+  assert.equal(priceAt(50, stock), formula(50, stock));
+  assert.equal(priceAt(51, stock), formula(51, stock));
+  assert.equal(priceAt(150, stock), formula(150, stock));
+  assert.ok(priceAt(150, stock) > priceAt(50, stock), '同じ在庫なら、街が広いほど高い');
   // 1.0.4: 150→151店で値段が跳ねない (1.0.3 までは倍率が3→4に上がっていた)
   assert.ok(Math.abs(priceAt(151, 1348) - priceAt(150, 1348)) <= 2);
   // 在庫が pricebase より少ないと標準より高い (原作どおり)
-  assert.ok(priceAt(107, 10) > 1000);
+  assert.ok(priceAt(107, 10) > it.price);
 });
 
 test('1.0.4: 市場の湧く量も 150→151店で段差がない', () => {
