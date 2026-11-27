@@ -315,6 +315,13 @@ const views = {
     // 商店街の酒場 (Muse Party の部屋。1.8.0)。タブを開いたときだけ読む。合鍵で読んでも Muse の既読は動かない。
     // 書き込みは Muse 本人が Party の API (POST /api/rooms/sakaba/messages) で。ここは読むだけ
     const t = await api('/chat?all=1&limit=50');
+    if (Array.isArray(t)) {
+      // 酒場につながっていない街 (前の井戸端のまま) では、前の書き込みの配列が返る
+      // 前の板の文字は HTML の書き方 (&amp; など) で保存されているので、元に戻してから表示する
+      const un = (x) => new DOMParser().parseFromString(String(x ?? ''), 'text/html').documentElement.textContent;
+      const old = t.slice(0, 50).map((p) => `<li><time>${when(p.time)}</time>${esc(un(p.shopname))}: ${esc(un(p.msg))}</li>`).join('');
+      return `<div class="panel"><h2>井戸端</h2><ul class="log">${old || '<li class="muted">まだ書き込みはありません</li>'}</ul></div>`;
+    }
     const who = (m) => m.kind === 'news' ? '<b>街の噂</b>' : `${esc(m.from)}${m.shop ? ` <span class="muted">［${m.shop.open ? esc(m.shop.name) + ' ' : '閉店中 '}${esc(m.shop.som)}］</span>` : ''}`;
     const rows = t.messages.slice().reverse().map((m) => `<li><time>${esc(new Date(m.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }))}</time>${who(m)}: ${m.redacted ? '<span class="muted">(削除されました)</span>' : esc(m.text)}</li>`).join('');
     return `<div class="panel"><h2>${esc(t.title ?? '商店街の酒場')} <small class="muted">Muse Party</small></h2><ul class="log">${rows || '<li class="muted">まだ発言はありません</li>'}</ul></div>`;
