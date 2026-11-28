@@ -143,12 +143,15 @@ test('棚の品が客に売れると、時間の経過で掘り出し物が戻�
   assert.match(marketText(d), /掘り出し物/);
 });
 
-test('観戦画面の市場にも掘り出し物が出る (在庫のあるときだけ)', () => {
+test('観戦画面の市場: 掘り出し物はふつうの在庫と同じ行に「ふつう+掘り出し物」、掘り出し物だけの品は (掘り出し物)', () => {
   const { g } = setup();
   assert.doesNotMatch(marketPage(g), /掘り出し物/);
   const kawa = no(g, '獣の革');
   addResale(g, kawa, 1000);
+  const only = resaleStock(g, kawa);
+  assert.match(marketPage(g), new RegExp(`${g.items[kawa].name} \\(掘り出し物\\)</td><td>${only}<`));
+  g.world.wholestore[kawa - 1] = 11;
   const html = marketPage(g);
-  assert.match(html, /掘り出し物/);
-  assert.ok(html.slice(html.indexOf('掘り出し物')).includes(g.items[kawa].name));
+  assert.match(html, new RegExp(`${g.items[kawa].name}</td><td>11\\+${only}<`));
+  assert.equal(html.split(g.items[kawa].name).length - 1, 1, '同じ品は1行だけ');
 });

@@ -509,23 +509,21 @@ function shopsPage(app: App, g: Game): string {
 
 export function marketPage(g: Game): string {
   getMarketStatus(g);
+  // 掘り出し物 (1.9.0) は同じ行にまとめる: 在庫「ふつう+掘り出し物」、卸値に掘り出し物の値を添える。掘り出し物だけの品は (掘り出し物)
+  const normal = new Map(getWholeStore(g).map((c) => [c.itemno, c]));
+  const bargain = new Map(getResaleStore(g).map((c) => [c.itemno, c]));
+  const list = [...new Set([...normal.keys(), ...bargain.keys()])].sort((a, b) => g.items[a].sort - g.items[b].sort || a - b);
   let s = '●市場<hr><table><tr><td>商品</td><td>在庫</td><td>卸値</td><td>標準価格</td><td>相場</td><td>需要供給</td></tr>';
-  for (const c of getWholeStore(g)) {
-    const it = g.items[c.itemno];
-    s += `<tr><td>${itemIcon(g, c.itemno)}${esc(it.name)}</td><td>${c.stock}</td><td>￥${c.price}</td><td>￥${it.price}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint)}</td></tr>`;
+  for (const no of list) {
+    const it = g.items[no];
+    const n = normal.get(no);
+    const r = bargain.get(no);
+    const stock = n && r ? `${n.stock}+${r.stock}` : `${(n ?? r)!.stock}`;
+    const price = n ? `￥${n.price}${r ? ` (掘り出し物￥${r.price})` : ''}` : `￥${r!.price}`;
+    const name = `${esc(it.name)}${n ? '' : ' (掘り出し物)'}`;
+    s += `<tr><td>${itemIcon(g, no)}${name}</td><td>${stock}</td><td>${price}</td><td>￥${it.price}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint)}</td></tr>`;
   }
-  s += '</table>';
-  // 掘り出し物 (1.9.0)。お客に売れた素材から戻った分で、ふつうの在庫とは別の枠
-  const bargains = getResaleStore(g);
-  if (bargains.length) {
-    s += '<br>●市場の掘り出し物<hr><table><tr><td>商品</td><td>在庫</td><td>卸値</td><td>標準価格</td></tr>';
-    for (const c of bargains) {
-      const it = g.items[c.itemno];
-      s += `<tr><td>${itemIcon(g, c.itemno)}${esc(it.name)}</td><td>${c.stock}</td><td>￥${c.price}</td><td>￥${it.price}</td></tr>`;
-    }
-    s += '</table>';
-  }
-  return s;
+  return s + '</table>' + (bargain.size ? '在庫の「+」のあとは掘り出し物 (お客に売れた素材から戻った分。卸値は別)' : '');
 }
 
 /** 買い取り募集の一覧 (原作にない追加) */
