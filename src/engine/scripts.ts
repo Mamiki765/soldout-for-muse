@@ -7,7 +7,7 @@
 import { CATALOG, itemNoByName } from '../data/catalog.js';
 import type { Game, RtItem } from './game.js';
 import type { Shop } from './types.js';
-import { formatHms, type RtUse } from './use.js';
+import { formatHms, itemUseTime, type RtUse } from './use.js';
 
 /** 1.0.0 の飼い葉桶 (干し草を与えて搾るの牛乳が 頭数×1本 増える) */
 import { giveJobGift } from './campaign.js';
@@ -55,7 +55,7 @@ export const BOOK_LIFE_MIN = 0.7;
 export const BOOK_LIFE_MAX = 1.3;
 
 /**
- * 本・地図・牛・桶の耐久の表示 (100〜0%)。新品が100%、寿命のいちばん短い場合 (BOOK_LIFE_MIN) に届くと0%。
+ * 本・地図・牛・桶・ナユタの首飾り (1.9.0) の耐久の表示 (100〜0%)。新品が100%、寿命のいちばん短い場合 (BOOK_LIFE_MIN) に届くと0%。
  * 0%になるまでは壊れず、0%のあとはいつ壊れてもおかしくない (寿命の幅そのものは見せない。リカさん案)
  */
 export function bookDurability(dt: Shop, itemno: number): number | undefined {
@@ -365,37 +365,26 @@ export const USE_FUNCS: Record<string, UseFunc> = {
   // 転職のススメ
   'port-exp:_local_1'(g, dt, u) {
     let ret = '';
-    const p1 = Number(u.params[0] ?? 0);
-    if (p1) {
-      let exp1 = dt.exp[p1] ?? 0;
-      let exp2 = 0;
-      for (const s of String(u.params[1] ?? '').split(':')) {
-        if (s === '') continue;
-        const exps = Number(s);
-        const exp = dt.exp[exps] ?? 0;
-        // 原作は「$exps==$exp1」(商品番号と熟練度を比べている)。そのまま再現する
-        if (!exp || exps === exp1) continue;
-        exp2 += exp;
-        delete dt.exp[exps];
-        const msg = g.items[exps].name + 'の熟練度  ' + Math.trunc(exp / 10) + '%  が  0%  になりました';
+    const plan = jobChangePlan(dt, u);
+    if (plan.target) {
+      for (const l of plan.lost) {
+        delete dt.exp[l.item];
+        const msg = g.items[l.item].name + 'の熟練度  ' + Math.trunc(l.exp / 10) + '%  が  0%  になりました';
         ret += msg + '<br>';
         log(g, 0, dt.id, msg);
       }
-      exp2 = Math.trunc(exp2 * Number(u.params[2] ?? 0));
-      exp1 += exp2;
-      if (exp1 > 1000) exp1 = 1000;
       const msg =
-        g.items[p1].name + 'の熟練度  ' + Math.trunc((dt.exp[p1] ?? 0) / 10) + '%  が  ' + Math.trunc(exp1 / 10) + '%  になりました';
+        g.items[plan.target].name + 'の熟練度  ' + Math.trunc(plan.before / 10) + '%  が  ' + Math.trunc(plan.after / 10) + '%  になりました';
       ret += msg + '<br>';
       log(g, 0, dt.id, msg);
-      dt.exp[p1] = exp1;
+      dt.exp[plan.target] = plan.after;
     }
     const p4 = u.params[3] ?? '';
     if (p4 && p4 !== '_default_') {
       dt.job = p4;
       ret += '職業が「' + (CATALOG.jobTypes[p4] ?? '') + '」になりました';
       // 1.0.0 の転職キャンペーン (1店1回)
-      const gift = giveJobGift(g, dt, p1);
+      const gift = giveJobGift(g, dt, plan.target);
       if (gift) ret += '<br>' + gift;
     }
     if (p4 === '_default_') {
@@ -405,6 +394,30 @@ export const USE_FUNCS: Record<string, UseFunc> = {
     return ret;
   },
 };
+
+/**
+ * 転職のススメで熟練がどう変わるか (実行と確認の両方で使う。1.9.0)。
+ * 原作どおり、転職先の熟練の値と品番を比べる「$exps==$exp1」もそのまま再現する
+ */
+export function jobChangePlan(dt: Shop, u: RtUse): { target: number; lost: { item: number; exp: number }[]; before: number; after: number; overflow: number; job: string } {
+  const target = Number(u.params[0] ?? 0);
+  const before = target ? dt.exp[target] ?? 0 : 0;
+  const lost: { item: number; exp: number }[] = [];
+  let moved = 0;
+  if (target) {
+    for (const s of String(u.params[1] ?? '').split(':')) {
+      if (s === '') continue;
+      const exps = Number(s);
+      const exp = dt.exp[exps] ?? 0;
+      if (!exp || exps === before) continue;
+      lost.push({ item: exps, exp });
+      moved += exp;
+    }
+  }
+  const raw = before + Math.trunc(moved * Number(u.params[2] ?? 0));
+  const after = Math.min(1000, raw);
+  return { target, lost, before, after, overflow: raw - after, job: String(u.params[3] ?? '') };
+}
 
 /** 決算ごとにかかる棚の維持費 */
 export function showcaseCost(count: number): number {
@@ -422,6 +435,23 @@ export function showcaseChangeText(oldcnt: number, newcnt: number): string {
  * キーは USE_FUNCS と同じ。
  */
 export const USE_CANCEL_CHECKS: Record<string, (g: Game, dt: Shop, u: RtUse, req: { confirm?: boolean }) => string | undefined> = {
+  // 転職のススメ: 熟練が消えるので、confirm が無ければ実行せずに見込みだけ返す (1.9.0。use の書き漏れで薬屋になる事故も防ぐ)
+  'port-exp:_local_1'(g, dt, u, req) {
+    if (req.confirm) return undefined;
+    const p = jobChangePlan(dt, u);
+    const pct = (e: number) => `${Math.trunc(e / 10)}%`;
+    const now = dt.job ? CATALOG.jobTypes[dt.job] ?? dt.job : '職なし';
+    const to = p.job === '_default_' ? '職なし' : p.job ? CATALOG.jobTypes[p.job] ?? p.job : now;
+    const parts = [`確認: 「${u.name}」で ${now}→${to}`];
+    // 転職先の本も一覧に入っていて一度0になるが、すぐ足し直すので「消える」には出さない
+    const lost = p.lost.filter((l) => l.item !== p.target);
+    parts.push(lost.length ? `消える熟練: ${lost.map((l) => `${g.items[l.item].name} ${pct(l.exp)}`).join('・')}` : '消える熟練: なし');
+    if (p.target) {
+      parts.push(`増える熟練: ${g.items[p.target].name} ${pct(p.before)}→${pct(p.after)}` + (p.overflow > 0 ? ` (100%を超えた${pct(p.overflow)}は消えます)` : ''));
+    }
+    parts.push(`職レベルは減りません。${g.items[u.itemno].name}1冊と時間${formatHms(itemUseTime(dt, u))}を使います`);
+    return parts.join('。') + '。転職するなら同じ行動に "confirm":true を付けて送り直してください (まだ何も変えていません)';
+  },
   // 陳列棚増築取壊キット: 今と同じ数ならキットもお金も時間も使わない。
   // 増やすとき・減らすときとも、confirm が無ければ実行せずに見込みだけ返す (増やすと維持費が重くなるため。案: リカさんより)
   'edit-showcase:_local_1'(g, dt, u, req) {
@@ -486,14 +516,26 @@ export type TurnFunc = (g: Game, item: RtItem, shops: Shop[], timespan: number) 
 /** キーは商品コード */
 export const TURN_FUNCS: Record<string, TurnFunc> = {
   // ナユタの首飾り: 一押し棚に標準価格以下で並べていると人気が上がる
+  // 1.9.0: 効いている間は本と同じ耐久の仕組みで首飾りがすり減る。item.param = 1決算あたりの傷み (1000 = 平均1個)。
+  // 原作は所持上限1・材料が売値より高く、売れたら効果が止まる「お金で人気を買う」品だったので、効果にだけ値段をつけ直す
   'sousyoku-nayuta'(g, item, shops, timespan) {
     let rankup = timespan / 86.4;
     rankup = rankup < 1 && g.rand(1) < rankup ? 1 : Math.trunc(rankup);
-    if (!rankup) return;
+    const wear = ((Number(item.param) || 0) / 1000) * (timespan / g.config.oneDayTime);
     for (const dt of shops) {
       if (dt.showcase[0] !== item.no || dt.price[0] > item.price) continue;
-      dt.rank += rankup;
-      capRank(dt);
+      if (rankup) {
+        dt.rank += rankup;
+        capRank(dt);
+      }
+      const have = dt.item[item.no - 1];
+      if (wear > 0 && have > 0 && wearStep(g, dt, item.no, wear)) {
+        // まとめて計算したとき (長く誰も来なかったあと) は、寿命の短い首飾りが続けて尽きることがある。牛と同じく残りも数える
+        let lost = 1;
+        while (lost < have && wearStep(g, dt, item.no, 0)) lost++;
+        dt.item[item.no - 1] -= lost;
+        log(g, 0, dt.id, `${item.name}が${lost}つすり減ってなくなりました`);
+      }
     }
   },
 };

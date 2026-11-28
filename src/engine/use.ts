@@ -213,7 +213,7 @@ export function useItemAction(g: Game, dt: Shop, itemno: number, useNo: number, 
     throw new GameError('標的が見つかりません');
   }
   const cancel = u.result.function ? (USE_CANCEL_CHECKS[`${u.itemcode}:${u.result.function}`] ?? USE_CANCEL_CHECKS[u.result.function]) : undefined;
-  const why = cancel?.(g, dt, u, req);
+  const why = cancel?.(g, dt, u, req) ?? (req.confirm ? undefined : overflowCheck(g, dt, u, count));
   if (why) throw new GameError(why);
   u.arg = {
     target: req.target,
@@ -237,6 +237,70 @@ function rollYield(g: Game, units: number, proba: number): number {
   return produced;
 }
 
+/**
+ * 今の資金・持ち時間・材料・熟練で、この使い方を何回まで実行できるか (1.9.0)。
+ * useItem の実行と、作り方の「今何回できるか」(max_count_now) の両方で使う。
+ * why は、0回になった最初の理由 (1回に要る量と今の量を添える)
+ */
+export function runLimit(g: Game, dt: Shop, u: RtUse): { max: number; why: string } {
+  let max = Infinity;
+  let why = '';
+  const cap = (n: number, reason: string) => {
+    n = Math.max(0, Math.trunc(n) || 0);
+    if (n < max) max = n;
+    if (!n && !why) why = reason;
+  };
+  const usetime = itemUseTime(dt, u);
+  const exp = dt.exp[u.expno] ?? 0;
+  if (exp < u.needexp) cap(0, `熟練が足りません (要${u.needexp / 10}%、今${Math.trunc(exp) / 10}%)`);
+  if (u.money > 0) cap(dt.money / u.money, `資金が足りません (1回￥${u.money}、資金￥${dt.money})`);
+  // 時間クーポンの残りも使える。持ち時間がマイナス (待ち中) でも、クーポンの分は使える (useTime と同じ扱い)
+  const avail = g.usableTime(dt);
+  if (usetime > 0) cap(avail / usetime, `持ち時間が足りません (1回${formatHms(usetime)}、使える${formatHms(avail)})`);
+  // 時間が増える使い方 (タイムシガレット) は、持ち時間の上限 (48時間) を超えない本数まで
+  if (usetime < 0) cap((g.config.maxStockTime - (g.now - dt.time)) / -usetime, '持ち時間がいっぱいです (上限' + Math.trunc(g.config.maxStockTime / 3600) + '時間)');
+  for (const line of u.use) {
+    const have = dt.item[line.no - 1];
+    const name = isPublicItem(line.no) ? g.items[line.no].name : HIDDEN_NAME;
+    // 道具 (proba 0) は何回使っても line.count 個あればよい
+    if (line.proba === 0) cap(have >= line.count ? Infinity : 0, `${name}が足りません (道具${line.count}、持っている${have})`);
+    else cap(line.count > 0 ? have / line.count : Infinity, `${name}が足りません (1回${line.count}、持っている${have})`);
+  }
+  return { max, why };
+}
+
+/** 本・地図の傷みだけを足すスクリプト。作る品は get 行のとおりなので、上限の確認をする */
+const WEAR_ONLY_FUNCS = new Set(['lostbook', 'lostbooktool']);
+
+/**
+ * 確実にできる品だけで所持上限を超えるなら、実行前に確かめる (1.9.0)。
+ * 超えた分は捨てられ、材料と時間は使ってしまうため。熟練上げなどでわざと作るときは confirm で続けられる。
+ * スクリプトで何かする使い方 (搾乳・転職など) は、作る品の行だけでは結果が決まらないので見ない (傷みだけのものは見る)
+ */
+function overflowCheck(g: Game, dt: Shop, u: RtUse, countIn: number): string | undefined {
+  if (u.result.function && !WEAR_ONLY_FUNCS.has(u.result.function)) return undefined;
+  const count = Math.min(countIn, runLimit(g, dt, u).max);
+  if (!(count > 0)) return undefined;
+  const over: string[] = [];
+  let fit = count;
+  for (const line of u.result.create) {
+    // 確実にできる分 (職レベル・道具の上乗せは数えない。少なめに見る)
+    const sure = Math.floor(Math.max(0, Math.min(1000, line.proba)) / 1000) * line.count;
+    if (sure <= 0) continue;
+    const item = g.items[line.no];
+    const room = Math.max(0, item.limit - dt.item[line.no - 1]);
+    if (sure * count <= room) continue;
+    over.push(`${item.name}は所持上限${item.limit}まであと${room}${item.scale}で、${count}回で確実にできる${sure * count}${item.scale}のうち${sure * count - room}${item.scale}は捨てられます`);
+    fit = Math.min(fit, Math.floor(room / sure));
+  }
+  if (!over.length) return undefined;
+  return (
+    `確認: ${over.join('。')} (材料と時間は使います)。` +
+    (fit > 0 ? `上限まで作るなら count を ${fit} にしてください。` : '倉庫を空けてから作るのがおすすめです。') +
+    '熟練上げなどでこのまま作るなら、同じ行動に "confirm":true を付けて送り直してください (まだ何も変えていません)'
+  );
+}
+
 /** 原作 UseItem($USE,$count) */
 export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
   // 実行数は 0 未満にしない (負の数で材料が増え、できた品が減るのを防ぐ)
@@ -248,17 +312,8 @@ export function useItem(g: Game, dt: Shop, u: RtUse, countIn: number): void {
     if (!count && !why) why = reason;
   };
   const usetime = itemUseTime(dt, u);
-  if ((dt.exp[u.expno] ?? 0) < u.needexp) cap(0, '熟練が足りません');
-  if (u.money > 0 && dt.money < u.money * count) cap(dt.money / u.money, '資金が足りません');
-  // 時間クーポンの残りも使える。持ち時間がマイナス (待ち中) でも、クーポンの分は使える (useTime と同じ扱い)
-  const avail = g.usableTime(dt);
-  if (usetime > 0 && usetime * count > avail) cap(avail / usetime, '持ち時間が足りません');
-  // 時間が増える使い方 (タイムシガレット) は、持ち時間の上限 (48時間) を超えない本数まで
-  if (usetime < 0) cap((g.config.maxStockTime - (g.now - dt.time)) / -usetime, '持ち時間がいっぱいです (上限' + Math.trunc(g.config.maxStockTime / 3600) + '時間)');
-  for (const line of u.use) {
-    const itemcount = line.count * (line.proba === 0 ? 1 : count);
-    if (dt.item[line.no - 1] < itemcount) cap(line.count > 0 ? dt.item[line.no - 1] / line.count : 0, `${g.items[line.no].name}が足りません`);
-  }
+  const lim = runLimit(g, dt, u);
+  cap(lim.max, lim.why);
   u.result.count = count;
   if (!count) { // count が 0 なら失敗 (何も変えない)
     u.result.failReason = why || undefined;

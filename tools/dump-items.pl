@@ -884,6 +884,31 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			die "v1.8.2: no wear on $no" if !$n;
 		}
 		$define{version} = $v182->{version};
+
+		# 1.9.0 ナユタの首飾りの人気上昇に値段をつける (tools/v184.json): 効いている間すり減る。param = 1決算あたりの傷み (1000=平均1個)
+		open(my $v184_fh, '<:raw', "$FindBin::Bin/v184.json") or die $!;
+		my $v184 = JSON::PP->new->utf8->decode(do { local $/; <$v184_fh> });
+		close $v184_fh;
+		$v184 = $as_bytes->($v184);
+		my $ny = $v184->{nayuta};
+		my $nit = $by_no{$ny->{item}} or die "v1.9.0: unknown item $ny->{item}";
+		die "v1.9.0: $ny->{item} is not nayuta" if $nit->{code} ne 'sousyoku-nayuta';
+		die "v1.9.0: $ny->{item} already has param" if defined $nit->{param};
+		die "v1.9.0: nayuta info changed" if ($nit->{info} // '') ne $ny->{info_before};
+		$nit->{param} = $ny->{wear};
+		$nit->{info} = $ny->{info_after};
+		$define{version} = $v184->{version};
+
+		# 1.9.0 素材の市場還流 (tools/v190-resale.json): 客に売れた素材の一部を市場の掘り出し物の枠へ。resalerate = 戻す割合、bargainprice = plus 0以下の品の掘り出し物の卸値の倍率 (どちらも千分率)
+		open(my $v190r_fh, '<:raw', "$FindBin::Bin/v190-resale.json") or die $!;
+		my $v190r = JSON::PP->new->utf8->decode(do { local $/; <$v190r_fh> });
+		close $v190r_fh;
+		$v190r = $as_bytes->($v190r);
+		for my $k (sort keys %{ $v190r->{define} }) {
+			die "v1.9.0: define $k already exists" if exists $define{$k};
+			$define{$k} = $v190r->{define}{$k};
+		}
+		$define{version} = $v190r->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

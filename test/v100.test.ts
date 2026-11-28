@@ -116,11 +116,11 @@ test('転職のお祝い: 13の転職先すべてに贈り物があり、職に�
   dt.item[78 - 1] = 2;
   const toPeddle = change.find((u) => u.params[3] === 'peddle')!;
   const toCow = change.find((u) => u.params[3] === 'cow')!;
-  let u = useItemAction(g, dt, 78, toPeddle.no, { count: 1 });
+  let u = useItemAction(g, dt, 78, toPeddle.no, { count: 1, confirm: true });
   assert.equal(dt.job, 'peddle');
   for (const [no, c] of JOB_GIFTS[Number(toPeddle.params[0])]) assert.equal(dt.item[no - 1], c);
   assert.match(u.result.function_return!, /お祝い/);
-  u = useItemAction(g, dt, 78, toCow.no, { count: 1 });
+  u = useItemAction(g, dt, 78, toCow.no, { count: 1, confirm: true });
   assert.equal(dt.job, 'cow');
   assert.equal(dt.item[25 - 1], 0, '2回目はもらえない');
   assert.equal(giveJobGift(g, dt, 25), '');

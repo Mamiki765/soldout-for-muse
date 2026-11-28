@@ -5,6 +5,7 @@
       "NewShopMoney" : "100000",
       "NewShopTime" : "12*60*60",
       "TOWN_TYPE" : "normal",
+      "bargainprice" : "1100",
       "cmdfoot" : "",
       "cmdhead" : "@@",
       "costshowcase1" : 0,
@@ -44,6 +45,7 @@
       "job_weapon_time_rate" : "2",
       "localfuncmark" : "_local_",
       "maxmoney" : 999999999,
+      "resalerate" : "200",
       "scale" : "個",
       "shop_icon_header" : "",
       "timeeditshowcase" : 600,
@@ -64,7 +66,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.8.2"
+      "version" : "1.9.0"
    },
    "errors" : [],
    "events" : [
@@ -13691,7 +13693,7 @@
          "funcbuy" : null,
          "funcsale" : null,
          "functurn" : "_local_",
-         "info" : "伝説の英雄を称えた首飾り。1番目の棚に標準価格以下で並べていると、お店の人気が1日に約10%ずつ上がる",
+         "info" : "伝説の英雄を称えた首飾り。1番目の棚に標準価格以下で並べていると、お店の人気が1決算 (27時間) に約10%ずつ上がる。効いている間は首飾りがすり減り、平均して1決算に1個なくなる (耐久は倉庫に出る)",
          "limit" : 10,
          "local_func" : null,
          "local_funcbuy" : null,
@@ -13699,7 +13701,7 @@
          "local_functurn" : "my($ITEM,@DT)=@_;\nmy  $rankup=$TIMESPAN/86.4;\n$rankup=$rankup<1  &&  rand(1)<$rankup  ?  1  :  int($rankup);\nreturn  if  !$rankup;\nforeach  my  $DT  (@DT)\n{\nnext  if  $DT->{showcase}[0]!=$ITEM->{no}  ||  $DT->{price}[0]>$ITEM->{price};\n$DT->{rank}+=$rankup;\n$DT->{rank}=10000  if  $DT->{rank}>10000;\nDebugLog(\"item  $ITEM->{name}  $DT->{shopname}  人気  +\".($rankup/100).\"\\%\");\n}\n",
          "name" : "ナユタの首飾り",
          "no" : 70,
-         "param" : null,
+         "param" : "1000",
          "plus" : 0,
          "point" : 1000,
          "popular" : 691200,

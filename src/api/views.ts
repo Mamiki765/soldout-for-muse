@@ -7,14 +7,15 @@ import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNote, ite
 import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
+import { getResaleStore } from '../engine/resale.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { bookDurability } from '../engine/scripts.js';
-import { checkUses, itemUseTime, loadUses, type RtUse } from '../engine/use.js';
+import { checkUses, itemUseTime, loadUses, runLimit, type RtUse } from '../engine/use.js';
 import { maxDeposit } from '../engine/actions.js';
 import { shelfNoticeOn, tutorialDigest, tutorialDigestLines } from '../engine/tutorial.js';
 import { onShelf, onShelfLine } from '../engine/onshelf.js';
 import { inWarehouseLine, inWarehouses } from '../engine/surplus.js';
-import { discardPlan, periodEstimate, type Alert, type peekData } from '../engine/watch.js';
+import { discardPlan, lastPeriodLossLine, periodEstimate, WATCH_RULES, type Alert, type peekData } from '../engine/watch.js';
 import { ORDER_RULES, ORDER_RULES_LINE, ORDER_RENEW_LINE, orderStats, orderView, orders, renewLabel, thanksHint, wantedFor } from '../engine/orders.js';
 import type { BoardPost, StoredLog, Suggestion } from '../store.js';
 import { changePct, pctWord, type PeriodPriceRow } from '../engine/prices.js';
@@ -147,12 +148,17 @@ export function digestData(g: Game, dt: Shop, n: DigestInput, update: string | n
   // 決算で払えないと倒産 (0.3.2)。売上を入れない見込みなので、悪いほうに見ている
   const est = periodEstimate(g, dt);
   if (est.short > 0) {
-    // 決算は資金+入金庫の合計から払うので、引き出しでは不足は縮まない (縮むのは入金庫の税だけ)。何を減らせば縮むかを添える (1.8.3)
+    // 決算は資金+入金庫の合計から払うので、引き出しでは不足は縮まない (縮むのは入金庫の税だけ)。何を減らせば縮むかを添える (1.9.0)
     const cuts = ['棚を減らして棚の維持費を下げる', '売れない在庫を処分するか棚に並べて維持費を下げる', ...(est.tax > 0 ? ['入金庫の税は決算前に資金へ移すと減る'] : [])];
     warnings.push(
       `このままだと決算で倒産の恐れ (見込み支払い${est.total} = 維持費${est.cost_projected}+棚${est.showcase_cost}+税${est.tax} に対し資金+入金庫${est.available}、不足${est.short})。` +
         `決算は資金と入金庫の合計から払うので、入金庫から資金へ移しても不足は縮みません。縮めるには: ${cuts.join('、')}`,
     );
+  }
+  // 決算が近いとき、前期に維持費が売上を上回っていたら知らせる (1.9.0。peek の period_soon と同じ窓・同じ文)
+  if (est.next_period - g.now <= WATCH_RULES.periodSoon) {
+    const loss = lastPeriodLossLine(g, dt, est.next_period);
+    if (loss) warnings.push(loss);
   }
   // 自分の募集 (締めたときの破棄の注意も)。ほかの店の募集で自分の在庫を欲しがるものは wantedFor (1.7.0)
   const myOrders: string[] = [];
@@ -292,7 +298,7 @@ export function meData(g: Game, dt: Shop) {
     // std=標準価格 cost=維持費(1個24時間) balance=需要供給 (110以上で飽和・90以下で不足) shelves=並べている棚 (観戦画面の倉庫と同じ項目。0.5.0)
     const shelves: number[] = [];
     for (let k = 0; k < dt.showcasecount; k++) if (dt.showcase[k] === no) shelves.push(k + 1);
-    // durability=本・地図・牛・桶の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
+    // durability=本・地図・牛・桶・ナユタの首飾り (1.9.0) の耐久% (新品100、0になるといつ壊れてもおかしくない。使ったことのあるものだけ。1.1.0)
     const durability = bookDurability(dt, no);
     stock.push({ item: no, name: it.name, count: c, limit: it.limit, today, yesterday, exp: Math.trunc(exp / 10), market: it.marketprice, std: it.price, cost: it.cost, balance: it.uppoint, shelves, ...(durability !== undefined ? { durability } : {}) });
   }
@@ -382,7 +388,17 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       price_change: changePct(c.price, p?.whole ?? 0),
     };
   });
-  return { people: shownPeople(g.world), events: g.eventMessages, items: cases };
+  // 1.9.0 掘り出し物 (客に売れた素材の還流)。買うときは buy に "bargain":true
+  const r = g.world.resale;
+  const bargains = getResaleStore(g).map((c) => ({
+    item: c.itemno, name: g.items[c.itemno].name, stock: c.stock, price: c.price, std: g.items[c.itemno].price,
+    deal_time: g.buyTime(c.itemno, c.price, true),
+  }));
+  // 品ごとの記録 (今期・前期): 戻った数 made・市場で買われた数 bought・上限で戻せなかった数 rejected
+  const resale_counts = [...new Set([...Object.keys(r?.today ?? {}), ...Object.keys(r?.yesterday ?? {})].map(Number))]
+    .sort((a, b) => a - b)
+    .map((no) => ({ item: no, name: g.items[no].name, today: r?.today[no] ?? null, yesterday: r?.yesterday[no] ?? null }));
+  return { people: shownPeople(g.world), events: g.eventMessages, items: cases, bargains, resale_counts };
 }
 
 /** GET /api/v1/market/history: 何品かの決算ごとの値動き (0.6.0) */
@@ -419,6 +435,10 @@ export function marketText(d: ReturnType<typeof marketData>): string {
     const std = c.std !== c.std_base ? `${c.std}(高騰中、普段${c.std_base})` : String(c.std);
     const market = c.market ? `${c.market}(${c.shelf_lo}〜${c.shelf_hi}・${c.shops}店)` : '-';
     lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)} ${dealWord(c.deal_time)}`);
+  }
+  if (d.bargains.length) {
+    lines.push('# 掘り出し物 (客に売れた素材が市場に戻ったもの。買うのは buy に "bargain":true) 品番 名前 在庫 単価 標準 取引');
+    for (const c of d.bargains) lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${c.std} ${dealWord(c.deal_time)}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -642,6 +662,20 @@ const getLineOut = (l: RtUse['result']['create'][number]) => ({
   ...(l.fraction ? { extra_chance: l.proba * l.fraction / 10000 } : {}),
 });
 
+/** 今の資金・持ち時間・材料で何回できるか。0回なら足りないもの (1回に要る量と今の量) も */
+function nowRuns(g: Game, dt: Shop, u: RtUse): { max_count_now: number | null; why_now?: string } {
+  const lim = runLimit(g, dt, u);
+  // 材料も時間も使わない使い方は回数の上限が無い (null)
+  const max = Number.isFinite(lim.max) ? lim.max : null;
+  return max === 0 ? { max_count_now: 0, why_now: lim.why } : { max_count_now: max };
+}
+
+/** 文字版の「今N回」(条件は満たすが、資金・時間・材料で今は0回ならその理由) */
+function nowText(r: { max_count_now?: number | null; why_now?: string }): string {
+  if (r.max_count_now === undefined || r.max_count_now === null) return '';
+  return r.max_count_now > 0 ? ` 今${r.max_count_now}回できる` : ` 今は0回(${r.why_now ?? ''})`;
+}
+
 /** 作り方の1行 (道具 tool の使い方 useNo)。dt があれば、その店での時間と今使えるかも付ける */
 function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
   const uses = dt ? checkUses(g, dt, loadUses(g, tool)) : loadUses(g, tool);
@@ -665,6 +699,8 @@ function recipeData(g: Game, tool: number, useNo: number, dt?: Shop) {
     jobs: jobWords(u),
     ...(dt ? { my_time: itemUseTime(dt, u), usable: owned && !!u.useok } : {}),
     ...(dt && !owned ? { why: `${shownName(tool)}を持っていません` } : dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
+    // usable は道具・材料・熟練の条件。今の資金・持ち時間も入れて、今何回できるか (1.9.0)
+    ...(dt && owned && u.useok ? nowRuns(g, dt, u) : {}),
   };
 }
 
@@ -764,6 +800,7 @@ export function itemDetailData(g: Game, itemno: number, dt?: Shop, history?: Per
       // 使う品そのものを持っていなければ使えない (本・地図など、材料の行に自分が入っていない品も) (監査 A13)
       usable: dt ? owned && !!u.useok : undefined,
       ...(dt && !owned ? { why: `${it.name}を持っていません` } : dt && !u.useok && u.ngReason ? { why: u.ngReason } : {}),
+      ...(dt && owned && u.useok ? nowRuns(g, dt, u) : {}),
     })),
   };
 }
@@ -796,7 +833,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
     lines.push('# 作り方 道具/番号 使い方 時間(熟練0%→100%) 費用 | 材料 → 成果 | 熟練の持ち主 要熟練 職業補正');
     for (const r of d.made_by) {
       const me = r.my_time !== undefined ? ` あなた${dur(r.my_time)}` : '';
-      const ng = r.usable === false ? ` 今は使えない${r.why ? `(${r.why})` : ''}` : '';
+      const ng = r.usable === false ? ` 今は使えない${r.why ? `(${r.why})` : ''}` : nowText(r);
       lines.push(
         `${r.item}${r.tool}/${r.use} ${r.name} ${dur(r.time)}→${dur(r.time_skilled)}${me} ${r.money} | ${needsText(r.needs)} → ${getsText(r.gets)} | ${r.skill_item.name}${r.needexp ? ` 要${r.needexp}%` : ''}${r.jobs.length ? ' ' + r.jobs.join(',') : ''}${ng}`,
       );
@@ -805,7 +842,7 @@ export function itemDetailText(d: ReturnType<typeof itemDetailData>): string {
   if (d.used_in.length) lines.push('# 材料になる先 ' + d.used_in.map((u) => `${u.item}${u.tool}/${u.use}${u.name}`).join(', '));
   if (d.uses.length) lines.push('# 使い方 番号 名前 時間 費用 | 材料 → 成果 | 熟練');
   for (const u of d.uses) {
-    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && (u.why ? `今は使えない(${u.why})` : '今は使えない')].filter(Boolean).join(',');
+    const extra = [u.target && '要標的', u.message && '一言可', u.one_at_a_time && '1回ずつ', u.usable === false && (u.why ? `今は使えない(${u.why})` : '今は使えない'), nowText(u).trim()].filter(Boolean).join(',');
     lines.push(`${u.use} ${u.name} ${dur(u.time)} ${u.money} | ${needsText(u.needs)} → ${getsText(u.gets)} | +${u.exp}%${u.needexp ? ` 要${u.needexp}%` : ''}${extra ? ' ' + extra : ''}`);
   }
   return lines.join('\n') + '\n';

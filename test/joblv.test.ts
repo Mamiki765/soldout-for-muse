@@ -111,7 +111,7 @@ test('熟練共有先に加算し、転職は職レベルを移さない', () =>
   const before = { ...dt.joblvpt };
   const intoBook = BASE_ITEMS[JOB_CHANGE].uses.find((x) => x.params[3] === 'book')!;
   supply(dt, JOB_CHANGE, intoBook.no, 1);
-  useItemAction(g, dt, JOB_CHANGE, intoBook.no, { count: 1 });
+  useItemAction(g, dt, JOB_CHANGE, intoBook.no, { count: 1, confirm: true });
   assert.equal(dt.job, 'book');
   assert.deepEqual(dt.joblvpt, before);
 });
