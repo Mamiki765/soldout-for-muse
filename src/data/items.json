@@ -66,7 +66,7 @@
       "type7" : "杖",
       "type8" : "アクセサリ",
       "type9" : "地図",
-      "version" : "1.9.2"
+      "version" : "1.10.0"
    },
    "errors" : [],
    "events" : [
@@ -4478,6 +4478,56 @@
                "ngmsg" : "なにも見つかりませんでした…",
                "no" : 7,
                "okmsg" : null,
+               "params" : [
+                  "50",
+                  null,
+                  null,
+                  null
+               ],
+               "scale" : "往復",
+               "time" : 14400,
+               "use" : []
+            },
+            {
+               "action" : "探索しに行く",
+               "arg" : null,
+               "argmessage" : null,
+               "argselect" : null,
+               "exp" : 10,
+               "exptime" : 7200,
+               "func" : "lostbook",
+               "func_before" : null,
+               "func_info" : null,
+               "get" : [
+                  {
+                     "count" : 270,
+                     "item_no" : 2,
+                     "proba" : 900
+                  },
+                  {
+                     "count" : 20,
+                     "item_no" : 1,
+                     "proba" : 900
+                  }
+               ],
+               "info" : "獣の群れる開けた野原。大きな獣を仕留めて、その革を剥いでくる",
+               "jobs" : [
+                  {
+                     "job" : "material",
+                     "key" : "times",
+                     "op" : "/",
+                     "value" : 2
+                  }
+               ],
+               "local_func" : null,
+               "local_func_before" : null,
+               "local_func_info" : null,
+               "money" : 0,
+               "name" : "狩り場で獣を狩る",
+               "needexp" : 0,
+               "ngmsg" : "なにも見つかりませんでした…",
+               "no" : 8,
+               "okmsg" : "獣を仕留めて革を剥いできました",
                "params" : [
                   "50",
                   null,

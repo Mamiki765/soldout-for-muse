@@ -921,6 +921,24 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		my $v192 = JSON::PP->new->utf8->decode(do { local $/; <$v192_fh> });
 		close $v192_fh;
 		$define{version} = $v192->{version};
+
+		# 1.10.0 狩り場 (tools/v1100.json): 近くの山への地図に獣の革の行き先を足す。牧草地を見本に写す (時間・傷み・職ボーナスはそのまま)。
+		# 1.4.0 の出来高の倍率の後なので、個数はそのまま最終の個数
+		open(my $v1100_fh, '<:raw', "$FindBin::Bin/v1100.json") or die $!;
+		my $v1100 = JSON::PP->new->utf8->decode(do { local $/; <$v1100_fh> });
+		close $v1100_fh;
+		$v1100 = $as_bytes->($v1100);
+		my $g1100 = $v1100->{gathering};
+		my $uses1100 = $by_no{$g1100->{book}}{uses};
+		my ($tpl1100) = grep { $_->{no} == $g1100->{template_use} } @$uses1100;
+		die 'v1.10.0: gathering template not found' if !$tpl1100;
+		die 'v1.10.0: duplicate use' if grep { $_->{name} eq $g1100->{name} } @$uses1100;
+		my $u1100 = $copy->($tpl1100);
+		$u1100->{no} = scalar @$uses1100;
+		@$u1100{qw(name info okmsg)} = @$g1100{qw(name info okmsg)};
+		$u1100->{get} = $lines->($g1100->{get}, 1000);
+		push @$uses1100, $u1100;
+		$define{version} = $v1100->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
