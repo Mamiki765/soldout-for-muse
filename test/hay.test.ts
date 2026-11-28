@@ -76,10 +76,11 @@ test('干し草: 新素材の初期投入 (seed-market) の対象で、0.6.0 の
   assert.ok(row.add > 0);
 });
 
-test('近くの山への地図: 牧草地のほかのどの行き先でも干し草が1行だけ取れ、牧草地は材料なし・熟練なしで行ける', () => {
+// 1.10.0 の狩り場は干し草の値崩れ中に足したので、干し草を付けない (tools/v1100.json)
+test('近くの山への地図: 牧草地・狩り場のほかのどの行き先でも干し草が1行だけ取れ、牧草地は材料なし・熟練なしで行ける', () => {
   const uses = BASE_ITEMS[MOUNTAIN].uses;
   for (const u of uses) {
-    if (u.no === PASTURE) continue;
+    if (u.no === PASTURE || u.name === '狩り場で獣を狩る') continue;
     assert.equal(u.get.filter((l) => l.item_no === HAY).length, 1, u.name!);
   }
   const p = uses[PASTURE];
