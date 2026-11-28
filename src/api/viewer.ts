@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { CATALOG } from '../data/catalog.js';
 import type { Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
+import { getResaleStore } from '../engine/resale.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { formatHms } from '../engine/use.js';
 import { bookDurability } from '../engine/scripts.js';
@@ -506,14 +507,25 @@ function shopsPage(app: App, g: Game): string {
   return s;
 }
 
-function marketPage(g: Game): string {
+export function marketPage(g: Game): string {
   getMarketStatus(g);
   let s = '●市場<hr><table><tr><td>商品</td><td>在庫</td><td>卸値</td><td>標準価格</td><td>相場</td><td>需要供給</td></tr>';
   for (const c of getWholeStore(g)) {
     const it = g.items[c.itemno];
     s += `<tr><td>${itemIcon(g, c.itemno)}${esc(it.name)}</td><td>${c.stock}</td><td>￥${c.price}</td><td>￥${it.price}</td><td>${it.marketprice ? '￥' + it.marketprice : '　'}</td><td>${balanceWord(it.uppoint)}</td></tr>`;
   }
-  return s + '</table>';
+  s += '</table>';
+  // 掘り出し物 (1.9.0)。お客に売れた素材から戻った分で、ふつうの在庫とは別の枠
+  const bargains = getResaleStore(g);
+  if (bargains.length) {
+    s += '<br>●市場の掘り出し物<hr><table><tr><td>商品</td><td>在庫</td><td>卸値</td><td>標準価格</td></tr>';
+    for (const c of bargains) {
+      const it = g.items[c.itemno];
+      s += `<tr><td>${itemIcon(g, c.itemno)}${esc(it.name)}</td><td>${c.stock}</td><td>￥${c.price}</td><td>￥${it.price}</td></tr>`;
+    }
+    s += '</table>';
+  }
+  return s;
 }
 
 /** 買い取り募集の一覧 (原作にない追加) */

@@ -14,6 +14,7 @@ import { seededRng } from '../src/engine/rng.js';
 import { turnProc } from '../src/engine/turn.js';
 import { newWorld } from '../src/engine/types.js';
 import { marketData, marketText } from '../src/api/views.js';
+import { marketPage } from '../src/api/viewer.js';
 
 const NOW = Date.UTC(2027, 0, 13, 3, 0, 0) / 1000;
 
@@ -140,4 +141,14 @@ test('棚の品が客に売れると、時間の経過で掘り出し物が戻�
   const d = marketData(g);
   assert.ok(d.bargains.some((b) => b.item === kawa));
   assert.match(marketText(d), /掘り出し物/);
+});
+
+test('観戦画面の市場にも掘り出し物が出る (在庫のあるときだけ)', () => {
+  const { g } = setup();
+  assert.doesNotMatch(marketPage(g), /掘り出し物/);
+  const kawa = no(g, '獣の革');
+  addResale(g, kawa, 1000);
+  const html = marketPage(g);
+  assert.match(html, /掘り出し物/);
+  assert.ok(html.slice(html.indexOf('掘り出し物')).includes(g.items[kawa].name));
 });
