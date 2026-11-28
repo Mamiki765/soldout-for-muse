@@ -152,6 +152,10 @@ export const CATALOG = {
   timeEditShowcase: num('timeeditshowcase'),
   /** アイテム仕入/送信時間 ($TIME_SEND_ITEM) */
   timeSendItem: num('timesenditem'),
+  /** 1.9.0 客に売れた素材のうち、市場の掘り出し物の枠へ戻す割合 (千分率) */
+  resaleRate: num('resalerate'),
+  /** 1.9.0 plus が0以下の品の、掘り出し物の卸値の倍率 (千分率) */
+  bargainPrice: num('bargainprice'),
   /** 資金送信時間 ($TIME_SEND_MONEY) */
   timeSendMoney: num('timesendmoney'),
   /** 入金所要時間計算用金額 ($TIME_SEND_MONEY_PLUS) */

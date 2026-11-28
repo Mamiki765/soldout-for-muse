@@ -898,6 +898,17 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		$nit->{param} = $ny->{wear};
 		$nit->{info} = $ny->{info_after};
 		$define{version} = $v184->{version};
+
+		# 1.9.0 素材の市場還流 (tools/v190-resale.json): 客に売れた素材の一部を市場の掘り出し物の枠へ。resalerate = 戻す割合、bargainprice = plus 0以下の品の掘り出し物の卸値の倍率 (どちらも千分率)
+		open(my $v190r_fh, '<:raw', "$FindBin::Bin/v190-resale.json") or die $!;
+		my $v190r = JSON::PP->new->utf8->decode(do { local $/; <$v190r_fh> });
+		close $v190r_fh;
+		$v190r = $as_bytes->($v190r);
+		for my $k (sort keys %{ $v190r->{define} }) {
+			die "v1.9.0: define $k already exists" if exists $define{$k};
+			$define{$k} = $v190r->{define}{$k};
+		}
+		$define{version} = $v190r->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。

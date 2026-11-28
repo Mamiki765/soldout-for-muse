@@ -5,6 +5,7 @@
 //   B (recipe) 倉庫にある本・地図などの使い方のうち、熟練は足りていて材料だけ足りないものの材料。
 //              一度でも使ったことのある道具 (熟練 > 0) に限る (使ったことのない本まで入れるとうるさい)
 // 隠し品・購入不可 (nobuy)・自分の店は除く。乱数は使わず、読むだけ (peek からも呼ぶ)。
+import { resaleStock } from './resale.js';
 import { isPublicItem } from '../data/catalog.js';
 import type { Game } from './game.js';
 import { orders } from './orders.js';
@@ -82,7 +83,7 @@ export function onShelf(g: Game, dt: Shop, now?: number): OnShelf[] {
   for (const no of [...(dt.wish ?? [])].sort((a, b) => a - b)) {
     if (out.has(no) || !buyable(g, no)) continue;
     const hit = idx.get(no);
-    const market = (g.world.wholestore[no - 1] ?? 0) > 0;
+    const market = (g.world.wholestore[no - 1] ?? 0) + resaleStock(g, no) > 0;
     if (!hit && !market) continue;
     out.set(no, { item: no, name: g.items[no].name, shops: hit?.shops ?? 0, cheapest: hit?.cheapest ?? 0, shop: hit?.shop ?? 0, why: 'wish', ...(market ? { market: true } : {}) });
   }

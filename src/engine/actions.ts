@@ -6,6 +6,7 @@
 import { CATALOG, itemNoByName } from '../data/catalog.js';
 import { GameError, type Game } from './game.js';
 import { getWholeStore } from './market.js';
+import { getResaleStore, takeResale } from './resale.js';
 import { addItemSub } from './scripts.js';
 import { newShop, type Shop } from './types.js';
 import { escapeHtml, formatHms } from './use.js';
@@ -109,6 +110,11 @@ export interface BuyRequest {
   expectPrice?: number;
   /** 取引にかかる時間の上限 (秒)。超えるなら時間を使わずに中止する (1.3.0)。省略で上限なし */
   maxTime?: number;
+  /**
+   * 市場の掘り出し物から買う (1.9.0)。true で掘り出し物、false でふつうの在庫。
+   * 省略時はふつうの在庫から買い、ふつうの在庫に無い品だけ掘り出し物から買う
+   */
+  bargain?: boolean;
 }
 
 /** 原作 buy-s.cgi: 市場または他店から仕入れる */
@@ -122,11 +128,16 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   let prices: number[];
   let stockOf: (no: number) => number;
   let dts: Shop | undefined;
+  let bargain = false;
   if (isWhole) {
-    const cases = getWholeStore(g);
+    const wanted = Math.trunc(req.itemno);
+    const bargains = getResaleStore(g);
+    bargain = req.bargain ?? (!(g.world.wholestore[wanted - 1] > 0) && bargains.some((c) => c.itemno === wanted));
+    const cases = bargain ? bargains : getWholeStore(g);
     showcase = cases.map((c) => c.itemno);
     prices = cases.map((c) => c.price);
-    stockOf = (no) => g.world.wholestore[no - 1] ?? 0;
+    const r = g.world.resale;
+    stockOf = bargain ? (no) => r?.stock[no] ?? 0 : (no) => g.world.wholestore[no - 1] ?? 0;
   } else {
     dts = g.shopById(req.from);
     if (!dts) throw new GameError('その店は見つかりません (店終いしたかもしれません)');
@@ -198,6 +209,8 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
       dts.rank -= Math.trunc(rankdown);
       if (dts.rank < 0) dts.rank = 0;
     }
+  } else if (bargain) {
+    takeResale(g, itemno, num);
   } else {
     g.world.wholestore[itemno - 1] -= num;
   }
@@ -208,7 +221,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
 
   const item = g.items[itemno];
   const ret =
-    `${dts ? dts.shopname : '市場'}より${item.name}を${num}${item.scale}@￥${price}(計￥${price * num})にて仕入ました` +
+    `${dts ? dts.shopname : bargain ? '市場 (掘り出し物)' : '市場'}より${item.name}を${num}${item.scale}@￥${price}(計￥${price * num})にて仕入ました` +
     `/${formatHms(usetime)}消費` +
     (fromCoupon > 0 ? `(うちクーポン${formatHms(fromCoupon)})` : '');
   g.writeLog(0, dt.id, 0, ret);

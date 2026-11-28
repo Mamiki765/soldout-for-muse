@@ -7,6 +7,7 @@ import { BASE_ITEMS, CATALOG, HIDDEN_NAME, MAX_ITEM, isPublicItem, itemNote, ite
 import { APP_VERSION } from '../updates.js';
 import { TAX_FREE_MONEYSTOCK, type Game } from '../engine/game.js';
 import { getMarketStatus, getWholeStore } from '../engine/market.js';
+import { getResaleStore } from '../engine/resale.js';
 import { shownPeople, type Shop } from '../engine/types.js';
 import { bookDurability } from '../engine/scripts.js';
 import { checkUses, itemUseTime, loadUses, runLimit, type RtUse } from '../engine/use.js';
@@ -387,7 +388,17 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       price_change: changePct(c.price, p?.whole ?? 0),
     };
   });
-  return { people: shownPeople(g.world), events: g.eventMessages, items: cases };
+  // 1.9.0 掘り出し物 (客に売れた素材の還流)。買うときは buy に "bargain":true
+  const r = g.world.resale;
+  const bargains = getResaleStore(g).map((c) => ({
+    item: c.itemno, name: g.items[c.itemno].name, stock: c.stock, price: c.price, std: g.items[c.itemno].price,
+    deal_time: g.buyTime(c.itemno, c.price, true),
+  }));
+  // 品ごとの記録 (今期・前期): 戻った数 made・市場で買われた数 bought・上限で戻せなかった数 rejected
+  const resale_counts = [...new Set([...Object.keys(r?.today ?? {}), ...Object.keys(r?.yesterday ?? {})].map(Number))]
+    .sort((a, b) => a - b)
+    .map((no) => ({ item: no, name: g.items[no].name, today: r?.today[no] ?? null, yesterday: r?.yesterday[no] ?? null }));
+  return { people: shownPeople(g.world), events: g.eventMessages, items: cases, bargains, resale_counts };
 }
 
 /** GET /api/v1/market/history: 何品かの決算ごとの値動き (0.6.0) */
@@ -424,6 +435,10 @@ export function marketText(d: ReturnType<typeof marketData>): string {
     const std = c.std !== c.std_base ? `${c.std}(高騰中、普段${c.std_base})` : String(c.std);
     const market = c.market ? `${c.market}(${c.shelf_lo}〜${c.shelf_hi}・${c.shops}店)` : '-';
     lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${std} ${market} ${balanceWord(c.balance)} ${pctWord(c.price_change)}/${pctWord(c.market_change)} ${dealWord(c.deal_time)}`);
+  }
+  if (d.bargains.length) {
+    lines.push('# 掘り出し物 (客に売れた素材が市場に戻ったもの。買うのは buy に "bargain":true) 品番 名前 在庫 単価 標準 取引');
+    for (const c of d.bargains) lines.push(`${c.item} ${c.name} ${c.stock} ${c.price} ${c.std} ${dealWord(c.deal_time)}`);
   }
   return lines.join('\n') + '\n';
 }

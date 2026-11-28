@@ -20,8 +20,10 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     let res = await fetch(base+'/api/v1/updates?format=json');
     assert.equal(res.status,200);
     const data = await res.json() as { version: string; updates: typeof UPDATES };
-    assert.equal(data.version,'1.9.0');
-    assert.equal(data.updates[0].title,'確認と次の一手・ナユタの首飾り');
+    // 版は更新履歴のいちばん新しい版と同じ (版を足すたびに書き換えない)
+    assert.equal(data.version,UPDATES[0].version);
+    assert.equal(data.version,APP_VERSION);
+    assert.equal(data.updates[0].title,'確認と次の一手・ナユタの首飾り・市場の掘り出し物');
     data.updates.shift();
     assert.equal(data.updates[0].title,'地図と干し草の品不足');
     data.updates.shift();
@@ -58,8 +60,9 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     const text = await res.text();
     assert.match(text,/鉄塊×20 → 鉄塊×6、鉄鉱石×20、砂鉄×5/);
     assert.match(text,/道具屋: 中間素材5種とファッション7種の製作に職業ボーナス/);
-    assert.match(text,/^# v1\.9\.0 2026-11-28 確認と次の一手・ナユタの首飾り\n/);
-    assert.match(text,/\n# v1\.8\.2 2026-11-28 地図と干し草の品不足\n/);
+    // 文字版の先頭は、いちばん新しい版
+    assert.ok(text.startsWith(`# v${UPDATES[0].version} ${UPDATES[0].date} ${UPDATES[0].title}\n`));
+        assert.match(text,/\n# v1\.8\.2 2026-11-28 地図と干し草の品不足\n/);
     assert.match(text,/\n# v1\.8\.0 2026-11-27 商店街の酒場\n/);
     assert.match(text,/\n# v1\.7\.0 2026-11-26 道具の3職と買い取り募集\n/);
     assert.match(text,/\n# v1\.6\.0 2026-11-26 店主アンケート\n/);
@@ -147,9 +150,10 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     // 7日放置すると、優勝賞品の店番ロボット (維持費3万/日) で倒産することがある。下の確認は倒産と関係ないので資金を足しておく
     dt.money = 10_000_000;
     await fetch(base+'/api/v1/me',{headers:auth});
-    const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg.slice(0,12));
+    const notes = store.readLogs(shop_id,{limit:100}).filter((l) => l.msg.startsWith('【更新】')).map((l) => l.msg);
     assert.equal(notes.length,afterV021 + UPDATES.length);
-    for (const update of UPDATES) assert.ok(notes.includes(`【更新】v${update.version}: `), update.version);
+    // 版の文字数に関係なく、どの版の通知も届いている
+    for (const update of UPDATES) assert.ok(notes.some((m) => m.startsWith(`【更新】v${update.version}: `)), update.version);
 
   } finally {
     await new Promise<void>((resolve,reject) => server.close((error) => error ? reject(error) : resolve()));
