@@ -1267,7 +1267,7 @@ export class App {
     const type = ACTION_ALIASES[typeIn] ?? typeIn;
     switch (type) {
       case 'buy':
-        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price'), maxTime: minutes(opt('max_minutes')) })];
+        return [act.buy(g, dt, { from: n('from', 0), itemno: item('item'), count: n('count'), slot: opt('slot') === undefined ? undefined : n('slot') - 1, expectPrice: opt('price'), maxTime: minutes(opt('max_minutes')), bargain: a.bargain === undefined || a.bargain === null || a.bargain === '' ? undefined : isYes(a.bargain) })];
       case 'shelf':
       case 'showcase': {
         const slot = n('slot') - 1;

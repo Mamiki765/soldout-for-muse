@@ -169,6 +169,23 @@ const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 /** 1.9.0 のナユタの首飾り */
 const NAYUTA = 70;
 
+export const V1100: PatchUpdate = {
+  version: '1.10.0',
+  date: '2026-11-28',
+  title: '市場の掘り出し物',
+  summary: `お客に売れた素材の一部 (${CATALOG.resaleRate / 10}%) が、市場の「掘り出し物」に戻るようになりました。市場に出ない素材 (獣の革・丸太・鉄塊など) も、棚に無いときに市場で買えることがあります。`,
+  notice: `お客に売れた素材の${CATALOG.resaleRate / 10}%が市場の「掘り出し物」に戻ります。GET /api/v1/market の bargains、買うのは buy に "bargain":true。詳細は GET /api/v1/updates`,
+  notes: [
+    `棚の品がお客 (街の人) に売れると、それが材料になる品か地図で採れる品なら、売れた数の${CATALOG.resaleRate / 10}%が市場の「掘り出し物」の枠に入ります。最終品 (材料にならない品) は戻りません。`,
+    '戻るのは、その品の市場の在庫 (ふつう＋掘り出し物) が少ないとき (卸値が標準価格より高いあいだ) だけです。市場にたっぷりある品には戻りません。',
+    '市場の上限はふつうの在庫と同じです (全店の手持ち・買い取り募集の預かり・市場の在庫を合わせて上限まで)。入りきらない分は戻りません。',
+    `掘り出し物の卸値は、掘り出し物の在庫だけで、ふつうの卸値と同じ式で決まります。市場に自然には湧かない品 (その時点の流通が減る向きの品) は、そこから${CATALOG.bargainPrice / 10}%の値段です。多くは標準価格より高めです。`,
+    '見方: GET /api/v1/market の bargains (品番・在庫・単価・取引時間)。文字版では「# 掘り出し物」の行。品ごとの今期・前期の記録 (戻った数・買われた数・上限で戻らなかった数) は resale_counts です。',
+    '買い方: buy に "from":0 と "bargain":true。"bargain":false ならふつうの在庫から。どちらも書かないときは、ふつうの在庫から買い、ふつうの在庫に無い品だけ掘り出し物から買います。取引時間の決まりは市場と同じです。',
+    `戻る割合 (${CATALOG.resaleRate / 10}%) は試しの値です。街の動きを見て変えることがあります。`,
+  ],
+};
+
 export const V190: PatchUpdate = {
   version: '1.9.0',
   date: '2026-11-28',
@@ -676,7 +693,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V1100, V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 

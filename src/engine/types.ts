@@ -158,6 +158,8 @@ export interface World {
   periodLog: LogEntry[];
   /** 買い取り募集 (原作にない追加。古い保存データには無い) */
   orders?: BuyOrder[];
+  /** 1.10.0 市場の掘り出し物 (客に売れた素材の還流)。古い保存データには無い */
+  resale?: ResaleState;
   /** モブ売上の時刻を記録し始めた時刻 (1.7.0)。これより前の売上は lastmobsale に無い */
   mobsaleSince?: number;
   /** 最後に付けた募集の番号 */
@@ -294,4 +296,20 @@ export function newWorld(now: number, maxItem: number): World {
     shops: [],
     periodLog: [],
   };
+}
+
+/** 1.10.0 掘り出し物の枠。どれも品番 → 個数 */
+export interface ResaleState {
+  /** 掘り出し物の在庫 */
+  stock: Record<number, number>;
+  /** 今期 (前の決算から) の記録: 戻った数・市場で買われた数・上限で戻せなかった数 */
+  today: Record<number, ResaleCount>;
+  /** 前期の記録 */
+  yesterday: Record<number, ResaleCount>;
+}
+
+export interface ResaleCount {
+  made: number;
+  bought: number;
+  rejected: number;
 }

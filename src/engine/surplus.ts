@@ -8,6 +8,7 @@
 import { isPublicItem } from '../data/catalog.js';
 import type { Game } from './game.js';
 import { orders } from './orders.js';
+import { resaleStock } from './resale.js';
 import { scaleUseMaterials } from './scripts.js';
 import type { Shop } from './types.js';
 import { loadUses } from './use.js';
@@ -134,7 +135,7 @@ export function inWarehouses(g: Game, dt: Shop): InWarehouse[] {
   }
   const out: InWarehouse[] = [];
   for (const [no, n] of need) {
-    if (!buyable(g, no) || mine.has(no) || onShelves.has(no) || (g.world.wholestore[no - 1] ?? 0) > 0) continue;
+    if (!buyable(g, no) || mine.has(no) || onShelves.has(no) || (g.world.wholestore[no - 1] ?? 0) + resaleStock(g, no) > 0) continue;
     let shops = 0;
     for (const s of g.shops) if (s.id !== dt.id && (s.item[no - 1] ?? 0) >= n) shops++;
     if (shops) out.push({ item: no, name: g.items[no].name, shops });

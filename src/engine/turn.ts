@@ -7,6 +7,7 @@ import { EVENTS } from '../data/catalog.js';
 import type { Game } from './game.js';
 import { addItemCost, startTracking } from './costs.js';
 import { checkWholeStore, getMarketStatus } from './market.js';
+import { addResale, checkResale, closeResalePeriod } from './resale.js';
 import { sweepOrders } from './orders.js';
 import { closePeriodPrices, observePrices } from './prices.js';
 import { turnPeriod } from './period.js';
@@ -146,6 +147,8 @@ export function turnProc(g: Game): void {
           dt.item[itemno - 1] -= sale;
           dt.itemtoday[itemno] = (dt.itemtoday[itemno] ?? 0) + sale;
           g.recordSaleTax(dt, tax, saleprice);
+          // 客に売れた素材の一部は市場の掘り出し物へ (1.10.0)
+          addResale(g, itemno, sale);
 
           // 売り切れ時の人気DOWN
           if (dt.item[itemno - 1] === 0) rankdown += (dt.rank / 100) ** 3 / 1000;
@@ -220,7 +223,10 @@ export function turnProc(g: Game): void {
 
     // 決算処理
     // 全店が改装中 (休業) でも、街の決算 (値動きの記録など) は行う。店ごとの決算と賞は営業中の店だけ (1.1.0)
-    if (dateupdate && g.allShops.some((s) => s.status)) turnPeriod(g, temptimenow + timespan);
+    if (dateupdate && g.allShops.some((s) => s.status)) {
+      turnPeriod(g, temptimenow + timespan);
+      closeResalePeriod(g);
+    }
 
     // 市場商品数のUP/DOWN処理
     for (let cnt = 1; cnt <= g.maxItem; cnt++) {
@@ -243,6 +249,7 @@ export function turnProc(g: Game): void {
     }
     // 市場在庫上限下限チェック＆補正
     checkWholeStore(g);
+    checkResale(g);
     // 決算をした区間なら、この区間の市場在庫の増減まで済んだ値で値動きを1行にする (0.6.0)
     closePeriodPrices(g);
 
