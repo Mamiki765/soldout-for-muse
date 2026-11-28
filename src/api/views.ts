@@ -388,7 +388,7 @@ export function marketData(g: Game, prev: LastPrices = new Map()) {
       price_change: changePct(c.price, p?.whole ?? 0),
     };
   });
-  // 1.10.0 掘り出し物 (客に売れた素材の還流)。買うときは buy に "bargain":true
+  // 1.9.0 掘り出し物 (客に売れた素材の還流)。買うときは buy に "bargain":true
   const r = g.world.resale;
   const bargains = getResaleStore(g).map((c) => ({
     item: c.itemno, name: g.items[c.itemno].name, stock: c.stock, price: c.price, std: g.items[c.itemno].price,

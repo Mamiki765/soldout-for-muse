@@ -1,4 +1,4 @@
-// SOLD OUT for Muse — 1.10.0 素材の市場還流 (市場の掘り出し物) の決まり
+// SOLD OUT for Muse — 1.9.0 素材の市場還流 (市場の掘り出し物) の決まり
 // This program is free software under the GNU GPL v2 or later. See LICENSE.
 // 還流率・倍率の数字は品データ (tools/v1100.json → items.json の define) にだけ置き、ここでは大小と収支を確かめる。
 
