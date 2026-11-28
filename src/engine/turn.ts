@@ -147,7 +147,7 @@ export function turnProc(g: Game): void {
           dt.item[itemno - 1] -= sale;
           dt.itemtoday[itemno] = (dt.itemtoday[itemno] ?? 0) + sale;
           g.recordSaleTax(dt, tax, saleprice);
-          // 客に売れた素材の一部は市場の掘り出し物へ (1.10.0)
+          // 客に売れた素材の一部は市場の掘り出し物へ (1.9.0)
           addResale(g, itemno, sale);
 
           // 売り切れ時の人気DOWN
