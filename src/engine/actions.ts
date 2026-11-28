@@ -112,13 +112,39 @@ export interface BuyRequest {
   maxTime?: number;
   /**
    * 市場の掘り出し物から買う (1.9.0)。true で掘り出し物、false でふつうの在庫。
-   * 省略時はふつうの在庫から買い、ふつうの在庫に無い品だけ掘り出し物から買う
+   * 省略時は、両方にあれば安い方から買い、足りなければ続けてもう片方からも買う (時間は1回ぶん、1.9.1)。片方にしか無ければそちらから。
+   * slot を付けたときはふつうの在庫、price を付けたときはその単価の方だけから買う
    */
   bargain?: boolean;
 }
 
-/** 原作 buy-s.cgi: 市場または他店から仕入れる */
+/** 仕入れる。市場で bargain を省略したときは、ふつうの在庫と掘り出し物の安い方から買い、足りなければもう片方からも買う (1.9.1) */
 export function buy(g: Game, dt: Shop, req: BuyRequest): string {
+  if (req.from !== 0 || req.bargain !== undefined || req.slot !== undefined) return buyOne(g, dt, req);
+  const no = Math.trunc(req.itemno);
+  const normal = (g.world.wholestore[no - 1] ?? 0) > 0 ? getWholeStore(g).find((c) => c.itemno === no) : undefined;
+  const bargain = getResaleStore(g).find((c) => c.itemno === no);
+  if (!normal || !bargain) return buyOne(g, dt, req);
+  // 単価を指定したら、その単価の方だけ (両方同じ単価ならふつうの在庫)
+  if (req.expectPrice !== undefined) return buyOne(g, dt, { ...req, bargain: req.expectPrice !== normal.price && req.expectPrice === bargain.price });
+  const cheapIsBargain = bargain.price < normal.price;
+  const first = cheapIsBargain ? bargain : normal;
+  const want = Math.trunc(req.count);
+  const before = dt.item[no - 1];
+  const ret = buyOne(g, dt, { ...req, count: Math.min(want, first.stock), bargain: cheapIsBargain });
+  const rest = want - (dt.item[no - 1] - before);
+  if (rest <= 0) return ret;
+  try {
+    return ret + '\n' + buyOne(g, dt, { ...req, count: rest, bargain: !cheapIsBargain }, false);
+  } catch (e) {
+    // 続きが買えない (資金・所持上限など) ときは、安い方で買えた分だけ
+    if (e instanceof GameError) return ret;
+    throw e;
+  }
+}
+
+/** 原作 buy-s.cgi: 市場または他店から仕入れる。chargeTime が false なら時間を使わない (同じ取引の続き) */
+function buyOne(g: Game, dt: Shop, req: BuyRequest, chargeTime = true): string {
   const itemno = Math.trunc(req.itemno);
   let num = Math.trunc(req.count);
   const isWhole = req.from === 0;
@@ -184,14 +210,14 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   if (!num) throw new GameError(`冷やかしですか？ (${why})`);
 
   // 時間は1回の取引ごと (個数に関係しない)。式は g.buyTime (市場は半分)
-  const usetime = g.buyTime(itemno, baseprice, isWhole);
-  if (req.maxTime !== undefined && usetime > req.maxTime) {
+  const usetime = chargeTime ? g.buyTime(itemno, baseprice, isWhole) : 0;
+  if (chargeTime && req.maxTime !== undefined && usetime > req.maxTime) {
     throw new GameError(
       `この取引は${formatHms(usetime)}かかります (上限 ${formatHms(Math.max(0, Math.trunc(req.maxTime)))} を超えるので中止。時間は使っていません)。` +
         '時間は個数に関係なく1回ぶんなので、買うならまとめて買うのが得です',
     );
   }
-  const fromCoupon = g.useTime(usetime);
+  const fromCoupon = chargeTime ? g.useTime(usetime) : 0;
 
   const [, tax] = g.saleTax(itemno, num, baseprice * num, dts ? g.userTaxRate(dts) : 0);
   if (dts) {
@@ -222,7 +248,7 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   const item = g.items[itemno];
   const ret =
     `${dts ? dts.shopname : bargain ? '市場 (掘り出し物)' : '市場'}より${item.name}を${num}${item.scale}@￥${price}(計￥${price * num})にて仕入ました` +
-    `/${formatHms(usetime)}消費` +
+    (chargeTime ? `/${formatHms(usetime)}消費` : '/同じ取引の続き (時間は使いません)') +
     (fromCoupon > 0 ? `(うちクーポン${formatHms(fromCoupon)})` : '');
   g.writeLog(0, dt.id, 0, ret);
 

@@ -98,7 +98,7 @@ test('掘り出し物の卸値: 少ないうちは標準以上、plus 0以下の
   assert.ok(bargain.price > normal.price, '同じ在庫ならふつうより高い');
 });
 
-test('買い方: "bargain":true で掘り出し物から。省略時はふつうの在庫が先、無ければ掘り出し物。在庫・お金は負にならない', () => {
+test('買い方: "bargain":true で掘り出し物から。省略時は片方にしか無ければそちらから。在庫・お金は負にならない', () => {
   const { g, me } = setup();
   const kawa = no(g, '獣の革');
   addResale(g, kawa, 1000);
@@ -108,7 +108,7 @@ test('買い方: "bargain":true で掘り出し物から。省略時はふつう
   assert.match(msg, /掘り出し物/);
   assert.equal(resaleStock(g, kawa), before - 5);
   assert.equal(me.item[kawa - 1], 5);
-  // ふつうの在庫があれば、省略時はふつうから
+  // ふつうの在庫があり、そちらが安ければ、省略時はふつうから
   g.world.wholestore[kawa - 1] = 50;
   buy(g, me, { from: 0, itemno: kawa, count: 3 });
   assert.equal(g.world.wholestore[kawa - 1], 47);
@@ -154,4 +154,31 @@ test('観戦画面の市場: 掘り出し物はふつうの在庫と同じ行に
   const html = marketPage(g);
   assert.match(html, new RegExp(`${g.items[kawa].name}</td><td>11\\+${only}<`));
   assert.equal(html.split(g.items[kawa].name).length - 1, 1, '同じ品は1行だけ');
+});
+
+test('省略時の買い方: 安い方から買い、足りなければ高い方からも続けて買う。時間は1回ぶん (リカさん 1.9.1)', () => {
+  const { g, me } = setup();
+  const kawa = no(g, '獣の革');
+  g.world.wholestore[kawa - 1] = 10;
+  g.world.resale = { stock: { [kawa]: 20 }, today: {}, yesterday: {} };
+  const normal = getWholeStore(g).find((c) => c.itemno === kawa)!;
+  const bargain = getResaleStore(g).find((c) => c.itemno === kawa)!;
+  const [cheap, dear] = normal.price <= bargain.price ? [normal, bargain] : [bargain, normal];
+  const money = me.money;
+  const time = me.time;
+  const msg = buy(g, me, { from: 0, itemno: kawa, count: 15 });
+  assert.equal(me.item[kawa - 1], 15, '指定した数を1回で');
+  const cheapLeft = cheap === normal ? g.world.wholestore[kawa - 1] : resaleStock(g, kawa);
+  const dearLeft = dear === normal ? g.world.wholestore[kawa - 1] : resaleStock(g, kawa);
+  assert.equal(cheapLeft, 0, '安い方を先に買い切る');
+  assert.equal(dearLeft, dear.stock - (15 - cheap.stock), '残りを高い方から');
+  assert.equal(money - me.money, cheap.price * cheap.stock + dear.price * (15 - cheap.stock), 'それぞれの単価で払う');
+  assert.equal(me.time - time, g.buyTime(kawa, cheap.price, true), '時間は1回ぶん');
+  assert.match(msg, /掘り出し物/);
+  // 安い方で足りるなら、高い方には手を付けない
+  g.world.wholestore[kawa - 1] = 10;
+  g.world.resale = { stock: { [kawa]: 20 }, today: {}, yesterday: {} };
+  const before = { ws: 10, rs: 20 };
+  buy(g, me, { from: 0, itemno: kawa, count: 3 });
+  assert.equal(cheap === normal ? before.rs : before.ws, cheap === normal ? resaleStock(g, kawa) : g.world.wholestore[kawa - 1]);
 });

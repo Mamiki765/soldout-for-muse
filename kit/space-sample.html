@@ -293,7 +293,7 @@ const views = {
   async market() {
     const m = await api('/market');
     // 掘り出し物 (bargains: お客に売れた素材から戻った分、卸値は別) は同じ行にまとめる。在庫は「ふつう+掘り出し物」、掘り出し物だけの品は (掘り出し物)
-    // 買うときは buy に "bargain":true (省略するとふつうの在庫が先、無ければ掘り出し物)
+    // 買うときは buy の bargain を省略すると、安い方から買って足りなければもう片方からも買う ("bargain":true で掘り出し物だけ)
     const sortOf = new Map(m.items.map((c, i) => [c.item, i]));
     const bg = new Map((m.bargains || []).map((c) => [c.item, c]));
     const rows = m.items.map((c) => {

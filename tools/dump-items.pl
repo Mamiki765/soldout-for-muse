@@ -915,6 +915,12 @@ if (!grep { $_ eq '--original' } @ARGV) {
 		my $v191 = JSON::PP->new->utf8->decode(do { local $/; <$v191_fh> });
 		close $v191_fh;
 		$define{version} = $v191->{version};
+
+		# 1.9.2 市場のまとめ買い (tools/v192.json)。データは変えず版だけ
+		open(my $v192_fh, '<:raw', "$FindBin::Bin/v192.json") or die $!;
+		my $v192 = JSON::PP->new->utf8->decode(do { local $/; <$v192_fh> });
+		close $v192_fh;
+		$define{version} = $v192->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
