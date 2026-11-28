@@ -406,7 +406,7 @@ function homeLine(app: App, town: Town, som: string): string {
 }
 
 /** トップ: 全員をアイコン付きで順位順に並べる (箱庭のように。0.5.0)。出来事は PC では右の列に置いて、スクロールしても見える */
-const TOP_IMAGE = 'top-1.8.2.jpg';
+const TOP_IMAGE = 'top-1.10.0.jpg';
 
 function topPage(app: App, g: Game): string {
   const start = app.party && app.partyPublicUrl && app.store.getSetting('viewer_key_hash') && app.store.getSetting('party_join_invite')
