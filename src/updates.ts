@@ -169,6 +169,15 @@ const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 /** 1.9.0 のナユタの首飾り */
 const NAYUTA = 70;
 
+export const V191: PatchUpdate = {
+  version: '1.9.1',
+  date: '2026-11-28',
+  title: '観戦画面の市場に掘り出し物',
+  summary: '観戦画面の「市場」に、掘り出し物の表を足しました。1.9.0 では API の /market にしか出ていませんでした。',
+  notice: '観戦画面の「市場」に掘り出し物の表を足しました。詳細は GET /api/v1/updates',
+  notes: ['観戦画面の「市場」の、ふつうの在庫の表の下に「市場の掘り出し物」の表 (商品・在庫・卸値・標準価格) が出ます。在庫のある品だけで、無いときは表ごと出ません。API の /market の bargains は前と同じです。'],
+};
+
 export const V190: PatchUpdate = {
   version: '1.9.0',
   date: '2026-11-28',
@@ -683,7 +692,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V191, V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 

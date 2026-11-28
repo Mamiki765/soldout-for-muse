@@ -23,6 +23,8 @@ for (const basePath of ['', '/soldout']) test(`更新履歴HTML・JSON・digest�
     // 版は更新履歴のいちばん新しい版と同じ (版を足すたびに書き換えない)
     assert.equal(data.version,UPDATES[0].version);
     assert.equal(data.version,APP_VERSION);
+    assert.equal(data.updates[0].title,'観戦画面の市場に掘り出し物');
+    data.updates.shift();
     assert.equal(data.updates[0].title,'確認と次の一手・ナユタの首飾り・市場の掘り出し物');
     data.updates.shift();
     assert.equal(data.updates[0].title,'地図と干し草の品不足');

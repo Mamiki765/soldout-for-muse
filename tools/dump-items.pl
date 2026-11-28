@@ -909,6 +909,12 @@ if (!grep { $_ eq '--original' } @ARGV) {
 			$define{$k} = $v190r->{define}{$k};
 		}
 		$define{version} = $v190r->{version};
+
+		# 1.9.1 観戦画面の市場に掘り出し物 (tools/v191.json)。データは変えず版だけ
+		open(my $v191_fh, '<:raw', "$FindBin::Bin/v191.json") or die $!;
+		my $v191 = JSON::PP->new->utf8->decode(do { local $/; <$v191_fh> });
+		close $v191_fh;
+		$define{version} = $v191->{version};
 	}
 
 	# 熟練の共有: item の使い方は exp_item (転職で熟練が集まる先) の熟練を読み書きする。
