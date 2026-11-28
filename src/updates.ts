@@ -169,6 +169,19 @@ const NEW_V100 = Array.from({ length: 16 }, (_, i) => 116 + i);
 /** 1.9.0 のナユタの首飾り */
 const NAYUTA = 70;
 
+export const V192: PatchUpdate = {
+  version: '1.9.2',
+  date: '2026-11-28',
+  title: '市場のまとめ買い (ふつうの在庫と掘り出し物)',
+  summary: '市場で買うとき、ふつうの在庫と掘り出し物の両方にある品は、安い方から買い、足りなければもう片方からも続けて買います。',
+  notice: '市場で買うとき、ふつうの在庫と掘り出し物の安い方から買い、足りなければもう片方からも続けて買います (時間は1回ぶん)。詳細は GET /api/v1/updates',
+  notes: [
+    '市場で買うとき bargain を省略すると、ふつうの在庫と掘り出し物の安い方から買い、足りなければ続けてもう片方からも買います。例: ふつう10個・掘り出し物20個のときに15個買うと、安い方の10個と高い方の5個を1回で買います (それぞれの単価で払い、時間は1回ぶん)。',
+    '"bargain":true で掘り出し物だけ、false でふつうの在庫だけから買います。price を付けたときはその単価の方だけ、slot を付けたときはふつうの在庫だけです。',
+    'キットを 1.9.2 にしました (スペースの見本の市場タブの、買い方の説明を直しただけです)。',
+  ],
+};
+
 export const V191: PatchUpdate = {
   version: '1.9.1',
   date: '2026-11-28',
@@ -695,7 +708,7 @@ export const V033: PatchUpdate = {
 };
 
 /** 新しい版を先頭に足す (seed-market・通知・digest は先頭を最新版とみなす) */
-export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V191, V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
+export const UPDATES: (PatchUpdate | FashionUpdate)[] = [V192, V191, V190, V182, V181, V180, V170, V160, V150, V141, V140, V130, V121, V120, V113, V112, V111, V110, V102, V101, V100, V062, V061, V060, V051, V050, V041, V040, V033, V032, V031, V030, V021, V020];
 
 export const APP_VERSION = UPDATES[0].version;
 
