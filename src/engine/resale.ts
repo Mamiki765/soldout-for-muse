@@ -68,10 +68,12 @@ function room(g: Game, no: number): number {
 /** 客に sold 個売れたとき (turn.ts の売上処理から)。戻した数を返す */
 export function addResale(g: Game, no: number, sold: number): number {
   if (!(sold > 0) || !(CATALOG.resaleRate > 0) || !resaleItems(g).has(no)) return 0;
-  if ((g.world.wholestore[no - 1] ?? 0) + resaleStock(g, no) >= resaleLine(g, no)) return 0;
+  // 線まであと何個入るか。1回にたくさん売れても、線を超えては戻さない (線の下なら卸値は標準以上)
+  const below = Math.floor(resaleLine(g, no)) - (g.world.wholestore[no - 1] ?? 0) - resaleStock(g, no);
+  if (below <= 0) return 0;
   let add = (sold * CATALOG.resaleRate) / 1000;
   if (add < 1 && add > 0) add = g.rand(1 / add) < 1 ? 1 : 0;
-  add = Math.trunc(add);
+  add = Math.min(Math.trunc(add), below);
   if (!add) return 0;
   const r = resaleState(g);
   const put = Math.max(0, Math.min(add, room(g, no)));
@@ -87,10 +89,11 @@ export function checkResale(g: Game): void {
   if (!r) return;
   for (const key of Object.keys(r.stock)) {
     const no = Number(key);
-    const over = -room(g, no);
-    if (over > 0) {
-      r.stock[no] = Math.max(0, r.stock[no] - over);
-      count(r.today, no).rejected += over;
+    // 削るのは掘り出し物の在庫まで (手持ちだけで上限を超えている分は数えない)
+    const cut = Math.min(Math.max(0, -room(g, no)), r.stock[no] ?? 0);
+    if (cut > 0) {
+      r.stock[no] -= cut;
+      count(r.today, no).rejected += cut;
     }
     if (!(r.stock[no] > 0)) delete r.stock[no];
   }

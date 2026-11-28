@@ -47,11 +47,16 @@ test('客に売れた数の一部だけが戻り、全部は戻らない。市�
   const put = addResale(g, kawa, 100);
   assert.ok(put > 0, '市場が空なら戻る');
   assert.ok(put < 100, '全部は戻らない');
-  assert.equal(put, Math.trunc((100 * CATALOG.resaleRate) / 1000));
+  assert.equal(put, Math.min(Math.trunc((100 * CATALOG.resaleRate) / 1000), Math.floor(resaleLine(g, kawa))));
   // 市場在庫が卸値=標準の線以上なら戻さない
   const tetsu = no(g, '鉄塊');
   g.world.wholestore[tetsu - 1] = Math.ceil(resaleLine(g, tetsu));
   assert.equal(addResale(g, tetsu, 1000), 0);
+  // 1回にたくさん売れても、線を超えては戻さない
+  const kawa2 = no(g, '木の枝');
+  addResale(g, kawa2, 10_000_000);
+  assert.ok(resaleStock(g, kawa2) <= resaleLine(g, kawa2));
+  assert.ok(getResaleStore(g).find((c) => c.itemno === kawa2)!.price >= g.items[kawa2].price, '線の下なので標準以上');
   // 最終品は戻らない
   assert.equal(addResale(g, no(g, 'ナユタの首飾り'), 100), 0);
 });
@@ -69,9 +74,13 @@ test('掘り出し物は市場の上限を超えない (ふつうの在庫・店
   me.item[kawa - 1] = 0;
   addResale(g, kawa, 100);
   assert.ok(resaleStock(g, kawa) > 0);
-  me.item[kawa - 1] = cap;
+  const stocked = resaleStock(g, kawa);
+  const rejectedBefore = g.world.resale!.today[kawa].rejected;
+  me.item[kawa - 1] = cap * 2; // 手持ちだけで上限を超えている
   checkResale(g);
   assert.equal(resaleStock(g, kawa), 0);
+  assert.equal(g.world.resale!.today[kawa].rejected - rejectedBefore, stocked, '数えるのは削った掘り出し物だけ');
+  me.item[kawa - 1] = cap;
   assert.ok(me.item[kawa - 1] + resaleStock(g, kawa) + g.world.wholestore[kawa - 1] <= cap);
 });
 
