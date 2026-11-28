@@ -131,20 +131,31 @@ export function buy(g: Game, dt: Shop, req: BuyRequest): string {
   const first = cheapIsBargain ? bargain : normal;
   const want = Math.trunc(req.count);
   const before = dt.item[no - 1];
-  const ret = buyOne(g, dt, { ...req, count: Math.min(want, first.stock), bargain: cheapIsBargain });
+  const paid = dt.paytoday;
+  let ret = buyOne(g, dt, { ...req, count: Math.min(want, first.stock), bargain: cheapIsBargain }, true, false);
   const rest = want - (dt.item[no - 1] - before);
-  if (rest <= 0) return ret;
-  try {
-    return ret + '\n' + buyOne(g, dt, { ...req, count: rest, bargain: !cheapIsBargain }, false);
-  } catch (e) {
-    // 続きが買えない (資金・所持上限など) ときは、安い方で買えた分だけ
-    if (e instanceof GameError) return ret;
-    throw e;
+  if (rest > 0) {
+    try {
+      ret += '\n' + buyOne(g, dt, { ...req, count: rest, bargain: !cheapIsBargain }, false, false);
+    } catch (e) {
+      // 続きが買えない (資金・所持上限など) ときは、安い方で買えた分だけ
+      if (!(e instanceof GameError)) throw e;
+    }
   }
+  // ギフト券は2つを合わせた支払いで数える
+  marketGift(g, dt, dt.paytoday - paid);
+  return ret;
 }
 
-/** 原作 buy-s.cgi: 市場または他店から仕入れる。chargeTime が false なら時間を使わない (同じ取引の続き) */
-function buyOne(g: Game, dt: Shop, req: BuyRequest, chargeTime = true): string {
+/** @@FUNCBUY: 市場からの仕入の場合、\500000 に付き1枚のギフト券を進呈する */
+function marketGift(g: Game, dt: Shop, total: number): void {
+  let count = Math.trunc(total / 500000);
+  if (count) count = addItemSub(g, dt, itemNoByName('ギフト券'), count);
+  if (count) g.writeLog(0, dt.id, 0, '市場からギフト券を' + count + '枚もらいました');
+}
+
+/** 原作 buy-s.cgi: 市場または他店から仕入れる。chargeTime が false なら時間を使わない (同じ取引の続き)。gift が false ならギフト券はまとめて呼び出し元で */
+function buyOne(g: Game, dt: Shop, req: BuyRequest, chargeTime = true, gift = true): string {
   const itemno = Math.trunc(req.itemno);
   let num = Math.trunc(req.count);
   const isWhole = req.from === 0;
@@ -252,12 +263,7 @@ function buyOne(g: Game, dt: Shop, req: BuyRequest, chargeTime = true): string {
     (fromCoupon > 0 ? `(うちクーポン${formatHms(fromCoupon)})` : '');
   g.writeLog(0, dt.id, 0, ret);
 
-  // @@FUNCBUY: 市場からの仕入の場合、\500000 に付き1枚のギフト券を進呈する
-  if (isWhole) {
-    let count = Math.trunc((num * price) / 500000);
-    if (count) count = addItemSub(g, dt, itemNoByName('ギフト券'), count);
-    if (count) g.writeLog(0, dt.id, 0, '市場からギフト券を' + count + '枚もらいました');
-  }
+  if (isWhole && gift) marketGift(g, dt, num * price);
   return ret;
 }
 
