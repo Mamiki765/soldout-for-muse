@@ -185,15 +185,15 @@ test('省略時の買い方: 安い方から買い、足りなければ高い方
 
 test('まとめ買いのギフト券は、2つを合わせた支払いで数える', () => {
   const { g, me } = setup();
-  const kawa = no(g, '獣の革');
+  const kawa = no(g, 'ミスリル塊');
   const gift = no(g, 'ギフト券');
   const limit = g.items[kawa].limit;
   g.items[kawa].limit = 1_000_000;
-  g.world.wholestore[kawa - 1] = 1000;
-  g.world.resale = { stock: { [kawa]: 1000 }, today: {}, yesterday: {} };
+  g.world.wholestore[kawa - 1] = 100;
+  g.world.resale = { stock: { [kawa]: 100 }, today: {}, yesterday: {} };
   const before = me.item[gift - 1];
   const money = me.money;
-  buy(g, me, { from: 0, itemno: kawa, count: 2000 });
+  buy(g, me, { from: 0, itemno: kawa, count: 200 });
   g.items[kawa].limit = limit;
   const paid = money - me.money;
   assert.ok(paid >= 500000, '券が出るだけ払っている');
