@@ -293,7 +293,10 @@ const views = {
   async market() {
     const m = await api('/market');
     const rows = m.items.map((c) => `<tr><td>${esc(c.name)}</td><td class="n">${c.stock}</td><td class="n">${yen(c.price)}</td><td class="n">${yen(c.std)}</td><td>${c.balance >= 110 ? '飽和' : c.balance && c.balance <= 90 ? '不足' : '均衡'}</td></tr>`).join('');
-    return `<div class="panel scroll"><h2>市場 <small class="muted">人口 ${m.people.toLocaleString()}</small></h2><table><tr><th>品</th><th class="n">在庫</th><th class="n">単価</th><th class="n">標準</th><th>需給</th></tr>${rows || '<tr><td colspan="5" class="muted">今は品がありません</td></tr>'}</table></div>`;
+    // 掘り出し物 (お客に売れた素材から戻った分。ふつうの在庫とは別の枠)。在庫のある品だけ。買うときは buy に "bargain":true
+    const bargains = (m.bargains || []).map((c) => `<tr><td>${esc(c.name)}</td><td class="n">${c.stock}</td><td class="n">${yen(c.price)}</td><td class="n">${yen(c.std)}</td></tr>`).join('');
+    return `<div class="panel scroll"><h2>市場 <small class="muted">人口 ${m.people.toLocaleString()}</small></h2><table><tr><th>品</th><th class="n">在庫</th><th class="n">単価</th><th class="n">標準</th><th>需給</th></tr>${rows || '<tr><td colspan="5" class="muted">今は品がありません</td></tr>'}</table></div>`
+      + (bargains ? `<div class="panel scroll"><h2>市場の掘り出し物</h2><table><tr><th>品</th><th class="n">在庫</th><th class="n">単価</th><th class="n">標準</th></tr>${bargains}</table></div>` : '');
   },
   async orders() {
     const o = await api('/orders');
